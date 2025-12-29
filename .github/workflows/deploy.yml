@@ -1,24 +1,13 @@
 name: Deploy to GitHub Pages
 
 on:
-  push:
-    branches:
-      - main
-      - master
-      - feature/develop
   workflow_dispatch:
     inputs:
       branch:
-        description: 'Branch to deploy'
+        description: 'Branch to deploy (enter branch name)'
         required: true
         default: 'feature/develop'
-        type: choice
-        options:
-          - main
-          - master
-          - feature/develop
-          - develop
-          - staging
+        type: string
 
 permissions:
   contents: read
