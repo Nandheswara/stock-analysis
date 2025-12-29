@@ -24,12 +24,6 @@ $(document).ready(function() {
     $('#saveDataBtn').on('click', function() {
         submitManualData();
     });
-
-    // Initialize theme (dark/light) and toggle handler
-    initTheme();
-    $('#themeToggle').on('click', function() {
-        toggleTheme();
-    });
 });
 
 // Load stocks from localStorage
@@ -298,37 +292,4 @@ function submitManualData() {
     } else {
         showAlert('danger', 'Stock not found in the analysis');
     }
-}
-
-// Theme handling: allow toggling between dark and light themes and persist choice
-function applyTheme(theme) {
-    if (theme === 'light') {
-        document.body.classList.add('light-theme');
-        // update icon to sun
-        const icon = document.getElementById('themeIcon');
-        if (icon) { icon.className = 'bi bi-sun-fill'; }
-    } else {
-        document.body.classList.remove('light-theme');
-        const icon = document.getElementById('themeIcon');
-        if (icon) { icon.className = 'bi bi-moon-fill'; }
-    }
-    try {
-        localStorage.setItem('theme', theme);
-    } catch (e) {
-        // ignore storage errors
-    }
-}
-
-function toggleTheme() {
-    const current = (localStorage.getItem('theme') === 'light') ? 'light' : 'dark';
-    const next = current === 'light' ? 'dark' : 'light';
-    applyTheme(next);
-}
-
-function initTheme() {
-    let stored = null;
-    try { stored = localStorage.getItem('theme'); } catch (e) { stored = null; }
-    const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
-    const theme = stored ? stored : (prefersLight ? 'light' : 'dark');
-    applyTheme(theme);
 }
