@@ -1,12 +1,119 @@
-/* Global Styles */
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background-color: #0b0c10;
+    color: #e9ecef;
 }
 
-/* Home Page Styles */
+.card {
+    background-color: #111218;
+    color: #e9ecef;
+    border: 1px solid #1f2229;
+}
+
+.card-header {
+    background-color: #14151b;
+    border-bottom: 1px solid #1f2229;
+    color: #f8f9fa;
+}
+
+.card-body {
+    background-color: #111218;
+    color: #e9ecef;
+}
+
+.navbar-dark.bg-dark {
+    background-color: #050608 !important;
+}
+
+footer.bg-dark {
+    background-color: #050608 !important;
+    color: #e9ecef;
+}
+
+.modal-content {
+    background-color: #111218;
+    color: #e9ecef;
+    border: 1px solid #1f2229;
+}
+
+.modal-header.bg-primary {
+    background: linear-gradient(135deg, #1f2a5a 0%, #3a245f 100%);
+}
+
+.text-muted {
+    color: #adb5bd !important;
+}
+
+.form-control {
+    background-color: #14151b;
+    border: 1px solid #343a40;
+    color: #f8f9fa;
+}
+
+.form-control:focus {
+    background-color: #14151b;
+    color: #f8f9fa;
+    border-color: #7289ff;
+    box-shadow: 0 0 0 0.2rem rgba(114,137,255,0.25);
+}
+
+.form-control::placeholder {
+    color: #6c757d;
+    opacity: 1;
+}
+
+::-webkit-input-placeholder {
+    color: #6c757d;
+}
+
+:-moz-placeholder {
+    color: #6c757d;
+    opacity: 1;
+}
+
+::-moz-placeholder {
+    color: #6c757d;
+    opacity: 1;
+}
+
+:-ms-input-placeholder {
+    color: #6c757d;
+}
+
+label.form-label {
+    color: #e9ecef;
+}
+
+.btn-primary {
+    background-color: #7289ff;
+    border-color: #7289ff;
+    color: #0b0c10;
+}
+
+.btn-primary:hover {
+    background-color: #5a72e0;
+    border-color: #5a72e0;
+}
+
+.btn-secondary {
+    background-color: #343a40;
+    border-color: #343a40;
+    color: #f8f9fa;
+}
+
+.btn-outline-danger {
+    color: #ff6b6b;
+    border-color: #ff6b6b;
+}
+
+.btn-outline-danger:hover {
+    background-color: #ff6b6b;
+    color: #0b0c10;
+}
+
 .hero-section {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    background: linear-gradient(135deg, #1f2a5a 0%, #3a245f 100%);
+    color: #f8f9fa;
     padding: 80px 20px;
     text-align: center;
     border-radius: 15px;
@@ -24,16 +131,21 @@ body {
     opacity: 0.9;
     max-width: 600px;
     margin: 0 auto 30px;
+    color: #ced4da;
 }
 
 .feature-card {
-    transition: transform 0.3s, box-shadow 0.3s;
+    background-color: #14151b;
+    border-radius: 10px;
+    border: 1px solid #1f2229;
+    transition: transform 0.3s, box-shadow 0.3s, background-color 0.3s;
     height: 100%;
 }
 
 .feature-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    background-color: #191b23;
 }
 
 .feature-icon {
@@ -41,10 +153,10 @@ body {
     margin-bottom: 20px;
 }
 
-.feature-icon.blue { color: #667eea; }
-.feature-icon.green { color: #28a745; }
-.feature-icon.orange { color: #fd7e14; }
-.feature-icon.red { color: #dc3545; }
+.feature-icon.blue { color: #7289ff; }
+.feature-icon.green { color: #3ddc84; }
+.feature-icon.orange { color: #ffb454; }
+.feature-icon.red { color: #ff6b6b; }
 
 .cta-button {
     padding: 15px 40px;
@@ -53,35 +165,46 @@ body {
     text-decoration: none;
 }
 
+.cta-button.primary {
+    background-color: #7289ff;
+    color: #0b0c10;
+    border: none;
+}
+
+.cta-button.primary:hover {
+    background-color: #5a72e0;
+}
+
 .metrics-preview {
-    background-color: #f8f9fa;
+    background-color: #14151b;
     border-radius: 10px;
     padding: 30px;
     margin-top: 40px;
+    border: 1px solid #1f2229;
 }
 
 .metric-badge {
     display: inline-block;
     padding: 8px 15px;
     margin: 5px;
-    background-color: white;
+    background-color: #1e2028;
     border-radius: 20px;
     font-size: 0.9rem;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+    color: #e9ecef;
 }
 
-/* Analysis Page Styles */
 .header-section {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    background: linear-gradient(135deg, #1f2a5a 0%, #3a245f 100%);
+    color: #f8f9fa;
     padding: 30px;
     border-radius: 10px;
     margin-bottom: 30px;
 }
 
 .stock-count-badge {
-    background-color: #28a745;
-    color: white;
+    background-color: #3ddc84;
+    color: #0b0c10;
     padding: 5px 15px;
     border-radius: 20px;
     font-size: 0.9rem;
@@ -89,44 +212,57 @@ body {
 
 .analysis-table {
     font-size: 0.85rem;
+    background-color: #111218;
+    color: #e9ecef;
 }
 
 .analysis-table th {
-    background-color: #343a40;
-    color: white;
+    background-color: #1f232b;
+    color: #f8f9fa;
     position: sticky;
     top: 0;
     z-index: 10;
     white-space: nowrap;
+    border-bottom: 1px solid #343a40;
 }
 
 .analysis-table td {
     vertical-align: middle;
     white-space: nowrap;
+    border-bottom: 1px solid #1f2229;
 }
 
 .metric-header {
-    background-color: #495057 !important;
-    color: white;
+    background-color: #262b33 !important;
+    color: #f8f9fa;
     font-weight: bold;
 }
 
 .stock-row:hover {
-    background-color: #f8f9fa;
+    background-color: #191b23;
 }
 
 .good-value {
-    color: #28a745;
+    color: #3ddc84;
     font-weight: bold;
 }
 
 .bad-value {
-    color: #dc3545;
+    color: #ff6b6b;
     font-weight: bold;
 }
 
 .neutral-value {
-    color: #6c757d;
+    color: #adb5bd;
+}
+
+.text-center {
+    color: #e9ecef;
+}
+
+.analysis-table td.neutral-value,
+.analysis-table td.text-center {
+    color: #e9ecef;
 }
 
 .remove-btn {
@@ -137,6 +273,9 @@ body {
 .table-container {
     overflow-x: auto;
     max-height: 70vh;
+    background-color: #111218;
+    border-radius: 8px;
+    border: 1px solid #1f2229;
 }
 
 .add-stock-form {
@@ -153,30 +292,34 @@ body {
 
 .stock-symbol {
     font-weight: bold;
-    color: #007bff;
+    color: #7289ff;
 }
 
 .metric-category {
-    background-color: #e9ecef;
+    background-color: #1f232b;
     font-weight: 600;
+    color: #f8f9fa;
 }
 
-#stocksTable th, #stocksTable td {
+#stocksTable th,
+#stocksTable td {
     padding: 8px 12px;
     text-align: center;
+    background-color: inherit;
 }
 
-#stocksTable th:first-child, #stocksTable td:first-child {
+#stocksTable th:first-child,
+#stocksTable td:first-child {
     text-align: left;
     position: sticky;
     left: 0;
-    background-color: inherit;
+    background-color: #1f232b;
     z-index: 5;
 }
 
 .btn-remove {
     background-color: #dc3545;
-    color: white;
+    color: #f8f9fa;
     border: none;
     padding: 3px 8px;
     border-radius: 3px;
@@ -191,15 +334,15 @@ body {
 .empty-state {
     text-align: center;
     padding: 60px 20px;
-    color: #6c757d;
+    color: #adb5bd;
 }
 
 .empty-state i {
     font-size: 4rem;
     margin-bottom: 20px;
+    color: #343a40;
 }
 
-/* Responsive adjustments */
 @media (max-width: 768px) {
     .hero-section h1 {
         font-size: 2rem;
@@ -217,4 +360,151 @@ body {
     .feature-icon {
         font-size: 2rem;
     }
+}
+
+/* Light theme overrides when `body` has class `light-theme` */
+body.light-theme {
+    background-color: #f8f9fa;
+    color: #212529;
+}
+
+body.light-theme .card,
+body.light-theme .card-body,
+body.light-theme .card-header,
+body.light-theme .modal-content {
+    background-color: #ffffff;
+    color: #212529;
+    border-color: #e9ecef;
+}
+
+body.light-theme .navbar-dark.bg-dark {
+    background-color: #ffffff !important;
+}
+
+body.light-theme footer.bg-dark {
+    background-color: #f1f3f5 !important;
+    color: #212529;
+}
+
+body.light-theme .form-control {
+    background-color: #ffffff;
+    border: 1px solid #ced4da;
+    color: #212529;
+}
+
+body.light-theme .form-control:focus {
+    background-color: #ffffff;
+    color: #212529;
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.2rem rgba(13,110,253,0.15);
+}
+
+body.light-theme .analysis-table th {
+    background-color: #f1f3f5;
+    color: #212529;
+}
+
+body.light-theme .analysis-table td {
+    background-color: #ffffff;
+    color: #212529;
+}
+
+body.light-theme .text-muted {
+    color: #6c757d !important;
+}
+
+body.light-theme .stock-count-badge {
+    background-color: #0d6efd;
+    color: #ffffff;
+}
+
+body.light-theme .btn-outline-danger {
+    color: #dc3545;
+    border-color: #dc3545;
+}
+
+/* Ensure toggle button looks good in both themes */
+#themeToggle {
+    min-width: 40px;
+}
+
+/* Additional light-theme fixes for consistent appearance */
+body.light-theme .navbar-dark.bg-dark {
+    background-color: #ffffff !important;
+    border-bottom: 1px solid #e9ecef;
+}
+
+body.light-theme .navbar .navbar-brand,
+body.light-theme .navbar .nav-link,
+body.light-theme .navbar .nav-link.active {
+    color: #212529 !important;
+}
+
+body.light-theme .navbar .nav-link.active {
+    font-weight: 600;
+}
+
+body.light-theme .card {
+    background-color: #ffffff;
+    color: #212529;
+    border: 1px solid #e9ecef;
+}
+
+body.light-theme .card-header {
+    background-color: #f8f9fa;
+    color: #212529;
+    border-bottom: 1px solid #e9ecef;
+}
+
+body.light-theme .modal-content {
+    background-color: #ffffff;
+    color: #212529;
+}
+
+body.light-theme .modal-header.bg-primary {
+    background: linear-gradient(135deg, #dbe9ff 0%, #c6dbff 100%);
+    color: #0b0c10;
+}
+
+body.light-theme .analysis-table th {
+    background-color: #f1f3f5;
+    color: #212529;
+    border-bottom: 1px solid #dee2e6;
+}
+
+body.light-theme .analysis-table td {
+    background-color: #ffffff;
+    color: #212529;
+    border-bottom: 1px solid #e9ecef;
+}
+
+body.light-theme .table-container {
+    background-color: #ffffff;
+    border: 1px solid #e9ecef;
+}
+
+body.light-theme .empty-state {
+    color: #6c757d;
+}
+
+body.light-theme .empty-state i {
+    color: #ced4da;
+}
+
+/* Make the theme toggle visible in light theme */
+body.light-theme #themeToggle {
+    color: #212529;
+    border-color: #ced4da;
+    background-color: transparent;
+}
+
+/* Ensure outline-danger looks correct in light theme */
+body.light-theme .btn-outline-danger {
+    color: #dc3545;
+    border-color: #dc3545;
+}
+
+/* Adjust stock symbol color for light theme */
+body.light-theme .stock-symbol {
+    color: #0d6efd;
 }
