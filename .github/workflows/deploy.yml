@@ -1,11 +1,6 @@
 name: Deploy to GitHub Pages
 
 on:
-  push:
-    branches:
-      - main
-      - master
-      - feature/develop
   workflow_dispatch:
     inputs:
       branch:
