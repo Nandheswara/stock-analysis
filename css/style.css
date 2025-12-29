@@ -1,0 +1,220 @@
+/* Global Styles */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+/* Home Page Styles */
+.hero-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 80px 20px;
+    text-align: center;
+    border-radius: 15px;
+    margin-bottom: 40px;
+}
+
+.hero-section h1 {
+    font-size: 3rem;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+.hero-section p {
+    font-size: 1.2rem;
+    opacity: 0.9;
+    max-width: 600px;
+    margin: 0 auto 30px;
+}
+
+.feature-card {
+    transition: transform 0.3s, box-shadow 0.3s;
+    height: 100%;
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+.feature-icon {
+    font-size: 3rem;
+    margin-bottom: 20px;
+}
+
+.feature-icon.blue { color: #667eea; }
+.feature-icon.green { color: #28a745; }
+.feature-icon.orange { color: #fd7e14; }
+.feature-icon.red { color: #dc3545; }
+
+.cta-button {
+    padding: 15px 40px;
+    font-size: 1.2rem;
+    border-radius: 30px;
+    text-decoration: none;
+}
+
+.metrics-preview {
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    padding: 30px;
+    margin-top: 40px;
+}
+
+.metric-badge {
+    display: inline-block;
+    padding: 8px 15px;
+    margin: 5px;
+    background-color: white;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* Analysis Page Styles */
+.header-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 30px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+}
+
+.stock-count-badge {
+    background-color: #28a745;
+    color: white;
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+}
+
+.analysis-table {
+    font-size: 0.85rem;
+}
+
+.analysis-table th {
+    background-color: #343a40;
+    color: white;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    white-space: nowrap;
+}
+
+.analysis-table td {
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.metric-header {
+    background-color: #495057 !important;
+    color: white;
+    font-weight: bold;
+}
+
+.stock-row:hover {
+    background-color: #f8f9fa;
+}
+
+.good-value {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.bad-value {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.neutral-value {
+    color: #6c757d;
+}
+
+.remove-btn {
+    padding: 2px 8px;
+    font-size: 0.75rem;
+}
+
+.table-container {
+    overflow-x: auto;
+    max-height: 70vh;
+}
+
+.add-stock-form {
+    max-width: 100%;
+}
+
+.loading-spinner {
+    display: none;
+}
+
+.loading .loading-spinner {
+    display: inline-block;
+}
+
+.stock-symbol {
+    font-weight: bold;
+    color: #007bff;
+}
+
+.metric-category {
+    background-color: #e9ecef;
+    font-weight: 600;
+}
+
+#stocksTable th, #stocksTable td {
+    padding: 8px 12px;
+    text-align: center;
+}
+
+#stocksTable th:first-child, #stocksTable td:first-child {
+    text-align: left;
+    position: sticky;
+    left: 0;
+    background-color: inherit;
+    z-index: 5;
+}
+
+.btn-remove {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 3px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.75rem;
+}
+
+.btn-remove:hover {
+    background-color: #c82333;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6c757d;
+}
+
+.empty-state i {
+    font-size: 4rem;
+    margin-bottom: 20px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .hero-section h1 {
+        font-size: 2rem;
+    }
+    
+    .hero-section p {
+        font-size: 1rem;
+    }
+    
+    .cta-button {
+        padding: 10px 30px;
+        font-size: 1rem;
+    }
+    
+    .feature-icon {
+        font-size: 2rem;
+    }
+}

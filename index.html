@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Analysis Dashboard - Home</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="index.html">
+                <i class="bi bi-graph-up"></i> Stock Dashboard
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="index.html">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="analysis.html">
+                            <i class="bi bi-bar-chart-line"></i> Fundamental Analysis
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container-fluid py-4">
+        <div class="container">
+            <!-- Hero Section -->
+            <div class="hero-section">
+                <h1><i class="bi bi-graph-up-arrow"></i> Indian Stock Analysis Dashboard</h1>
+                <p>Add stocks and analyze their fundamental metrics with manual data entry.</p>
+                <a href="analysis.html" class="btn btn-light cta-button">
+                    <i class="bi bi-bar-chart-line"></i> Start Analysis
+                </a>
+            </div>
+
+            <!-- Features Section -->
+            <div class="row mb-5">
+                <div class="col-md-4 mb-4">
+                    <div class="card feature-card">
+                        <div class="card-body text-center p-4">
+                            <div class="feature-icon blue">
+                                <i class="bi bi-plus-circle"></i>
+                            </div>
+                            <h4>Add Stocks</h4>
+                            <p class="text-muted">Easily add stocks by entering their symbol and company name on the analysis page.</p>
+                            <a href="analysis.html" class="btn btn-primary btn-sm mt-2">
+                                Go to Analysis
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="card feature-card">
+                        <div class="card-body text-center p-4">
+                            <div class="feature-icon green">
+                                <i class="bi bi-pencil-square"></i>
+                            </div>
+                            <h4>Manual Data Entry</h4>
+                            <p class="text-muted">Enter stock information and price data manually for accurate tracking and analysis.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="card feature-card">
+                        <div class="card-body text-center p-4">
+                            <div class="feature-icon orange">
+                                <i class="bi bi-lightning-charge"></i>
+                            </div>
+                            <h4>Real-time Analysis</h4>
+                            <p class="text-muted">Analyze stocks side-by-side with comprehensive fundamental metrics.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Metrics Preview -->
+            <div class="metrics-preview">
+                <h4 class="text-center mb-4"><i class="bi bi-list-check"></i> 13 Key Fundamental Metrics</h4>
+                <div class="text-center">
+                    <span class="metric-badge"><i class="bi bi-droplet"></i> Liquidity</span>
+                    <span class="metric-badge"><i class="bi bi-speedometer2"></i> Quick Ratio</span>
+                    <span class="metric-badge"><i class="bi bi-bank"></i> Debt/Equity</span>
+                    <span class="metric-badge"><i class="bi bi-percent"></i> ROE</span>
+                    <span class="metric-badge"><i class="bi bi-graph-up"></i> Growth Ratio</span>
+                    <span class="metric-badge"><i class="bi bi-box"></i> ROA</span>
+                    <span class="metric-badge"><i class="bi bi-cash-stack"></i> EBITDA</span>
+                    <span class="metric-badge"><i class="bi bi-gift"></i> Dividend Yield</span>
+                    <span class="metric-badge"><i class="bi bi-calculator"></i> P/E Ratio</span>
+                    <span class="metric-badge"><i class="bi bi-book"></i> P/B Ratio</span>
+                    <span class="metric-badge"><i class="bi bi-cart"></i> P/S Ratio</span>
+                    <span class="metric-badge"><i class="bi bi-activity"></i> Beta</span>
+                    <span class="metric-badge"><i class="bi bi-people"></i> Promoter Holdings</span>
+                </div>
+            </div>
+
+            <!-- Quick Start -->
+            <div class="row mt-5">
+                <div class="col-md-6 offset-md-3">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="bi bi-rocket-takeoff"></i> Quick Start</h5>
+                        </div>
+                        <div class="card-body">
+                            <ol class="mb-0">
+                                <li class="mb-2">Click on <strong>"Start Analysis"</strong> above or <strong>"Fundamental Analysis"</strong> in the menu</li>
+                                <li class="mb-2">Enter an Indian stock symbol (e.g., <code>RELIANCE</code>, <code>TCS</code>, <code>INFY</code>)</li>
+                                <li class="mb-2">Click <strong>"Add Stock"</strong> to add it to your analysis</li>
+                                <li class="mb-2">Click <strong>"Edit"</strong> to enter fundamental data manually</li>
+                                <li class="mb-2">Add more stocks to compare them side by side</li>
+                                <li>Remove stocks you don't need with the <strong>"Delete"</strong> button</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white text-center py-3 mt-5">
+        <p>&copy; 2025 Stock Analysis Dashboard. Built with HTML, CSS, and JavaScript.</p>
+    </footer>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
