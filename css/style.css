@@ -118,6 +118,7 @@ label.form-label {
     text-align: center;
     border-radius: 15px;
     margin-bottom: 40px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
 }
 
 .hero-section h1 {
@@ -181,6 +182,7 @@ label.form-label {
     padding: 30px;
     margin-top: 40px;
     border: 1px solid #1f2229;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
 }
 
 .metric-badge {
@@ -192,6 +194,7 @@ label.form-label {
     font-size: 0.9rem;
     box-shadow: 0 2px 5px rgba(0,0,0,0.4);
     color: #e9ecef;
+    border: 1px solid #2a2d35;
 }
 
 .header-section {
@@ -200,6 +203,7 @@ label.form-label {
     padding: 30px;
     border-radius: 10px;
     margin-bottom: 30px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
 }
 
 .stock-count-badge {
@@ -466,6 +470,11 @@ body.light-theme .modal-header.bg-primary {
     color: #0b0c10;
 }
 
+body.light-theme .analysis-table {
+    background-color: #ffffff;
+    color: #212529;
+}
+
 body.light-theme .analysis-table th {
     background-color: #f1f3f5;
     color: #212529;
@@ -478,6 +487,10 @@ body.light-theme .analysis-table td {
     border-bottom: 1px solid #e9ecef;
 }
 
+body.light-theme .analysis-table thead {
+    background-color: #f1f3f5;
+}
+
 body.light-theme .table-container {
     background-color: #ffffff;
     border: 1px solid #e9ecef;
@@ -488,7 +501,7 @@ body.light-theme .empty-state {
 }
 
 body.light-theme .empty-state i {
-    color: #ced4da;
+    color: #adb5bd;
 }
 
 /* Make the theme toggle visible in light theme */
@@ -508,3 +521,215 @@ body.light-theme .btn-outline-danger {
 body.light-theme .stock-symbol {
     color: #0d6efd;
 }
+
+/* Light theme: Hero section styling */
+body.light-theme .hero-section {
+    background: linear-gradient(135deg, #4e73df 0%, #7c5cbf 100%);
+    color: #ffffff;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+}
+
+body.light-theme .hero-section h1 {
+    color: #ffffff;
+}
+
+body.light-theme .hero-section p {
+    color: #f0f0f0;
+}
+
+/* Light theme: Header section styling */
+body.light-theme .header-section {
+    background: linear-gradient(135deg, #4e73df 0%, #7c5cbf 100%);
+    color: #ffffff;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+}
+
+/* Light theme: Feature cards */
+body.light-theme .feature-card {
+    background-color: #ffffff;
+    border: 1px solid #e3e6ea;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+body.light-theme .feature-card:hover {
+    background-color: #f8f9fa;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+    transform: translateY(-5px);
+}
+
+/* Light theme: Metrics preview */
+body.light-theme .metrics-preview {
+    background-color: #f8f9fa;
+    border: 1px solid #e3e6ea;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+
+body.light-theme .metrics-preview h4 {
+    color: #212529;
+}
+
+body.light-theme .metric-badge {
+    background-color: #e7f1ff;
+    color: #004085;
+    border: 1px solid #b8daff;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+}
+
+/* Light theme: Modal adjustments */
+body.light-theme .modal-header.bg-primary {
+    background: linear-gradient(135deg, #4e73df 0%, #7c5cbf 100%) !important;
+    color: #ffffff !important;
+}
+
+body.light-theme .modal-header .btn-close-white {
+    filter: brightness(0) invert(1);
+}
+
+/* Light theme: Form labels and controls */
+body.light-theme label.form-label {
+    color: #212529;
+    font-weight: 500;
+}
+
+body.light-theme .form-control::placeholder {
+    color: #9ca3af;
+}
+
+/* Light theme: Alert styling */
+body.light-theme .alert {
+    border-width: 1px;
+}
+
+/* Light theme: Button styling */
+body.light-theme .btn-primary {
+    background-color: #4e73df;
+    border-color: #4e73df;
+    color: #ffffff;
+}
+
+body.light-theme .btn-primary:hover {
+    background-color: #3a5ec7;
+    border-color: #3a5ec7;
+}
+
+body.light-theme .btn-secondary {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: #ffffff;
+}
+
+body.light-theme .btn-outline-light {
+    color: #212529;
+    border-color: #ced4da;
+}
+
+body.light-theme .btn-outline-light:hover {
+    background-color: #f8f9fa;
+    border-color: #adb5bd;
+    color: #212529;
+}
+
+/* Light theme: CTA button */
+body.light-theme .cta-button.primary {
+    background-color: #ffffff;
+    color: #4e73df;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+body.light-theme .cta-button.primary:hover {
+    background-color: #f0f0f0;
+    color: #3a5ec7;
+}
+
+/* Light theme: Footer */
+body.light-theme footer.bg-dark {
+    background-color: #f8f9fa !important;
+    color: #212529 !important;
+    border-top: 1px solid #e9ecef;
+}
+
+body.light-theme footer.bg-dark p {
+    color: #212529 !important;
+}
+
+/* Light theme: Navbar styling improvements */
+body.light-theme .navbar-dark.bg-dark .navbar-toggler-icon {
+    filter: brightness(0) saturate(100%);
+}
+
+body.light-theme .navbar-dark.bg-dark .navbar-toggler {
+    border-color: #dee2e6;
+}
+
+/* Light theme: Table sticky header fix */
+body.light-theme #stocksTable th:first-child,
+body.light-theme #stocksTable td:first-child {
+    background-color: #f1f3f5;
+    color: #212529;
+}
+
+body.light-theme .metric-category {
+    background-color: #f1f3f5;
+    color: #212529;
+}
+
+/* Light theme: Stock row hover */
+body.light-theme .stock-row:hover {
+    background-color: #f8f9fa;
+}
+
+/* Light theme: Ensure all table text is visible */
+body.light-theme .analysis-table tbody tr {
+    background-color: #ffffff;
+    color: #212529;
+}
+
+body.light-theme .analysis-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+body.light-theme .analysis-table td strong,
+body.light-theme .analysis-table td {
+    color: #212529 !important;
+}
+
+body.light-theme .analysis-table td small.text-muted {
+    color: #6c757d !important;
+}
+
+/* Light theme: Good/bad value colors remain same for visibility */
+body.light-theme .good-value {
+    color: #198754;
+}
+
+body.light-theme .bad-value {
+    color: #dc3545;
+}
+
+body.light-theme .neutral-value {
+    color: #6c757d;
+}
+
+/* Light theme: Card header with bg-primary */
+body.light-theme .card-header.bg-primary {
+    background-color: #4e73df !important;
+    color: #ffffff !important;
+    border-color: #4e73df;
+}
+
+body.light-theme .card-header.bg-primary h5,
+body.light-theme .card-header.bg-primary h6 {
+    color: #ffffff;
+}
+
+/* Light theme: Empty state */
+body.light-theme .empty-state i {
+    color: #adb5bd;
+}
+
+/* Light theme: Ensure proper contrast for icons */
+body.light-theme .feature-icon.blue { color: #4e73df; }
+body.light-theme .feature-icon.green { color: #198754; }
+body.light-theme .feature-icon.orange { color: #fd7e14; }
+body.light-theme .feature-icon.red { color: #dc3545; }
+
