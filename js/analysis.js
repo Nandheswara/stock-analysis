@@ -1,7 +1,6 @@
 // Store stocks data in localStorage
 let stocksData = [];
 
-// Initialize page
 $(document).ready(function() {
     // Load saved stocks from localStorage
     loadSavedStocks();
@@ -24,6 +23,12 @@ $(document).ready(function() {
     // Save data button handler
     $('#saveDataBtn').on('click', function() {
         submitManualData();
+    });
+
+    // Initialize theme (dark/light) and toggle handler
+    initTheme();
+    $('#themeToggle').on('click', function() {
+        toggleTheme();
     });
 });
 
@@ -54,8 +59,8 @@ function addStock() {
     const name = nameInput.val().trim();
     const addBtn = $('#addBtn');
     
-    if (!symbol || !name) {
-        showAlert('danger', 'Please enter both stock symbol and company name');
+    if (!symbol && !name) {
+        showAlert('danger', 'Please enter either stock symbol or company name');
         return;
     }
     
@@ -71,8 +76,8 @@ function addStock() {
     
     // Add stock with placeholder data
     const stockData = {
-        symbol: symbol,
-        name: name,
+        symbol: symbol || 'N/A',
+        name: name || 'N/A',
         data_available: true,
         stock_id: Date.now(), // Use timestamp as unique ID
         // All metrics as "Enter Data"
@@ -105,7 +110,7 @@ function addStock() {
     input.val('');
     nameInput.val('');
     
-    showAlert('success', `Stock ${symbol} added! Click "Edit" button to enter details.`);
+    showAlert('success', `Stock ${symbol || name} added! Click "Edit" button to enter details.`);
     
     // Remove loading state
     addBtn.removeClass('loading');
@@ -151,21 +156,21 @@ function renderTable() {
             <tr>
                 <td class="text-center"><strong>${index + 1}</strong></td>
                 <td><strong>${stock.name}</strong><br><small class="text-muted">${stock.symbol}</small></td>
-                <td class="${getValueClass('liquidity', stock.liquidity)}">${formatValue('liquidity', stock.liquidity)}</td>
-                <td class="${getValueClass('quick_ratio', stock.quick_ratio)}">${formatValue('quick_ratio', stock.quick_ratio)}</td>
-                <td class="${getValueClass('debt_to_equity', stock.debt_to_equity)}">${formatValue('debt_to_equity', stock.debt_to_equity)}</td>
-                <td class="${getValueClass('roe', stock.roe)}">${formatValue('roe', stock.roe)}</td>
-                <td>${formatValue('investor_growth_ratio', stock.investor_growth_ratio)}</td>
-                <td class="${getValueClass('roa', stock.roa)}">${formatValue('roa', stock.roa)}</td>
-                <td>${formatValue('ebitda_current', stock.ebitda_current)}</td>
-                <td>${formatValue('ebitda_previous', stock.ebitda_previous)}</td>
-                <td>${formatValue('dividend_yield', stock.dividend_yield)}</td>
-                <td>${formatValue('pe_ratio', stock.pe_ratio)}</td>
-                <td>${formatValue('industry_pe', stock.industry_pe)}</td>
-                <td>${formatValue('price_to_book', stock.price_to_book)}</td>
-                <td>${formatValue('price_to_sales', stock.price_to_sales)}</td>
-                <td>${formatValue('beta', stock.beta)}</td>
-                <td>${formatValue('promoter_holdings', stock.promoter_holdings)}</td>
+                <td class="text-center">${formatValue('liquidity', stock.liquidity)}</td>
+                <td class="text-center">${formatValue('quick_ratio', stock.quick_ratio)}</td>
+                <td class="text-center">${formatValue('debt_to_equity', stock.debt_to_equity)}</td>
+                <td class="text-center">${formatValue('roe', stock.roe)}</td>
+                <td class="text-center">${formatValue('investor_growth_ratio', stock.investor_growth_ratio)}</td>
+                <td class="text-center">${formatValue('roa', stock.roa)}</td>
+                <td class="text-center">${formatValue('ebitda_current', stock.ebitda_current)}</td>
+                <td class="text-center">${formatValue('ebitda_previous', stock.ebitda_previous)}</td>
+                <td class="text-center">${formatValue('dividend_yield', stock.dividend_yield)}</td>
+                <td class="text-center">${formatValue('pe_ratio', stock.pe_ratio)}</td>
+                <td class="text-center">${formatValue('industry_pe', stock.industry_pe)}</td>
+                <td class="text-center">${formatValue('price_to_book', stock.price_to_book)}</td>
+                <td class="text-center">${formatValue('price_to_sales', stock.price_to_sales)}</td>
+                <td class="text-center">${formatValue('beta', stock.beta)}</td>
+                <td class="text-center">${formatValue('promoter_holdings', stock.promoter_holdings)}</td>
                 <td class="text-center">
                     <button class="btn btn-sm btn-primary me-1" onclick="openManualDataModal('${stock.symbol}', '${escapeSingleQuotes(stock.name)}', ${stock.stock_id})" title="Edit">
                         <i class="bi bi-pencil"></i> Edit
@@ -194,30 +199,6 @@ function formatValue(key, value) {
     return value;
 }
 
-// Get CSS class based on value (good/bad indicators)
-function getValueClass(key, value) {
-    if (value === null || value === undefined || value === 'N/A' || value === 'Enter Data') {
-        return 'neutral-value';
-    }
-    
-    // Add color coding for certain metrics
-    const numValue = parseFloat(String(value).replace('%', '').replace('x', ''));
-    
-    switch(key) {
-        case 'quick_ratio':
-            return numValue >= 1 ? 'good-value' : 'bad-value';
-        case 'debt_to_equity':
-            return numValue <= 1 ? 'good-value' : (numValue <= 2 ? 'neutral-value' : 'bad-value');
-        case 'roe':
-            return numValue >= 15 ? 'good-value' : (numValue >= 10 ? 'neutral-value' : 'bad-value');
-        case 'roa':
-            return numValue >= 5 ? 'good-value' : 'neutral-value';
-        case 'liquidity':
-            return String(value).includes('Good') || String(value).includes('Excellent') ? 'good-value' : 'bad-value';
-        default:
-            return '';
-    }
-}
 
 // Show alert message
 function showAlert(type, message) {
@@ -317,4 +298,37 @@ function submitManualData() {
     } else {
         showAlert('danger', 'Stock not found in the analysis');
     }
+}
+
+// Theme handling: allow toggling between dark and light themes and persist choice
+function applyTheme(theme) {
+    if (theme === 'light') {
+        document.body.classList.add('light-theme');
+        // update icon to sun
+        const icon = document.getElementById('themeIcon');
+        if (icon) { icon.className = 'bi bi-sun-fill'; }
+    } else {
+        document.body.classList.remove('light-theme');
+        const icon = document.getElementById('themeIcon');
+        if (icon) { icon.className = 'bi bi-moon-fill'; }
+    }
+    try {
+        localStorage.setItem('theme', theme);
+    } catch (e) {
+        // ignore storage errors
+    }
+}
+
+function toggleTheme() {
+    const current = (localStorage.getItem('theme') === 'light') ? 'light' : 'dark';
+    const next = current === 'light' ? 'dark' : 'light';
+    applyTheme(next);
+}
+
+function initTheme() {
+    let stored = null;
+    try { stored = localStorage.getItem('theme'); } catch (e) { stored = null; }
+    const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+    const theme = stored ? stored : (prefersLight ? 'light' : 'dark');
+    applyTheme(theme);
 }
