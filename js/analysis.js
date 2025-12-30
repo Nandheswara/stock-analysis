@@ -233,7 +233,7 @@ function renderTable() {
     if (filteredData.length === 0) {
         bodyHTML = `
             <tr>
-                <td colspan="18" class="text-center py-4">
+                <td colspan="19" class="text-center py-4">
                     <i class="bi bi-funnel text-muted" style="font-size: 2rem;"></i>
                     <p class="text-muted mt-2 mb-0">No stocks match your filter criteria</p>
                     <button class="btn btn-sm btn-outline-primary mt-2" onclick="clearAllFilters()">Clear Filters</button>
@@ -245,7 +245,7 @@ function renderTable() {
             bodyHTML += `
                 <tr>
                     <td class="text-center"><strong>${index + 1}</strong></td>
-                    <td><strong>${stock.name}</strong><br><small class="text-muted">${stock.symbol}</small></td>
+                    <td class="text-muted"><strong>${stock.name}</strong><br><small >${stock.symbol}</small></td>
                     <td class="text-center">${formatValue('liquidity', stock.liquidity)}</td>
                     <td class="text-center">${formatValue('quick_ratio', stock.quick_ratio)}</td>
                     <td class="text-center">${formatValue('debt_to_equity', stock.debt_to_equity)}</td>
@@ -261,6 +261,7 @@ function renderTable() {
                     <td class="text-center">${formatValue('price_to_sales', stock.price_to_sales)}</td>
                     <td class="text-center">${formatValue('beta', stock.beta)}</td>
                     <td class="text-center">${formatValue('promoter_holdings', stock.promoter_holdings)}</td>
+                    <td class="text-center performance-cell"></td>
                     <td class="text-center">
                         <button class="btn btn-sm btn-success me-1" onclick="fetchStockData('${stock.symbol}', ${stock.stock_id})" title="Fetch Data">
                             <i class="bi bi-cloud-download"></i> Fetch
