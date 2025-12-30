@@ -2,6 +2,10 @@
  * Stock Manager - Net Worth Tracker
  * Handles stock portfolio management with automatic brokerage and tax calculations
  * Integrated with Firebase for user-specific data storage
+ * 
+ * Authentication Required: All data operations require user authentication
+ * Data Storage: Firebase Realtime Database only (no localStorage fallback)
+ * Multi-Device Sync: Real-time synchronization across all devices
  */
 
 import { 
@@ -19,7 +23,8 @@ import {
     signupUser, 
     logoutUser,
     initAuthListener,
-    signInWithGoogle
+    signInWithGoogle,
+    isAuthenticated
 } from './firebase-auth-service.js';
 
 // Constants for brokerage and tax calculations (Indian market rates)
@@ -37,9 +42,6 @@ const TAX_RATES = {
     SEBI_CHARGES: 0.0000001, // ₹10 per crore
     STAMP_DUTY: 0.00015 // 0.015% or ₹1500 per crore on buy side
 };
-
-// Storage key for localStorage
-const STORAGE_KEY = 'stockPortfolio';
 
 // Real-time listener unsubscribe function
 let unsubscribePortfolio = null;
@@ -160,8 +162,7 @@ class Stock {
 class PortfolioManager {
     constructor() {
         this.stocks = [];
-        this.loadFromStorage();
-        this.setupFirebaseSync();
+        // Auth sync will be set up by auth state change listener
     }
 
     /**
@@ -170,8 +171,17 @@ class PortfolioManager {
     setupFirebaseSync() {
         const user = getCurrentUser();
         
+        console.log('setupFirebaseSync called, user:', user ? user.email : 'null');
+        
         if (user) {
             console.log('Setting up Firebase sync for user:', user.email);
+            
+            // Unsubscribe from previous listener if exists
+            if (unsubscribePortfolio) {
+                console.log('Unsubscribing from previous portfolio listener');
+                unsubscribePortfolio();
+                unsubscribePortfolio = null;
+            }
             
             // Listen to real-time updates
             unsubscribePortfolio = listenToPortfolio((firebaseStocks) => {
@@ -198,7 +208,11 @@ class PortfolioManager {
             // Load initial data from Firebase
             this.loadFromFirebase();
         } else {
-            console.log('No user authenticated, using localStorage only');
+            console.log('No user authenticated, portfolio will be empty until login');
+            // Clear stocks when not authenticated
+            this.stocks = [];
+            renderStocksTable();
+            updateSummaryDisplay();
         }
     }
 
@@ -224,19 +238,9 @@ class PortfolioManager {
                     return stock;
                 });
                 
-                // Save to localStorage as backup
-                this.saveToStorage();
-                
                 // Update UI
                 renderStocksTable();
                 updateSummaryDisplay();
-            } else {
-                // No data in Firebase, check if we have local data to migrate
-                const localStocks = this.stocks;
-                if (localStocks.length > 0) {
-                    console.log('Migrating', localStocks.length, 'stocks from localStorage to Firebase');
-                    await syncPortfolioToFirebase(localStocks);
-                }
             }
             
             isSyncing = false;
@@ -250,22 +254,25 @@ class PortfolioManager {
      * Adds a new stock to the portfolio
      */
     async addStock(name, quantity, buyPrice, sellPrice = null) {
+        // Require authentication
+        if (!isAuthenticated()) {
+            throw new Error('Authentication required to add stocks');
+        }
+
         const stock = new Stock(name, quantity, buyPrice, sellPrice);
         this.stocks.push(stock);
-        this.saveToStorage();
         
-        // Save to Firebase if user is authenticated
-        const user = getCurrentUser();
-        if (user) {
-            try {
-                isSyncing = true;
-                await savePortfolioStock(stock);
-                isSyncing = false;
-                console.log('Stock saved to Firebase');
-            } catch (error) {
-                console.error('Error saving to Firebase:', error);
-                isSyncing = false;
-            }
+        // Save to Firebase
+        try {
+            isSyncing = true;
+            await savePortfolioStock(stock);
+            isSyncing = false;
+            console.log('Stock saved to Firebase');
+        } catch (error) {
+            // Remove from local array if Firebase save fails
+            this.stocks = this.stocks.filter(s => s.id !== stock.id);
+            isSyncing = false;
+            throw error;
         }
         
         return stock;
@@ -275,21 +282,23 @@ class PortfolioManager {
      * Removes a stock from the portfolio
      */
     async removeStock(stockId) {
+        // Require authentication
+        if (!isAuthenticated()) {
+            throw new Error('Authentication required to remove stocks');
+        }
+
         this.stocks = this.stocks.filter(stock => stock.id !== stockId);
-        this.saveToStorage();
         
-        // Delete from Firebase if user is authenticated
-        const user = getCurrentUser();
-        if (user) {
-            try {
-                isSyncing = true;
-                await deletePortfolioStockFirebase(stockId);
-                isSyncing = false;
-                console.log('Stock deleted from Firebase');
-            } catch (error) {
-                console.error('Error deleting from Firebase:', error);
-                isSyncing = false;
-            }
+        // Delete from Firebase
+        try {
+            isSyncing = true;
+            await deletePortfolioStockFirebase(stockId);
+            isSyncing = false;
+            console.log('Stock deleted from Firebase');
+        } catch (error) {
+            console.error('Error deleting from Firebase:', error);
+            isSyncing = false;
+            throw error;
         }
     }
 
@@ -297,32 +306,34 @@ class PortfolioManager {
      * Updates a stock in the portfolio
      */
     async updateStock(stockId, updates) {
+        // Require authentication
+        if (!isAuthenticated()) {
+            throw new Error('Authentication required to update stocks');
+        }
+
         const stockIndex = this.stocks.findIndex(stock => stock.id === stockId);
         if (stockIndex !== -1) {
             const stock = this.stocks[stockIndex];
             Object.assign(stock, updates);
             stock.calculateCharges();
-            this.saveToStorage();
             
-            // Update in Firebase if user is authenticated
-            const user = getCurrentUser();
-            if (user) {
-                try {
-                    isSyncing = true;
-                    const updateData = {
-                        sellPrice: stock.sellPrice,
-                        sellBrokerage: stock.sellBrokerage,
-                        sellTaxTotal: stock.sellTaxTotal,
-                        totalRevenue: stock.totalRevenue,
-                        profitLoss: stock.profitLoss
-                    };
-                    await updatePortfolioStock(stockId, updateData);
-                    isSyncing = false;
-                    console.log('Stock updated in Firebase');
-                } catch (error) {
-                    console.error('Error updating in Firebase:', error);
-                    isSyncing = false;
-                }
+            // Update in Firebase
+            try {
+                isSyncing = true;
+                const updateData = {
+                    sellPrice: stock.sellPrice,
+                    sellBrokerage: stock.sellBrokerage,
+                    sellTaxTotal: stock.sellTaxTotal,
+                    totalRevenue: stock.totalRevenue,
+                    profitLoss: stock.profitLoss
+                };
+                await updatePortfolioStock(stockId, updateData);
+                isSyncing = false;
+                console.log('Stock updated in Firebase');
+            } catch (error) {
+                console.error('Error updating in Firebase:', error);
+                isSyncing = false;
+                throw error;
             }
             
             return stock;
@@ -367,43 +378,6 @@ class PortfolioManager {
     }
 
     /**
-     * Saves portfolio to localStorage
-     */
-    saveToStorage() {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(this.stocks));
-        } catch (error) {
-            console.error('Failed to save portfolio to storage:', error);
-        }
-    }
-
-    /**
-     * Loads portfolio from localStorage
-     */
-    loadFromStorage() {
-        try {
-            const data = localStorage.getItem(STORAGE_KEY);
-            if (data) {
-                const parsedData = JSON.parse(data);
-                this.stocks = parsedData.map(stockData => {
-                    const stock = new Stock(
-                        stockData.name,
-                        stockData.quantity,
-                        stockData.buyPrice,
-                        stockData.sellPrice
-                    );
-                    stock.id = stockData.id;
-                    stock.dateAdded = stockData.dateAdded;
-                    return stock;
-                });
-            }
-        } catch (error) {
-            console.error('Failed to load portfolio from storage:', error);
-            this.stocks = [];
-        }
-    }
-
-    /**
      * Gets all stocks
      */
     getAllStocks() {
@@ -411,8 +385,8 @@ class PortfolioManager {
     }
 }
 
-// Initialize Portfolio Manager
-const portfolioManager = new PortfolioManager();
+// Portfolio Manager instance (initialized after auth is ready)
+let portfolioManager = null;
 
 /**
  * Formats a number as Indian currency
@@ -430,6 +404,11 @@ function formatCurrency(amount) {
  * Updates the portfolio summary display
  */
 function updateSummaryDisplay() {
+    if (!portfolioManager) {
+        console.log('Portfolio manager not initialized yet');
+        return;
+    }
+    
     const summary = portfolioManager.getPortfolioSummary();
 
     document.getElementById('totalInvestment').textContent = formatCurrency(summary.totalInvestment);
@@ -452,6 +431,19 @@ function updateSummaryDisplay() {
  */
 function renderStocksTable() {
     const tbody = document.getElementById('stocksTableBody');
+    
+    if (!portfolioManager) {
+        console.log('Portfolio manager not initialized yet');
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr class="no-data">
+                    <td colspan="13">Loading...</td>
+                </tr>
+            `;
+        }
+        return;
+    }
+    
     const stocks = portfolioManager.getAllStocks();
 
     if (stocks.length === 0) {
@@ -493,6 +485,13 @@ function renderStocksTable() {
  */
 async function handleFormSubmit(event) {
     event.preventDefault();
+
+    // Check if user is authenticated
+    if (!isAuthenticated()) {
+        showNotification('Please sign in to manage your portfolio', 'error');
+        showAuthModal(true); // Show login modal
+        return;
+    }
 
     const formData = new FormData(event.target);
     const stockName = formData.get('stockName').trim();
@@ -548,6 +547,13 @@ function closeCalculationModal() {
  * Opens edit modal for a stock
  */
 function editStock(stockId) {
+    // Check if user is authenticated
+    if (!isAuthenticated()) {
+        showNotification('Please sign in to edit stocks', 'error');
+        showAuthModal(true); // Show login modal
+        return;
+    }
+
     const stocks = portfolioManager.getAllStocks();
     const stock = stocks.find(s => s.id === stockId);
     
@@ -608,6 +614,13 @@ async function saveEditStock() {
  * Deletes a stock from the portfolio
  */
 function deleteStock(stockId) {
+    // Check if user is authenticated
+    if (!isAuthenticated()) {
+        showNotification('Please sign in to delete stocks', 'error');
+        showAuthModal(true); // Show login modal
+        return;
+    }
+
     if (confirm('Are you sure you want to delete this stock?')) {
         portfolioManager.removeStock(stockId);
         renderStocksTable();
@@ -659,8 +672,13 @@ function initApp() {
         initAuthListener();
         console.log('Auth listener initialized');
         
+        // Initialize Portfolio Manager after auth is set up
+        console.log('Step 2: Initializing Portfolio Manager...');
+        portfolioManager = new PortfolioManager();
+        console.log('Portfolio Manager initialized');
+        
         // Set up form submission handler
-        console.log('Step 2: Setting up form handler...');
+        console.log('Step 3: Setting up form handler...');
         const form = document.getElementById('stockForm');
         if (form) {
             form.addEventListener('submit', handleFormSubmit);
@@ -670,12 +688,12 @@ function initApp() {
         }
 
         // Set up auth listeners
-        console.log('Step 3: Setting up auth UI...');
+        console.log('Step 4: Setting up auth UI...');
         setupAuthUI();
         console.log('Auth UI setup complete');
 
         // Initial render
-        console.log('Step 4: Rendering initial data...');
+        console.log('Step 5: Rendering initial data...');
         renderStocksTable();
         updateSummaryDisplay();
         console.log('Initial render complete');
@@ -756,7 +774,14 @@ function setupAuthUI() {
         
         if (user && portfolioManager) {
             // User is signed in - reload portfolio from Firebase
+            console.log('User logged in, reloading portfolio from Firebase');
             portfolioManager.setupFirebaseSync();
+        } else if (!user && portfolioManager) {
+            // User logged out - clear portfolio
+            console.log('User logged out, clearing portfolio');
+            portfolioManager.stocks = [];
+            renderStocksTable();
+            updateSummaryDisplay();
         }
     });
 
@@ -799,7 +824,7 @@ function setupAuthUI() {
                 await logoutUser();
                 showNotification('Logged out successfully!');
                 
-                // Clear portfolio and reload from localStorage
+                // Clear portfolio and unsubscribe from Firebase
                 if (unsubscribePortfolio) {
                     unsubscribePortfolio();
                     unsubscribePortfolio = null;

@@ -25,11 +25,21 @@
     <!-- Global CSS -->
     <link rel="stylesheet" href="../css/global.css">
     
-    <!-- Page-specific CSS -->
+    <!-- Stock specific Metrics CSS -->
     <link rel="stylesheet" href="../css/stock-manager.css">
     <link rel="stylesheet" href="../css/firebase-auth.css">
 </head>
 <body>
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="text-center">
+            <div class="spinner-border text-light" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <div class="loading-overlay-text" id="loadingText">Loading...</div>
+        </div>
+    </div>
+
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
@@ -69,7 +79,7 @@
                         </button>
                     </li>
                     <!-- User Profile (shown when logged in) -->
-                    <li class="nav-item d-flex align-items-center ms-2" id="userInfo" style="display: none;">
+                    <li class="nav-item d-flex align-items-center ms-2" id="userProfile" style="display: none;">
                         <div class="dropdown">
                             <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="bi bi-person-circle"></i> <span id="userEmail">User</span>
