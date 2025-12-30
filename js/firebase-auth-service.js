@@ -15,7 +15,9 @@ import {
     onAuthStateChanged,
     GoogleAuthProvider,
     signInWithPopup,
-    updateProfile
+    updateProfile,
+    sendPasswordResetEmail,
+    sendEmailVerification
 } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
 
 /**
@@ -135,6 +137,40 @@ export async function signOutUser() {
 }
 
 /**
+ * Send password reset email
+ * @param {string} email - User email address
+ * @returns {Promise<Object>} Success status
+ */
+export async function resetPassword(email) {
+    try {
+        console.log('Attempting to send password reset email to:', email);
+        await sendPasswordResetEmail(auth, email);
+        console.log('✅ Password reset email sent successfully to:', email);
+        console.log('⚠️ Check your spam folder if you don\'t see the email in inbox');
+        return { 
+            success: true, 
+            message: 'Password reset email sent! Check your inbox and spam folder.' 
+        };
+    } catch (error) {
+        console.error('❌ Password reset error:', error);
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
+        
+        // Provide specific error messages
+        let errorMessage = getAuthErrorMessage(error.code);
+        if (error.code === 'auth/user-not-found') {
+            errorMessage = 'No account found with this email address. Please check the email or sign up.';
+        } else if (error.code === 'auth/invalid-email') {
+            errorMessage = 'Invalid email address format.';
+        } else if (error.code === 'auth/too-many-requests') {
+            errorMessage = 'Too many requests. Please wait a few minutes and try again.';
+        }
+        
+        return { success: false, error: errorMessage };
+    }
+}
+
+/**
  * Check if user is authenticated
  * @returns {boolean} True if user is authenticated
  */
@@ -163,6 +199,50 @@ function getAuthErrorMessage(errorCode) {
     };
     
     return errorMessages[errorCode] || 'An unexpected error occurred. Please try again.';
+}
+
+/**
+ * Send email verification to current user
+ * @returns {Promise<Object>} Result object with success status and message
+ */
+export async function sendVerificationEmail() {
+    try {
+        if (!currentUser) {
+            return { 
+                success: false, 
+                error: 'No user is currently signed in' 
+            };
+        }
+        
+        if (currentUser.emailVerified) {
+            return { 
+                success: false, 
+                error: 'Email is already verified' 
+            };
+        }
+        
+        await sendEmailVerification(currentUser);
+        
+        console.log('✅ Verification email sent successfully');
+        return { 
+            success: true, 
+            message: 'Verification email sent! Please check your inbox and spam folder.' 
+        };
+    } catch (error) {
+        console.error('❌ Error sending verification email:', error.code, error.message);
+        return { 
+            success: false, 
+            error: getErrorMessage(error.code) 
+        };
+    }
+}
+
+/**
+ * Check if current user's email is verified
+ * @returns {boolean} True if email is verified
+ */
+export function isEmailVerified() {
+    return currentUser ? currentUser.emailVerified : false;
 }
 
 /**

@@ -23,7 +23,8 @@ import {
     signInWithGoogle,
     signOutUser,
     getCurrentUser,
-    isAuthenticated 
+    isAuthenticated,
+    resetPassword
 } from './firebase-auth-service.js';
 
 import { 
@@ -47,6 +48,56 @@ let activeFilters = {};
 
 // Firebase listener unsubscribe function
 let unsubscribeStocksListener = null;
+
+/* ========================================
+   Loading State Management
+   ======================================== */
+
+/**
+ * Show loading overlay with optional message
+ * @param {string} message - Optional loading message
+ */
+function showLoading(message = 'Loading...') {
+    const overlay = $('#loadingOverlay');
+    const loadingText = $('#loadingText');
+    
+    if (loadingText.length) {
+        loadingText.text(message);
+    }
+    
+    overlay.fadeIn(200);
+}
+
+/**
+ * Hide loading overlay
+ */
+function hideLoading() {
+    $('#loadingOverlay').fadeOut(200);
+}
+
+/**
+ * Show loading state on a button
+ * @param {jQuery} $button - jQuery button element
+ * @param {string} originalText - Original button text to restore later
+ */
+function showButtonLoading($button, originalText) {
+    $button.data('original-text', originalText);
+    $button.prop('disabled', true);
+    $button.addClass('loading');
+}
+
+/**
+ * Hide loading state on a button
+ * @param {jQuery} $button - jQuery button element
+ */
+function hideButtonLoading($button) {
+    const originalText = $button.data('original-text');
+    $button.prop('disabled', false);
+    $button.removeClass('loading');
+    if (originalText) {
+        $button.html(originalText);
+    }
+}
 
 /* ========================================
    Document Ready Handler
@@ -114,42 +165,64 @@ $(document).ready(function() {
  * Setup authentication UI handlers
  */
 function setupAuthHandlers() {
+    console.log('🔧 Setting up authentication handlers...');
+    
+    // Use event delegation to ensure handlers work even if elements are hidden/shown
     // Show login modal
-    $('#loginBtn, #authPromptLoginBtn').on('click', function() {
+    $(document).on('click', '#loginBtn, #authPromptLoginBtn', function(e) {
+        e.preventDefault();
+        console.log('Login button clicked');
         showAuthModal('login');
     });
     
     // Show signup modal
-    $('#signupBtn, #authPromptSignupBtn').on('click', function() {
+    $(document).on('click', '#signupBtn, #authPromptSignupBtn', function(e) {
+        e.preventDefault();
+        console.log('Signup button clicked');
         showAuthModal('signup');
     });
     
-    // Toggle between login and signup forms
-    $('#showSignupForm').on('click', function(e) {
+    // Toggle between login and signup forms (use event delegation)
+    $(document).on('click', '#showSignupForm', function(e) {
         e.preventDefault();
         $('#loginForm').hide();
         $('#signupForm').show();
+        $('#forgotPasswordForm').hide();
         $('#authModalTitle').text('Create Account');
     });
     
-    $('#showLoginForm').on('click', function(e) {
+    $(document).on('click', '#showLoginForm, #backToLoginBtn', function(e) {
         e.preventDefault();
         $('#signupForm').hide();
+        $('#forgotPasswordForm').hide();
         $('#loginForm').show();
         $('#authModalTitle').text('Sign In');
     });
     
     // Login form submission
-    $('#loginForm').on('submit', async function(e) {
+    $(document).on('submit', '#loginForm', async function(e) {
         e.preventDefault();
+        console.log('Login form submitted');
         const email = $('#loginEmail').val();
         const password = $('#loginPassword').val();
         
+        if (!email || !password) {
+            showAuthAlert('danger', 'Please enter email and password');
+            return;
+        }
+        
+        const $submitBtn = $(this).find('button[type="submit"]');
+        showButtonLoading($submitBtn, $submitBtn.html());
+        
         const result = await signInUser(email, password);
+        
+        hideButtonLoading($submitBtn);
+        
         if (result.success) {
             showAuthAlert('success', 'Signed in successfully!');
             setTimeout(() => {
-                bootstrap.Modal.getInstance(document.getElementById('authModal')).hide();
+                const modal = bootstrap.Modal.getInstance(document.getElementById('authModal'));
+                if (modal) modal.hide();
             }, 1000);
         } else {
             showAuthAlert('danger', result.error);
@@ -157,8 +230,9 @@ function setupAuthHandlers() {
     });
     
     // Signup form submission
-    $('#signupForm').on('submit', async function(e) {
+    $(document).on('submit', '#signupForm', async function(e) {
         e.preventDefault();
+        console.log('Signup form submitted');
         const name = $('#signupName').val();
         const email = $('#signupEmail').val();
         const password = $('#signupPassword').val();
@@ -170,35 +244,58 @@ function setupAuthHandlers() {
             return;
         }
         
+        const $submitBtn = $(this).find('button[type="submit"]');
+        showButtonLoading($submitBtn, $submitBtn.html());
+        
         const result = await signUpUser(email, password, name);
+        
+        hideButtonLoading($submitBtn);
+        
         if (result.success) {
             showAuthAlert('success', 'Account created successfully!');
             setTimeout(() => {
-                bootstrap.Modal.getInstance(document.getElementById('authModal')).hide();
+                const modal = bootstrap.Modal.getInstance(document.getElementById('authModal'));
+                if (modal) modal.hide();
             }, 1000);
         } else {
             showAuthAlert('danger', result.error);
         }
     });
     
-    // Google Sign In
-    $('#googleSignInBtn, #googleSignUpBtn').on('click', async function() {
+    // Google Sign In (use event delegation)
+    $(document).on('click', '#googleSignInBtn, #googleSignUpBtn', async function(e) {
+        e.preventDefault();
+        console.log('Google Sign-In button clicked');
+        
+        const $btn = $(this);
+        showButtonLoading($btn, $btn.html());
+        
         const result = await signInWithGoogle();
+        
+        hideButtonLoading($btn);
+        
         if (result.success) {
             showAuthAlert('success', 'Signed in with Google successfully!');
             setTimeout(() => {
-                bootstrap.Modal.getInstance(document.getElementById('authModal')).hide();
+                const modal = bootstrap.Modal.getInstance(document.getElementById('authModal'));
+                if (modal) modal.hide();
             }, 1000);
         } else {
             showAuthAlert('danger', result.error);
         }
     });
     
-    // Logout handler
-    $('#logoutBtn').on('click', async function(e) {
+    // Logout handler (use event delegation)
+    $(document).on('click', '#logoutBtn', async function(e) {
         e.preventDefault();
+        console.log('Logout button clicked');
         if (confirm('Are you sure you want to logout?')) {
+            showLoading('Logging out...');
+            
             const result = await signOutUser();
+            
+            hideLoading();
+            
             if (result.success) {
                 // Unsubscribe from Firebase listener
                 if (unsubscribeStocksListener) {
@@ -210,11 +307,16 @@ function setupAuthHandlers() {
         }
     });
     
-    // Migrate data handler
-    $('#migrateDataBtn').on('click', async function(e) {
+    // Migrate data handler (use event delegation)
+    $(document).on('click', '#migrateDataBtn', async function(e) {
         e.preventDefault();
+        console.log('Migrate data button clicked');
         if (confirm('Migrate your local data to Firebase? This will upload all stocks from your browser storage.')) {
+            showLoading('Migrating data to Firebase...');
+            
             const result = await migrateLocalStorageToFirebase();
+            
+            hideLoading();
             if (result.success) {
                 showAlert('success', result.message);
             } else {
@@ -222,6 +324,52 @@ function setupAuthHandlers() {
             }
         }
     });
+    
+    // Forgot password handler (use event delegation)
+    $(document).on('click', '#forgotPasswordLink', function(e) {
+        e.preventDefault();
+        console.log('Forgot password link clicked');
+        showForgotPasswordModal();
+    });
+    
+    // Send reset email handler (use event delegation)
+    $(document).on('click', '#sendResetEmailBtn', async function(e) {
+        e.preventDefault();
+        console.log('Send reset email button clicked');
+        const email = $('#resetEmail').val().trim();
+        
+        if (!email) {
+            showAuthAlert('danger', 'Please enter your email address');
+            return;
+        }
+        
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            showAuthAlert('danger', 'Please enter a valid email address');
+            return;
+        }
+        
+        const $btn = $(this);
+        showButtonLoading($btn, $btn.html());
+        
+        const result = await resetPassword(email);
+        
+        hideButtonLoading($btn);
+        
+        if (result.success) {
+            showAuthAlert('success', result.message);
+            setTimeout(() => {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('authModal'));
+                if (modal) modal.hide();
+                $('#resetEmail').val('');
+            }, 2000);
+        } else {
+            showAuthAlert('danger', result.error);
+        }
+    });
+    
+    console.log('✅ All authentication handlers registered successfully');
 }
 
 /**
@@ -229,23 +377,53 @@ function setupAuthHandlers() {
  * @param {string} mode - 'login' or 'signup'
  */
 function showAuthModal(mode) {
+    console.log('showAuthModal called with mode:', mode);
+    
     if (mode === 'login') {
         $('#loginForm').show();
         $('#signupForm').hide();
+        $('#forgotPasswordForm').hide();
         $('#authModalTitle').text('Sign In');
     } else {
         $('#loginForm').hide();
         $('#signupForm').show();
+        $('#forgotPasswordForm').hide();
         $('#authModalTitle').text('Create Account');
     }
     
     // Clear form inputs
     $('#loginEmail, #loginPassword').val('');
     $('#signupName, #signupEmail, #signupPassword, #signupConfirmPassword').val('');
+    $('#resetEmail').val('');
     $('#authAlertContainer').html('');
     
-    const modal = new bootstrap.Modal(document.getElementById('authModal'));
+    // Get or create modal instance
+    const modalElement = document.getElementById('authModal');
+    if (!modalElement) {
+        console.error('Auth modal element not found!');
+        return;
+    }
+    
+    let modal = bootstrap.Modal.getInstance(modalElement);
+    if (!modal) {
+        console.log('Creating new modal instance');
+        modal = new bootstrap.Modal(modalElement);
+    }
+    
+    console.log('Showing auth modal');
     modal.show();
+}
+
+/**
+ * Show forgot password modal
+ */
+function showForgotPasswordModal() {
+    $('#loginForm').hide();
+    $('#signupForm').hide();
+    $('#forgotPasswordForm').show();
+    $('#authModalTitle').text('Reset Password');
+    $('#resetEmail').val('');
+    $('#authAlertContainer').html('');
 }
 
 /**
@@ -272,6 +450,9 @@ function showAuthAlert(type, message) {
  * Load stocks from Firebase with real-time listener
  */
 function loadStocksFromFirebase() {
+    // Show loading state
+    showLoading('Loading your stocks...');
+    
     // Unsubscribe from previous listener if exists
     if (unsubscribeStocksListener) {
         unsubscribeStocksListener();
@@ -281,6 +462,7 @@ function loadStocksFromFirebase() {
     unsubscribeStocksListener = listenToStocks((stocks) => {
         stocksData = stocks;
         renderTable();
+        hideLoading();
         console.log('Stocks data updated:', stocks.length);
     });
 }
@@ -289,12 +471,12 @@ function loadStocksFromFirebase() {
  * Clear all stocks from Firebase
  */
 async function clearAllStocks() {
-    const addBtn = $('#clearAllBtn');
-    addBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Deleting...');
+    const $clearBtn = $('#clearAllBtn');
+    showButtonLoading($clearBtn, $clearBtn.html());
     
     const result = await deleteAllStocks();
     
-    addBtn.prop('disabled', false).html('<i class="bi bi-trash"></i> Clear All');
+    hideButtonLoading($clearBtn);
     
     if (result.success) {
         showAlert('info', result.message);
