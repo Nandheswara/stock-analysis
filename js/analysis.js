@@ -99,58 +99,43 @@ function hideButtonLoading($button) {
     }
 }
 
-/* ========================================
-   Document Ready Handler
-   ======================================== */
-
 $(document).ready(function() {
-    // Initialize Firebase authentication listener
     initAuthListener();
     
-    // Listen for auth state changes
     onAuthStateChange((user) => {
         if (user) {
-            console.log('User logged in:', user.email);
             loadStocksFromFirebase();
         } else {
-            console.log('User logged out');
             stocksData = [];
             renderTable();
         }
     });
     
-    // Setup authentication UI handlers
     setupAuthHandlers();
     
-    // Form submit handler - Add new stock
     $('#addStockForm').on('submit', function(e) {
         e.preventDefault();
         addStock();
     });
     
-    // Clear all stocks handler
     $('#clearAllBtn').on('click', function() {
         if (confirm('Remove all stocks from the analysis? This will delete them from Firebase.')) {
             clearAllStocks();
         }
     });
     
-    // Save manual data button handler
     $('#saveDataBtn').on('click', function() {
         submitManualData();
     });
     
-    // Filter button handler - Open filter modal
     $(document).on('click', '#filterBtn', function() {
         openFilterModal();
     });
     
-    // Apply filters button handler
     $(document).on('click', '#applyFiltersBtn', function() {
         applyFiltersFromModal();
     });
     
-    // Clear filters from modal button handler
     $(document).on('click', '#clearFiltersModalBtn', function() {
         clearAllFilters();
         bootstrap.Modal.getInstance(document.getElementById('filterModal')).hide();
@@ -165,24 +150,16 @@ $(document).ready(function() {
  * Setup authentication UI handlers
  */
 function setupAuthHandlers() {
-    console.log('🔧 Setting up authentication handlers...');
-    
-    // Use event delegation to ensure handlers work even if elements are hidden/shown
-    // Show login modal
     $(document).on('click', '#loginBtn, #authPromptLoginBtn', function(e) {
         e.preventDefault();
-        console.log('Login button clicked');
         showAuthModal('login');
     });
     
-    // Show signup modal
     $(document).on('click', '#signupBtn, #authPromptSignupBtn', function(e) {
         e.preventDefault();
-        console.log('Signup button clicked');
         showAuthModal('signup');
     });
     
-    // Toggle between login and signup forms (use event delegation)
     $(document).on('click', '#showSignupForm', function(e) {
         e.preventDefault();
         $('#loginForm').hide();
@@ -199,10 +176,8 @@ function setupAuthHandlers() {
         $('#authModalTitle').text('Sign In');
     });
     
-    // Login form submission
     $(document).on('submit', '#loginForm', async function(e) {
         e.preventDefault();
-        console.log('Login form submitted');
         const email = $('#loginEmail').val();
         const password = $('#loginPassword').val();
         
@@ -229,10 +204,8 @@ function setupAuthHandlers() {
         }
     });
     
-    // Signup form submission
     $(document).on('submit', '#signupForm', async function(e) {
         e.preventDefault();
-        console.log('Signup form submitted');
         const name = $('#signupName').val();
         const email = $('#signupEmail').val();
         const password = $('#signupPassword').val();
@@ -262,10 +235,8 @@ function setupAuthHandlers() {
         }
     });
     
-    // Google Sign In (use event delegation)
     $(document).on('click', '#googleSignInBtn, #googleSignUpBtn', async function(e) {
         e.preventDefault();
-        console.log('Google Sign-In button clicked');
         
         const $btn = $(this);
         showButtonLoading($btn, $btn.html());
@@ -285,10 +256,8 @@ function setupAuthHandlers() {
         }
     });
     
-    // Logout handler (use event delegation)
     $(document).on('click', '#logoutBtn', async function(e) {
         e.preventDefault();
-        console.log('Logout button clicked');
         if (confirm('Are you sure you want to logout?')) {
             showLoading('Logging out...');
             
@@ -307,10 +276,8 @@ function setupAuthHandlers() {
         }
     });
     
-    // Migrate data handler (use event delegation)
     $(document).on('click', '#migrateDataBtn', async function(e) {
         e.preventDefault();
-        console.log('Migrate data button clicked');
         if (confirm('Migrate your local data to Firebase? This will upload all stocks from your browser storage.')) {
             showLoading('Migrating data to Firebase...');
             
@@ -325,17 +292,13 @@ function setupAuthHandlers() {
         }
     });
     
-    // Forgot password handler (use event delegation)
     $(document).on('click', '#forgotPasswordLink', function(e) {
         e.preventDefault();
-        console.log('Forgot password link clicked');
         showForgotPasswordModal();
     });
     
-    // Send reset email handler (use event delegation)
     $(document).on('click', '#sendResetEmailBtn', async function(e) {
         e.preventDefault();
-        console.log('Send reset email button clicked');
         const email = $('#resetEmail').val().trim();
         
         if (!email) {
@@ -368,8 +331,6 @@ function setupAuthHandlers() {
             showAuthAlert('danger', result.error);
         }
     });
-    
-    console.log('✅ All authentication handlers registered successfully');
 }
 
 /**
@@ -377,8 +338,6 @@ function setupAuthHandlers() {
  * @param {string} mode - 'login' or 'signup'
  */
 function showAuthModal(mode) {
-    console.log('showAuthModal called with mode:', mode);
-    
     if (mode === 'login') {
         $('#loginForm').show();
         $('#signupForm').hide();
@@ -397,20 +356,16 @@ function showAuthModal(mode) {
     $('#resetEmail').val('');
     $('#authAlertContainer').html('');
     
-    // Get or create modal instance
     const modalElement = document.getElementById('authModal');
     if (!modalElement) {
-        console.error('Auth modal element not found!');
         return;
     }
     
     let modal = bootstrap.Modal.getInstance(modalElement);
     if (!modal) {
-        console.log('Creating new modal instance');
         modal = new bootstrap.Modal(modalElement);
     }
     
-    console.log('Showing auth modal');
     modal.show();
 }
 
@@ -450,20 +405,16 @@ function showAuthAlert(type, message) {
  * Load stocks from Firebase with real-time listener
  */
 function loadStocksFromFirebase() {
-    // Show loading state
     showLoading('Loading your stocks...');
     
-    // Unsubscribe from previous listener if exists
     if (unsubscribeStocksListener) {
         unsubscribeStocksListener();
     }
     
-    // Set up real-time listener
     unsubscribeStocksListener = listenToStocks((stocks) => {
         stocksData = stocks;
         renderTable();
         hideLoading();
-        console.log('Stocks data updated:', stocks.length);
     });
 }
 
@@ -505,23 +456,19 @@ async function addStock() {
     const name = nameInput.val().trim();
     const addBtn = $('#addBtn');
     
-    // Validation
     if (!symbol && !name) {
         showAlert('danger', 'Please enter either stock symbol or company name');
         return;
     }
     
-    // Check for duplicates
     if (stocksData.some(s => s.symbol === symbol)) {
         showAlert('warning', 'This stock is already in the analysis');
         return;
     }
     
-    // Show loading state
     addBtn.addClass('loading');
     addBtn.prop('disabled', true);
     
-    // Create stock object with placeholder data
     const stockData = {
         symbol: symbol || 'N/A',
         name: name || 'N/A',
@@ -550,14 +497,11 @@ async function addStock() {
         promoter_holdings: 'Enter Data'
     };
     
-    // Add to Firebase
     const result = await addStockToFirebase(stockData);
     
-    // Clear form inputs
     input.val('');
     nameInput.val('');
     
-    // Show message
     if (result.success) {
         const message = result.offline 
             ? `Stock ${symbol || name} added offline! Will sync when online.` 
@@ -567,7 +511,6 @@ async function addStock() {
         showAlert('danger', result.error);
     }
     
-    // Remove loading state
     addBtn.removeClass('loading');
     addBtn.prop('disabled', false);
 }
@@ -608,7 +551,6 @@ function renderTable() {
     const filterBtn = $('#filterBtn');
     const stockCount = $('#stockCount');
     
-    // Show/hide empty state
     if (stocksData.length === 0) {
         emptyState.show();
         $('.table-container').hide();
@@ -623,20 +565,16 @@ function renderTable() {
     clearAllBtn.show();
     filterBtn.show();
     
-    // Update filter button badge
     updateFilterBadge();
     
-    // Apply filters to get filtered data
     const filteredData = getFilteredData();
     
-    // Update stock count badge
     if (Object.keys(activeFilters).length > 0) {
         stockCount.html(`${filteredData.length} of ${stocksData.length}`);
     } else {
         stockCount.text(stocksData.length);
     }
     
-    // Build table rows - Each stock is a row
     let bodyHTML = '';
     
     if (filteredData.length === 0) {
@@ -752,12 +690,10 @@ function showAlert(type, message) {
 window.openManualDataModal = function(symbol, name, stockId) {
     $('#modalStockSymbol').val(symbol);
     $('#modalName').val(name);
-    $('#modalStockId').val(stockId); // Use .val() for hidden input
+    $('#modalStockId').val(stockId);
     
-    // Find existing stock data
     const stock = stocksData.find(s => s.stock_id === stockId);
     
-    // Pre-fill metric fields if editing existing stock
     if (stock) {
         $('#modalLiquidity').val((stock.liquidity && stock.liquidity !== 'Enter Data') ? stock.liquidity : '');
         $('#modalQuickRatio').val((stock.quick_ratio && stock.quick_ratio !== 'Enter Data') ? stock.quick_ratio : '');
@@ -775,15 +711,12 @@ window.openManualDataModal = function(symbol, name, stockId) {
         $('#modalBeta').val((stock.beta && stock.beta !== 'Enter Data') ? stock.beta : '');
         $('#modalPromoterHoldings').val((stock.promoter_holdings && stock.promoter_holdings !== 'Enter Data') ? stock.promoter_holdings : '');
     } else {
-        // Clear all metric fields for new stock
         $('#modalLiquidity, #modalQuickRatio, #modalDebtEquity, #modalROE, #modalInvestorGrowth, #modalROA, #modalEBITDACurrent, #modalEBITDAPrevious, #modalDividendYield, #modalPE, #modalIndustryPE, #modalPriceToBook, #modalPriceToSales, #modalBeta, #modalPromoterHoldings').val('');
     }
     
-    // Set today's date as default for price data
     $('#modalDate').val(new Date().toISOString().split('T')[0]);
     $('#modalOpen, #modalHigh, #modalLow, #modalClose, #modalVolume').val('');
     
-    // Show modal using Bootstrap 5
     const modal = new bootstrap.Modal(document.getElementById('manualDataModal'));
     modal.show();
 };
@@ -794,14 +727,13 @@ window.openManualDataModal = function(symbol, name, stockId) {
 async function submitManualData() {
     const symbol = $('#modalStockSymbol').val();
     const name = $('#modalName').val();
-    const stockId = $('#modalStockId').val(); // Use .val() for hidden input
+    const stockId = $('#modalStockId').val();
     
     if (!stockId) {
         showAlert('danger', 'Stock ID not found');
         return;
     }
     
-    // Gather all 13 fundamental metrics
     const metrics = {
         name: name,
         liquidity: $('#modalLiquidity').val() || 'Enter Data',
@@ -821,7 +753,6 @@ async function submitManualData() {
         promoter_holdings: $('#modalPromoterHoldings').val() || 'Enter Data'
     };
     
-    // Update in Firebase
     const result = await updateStockInFirebase(stockId, metrics);
     
     if (result.success) {
@@ -830,7 +761,6 @@ async function submitManualData() {
             : 'Data saved successfully! Table updated.';
         showAlert('success', message);
         
-        // Hide modal using Bootstrap 5
         bootstrap.Modal.getInstance(document.getElementById('manualDataModal')).hide();
     } else {
         showAlert('danger', result.error);
@@ -851,14 +781,11 @@ function getUniqueValues(fieldName) {
         .map(stock => stock[fieldName])
         .filter(val => val && val !== 'Enter Data' && val !== 'N/A');
     
-    // Remove duplicates and sort
     const uniqueValues = [...new Set(values)];
     
-    // Sort numerically if all values are numbers, otherwise alphabetically
     if (fieldName === 'name') {
         return uniqueValues.sort((a, b) => a.localeCompare(b));
     } else {
-        // Try to sort as numbers
         const allNumbers = uniqueValues.every(val => !isNaN(parseFloat(val)));
         if (allNumbers) {
             return uniqueValues.sort((a, b) => parseFloat(a) - parseFloat(b));
@@ -871,7 +798,6 @@ function getUniqueValues(fieldName) {
  * Open filter modal and populate dropdowns with current data
  */
 function openFilterModal() {
-    // Populate all filter dropdowns with unique values
     const fields = {
         'filterStockName': 'name',
         'filterLiquidity': 'liquidity',
@@ -905,7 +831,6 @@ function openFilterModal() {
         $(`#${selectId}`).html(options);
     });
     
-    // Show modal
     const modal = new bootstrap.Modal(document.getElementById('filterModal'));
     modal.show();
 }
@@ -914,7 +839,6 @@ function openFilterModal() {
  * Apply filters from modal selections
  */
 function applyFiltersFromModal() {
-    // Collect active filters from modal
     activeFilters = {};
     $('.filter-select-modal').each(function() {
         const field = $(this).data('field');
@@ -924,13 +848,10 @@ function applyFiltersFromModal() {
         }
     });
     
-    // Close modal
     bootstrap.Modal.getInstance(document.getElementById('filterModal')).hide();
     
-    // Re-render table with filtered data
     renderTable();
     
-    // Show success message if filters applied
     if (Object.keys(activeFilters).length > 0) {
         showAlert('success', `Filters applied! Showing ${getFilteredData().length} of ${stocksData.length} stocks.`);
     }
@@ -962,17 +883,14 @@ function getFilteredData() {
     }
     
     return stocksData.filter(stock => {
-        // Check if stock matches all active filters (AND logic)
         return Object.keys(activeFilters).every(field => {
             const filterValue = activeFilters[field];
             const stockValue = stock[field];
             
-            // Handle missing/invalid data
             if (!stockValue || stockValue === 'Enter Data' || stockValue === 'N/A') {
                 return false;
             }
             
-            // Compare values (convert to string for comparison)
             return String(stockValue) === String(filterValue);
         });
     });

@@ -29,18 +29,13 @@ let localStocksCache = [];
 let isOnline = navigator.onLine;
 let stocksListener = null;
 
-/**
- * Initialize network status listener
- */
 window.addEventListener('online', () => {
     isOnline = true;
-    console.log('Connection restored - syncing data...');
     syncOfflineData();
 });
 
 window.addEventListener('offline', () => {
     isOnline = false;
-    console.log('Connection lost - using offline mode');
 });
 
 /**
@@ -77,15 +72,13 @@ export function listenToStocks(callback) {
     const user = getCurrentUser();
     
     if (!user) {
-        console.log('No user authenticated, loading from localStorage');
         const localData = loadFromLocalStorage();
         callback(localData);
-        return () => {}; // Return empty unsubscribe function
+        return () => {};
     }
     
     const stocksRef = getUserStocksRef();
     
-    // Set up real-time listener
     stocksListener = onValue(stocksRef, (snapshot) => {
         const data = snapshot.val();
         const stocksArray = data ? Object.keys(data).map(key => ({
@@ -93,23 +86,16 @@ export function listenToStocks(callback) {
             stock_id: key
         })) : [];
         
-        console.log(`Loaded ${stocksArray.length} stocks from Firebase`);
-        
-        // Update local cache
         localStocksCache = stocksArray;
         saveToLocalStorage(stocksArray);
         
-        // Call callback with stock data
         callback(stocksArray);
     }, (error) => {
-        console.error('Firebase listener error:', error);
-        
-        // Fallback to localStorage on error
+        console.error('Firebase listener error:', error.message);
         const localData = loadFromLocalStorage();
         callback(localData);
     });
     
-    // Return unsubscribe function
     return () => {
         if (stocksListener) {
             stocksListener();
@@ -133,11 +119,9 @@ export async function addStock(stockData) {
     try {
         const stocksRef = getUserStocksRef();
         
-        // Generate unique ID using timestamp
         const stockId = `stock_${Date.now()}`;
         const stockRef = child(stocksRef, stockId);
         
-        // Add timestamps
         const stockWithMeta = {
             ...stockData,
             createdAt: new Date().toISOString(),
@@ -145,10 +129,7 @@ export async function addStock(stockData) {
             userId: user.uid
         };
         
-        // Save to Firebase
         await set(stockRef, stockWithMeta);
-        
-        console.log('Stock added successfully:', stockId);
         
         return { 
             success: true, 
@@ -157,9 +138,8 @@ export async function addStock(stockData) {
         };
         
     } catch (error) {
-        console.error('Error adding stock:', error);
+        console.error('Add stock failed:', error.message);
         
-        // Fallback to localStorage if offline
         if (!isOnline) {
             const stockId = `stock_${Date.now()}`;
             const stockWithId = { ...stockData, stock_id: stockId };
@@ -197,16 +177,12 @@ export async function updateStock(stockId, updates) {
     try {
         const stockRef = getStockRef(stockId);
         
-        // Add update timestamp
         const updatesWithMeta = {
             ...updates,
             updatedAt: new Date().toISOString()
         };
         
-        // Update in Firebase
         await update(stockRef, updatesWithMeta);
-        
-        console.log('Stock updated successfully:', stockId);
         
         return { 
             success: true,
@@ -214,9 +190,8 @@ export async function updateStock(stockId, updates) {
         };
         
     } catch (error) {
-        console.error('Error updating stock:', error);
+        console.error('Update stock failed:', error.message);
         
-        // Fallback to localStorage if offline
         if (!isOnline) {
             const index = localStocksCache.findIndex(s => s.stock_id === stockId);
             if (index !== -1) {
@@ -256,10 +231,7 @@ export async function deleteStock(stockId) {
     try {
         const stockRef = getStockRef(stockId);
         
-        // Remove from Firebase
         await remove(stockRef);
-        
-        console.log('Stock deleted successfully:', stockId);
         
         return { 
             success: true,
@@ -267,9 +239,8 @@ export async function deleteStock(stockId) {
         };
         
     } catch (error) {
-        console.error('Error deleting stock:', error);
+        console.error('Delete stock failed:', error.message);
         
-        // Fallback to localStorage if offline
         if (!isOnline) {
             localStocksCache = localStocksCache.filter(s => s.stock_id !== stockId);
             saveToLocalStorage(localStocksCache);
@@ -302,12 +273,8 @@ export async function deleteAllStocks() {
     try {
         const stocksRef = getUserStocksRef();
         
-        // Remove all stocks
         await remove(stocksRef);
         
-        console.log('All stocks deleted successfully');
-        
-        // Clear local cache
         localStocksCache = [];
         saveToLocalStorage([]);
         
@@ -317,8 +284,7 @@ export async function deleteAllStocks() {
         };
         
     } catch (error) {
-        console.error('Error deleting all stocks:', error);
-        
+        console.error('Delete all stocks failed:', error.message);
         return { 
             success: false, 
             error: error.message 
@@ -352,7 +318,6 @@ export async function getStock(stockId) {
         return null;
         
     } catch (error) {
-        console.error('Error getting stock:', error);
         return null;
     }
 }
@@ -367,16 +332,13 @@ async function syncOfflineData() {
         return;
     }
     
-    console.log('Syncing offline data...');
-    
-    // This is a simplified sync - you may want more sophisticated logic
     for (const stock of localData) {
         try {
             if (stock.stock_id && stock.stock_id.startsWith('stock_')) {
                 await addStock(stock);
             }
         } catch (error) {
-            console.error('Error syncing stock:', error);
+            // Silent fail for individual stock sync errors
         }
     }
 }
@@ -393,7 +355,7 @@ function saveToLocalStorage(stocks) {
             timestamp: new Date().toISOString()
         }));
     } catch (error) {
-        console.error('Error saving to localStorage:', error);
+        // Silent fail for storage errors
     }
 }
 
@@ -408,7 +370,7 @@ function loadFromLocalStorage() {
             return JSON.parse(saved);
         }
     } catch (error) {
-        console.error('Error loading from localStorage:', error);
+        // Silent fail for storage errors
     }
     return [];
 }
@@ -439,7 +401,6 @@ export async function migrateLocalStorageToFirebase() {
     
     for (const stock of localData) {
         try {
-            // Remove old stock_id if it exists
             const { stock_id, ...stockData } = stock;
             
             const result = await addStock(stockData);
@@ -449,12 +410,9 @@ export async function migrateLocalStorageToFirebase() {
                 failed++;
             }
         } catch (error) {
-            console.error('Error migrating stock:', error);
             failed++;
         }
     }
-    
-    console.log(`Migration complete: ${migrated} migrated, ${failed} failed`);
     
     return {
         success: true,

@@ -9,7 +9,9 @@
     <meta name="description" content="Professional stock analysis dashboard for Indian equities. Track fundamental metrics, analyze financial ratios, and make informed investment decisions with our cloud-based tool.">
     <meta name="keywords" content="stock analysis, Indian stocks, fundamental analysis, investment tool, stock metrics, financial ratios, ROE, P/E ratio">
     <meta name="author" content="Stock Analysis Dashboard">
+    <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://nandheswara.github.io/stock-analysis/">
+    <link rel="sitemap" type="application/xml" href="sitemap.xml">
     
     <!-- Open Graph Meta Tags -->
     <meta property="og:title" content="Stock Analysis Dashboard - Indian Stock Fundamental Analysis">
@@ -34,6 +36,7 @@
     
     <!-- Page-specific CSS -->
     <link rel="stylesheet" href="css/home.css">
+    <link rel="stylesheet" href="css/firebase-auth.css">
 </head>
 <body>
     <!-- Navigation -->
@@ -42,7 +45,7 @@
             <a class="navbar-brand" href="index.html">
                 <i class="bi bi-graph-up"></i> Stock Dashboard
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
@@ -55,10 +58,35 @@
                             <i class="bi bi-bar-chart-line"></i> Fundamental Analysis
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="pages/stock-manager.html">
+                            <i class="bi bi-wallet2"></i> Stock Manager
+                        </a>
+                    </li>
                     <li class="nav-item d-flex align-items-center ms-2">
-                        <button class="btn btn-sm btn-outline-light" id="themeToggle" title="Toggle theme">
+                        <button class="btn btn-sm btn-outline-light" id="themeToggle" title="Toggle theme" aria-label="Toggle dark/light theme">
                             <i class="bi bi-moon-fill" id="themeIcon"></i>
                         </button>
+                    </li>
+                    <!-- Auth Buttons (shown when not logged in) -->
+                    <li class="nav-item d-flex align-items-center ms-2" id="authButtons">
+                        <button type="button" class="btn btn-sm btn-outline-light me-2" id="loginBtn">
+                            <i class="bi bi-box-arrow-in-right"></i> Login
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-light" id="signupBtn">
+                            <i class="bi bi-person-plus"></i> Sign Up
+                        </button>
+                    </li>
+                    <!-- User Profile (shown when logged in) -->
+                    <li class="nav-item d-flex align-items-center ms-2" id="userInfo" style="display: none;">
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-person-circle"></i> <span id="userEmail">User</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="#" id="logoutBtn"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+                            </ul>
+                        </div>
                     </li>
                 </ul>
             </div>
@@ -160,14 +188,323 @@
         </div>
     </main>
 
+    <!-- Authentication Modal -->
+    <div class="modal fade" id="authModal" tabindex="-1" aria-labelledby="authModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="authModalTitle">Sign In</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Alert Container for Auth Errors -->
+                    <div id="authAlertContainer"></div>
+                    
+                    <!-- Login Form -->
+                    <form id="loginForm" style="display: block;">
+                        <div class="mb-3">
+                            <label for="loginEmail" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="loginEmail" placeholder="your-email@example.com" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="loginPassword" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="loginPassword" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 mb-2">
+                            <i class="bi bi-box-arrow-in-right"></i> Sign In
+                        </button>
+                        <button type="button" class="btn btn-outline-primary w-100" id="googleSignInBtn">
+                            <i class="bi bi-google"></i> Sign in with Google
+                        </button>
+                        <div class="text-center mt-3">
+                            <small>Don't have an account? <a href="#" id="showSignupForm">Sign up here</a></small>
+                        </div>
+                        <div class="text-center mt-2">
+                            <small><a href="#" id="forgotPasswordLink">Forgot password?</a></small>
+                        </div>
+                    </form>
+                    
+                    <!-- Signup Form -->
+                    <form id="signupForm" style="display: none;">
+                        <div class="mb-3">
+                            <label for="signupName" class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="signupName" placeholder="John Doe" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="signupEmail" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="signupEmail" placeholder="your-email@example.com" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="signupPassword" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="signupPassword" required minlength="6">
+                            <small class="text-muted">Minimum 6 characters</small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="signupConfirmPassword" class="form-label">Confirm Password</label>
+                            <input type="password" class="form-control" id="signupConfirmPassword" required minlength="6">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 mb-2">
+                            <i class="bi bi-person-plus"></i> Create Account
+                        </button>
+                        <button type="button" class="btn btn-outline-primary w-100" id="googleSignUpBtn">
+                            <i class="bi bi-google"></i> Sign up with Google
+                        </button>
+                        <div class="text-center mt-3">
+                            <small>Already have an account? <a href="#" id="showLoginForm">Sign in here</a></small>
+                        </div>
+                    </form>
+                    
+                    <!-- Forgot Password Form -->
+                    <form id="forgotPasswordForm" style="display: none;">
+                        <p class="text-muted">Enter your email address and we'll send you a link to reset your password.</p>
+                        <div class="mb-3">
+                            <label for="resetEmail" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="resetEmail" placeholder="your-email@example.com" required>
+                        </div>
+                        <button type="button" class="btn btn-primary w-100 mb-2" id="sendResetEmailBtn">
+                            <i class="bi bi-envelope"></i> Send Reset Link
+                        </button>
+                        <div class="text-center mt-3">
+                            <small><a href="#" id="backToLoginBtn">Back to login</a></small>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Footer -->
-    <footer class="bg-dark text-white text-center py-3 mt-5">
-        <p>&copy; 2025 Stock Analysis Dashboard.</p>
+    <!-- Footer -->
+    <footer class="bg-dark text-white text-center py-4 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    <p class="mb-2"><i class="bi bi-graph-up"></i> <strong>Stock Analysis Dashboard</strong></p>
+                    <p class="mb-2">Professional stock analysis tool for Indian equities</p>
+                    <div class="footer-links mb-3">
+                        <a href="index.html" class="text-white-50 me-3 text-decoration-none">Home</a>
+                        <a href="pages/analysis.html" class="text-white-50 me-3 text-decoration-none">Fundamental Analysis</a>
+                        <a href="pages/stock-manager.html" class="text-white-50 text-decoration-none">Stock Manager</a>
+                    </div>
+                    <p class="mb-0 text-white-50">&copy; 2025 Stock Analysis Dashboard. All rights reserved.</p>
+                </div>
+            </div>
+        </div>
     </footer>
 
     <!-- External JavaScript -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Firebase -->
+    <script type="module">
+        import { 
+            initAuthListener,
+            signUpUser,
+            signInUser,
+            signInWithGoogle,
+            signOutUser,
+            resetPassword
+        } from './js/firebase-auth-service.js';
+
+        // Initialize Firebase authentication listener
+        initAuthListener();
+
+        // Wait for DOM to be ready
+        document.addEventListener('DOMContentLoaded', () => {
+            // Auth Modal Controls
+            const authModal = new bootstrap.Modal(document.getElementById('authModal'));
+            const loginBtn = document.getElementById('loginBtn');
+            const signupBtn = document.getElementById('signupBtn');
+            const logoutBtn = document.getElementById('logoutBtn');
+
+            // Show login modal
+            if (loginBtn) {
+                loginBtn.addEventListener('click', () => {
+                    showLoginForm();
+                    authModal.show();
+                });
+            }
+
+            // Show signup modal
+            if (signupBtn) {
+                signupBtn.addEventListener('click', () => {
+                    showSignupForm();
+                    authModal.show();
+                });
+            }
+
+            // Logout
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    await signOutUser();
+                });
+            }
+
+            // Form switching
+            document.getElementById('showSignupForm')?.addEventListener('click', (e) => {
+                e.preventDefault();
+                showSignupForm();
+            });
+
+            document.getElementById('showLoginForm')?.addEventListener('click', (e) => {
+                e.preventDefault();
+                showLoginForm();
+            });
+
+            document.getElementById('forgotPasswordLink')?.addEventListener('click', (e) => {
+                e.preventDefault();
+                showForgotPasswordForm();
+            });
+
+            document.getElementById('backToLoginBtn')?.addEventListener('click', (e) => {
+                e.preventDefault();
+                showLoginForm();
+            });
+
+            // Login form submission
+            document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('loginEmail').value;
+                const password = document.getElementById('loginPassword').value;
+                
+                if (!email || !password) {
+                    showAuthAlert('Please enter email and password', 'danger');
+                    return;
+                }
+                
+                const result = await signInUser(email, password);
+                if (result.success) {
+                    showAuthAlert('Signed in successfully!', 'success');
+                    authModal.hide();
+                    document.getElementById('loginForm').reset();
+                } else {
+                    showAuthAlert(result.error, 'danger');
+                }
+            });
+
+            // Signup form submission
+            document.getElementById('signupForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('signupName').value;
+                const email = document.getElementById('signupEmail').value;
+                const password = document.getElementById('signupPassword').value;
+                const confirmPassword = document.getElementById('signupConfirmPassword').value;
+                
+                if (password !== confirmPassword) {
+                    showAuthAlert('Passwords do not match', 'danger');
+                    return;
+                }
+                
+                const result = await signUpUser(email, password, name);
+                if (result.success) {
+                    showAuthAlert('Account created successfully!', 'success');
+                    authModal.hide();
+                    document.getElementById('signupForm').reset();
+                } else {
+                    showAuthAlert(result.error, 'danger');
+                }
+            });
+
+            // Google Sign In
+            document.getElementById('googleSignInBtn')?.addEventListener('click', async () => {
+                const result = await signInWithGoogle();
+                if (result.success) {
+                    showAuthAlert('Signed in successfully!', 'success');
+                    authModal.hide();
+                } else {
+                    showAuthAlert(result.error, 'danger');
+                }
+            });
+
+            // Google Sign Up (same as sign in)
+            document.getElementById('googleSignUpBtn')?.addEventListener('click', async () => {
+                const result = await signInWithGoogle();
+                if (result.success) {
+                    showAuthAlert('Signed in successfully!', 'success');
+                    authModal.hide();
+                } else {
+                    showAuthAlert(result.error, 'danger');
+                }
+            });
+
+            // Password reset
+            document.getElementById('sendResetEmailBtn')?.addEventListener('click', async () => {
+                const email = document.getElementById('resetEmail').value;
+                if (!email) {
+                    showAuthAlert('Please enter your email address', 'danger');
+                    return;
+                }
+                
+                const result = await resetPassword(email);
+                if (result.success) {
+                    showAuthAlert('Password reset email sent! Please check your inbox.', 'success');
+                    document.getElementById('resetEmail').value = '';
+                    setTimeout(() => {
+                        showLoginForm();
+                    }, 2000);
+                } else {
+                    showAuthAlert(result.error, 'danger');
+                }
+            });
+
+            // Helper functions for form switching
+            function showLoginForm() {
+                document.getElementById('authModalTitle').textContent = 'Sign In';
+                document.getElementById('loginForm').style.display = 'block';
+                document.getElementById('signupForm').style.display = 'none';
+                document.getElementById('forgotPasswordForm').style.display = 'none';
+                clearAuthAlerts();
+            }
+
+            function showSignupForm() {
+                document.getElementById('authModalTitle').textContent = 'Create Account';
+                document.getElementById('loginForm').style.display = 'none';
+                document.getElementById('signupForm').style.display = 'block';
+                document.getElementById('forgotPasswordForm').style.display = 'none';
+                clearAuthAlerts();
+            }
+
+            function showForgotPasswordForm() {
+                document.getElementById('authModalTitle').textContent = 'Reset Password';
+                document.getElementById('loginForm').style.display = 'none';
+                document.getElementById('signupForm').style.display = 'none';
+                document.getElementById('forgotPasswordForm').style.display = 'block';
+                clearAuthAlerts();
+            }
+
+            function clearAuthAlerts() {
+                const alertContainer = document.getElementById('authAlertContainer');
+                if (alertContainer) {
+                    alertContainer.innerHTML = '';
+                }
+            }
+
+            function showAuthAlert(message, type = 'danger') {
+                const alertContainer = document.getElementById('authAlertContainer');
+                if (!alertContainer) return;
+                
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+                alertDiv.role = 'alert';
+                alertDiv.innerHTML = `
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                
+                alertContainer.innerHTML = '';
+                alertContainer.appendChild(alertDiv);
+                
+                // Auto-dismiss success messages after 3 seconds
+                if (type === 'success') {
+                    setTimeout(() => {
+                        alertDiv.remove();
+                    }, 3000);
+                }
+            }
+        });
+    </script>
     
     <!-- Global JavaScript -->
     <script src="js/global.js"></script>

@@ -33,12 +33,10 @@ function applyTheme(theme) {
         }
     }
     
-    // Store theme preference in localStorage
     try {
         localStorage.setItem('theme', theme);
     } catch (e) {
         // Ignore storage errors (e.g., in private browsing mode)
-        console.warn('Unable to save theme preference:', e.message);
     }
 }
 

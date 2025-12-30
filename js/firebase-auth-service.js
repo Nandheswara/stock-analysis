@@ -34,14 +34,13 @@ const authStateCallbacks = [];
  * Initialize auth state listener
  */
 export function initAuthListener() {
+    updateAuthUI(null);
+    
     onAuthStateChanged(auth, (user) => {
         currentUser = user;
-        console.log('Auth state changed:', user ? `User: ${user.email}` : 'No user');
         
-        // Notify all registered callbacks
         authStateCallbacks.forEach(callback => callback(user));
         
-        // Update UI based on auth state
         updateAuthUI(user);
     });
 }
@@ -52,6 +51,18 @@ export function initAuthListener() {
  */
 export function onAuthStateChange(callback) {
     authStateCallbacks.push(callback);
+}
+
+/**
+ * Wrapper for onAuthStateChanged - accepts just a callback (unlike Firebase's version which requires auth)
+ * @param {Function} callback - Function to call when auth state changes with user object
+ */
+export function onAuthStateChangedWrapper(callback) {
+    authStateCallbacks.push(callback);
+    
+    if (currentUser !== undefined) {
+        callback(currentUser);
+    }
 }
 
 /**
@@ -73,20 +84,21 @@ export async function signUpUser(email, password, displayName) {
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         
-        // Update user profile with display name
         if (displayName) {
             await updateProfile(userCredential.user, {
                 displayName: displayName
             });
         }
         
-        console.log('User signed up successfully:', userCredential.user.email);
         return { success: true, user: userCredential.user };
     } catch (error) {
-        console.error('Sign up error:', error);
-        return { success: false, error: getAuthErrorMessage(error.code) };
+        console.error('Sign up failed:', error.code);
+        throw new Error(getAuthErrorMessage(error.code));
     }
 }
+
+// Alias for compatibility
+export const signupUser = signUpUser;
 
 /**
  * Sign in existing user with email and password
@@ -97,13 +109,15 @@ export async function signUpUser(email, password, displayName) {
 export async function signInUser(email, password) {
     try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        console.log('User signed in successfully:', userCredential.user.email);
         return { success: true, user: userCredential.user };
     } catch (error) {
-        console.error('Sign in error:', error);
-        return { success: false, error: getAuthErrorMessage(error.code) };
+        console.error('Sign in failed:', error.code);
+        throw new Error(getAuthErrorMessage(error.code));
     }
 }
+
+// Alias for compatibility
+export const loginUser = signInUser;
 
 /**
  * Sign in with Google popup
@@ -113,10 +127,9 @@ export async function signInWithGoogle() {
     try {
         const provider = new GoogleAuthProvider();
         const userCredential = await signInWithPopup(auth, provider);
-        console.log('User signed in with Google:', userCredential.user.email);
         return { success: true, user: userCredential.user };
     } catch (error) {
-        console.error('Google sign in error:', error);
+        console.error('Google sign-in failed:', error.code);
         return { success: false, error: getAuthErrorMessage(error.code) };
     }
 }
@@ -128,13 +141,14 @@ export async function signInWithGoogle() {
 export async function signOutUser() {
     try {
         await signOut(auth);
-        console.log('User signed out successfully');
         return { success: true };
     } catch (error) {
-        console.error('Sign out error:', error);
-        return { success: false, error: error.message };
+        throw new Error(error.message);
     }
 }
+
+// Alias for compatibility
+export const logoutUser = signOutUser;
 
 /**
  * Send password reset email
@@ -143,20 +157,12 @@ export async function signOutUser() {
  */
 export async function resetPassword(email) {
     try {
-        console.log('Attempting to send password reset email to:', email);
         await sendPasswordResetEmail(auth, email);
-        console.log('✅ Password reset email sent successfully to:', email);
-        console.log('⚠️ Check your spam folder if you don\'t see the email in inbox');
         return { 
             success: true, 
             message: 'Password reset email sent! Check your inbox and spam folder.' 
         };
     } catch (error) {
-        console.error('❌ Password reset error:', error);
-        console.error('Error code:', error.code);
-        console.error('Error message:', error.message);
-        
-        // Provide specific error messages
         let errorMessage = getAuthErrorMessage(error.code);
         if (error.code === 'auth/user-not-found') {
             errorMessage = 'No account found with this email address. Please check the email or sign up.';
@@ -223,13 +229,11 @@ export async function sendVerificationEmail() {
         
         await sendEmailVerification(currentUser);
         
-        console.log('✅ Verification email sent successfully');
         return { 
             success: true, 
             message: 'Verification email sent! Please check your inbox and spam folder.' 
         };
     } catch (error) {
-        console.error('❌ Error sending verification email:', error.code, error.message);
         return { 
             success: false, 
             error: getErrorMessage(error.code) 
@@ -251,26 +255,44 @@ export function isEmailVerified() {
  */
 function updateAuthUI(user) {
     const authButtons = document.getElementById('authButtons');
-    const userProfile = document.getElementById('userProfile');
+    const userProfile = document.getElementById('userProfile'); 
+    const userInfo = document.getElementById('userInfo'); 
     const userEmail = document.getElementById('userEmail');
     const analysisContent = document.getElementById('analysisContent');
     const authPrompt = document.getElementById('authPrompt');
     
     if (user) {
-        // User is signed in
-        if (authButtons) authButtons.style.display = 'none';
-        if (userProfile) {
-            userProfile.style.display = 'flex';
-            if (userEmail) {
-                userEmail.textContent = user.displayName || user.email;
-            }
+        if (authButtons) {
+            authButtons.style.setProperty('display', 'none', 'important');
         }
+        
+        if (userProfile) {
+            userProfile.style.setProperty('display', 'flex', 'important');
+        }
+        
+        if (userEmail) {
+            userEmail.textContent = user.displayName || user.email;
+        }
+        
+        if (userInfo) {
+            userInfo.style.setProperty('display', 'flex', 'important');
+        }
+        
         if (analysisContent) analysisContent.style.display = 'block';
         if (authPrompt) authPrompt.style.display = 'none';
     } else {
-        // User is signed out
-        if (authButtons) authButtons.style.display = 'flex';
-        if (userProfile) userProfile.style.display = 'none';
+        if (authButtons) {
+            authButtons.style.setProperty('display', 'flex', 'important');
+        }
+        
+        if (userProfile) {
+            userProfile.style.setProperty('display', 'none', 'important');
+        }
+        
+        if (userInfo) {
+            userInfo.style.setProperty('display', 'none', 'important');
+        }
+        
         if (analysisContent) analysisContent.style.display = 'none';
         if (authPrompt) authPrompt.style.display = 'block';
     }

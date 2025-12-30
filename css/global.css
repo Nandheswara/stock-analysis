@@ -72,6 +72,15 @@ footer.bg-dark {
     color: #e9ecef;
 }
 
+footer .footer-links a {
+    transition: color 0.3s ease;
+}
+
+footer .footer-links a:hover {
+    color: #ffffff !important;
+    text-decoration: underline !important;
+}
+
 /* ========================================
    Modal Components
    ======================================== */
@@ -258,6 +267,14 @@ body.light-theme footer.bg-dark {
 }
 
 body.light-theme footer.bg-dark p {
+    color: #212529 !important;
+}
+
+body.light-theme footer .footer-links a {
+    color: #6c757d !important;
+}
+
+body.light-theme footer .footer-links a:hover {
     color: #212529 !important;
 }
 
