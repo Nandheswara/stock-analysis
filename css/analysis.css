@@ -55,6 +55,29 @@
     border-bottom: 1px solid #343a40;
 }
 
+/* Filter Button Badge */
+#filterCount {
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 10px;
+    vertical-align: top;
+}
+
+#filterBtn.btn-primary #filterCount {
+    background-color: #ffffff !important;
+    color: #0d6efd !important;
+}
+
+/* Filter Modal Styles */
+.filter-select-modal {
+    cursor: pointer;
+}
+
+.filter-select-modal:focus {
+    border-color: #3ddc84;
+    box-shadow: 0 0 0 0.15rem rgba(61, 220, 132, 0.25);
+}
+
 .analysis-table td {
     vertical-align: middle;
     white-space: nowrap;
@@ -187,6 +210,27 @@
     color: #343a40;
 }
 
+/* No results state (when filters don't match) */
+.analysis-table tbody tr td[colspan="18"] {
+    background-color: #14151b;
+    padding: 40px 20px;
+}
+
+.analysis-table tbody tr td[colspan="18"] i {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 15px;
+}
+
+/* Light theme no results */
+body.light-theme .analysis-table tbody tr td[colspan="18"] {
+    background-color: #f8f9fa;
+}
+
+body.light-theme .analysis-table tbody tr td[colspan="18"] .text-muted {
+    color: #6c757d !important;
+}
+
 /* ========================================
    LIGHT THEME OVERRIDES - Analysis Page
    ======================================== */
@@ -283,6 +327,17 @@ body.light-theme .table-container {
     border: 1px solid #e9ecef;
 }
 
+/* Filter Button & Modal - Light Theme */
+body.light-theme #filterBtn.btn-primary #filterCount {
+    background-color: #ffffff !important;
+    color: #0d6efd !important;
+}
+
+body.light-theme .filter-select-modal:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.15rem rgba(13, 110, 253, 0.25);
+}
+
 /* Empty State - Light Theme */
 body.light-theme .empty-state {
     color: #6c757d;
@@ -291,7 +346,6 @@ body.light-theme .empty-state {
 body.light-theme .empty-state i {
     color: #adb5bd;
 }
-
 /* ========================================
    Responsive Design - Analysis Page
    ======================================== */
