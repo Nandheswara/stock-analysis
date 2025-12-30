@@ -34,6 +34,9 @@ const authStateCallbacks = [];
  * Initialize auth state listener
  */
 export function initAuthListener() {
+    // Set initial UI state immediately (assume not logged in until Firebase confirms)
+    updateAuthUI(null);
+    
     onAuthStateChanged(auth, (user) => {
         currentUser = user;
         console.log('Auth state changed:', user ? `User: ${user.email}` : 'No user');
@@ -52,6 +55,20 @@ export function initAuthListener() {
  */
 export function onAuthStateChange(callback) {
     authStateCallbacks.push(callback);
+}
+
+/**
+ * Wrapper for onAuthStateChanged - accepts just a callback (unlike Firebase's version which requires auth)
+ * @param {Function} callback - Function to call when auth state changes with user object
+ */
+export function onAuthStateChangedWrapper(callback) {
+    // Register callback in our system
+    authStateCallbacks.push(callback);
+    
+    // If we already have a user state, call immediately
+    if (currentUser !== undefined) {
+        callback(currentUser);
+    }
 }
 
 /**
@@ -84,9 +101,12 @@ export async function signUpUser(email, password, displayName) {
         return { success: true, user: userCredential.user };
     } catch (error) {
         console.error('Sign up error:', error);
-        return { success: false, error: getAuthErrorMessage(error.code) };
+        throw new Error(getAuthErrorMessage(error.code));
     }
 }
+
+// Alias for compatibility
+export const signupUser = signUpUser;
 
 /**
  * Sign in existing user with email and password
@@ -101,9 +121,12 @@ export async function signInUser(email, password) {
         return { success: true, user: userCredential.user };
     } catch (error) {
         console.error('Sign in error:', error);
-        return { success: false, error: getAuthErrorMessage(error.code) };
+        throw new Error(getAuthErrorMessage(error.code));
     }
 }
+
+// Alias for compatibility
+export const loginUser = signInUser;
 
 /**
  * Sign in with Google popup
@@ -132,9 +155,12 @@ export async function signOutUser() {
         return { success: true };
     } catch (error) {
         console.error('Sign out error:', error);
-        return { success: false, error: error.message };
+        throw new Error(error.message);
     }
 }
+
+// Alias for compatibility
+export const logoutUser = signOutUser;
 
 /**
  * Send password reset email
@@ -251,27 +277,71 @@ export function isEmailVerified() {
  */
 function updateAuthUI(user) {
     const authButtons = document.getElementById('authButtons');
-    const userProfile = document.getElementById('userProfile');
+    const userProfile = document.getElementById('userProfile'); 
+    const userInfo = document.getElementById('userInfo'); 
     const userEmail = document.getElementById('userEmail');
     const analysisContent = document.getElementById('analysisContent');
     const authPrompt = document.getElementById('authPrompt');
     
+    console.log('updateAuthUI called with user:', user ? user.email : 'null');
+    console.log('authButtons element:', authButtons);
+    console.log('userInfo element:', userInfo);
+    console.log('userProfile element:', userProfile);
+    
     if (user) {
-        // User is signed in
-        if (authButtons) authButtons.style.display = 'none';
-        if (userProfile) {
-            userProfile.style.display = 'flex';
-            if (userEmail) {
-                userEmail.textContent = user.displayName || user.email;
-            }
+        // User is signed in - hide login/signup buttons, show user profile/info
+        if (authButtons) {
+            authButtons.style.setProperty('display', 'none', 'important');
+            console.log('✅ Auth buttons hidden');
+        } else {
+            console.warn('⚠️ authButtons element not found');
         }
+        
+        // Update user profile (analysis page)
+        if (userProfile) {
+            userProfile.style.setProperty('display', 'flex', 'important');
+            console.log('✅ User profile shown');
+        }
+        
+        // Update user email display
+        if (userEmail) {
+            userEmail.textContent = user.displayName || user.email;
+            console.log('✅ User email updated:', userEmail.textContent);
+        }
+        
+        // Update user info (stock-manager page)
+        if (userInfo) {
+            userInfo.style.setProperty('display', 'flex', 'important');
+            console.log('✅ User info shown');
+        } else {
+            console.warn('⚠️ userInfo element not found');
+        }
+        
         if (analysisContent) analysisContent.style.display = 'block';
         if (authPrompt) authPrompt.style.display = 'none';
+        
+        console.log('✅ Auth UI updated: User signed in');
     } else {
-        // User is signed out
-        if (authButtons) authButtons.style.display = 'flex';
-        if (userProfile) userProfile.style.display = 'none';
+        // User is signed out - show login/signup buttons, hide user profile/info
+        if (authButtons) {
+            authButtons.style.setProperty('display', 'flex', 'important');
+            console.log('✅ Auth buttons shown');
+        }
+        
+        // Hide user profile (analysis page)
+        if (userProfile) {
+            userProfile.style.setProperty('display', 'none', 'important');
+        }
+        
+        // Hide user info (stock-manager page)
+        if (userInfo) {
+            userInfo.style.setProperty('display', 'none', 'important');
+            console.log('✅ User info hidden');
+        }
+        
         if (analysisContent) analysisContent.style.display = 'none';
         if (authPrompt) authPrompt.style.display = 'block';
+        
+        console.log('✅ Auth UI updated: User signed out');
     }
 }
