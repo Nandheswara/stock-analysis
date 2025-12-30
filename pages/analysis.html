@@ -102,9 +102,14 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-table"></i> Stock Fundamental Analysis</h5>
-                <button class="btn btn-sm btn-outline-danger" id="clearAllBtn" style="display: none;">
-                    <i class="bi bi-trash"></i> Clear All
-                </button>
+                <div>
+                    <button class="btn btn-sm btn-outline-primary me-2" id="filterBtn" style="display: none;">
+                        <i class="bi bi-funnel"></i> Filter <span id="filterCount" class="badge bg-primary ms-1" style="display: none;">0</span>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" id="clearAllBtn" style="display: none;">
+                        <i class="bi bi-trash"></i> Clear All
+                    </button>
+                </div>
             </div>
             <div class="card-body p-0">
                 <div class="table-container">
@@ -181,6 +186,159 @@
             </div>
         </div>
     </main>
+
+    <!-- Filter Modal -->
+    <div class="modal fade" id="filterModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="bi bi-funnel-fill"></i> Filter Stocks</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted mb-3"><i class="bi bi-info-circle"></i> Select values to filter stocks.</p>
+                    
+                    <div class="row g-3">
+                        <!-- Stock Name Filter -->
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Stock Name</label>
+                            <select class="form-select filter-select-modal" id="filterStockName" data-field="name">
+                                <option value="">All Stocks</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Liquidity & Leverage Section -->
+                        <div class="col-12 mt-4">
+                            <h6 class="text-primary border-bottom pb-2"><i class="bi bi-cash-stack"></i> Liquidity & Leverage</h6>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label">Liquidity</label>
+                            <select class="form-select form-select-sm filter-select-modal" id="filterLiquidity" data-field="liquidity">
+                                <option value="">All</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label">Quick Ratio</label>
+                            <select class="form-select form-select-sm filter-select-modal" id="filterQuickRatio" data-field="quick_ratio">
+                                <option value="">All</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label">Debt/Equity</label>
+                            <select class="form-select form-select-sm filter-select-modal" id="filterDebtEquity" data-field="debt_to_equity">
+                                <option value="">All</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Profitability Section -->
+                        <div class="col-12 mt-4">
+                            <h6 class="text-primary border-bottom pb-2"><i class="bi bi-graph-up-arrow"></i> Profitability</h6>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label">ROE (%)</label>
+                            <select class="form-select form-select-sm filter-select-modal" id="filterROE" data-field="roe">
+                                <option value="">All</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label">Investor Growth Ratio</label>
+                            <select class="form-select form-select-sm filter-select-modal" id="filterInvestorGrowth" data-field="investor_growth_ratio">
+                                <option value="">All</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label">ROA (%)</label>
+                            <select class="form-select form-select-sm filter-select-modal" id="filterROA" data-field="roa">
+                                <option value="">All</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label">EBITDA Latest FY</label>
+                            <select class="form-select form-select-sm filter-select-modal" id="filterEBITDACurrent" data-field="ebitda_current">
+                                <option value="">All</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label">EBITDA Previous FY</label>
+                            <select class="form-select form-select-sm filter-select-modal" id="filterEBITDAPrevious" data-field="ebitda_previous">
+                                <option value="">All</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Valuation Section -->
+                        <div class="col-12 mt-4">
+                            <h6 class="text-primary border-bottom pb-2"><i class="bi bi-calculator"></i> Valuation Metrics</h6>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label">Dividend Yield (%)</label>
+                            <select class="form-select form-select-sm filter-select-modal" id="filterDividendYield" data-field="dividend_yield">
+                                <option value="">All</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label">Stock PE</label>
+                            <select class="form-select form-select-sm filter-select-modal" id="filterPE" data-field="pe_ratio">
+                                <option value="">All</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label">Industry PE</label>
+                            <select class="form-select form-select-sm filter-select-modal" id="filterIndustryPE" data-field="industry_pe">
+                                <option value="">All</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label">Price to Book (P/B)</label>
+                            <select class="form-select form-select-sm filter-select-modal" id="filterPriceToBook" data-field="price_to_book">
+                                <option value="">All</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label">Price to Sales (P/S)</label>
+                            <select class="form-select form-select-sm filter-select-modal" id="filterPriceToSales" data-field="price_to_sales">
+                                <option value="">All</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label">BETA</label>
+                            <select class="form-select form-select-sm filter-select-modal" id="filterBeta" data-field="beta">
+                                <option value="">All</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label">Promoter Holdings (%)</label>
+                            <select class="form-select form-select-sm filter-select-modal" id="filterPromoterHoldings" data-field="promoter_holdings">
+                                <option value="">All</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="clearFiltersModalBtn">
+                        <i class="bi bi-x-circle"></i> Clear All Filters
+                    </button>
+                    <button type="button" class="btn btn-primary" id="applyFiltersBtn">
+                        <i class="bi bi-check-circle"></i> Apply Filters
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Manual Data Entry Modal -->
     <div class="modal fade" id="manualDataModal" tabindex="-1">
