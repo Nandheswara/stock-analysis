@@ -9,7 +9,9 @@
     <meta name="description" content="Professional stock analysis dashboard for Indian equities. Track fundamental metrics, analyze financial ratios, and make informed investment decisions with our cloud-based tool.">
     <meta name="keywords" content="stock analysis, Indian stocks, fundamental analysis, investment tool, stock metrics, financial ratios, ROE, P/E ratio">
     <meta name="author" content="Stock Analysis Dashboard">
+    <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://nandheswara.github.io/stock-analysis/">
+    <link rel="sitemap" type="application/xml" href="sitemap.xml">
     
     <!-- Open Graph Meta Tags -->
     <meta property="og:title" content="Stock Analysis Dashboard - Indian Stock Fundamental Analysis">
@@ -336,10 +338,7 @@
             if (logoutBtn) {
                 logoutBtn.addEventListener('click', async (e) => {
                     e.preventDefault();
-                    const result = await signOutUser();
-                    if (result.success) {
-                        console.log('User logged out successfully');
-                    }
+                    await signOutUser();
                 });
             }
 

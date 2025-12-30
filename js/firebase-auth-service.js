@@ -34,17 +34,13 @@ const authStateCallbacks = [];
  * Initialize auth state listener
  */
 export function initAuthListener() {
-    // Set initial UI state immediately (assume not logged in until Firebase confirms)
     updateAuthUI(null);
     
     onAuthStateChanged(auth, (user) => {
         currentUser = user;
-        console.log('Auth state changed:', user ? `User: ${user.email}` : 'No user');
         
-        // Notify all registered callbacks
         authStateCallbacks.forEach(callback => callback(user));
         
-        // Update UI based on auth state
         updateAuthUI(user);
     });
 }
@@ -62,10 +58,8 @@ export function onAuthStateChange(callback) {
  * @param {Function} callback - Function to call when auth state changes with user object
  */
 export function onAuthStateChangedWrapper(callback) {
-    // Register callback in our system
     authStateCallbacks.push(callback);
     
-    // If we already have a user state, call immediately
     if (currentUser !== undefined) {
         callback(currentUser);
     }
@@ -90,17 +84,15 @@ export async function signUpUser(email, password, displayName) {
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         
-        // Update user profile with display name
         if (displayName) {
             await updateProfile(userCredential.user, {
                 displayName: displayName
             });
         }
         
-        console.log('User signed up successfully:', userCredential.user.email);
         return { success: true, user: userCredential.user };
     } catch (error) {
-        console.error('Sign up error:', error);
+        console.error('Sign up failed:', error.code);
         throw new Error(getAuthErrorMessage(error.code));
     }
 }
@@ -117,10 +109,9 @@ export const signupUser = signUpUser;
 export async function signInUser(email, password) {
     try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        console.log('User signed in successfully:', userCredential.user.email);
         return { success: true, user: userCredential.user };
     } catch (error) {
-        console.error('Sign in error:', error);
+        console.error('Sign in failed:', error.code);
         throw new Error(getAuthErrorMessage(error.code));
     }
 }
@@ -136,10 +127,9 @@ export async function signInWithGoogle() {
     try {
         const provider = new GoogleAuthProvider();
         const userCredential = await signInWithPopup(auth, provider);
-        console.log('User signed in with Google:', userCredential.user.email);
         return { success: true, user: userCredential.user };
     } catch (error) {
-        console.error('Google sign in error:', error);
+        console.error('Google sign-in failed:', error.code);
         return { success: false, error: getAuthErrorMessage(error.code) };
     }
 }
@@ -151,10 +141,8 @@ export async function signInWithGoogle() {
 export async function signOutUser() {
     try {
         await signOut(auth);
-        console.log('User signed out successfully');
         return { success: true };
     } catch (error) {
-        console.error('Sign out error:', error);
         throw new Error(error.message);
     }
 }
@@ -169,20 +157,12 @@ export const logoutUser = signOutUser;
  */
 export async function resetPassword(email) {
     try {
-        console.log('Attempting to send password reset email to:', email);
         await sendPasswordResetEmail(auth, email);
-        console.log('✅ Password reset email sent successfully to:', email);
-        console.log('⚠️ Check your spam folder if you don\'t see the email in inbox');
         return { 
             success: true, 
             message: 'Password reset email sent! Check your inbox and spam folder.' 
         };
     } catch (error) {
-        console.error('❌ Password reset error:', error);
-        console.error('Error code:', error.code);
-        console.error('Error message:', error.message);
-        
-        // Provide specific error messages
         let errorMessage = getAuthErrorMessage(error.code);
         if (error.code === 'auth/user-not-found') {
             errorMessage = 'No account found with this email address. Please check the email or sign up.';
@@ -249,13 +229,11 @@ export async function sendVerificationEmail() {
         
         await sendEmailVerification(currentUser);
         
-        console.log('✅ Verification email sent successfully');
         return { 
             success: true, 
             message: 'Verification email sent! Please check your inbox and spam folder.' 
         };
     } catch (error) {
-        console.error('❌ Error sending verification email:', error.code, error.message);
         return { 
             success: false, 
             error: getErrorMessage(error.code) 
@@ -283,65 +261,39 @@ function updateAuthUI(user) {
     const analysisContent = document.getElementById('analysisContent');
     const authPrompt = document.getElementById('authPrompt');
     
-    console.log('updateAuthUI called with user:', user ? user.email : 'null');
-    console.log('authButtons element:', authButtons);
-    console.log('userInfo element:', userInfo);
-    console.log('userProfile element:', userProfile);
-    
     if (user) {
-        // User is signed in - hide login/signup buttons, show user profile/info
         if (authButtons) {
             authButtons.style.setProperty('display', 'none', 'important');
-            console.log('✅ Auth buttons hidden');
-        } else {
-            console.warn('⚠️ authButtons element not found');
         }
         
-        // Update user profile (analysis page)
         if (userProfile) {
             userProfile.style.setProperty('display', 'flex', 'important');
-            console.log('✅ User profile shown');
         }
         
-        // Update user email display
         if (userEmail) {
             userEmail.textContent = user.displayName || user.email;
-            console.log('✅ User email updated:', userEmail.textContent);
         }
         
-        // Update user info (stock-manager page)
         if (userInfo) {
             userInfo.style.setProperty('display', 'flex', 'important');
-            console.log('✅ User info shown');
-        } else {
-            console.warn('⚠️ userInfo element not found');
         }
         
         if (analysisContent) analysisContent.style.display = 'block';
         if (authPrompt) authPrompt.style.display = 'none';
-        
-        console.log('✅ Auth UI updated: User signed in');
     } else {
-        // User is signed out - show login/signup buttons, hide user profile/info
         if (authButtons) {
             authButtons.style.setProperty('display', 'flex', 'important');
-            console.log('✅ Auth buttons shown');
         }
         
-        // Hide user profile (analysis page)
         if (userProfile) {
             userProfile.style.setProperty('display', 'none', 'important');
         }
         
-        // Hide user info (stock-manager page)
         if (userInfo) {
             userInfo.style.setProperty('display', 'none', 'important');
-            console.log('✅ User info hidden');
         }
         
         if (analysisContent) analysisContent.style.display = 'none';
         if (authPrompt) authPrompt.style.display = 'block';
-        
-        console.log('✅ Auth UI updated: User signed out');
     }
 }

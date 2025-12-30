@@ -25,10 +25,6 @@ import {
 const LOCALSTORAGE_KEY = 'stockPortfolio';
 let portfolioListener = null;
 
-/**
- * Get user-specific database reference for portfolio
- * @returns {Object} Firebase database reference for current user's portfolio
- */
 function getUserPortfolioRef() {
     const user = getCurrentUser();
     if (!user) {
@@ -37,11 +33,6 @@ function getUserPortfolioRef() {
     return ref(database, `users/${user.uid}/portfolio`);
 }
 
-/**
- * Get reference to a specific portfolio stock
- * @param {string} stockId - Stock ID
- * @returns {Object} Firebase database reference
- */
 function getPortfolioStockRef(stockId) {
     const user = getCurrentUser();
     if (!user) {
@@ -59,14 +50,12 @@ export async function savePortfolioStock(stock) {
     const user = getCurrentUser();
     
     if (!user) {
-        console.log('No user authenticated, saving to localStorage only');
         return { success: false, offline: true };
     }
 
     try {
         const stockRef = getPortfolioStockRef(stock.id);
         
-        // Prepare data for Firebase
         const stockData = {
             name: stock.name,
             quantity: stock.quantity,
@@ -84,11 +73,9 @@ export async function savePortfolioStock(stock) {
         };
 
         await set(stockRef, stockData);
-        console.log('Stock saved to Firebase:', stock.id);
         
         return { success: true, stock: { ...stockData, id: stock.id } };
     } catch (error) {
-        console.error('Error saving stock to Firebase:', error);
         throw error;
     }
 }
@@ -101,7 +88,6 @@ export async function loadPortfolioStocks() {
     const user = getCurrentUser();
     
     if (!user) {
-        console.log('No user authenticated, loading from localStorage');
         return [];
     }
 
@@ -116,14 +102,11 @@ export async function loadPortfolioStocks() {
                 id: key
             }));
             
-            console.log(`Loaded ${stocksArray.length} portfolio stocks from Firebase`);
             return stocksArray;
         }
         
-        console.log('No portfolio stocks found in Firebase');
         return [];
     } catch (error) {
-        console.error('Error loading portfolio stocks from Firebase:', error);
         throw error;
     }
 }
@@ -138,25 +121,21 @@ export async function updatePortfolioStock(stockId, updates) {
     const user = getCurrentUser();
     
     if (!user) {
-        console.log('No user authenticated, updating localStorage only');
         return false;
     }
 
     try {
         const stockRef = getPortfolioStockRef(stockId);
         
-        // Add last modified timestamp
         const updateData = {
             ...updates,
             lastModified: new Date().toISOString()
         };
 
         await update(stockRef, updateData);
-        console.log('Stock updated in Firebase:', stockId);
         
         return true;
     } catch (error) {
-        console.error('Error updating stock in Firebase:', error);
         throw error;
     }
 }
@@ -170,18 +149,15 @@ export async function deletePortfolioStock(stockId) {
     const user = getCurrentUser();
     
     if (!user) {
-        console.log('No user authenticated, deleting from localStorage only');
         return false;
     }
 
     try {
         const stockRef = getPortfolioStockRef(stockId);
         await remove(stockRef);
-        console.log('Stock deleted from Firebase:', stockId);
         
         return true;
     } catch (error) {
-        console.error('Error deleting stock from Firebase:', error);
         throw error;
     }
 }
@@ -195,13 +171,11 @@ export function listenToPortfolio(callback) {
     const user = getCurrentUser();
     
     if (!user) {
-        console.log('No user authenticated for real-time sync');
-        return () => {}; // Return empty unsubscribe function
+        return () => {};
     }
     
     const portfolioRef = getUserPortfolioRef();
     
-    // Set up real-time listener
     portfolioListener = onValue(portfolioRef, (snapshot) => {
         const data = snapshot.val();
         const stocksArray = data ? Object.keys(data).map(key => ({
@@ -209,13 +183,11 @@ export function listenToPortfolio(callback) {
             id: key
         })) : [];
         
-        console.log(`Real-time update: ${stocksArray.length} portfolio stocks`);
         callback(stocksArray);
     }, (error) => {
-        console.error('Error listening to portfolio:', error);
+        // Silent fail for listener errors
     });
     
-    // Return unsubscribe function
     return () => {
         if (portfolioListener) {
             portfolioListener();
@@ -233,14 +205,12 @@ export async function syncPortfolioToFirebase(stocks) {
     const user = getCurrentUser();
     
     if (!user) {
-        console.log('No user authenticated, cannot sync to Firebase');
         return false;
     }
 
     try {
         const portfolioRef = getUserPortfolioRef();
         
-        // Convert array to object with stock IDs as keys
         const portfolioData = {};
         stocks.forEach(stock => {
             portfolioData[stock.id] = {
@@ -261,11 +231,9 @@ export async function syncPortfolioToFirebase(stocks) {
         });
 
         await set(portfolioRef, portfolioData);
-        console.log(`Synced ${stocks.length} portfolio stocks to Firebase`);
         
         return true;
     } catch (error) {
-        console.error('Error syncing portfolio to Firebase:', error);
         throw error;
     }
 }
@@ -278,18 +246,15 @@ export async function clearPortfolio() {
     const user = getCurrentUser();
     
     if (!user) {
-        console.log('No user authenticated');
         return false;
     }
 
     try {
         const portfolioRef = getUserPortfolioRef();
         await remove(portfolioRef);
-        console.log('Portfolio cleared from Firebase');
         
         return true;
     } catch (error) {
-        console.error('Error clearing portfolio from Firebase:', error);
         throw error;
     }
 }

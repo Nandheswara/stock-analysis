@@ -171,22 +171,14 @@ class PortfolioManager {
     setupFirebaseSync() {
         const user = getCurrentUser();
         
-        console.log('setupFirebaseSync called, user:', user ? user.email : 'null');
-        
         if (user) {
-            console.log('Setting up Firebase sync for user:', user.email);
-            
-            // Unsubscribe from previous listener if exists
             if (unsubscribePortfolio) {
-                console.log('Unsubscribing from previous portfolio listener');
                 unsubscribePortfolio();
                 unsubscribePortfolio = null;
             }
             
-            // Listen to real-time updates
             unsubscribePortfolio = listenToPortfolio((firebaseStocks) => {
                 if (!isSyncing) {
-                    console.log('Received Firebase update:', firebaseStocks.length, 'stocks');
                     this.stocks = firebaseStocks.map(stockData => {
                         const stock = new Stock(
                             stockData.name,
@@ -199,17 +191,13 @@ class PortfolioManager {
                         return stock;
                     });
                     
-                    // Update UI
                     renderStocksTable();
                     updateSummaryDisplay();
                 }
             });
             
-            // Load initial data from Firebase
             this.loadFromFirebase();
         } else {
-            console.log('No user authenticated, portfolio will be empty until login');
-            // Clear stocks when not authenticated
             this.stocks = [];
             renderStocksTable();
             updateSummaryDisplay();
@@ -225,7 +213,6 @@ class PortfolioManager {
             const firebaseStocks = await loadPortfolioStocks();
             
             if (firebaseStocks.length > 0) {
-                console.log('Loading', firebaseStocks.length, 'stocks from Firebase');
                 this.stocks = firebaseStocks.map(stockData => {
                     const stock = new Stock(
                         stockData.name,
@@ -238,14 +225,12 @@ class PortfolioManager {
                     return stock;
                 });
                 
-                // Update UI
                 renderStocksTable();
                 updateSummaryDisplay();
             }
             
             isSyncing = false;
         } catch (error) {
-            console.error('Error loading from Firebase:', error);
             isSyncing = false;
         }
     }
@@ -262,14 +247,11 @@ class PortfolioManager {
         const stock = new Stock(name, quantity, buyPrice, sellPrice);
         this.stocks.push(stock);
         
-        // Save to Firebase
         try {
             isSyncing = true;
             await savePortfolioStock(stock);
             isSyncing = false;
-            console.log('Stock saved to Firebase');
         } catch (error) {
-            // Remove from local array if Firebase save fails
             this.stocks = this.stocks.filter(s => s.id !== stock.id);
             isSyncing = false;
             throw error;
@@ -282,21 +264,17 @@ class PortfolioManager {
      * Removes a stock from the portfolio
      */
     async removeStock(stockId) {
-        // Require authentication
         if (!isAuthenticated()) {
             throw new Error('Authentication required to remove stocks');
         }
 
         this.stocks = this.stocks.filter(stock => stock.id !== stockId);
         
-        // Delete from Firebase
         try {
             isSyncing = true;
             await deletePortfolioStockFirebase(stockId);
             isSyncing = false;
-            console.log('Stock deleted from Firebase');
         } catch (error) {
-            console.error('Error deleting from Firebase:', error);
             isSyncing = false;
             throw error;
         }
@@ -306,7 +284,6 @@ class PortfolioManager {
      * Updates a stock in the portfolio
      */
     async updateStock(stockId, updates) {
-        // Require authentication
         if (!isAuthenticated()) {
             throw new Error('Authentication required to update stocks');
         }
@@ -317,7 +294,6 @@ class PortfolioManager {
             Object.assign(stock, updates);
             stock.calculateCharges();
             
-            // Update in Firebase
             try {
                 isSyncing = true;
                 const updateData = {
@@ -329,9 +305,7 @@ class PortfolioManager {
                 };
                 await updatePortfolioStock(stockId, updateData);
                 isSyncing = false;
-                console.log('Stock updated in Firebase');
             } catch (error) {
-                console.error('Error updating in Firebase:', error);
                 isSyncing = false;
                 throw error;
             }
@@ -405,7 +379,6 @@ function formatCurrency(amount) {
  */
 function updateSummaryDisplay() {
     if (!portfolioManager) {
-        console.log('Portfolio manager not initialized yet');
         return;
     }
     
@@ -433,7 +406,6 @@ function renderStocksTable() {
     const tbody = document.getElementById('stocksTableBody');
     
     if (!portfolioManager) {
-        console.log('Portfolio manager not initialized yet');
         if (tbody) {
             tbody.innerHTML = `
                 <tr class="no-data">
@@ -518,13 +490,9 @@ async function handleFormSubmit(event) {
         renderStocksTable();
         updateSummaryDisplay();
 
-        // Reset form
         event.target.reset();
-
-        // Show success message
         showNotification('Stock added successfully!');
     } catch (error) {
-        console.error('Error adding stock:', error);
         showNotification('Failed to add stock. Please try again.', 'error');
     }
 }
@@ -594,18 +562,15 @@ async function saveEditStock() {
     }
 
     try {
-        // Update the stock
         await portfolioManager.updateStock(stockId, {
             sellPrice: parseFloat(sellPrice)
         });
 
-        // Update UI
         renderStocksTable();
         updateSummaryDisplay();
         closeEditModal();
         showNotification('Stock updated successfully!');
     } catch (error) {
-        console.error('Error updating stock:', error);
         showNotification('Failed to update stock. Please try again.', 'error');
     }
 }
@@ -664,41 +629,19 @@ function showNotification(message, type = 'success') {
  * Initialize the application
  */
 function initApp() {
-    console.log('=== Initializing Stock Manager ===');
-    
     try {
-        // Initialize Firebase Auth listener
-        console.log('Step 1: Initializing auth listener...');
         initAuthListener();
-        console.log('Auth listener initialized');
-        
-        // Initialize Portfolio Manager after auth is set up
-        console.log('Step 2: Initializing Portfolio Manager...');
         portfolioManager = new PortfolioManager();
-        console.log('Portfolio Manager initialized');
         
-        // Set up form submission handler
-        console.log('Step 3: Setting up form handler...');
         const form = document.getElementById('stockForm');
         if (form) {
             form.addEventListener('submit', handleFormSubmit);
-            console.log('Form submit handler added');
-        } else {
-            console.warn('Stock form not found - may not be on stock manager page');
         }
 
-        // Set up auth listeners
-        console.log('Step 4: Setting up auth UI...');
         setupAuthUI();
-        console.log('Auth UI setup complete');
-
-        // Initial render
-        console.log('Step 5: Rendering initial data...');
         renderStocksTable();
         updateSummaryDisplay();
-        console.log('Initial render complete');
 
-        // Add CSS animations
         const style = document.createElement('style');
         style.textContent = `
             @keyframes slideIn {
@@ -723,32 +666,8 @@ function initApp() {
             }
         `;
         document.head.appendChild(style);
-        
-        console.log('=== Stock Manager initialized successfully ===');
-        
-        // Test button accessibility
-        setTimeout(() => {
-            const loginBtn = document.getElementById('loginBtn');
-            const signupBtn = document.getElementById('signupBtn');
-            console.log('=== Button Test (1 second after load) ===');
-            console.log('Login button element:', loginBtn);
-            console.log('Signup button element:', signupBtn);
-            if (loginBtn) {
-                console.log('Login button computed display:', window.getComputedStyle(loginBtn).display);
-                console.log('Login button computed visibility:', window.getComputedStyle(loginBtn).visibility);
-                console.log('Login button computed pointer-events:', window.getComputedStyle(loginBtn).pointerEvents);
-            }
-            if (signupBtn) {
-                console.log('Signup button computed display:', window.getComputedStyle(signupBtn).display);
-                console.log('Signup button computed visibility:', window.getComputedStyle(signupBtn).visibility);
-                console.log('Signup button computed pointer-events:', window.getComputedStyle(signupBtn).pointerEvents);
-            }
-            console.log('Auth buttons parent display:', document.getElementById('authButtons')?.style.display);
-            console.log('=== End Button Test ===');
-        }, 1000);
-        
     } catch (error) {
-        console.error('=== Error initializing Stock Manager ===', error);
+        // Silent fail - app may still work partially
     }
 }
 
@@ -756,67 +675,42 @@ function initApp() {
  * Set up authentication UI handlers
  */
 function setupAuthUI() {
-    console.log('Setting up auth UI...');
-    
     let isLoginMode = true;
 
-    // Get elements
     const loginBtn = document.getElementById('loginBtn');
     const signupBtn = document.getElementById('signupBtn');
     const logoutBtn = document.getElementById('logoutBtn');
 
-    // Note: The auth buttons visibility is handled by updateAuthUI() in firebase-auth-service.js
-    // which is called automatically by initAuthListener()
-
-    // Auth state change listener for portfolio sync
     onAuthStateChanged((user) => {
-        console.log('Auth state changed in stock-manager:', user ? user.email : 'Not authenticated');
-        
         if (user && portfolioManager) {
-            // User is signed in - reload portfolio from Firebase
-            console.log('User logged in, reloading portfolio from Firebase');
             portfolioManager.setupFirebaseSync();
         } else if (!user && portfolioManager) {
-            // User logged out - clear portfolio
-            console.log('User logged out, clearing portfolio');
             portfolioManager.stocks = [];
             renderStocksTable();
             updateSummaryDisplay();
         }
     });
 
-    // Login button
     if (loginBtn) {
         loginBtn.addEventListener('click', (e) => {
-            console.log('Login button clicked');
             e.preventDefault();
             e.stopPropagation();
             isLoginMode = true;
             showAuthModal(true);
         });
-        console.log('Login button listener added');
-    } else {
-        console.error('Login button not found');
     }
 
-    // Signup button
     if (signupBtn) {
         signupBtn.addEventListener('click', (e) => {
-            console.log('Signup button clicked');
             e.preventDefault();
             e.stopPropagation();
             isLoginMode = false;
             showAuthModal(false);
         });
-        console.log('Signup button listener added');
-    } else {
-        console.error('Signup button not found');
     }
 
-    // Logout button
     if (logoutBtn) {
         logoutBtn.addEventListener('click', async (e) => {
-            console.log('Logout button clicked');
             e.preventDefault();
             e.stopPropagation();
             
@@ -824,26 +718,18 @@ function setupAuthUI() {
                 await logoutUser();
                 showNotification('Logged out successfully!');
                 
-                // Clear portfolio and unsubscribe from Firebase
                 if (unsubscribePortfolio) {
                     unsubscribePortfolio();
                     unsubscribePortfolio = null;
                 }
                 location.reload();
             } catch (error) {
-                console.error('Logout error:', error);
                 showNotification('Failed to logout', 'error');
             }
         });
-        console.log('Logout button listener added');
-    } else {
-        console.error('Logout button not found');
     }
 
-    // Auth form switch link - set up dynamically when modal opens
     setupAuthModalHandlers();
-    
-    console.log('Auth UI setup complete');
 }
 
 /**
@@ -851,12 +737,10 @@ function setupAuthUI() {
  * Note: isLoginMode is stored in the data attribute of the modal
  */
 function setupAuthModalHandlers() {
-    // Auth submit button
     const authSubmitBtn = document.getElementById('authSubmitBtn');
     const authForm = document.getElementById('authForm');
     const googleSignInBtn = document.getElementById('googleSignInBtn');
     
-    // Handle form submission (both button click and Enter key)
     const handleAuthSubmit = async (e) => {
         if (e) e.preventDefault();
         
@@ -865,7 +749,6 @@ function setupAuthModalHandlers() {
         const errorDiv = document.getElementById('authError');
         const modal = document.getElementById('authModal');
         
-        // Get current mode from modal data attribute
         const isLoginMode = modal?.dataset.loginMode === 'true';
 
         if (errorDiv) errorDiv.style.display = 'none';
@@ -878,15 +761,12 @@ function setupAuthModalHandlers() {
             return;
         }
 
-        // Disable button during submission
         if (authSubmitBtn) {
             authSubmitBtn.disabled = true;
             authSubmitBtn.textContent = isLoginMode ? 'Logging in...' : 'Signing up...';
         }
 
         try {
-            console.log(`Attempting ${isLoginMode ? 'login' : 'signup'} for:`, email);
-            
             if (isLoginMode) {
                 await loginUser(email, password);
                 showNotification('Logged in successfully!');
@@ -896,13 +776,11 @@ function setupAuthModalHandlers() {
             }
             closeAuthModal();
         } catch (error) {
-            console.error('Auth error:', error);
             if (errorDiv) {
                 errorDiv.textContent = error.message || 'Authentication failed';
                 errorDiv.style.display = 'block';
             }
         } finally {
-            // Re-enable button
             if (authSubmitBtn) {
                 authSubmitBtn.disabled = false;
                 authSubmitBtn.textContent = isLoginMode ? 'Login' : 'Sign Up';
@@ -912,15 +790,12 @@ function setupAuthModalHandlers() {
 
     if (authSubmitBtn) {
         authSubmitBtn.onclick = handleAuthSubmit;
-        console.log('Auth submit button handler added');
     }
     
     if (authForm) {
         authForm.onsubmit = handleAuthSubmit;
-        console.log('Auth form submit handler added');
     }
     
-    // Google Sign-In button handler
     if (googleSignInBtn) {
         googleSignInBtn.onclick = async (e) => {
             e.preventDefault();
@@ -929,12 +804,10 @@ function setupAuthModalHandlers() {
             
             if (errorDiv) errorDiv.style.display = 'none';
             
-            // Disable button during sign-in
             googleSignInBtn.disabled = true;
             if (googleSignInText) googleSignInText.textContent = 'Signing in...';
             
             try {
-                console.log('Attempting Google sign-in');
                 const result = await signInWithGoogle();
                 
                 if (result.success) {
@@ -944,18 +817,15 @@ function setupAuthModalHandlers() {
                     throw new Error(result.error || 'Google sign-in failed');
                 }
             } catch (error) {
-                console.error('Google sign-in error:', error);
                 if (errorDiv) {
                     errorDiv.textContent = error.message || 'Failed to sign in with Google. Please try again.';
                     errorDiv.style.display = 'block';
                 }
             } finally {
-                // Re-enable button
                 googleSignInBtn.disabled = false;
                 if (googleSignInText) googleSignInText.textContent = 'Continue with Google';
             }
         };
-        console.log('Google sign-in button handler added');
     }
 }
 
@@ -963,38 +833,31 @@ function setupAuthModalHandlers() {
  * Show auth modal
  */
 function showAuthModal(isLogin) {
-    console.log('Showing auth modal, isLogin:', isLogin);
-    
     const modal = document.getElementById('authModal');
     const title = document.getElementById('authModalTitle');
     const submitBtn = document.getElementById('authSubmitBtn');
     const switchText = document.getElementById('authSwitchText');
 
     if (!modal || !title || !submitBtn || !switchText) {
-        console.error('Auth modal elements not found');
         return;
     }
 
-    // Store the mode in data attribute for the submit handler to read
     modal.dataset.loginMode = isLogin ? 'true' : 'false';
 
     title.textContent = isLogin ? 'Login' : 'Sign Up';
     submitBtn.textContent = isLogin ? 'Login' : 'Sign Up';
     submitBtn.disabled = false;
     
-    // Update switch text with proper event handler
     if (isLogin) {
         switchText.innerHTML = 'Don\'t have an account? <a href="#" id="authSwitchLink" style="color: #667eea; text-decoration: none;">Sign Up</a>';
     } else {
         switchText.innerHTML = 'Already have an account? <a href="#" id="authSwitchLink" style="color: #667eea; text-decoration: none;">Login</a>';
     }
 
-    // Add event listener to the switch link
     const switchLink = document.getElementById('authSwitchLink');
     if (switchLink) {
         switchLink.onclick = (e) => {
             e.preventDefault();
-            console.log('Switching auth mode');
             showAuthModal(!isLogin);
         };
     }
@@ -1010,12 +873,9 @@ function showAuthModal(isLogin) {
     if (passwordInput) passwordInput.value = '';
     if (errorDiv) errorDiv.style.display = 'none';
     
-    // Focus on email input
     setTimeout(() => {
         if (emailInput) emailInput.focus();
     }, 100);
-    
-    console.log('Auth modal displayed');
 }
 
 /**
