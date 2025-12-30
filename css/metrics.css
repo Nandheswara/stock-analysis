@@ -1,0 +1,66 @@
+/* Liquidity Score - FORCE COLORS WITH !IMPORTANT */
+.good-value {
+    color: #3ddc84 !important;
+    font-weight: bold !important;
+}
+
+.neutral-value {
+    color: #ffb454 !important;
+    font-weight: 500 !important;
+}
+
+.bad-value {
+    color: #ff6b6b !important;
+    font-weight: bold !important;
+}
+
+/* Liquidity Score Badges - FORCE WITH !IMPORTANT */
+.metrics-badge{
+    font-size: 0.7rem !important;
+    padding: 2px 6px !important;
+    border-radius: 10px !important;
+    font-weight: 600 !important;
+    border: none !important;
+}
+
+.metrics-badge.good-value {
+    background-color: #3ddc84 !important;
+    color: #0b0c10 !important;
+}
+
+.metrics-badge.neutral-value {
+    background-color: #ffb454 !important;
+    color: #0b0c10 !important;
+}
+
+.metrics-badge.bad-value {
+    background-color: #ff6b6b !important;
+    color: #f8f9fa !important;
+}
+
+/* Table cell overrides - CRITICAL FOR DARK THEME */
+#stocksTable td.good-value {
+    color: #3ddc84 !important;
+    
+}
+
+#stocksTable td.neutral-value {
+    color: #ffb454 !important;
+   
+}
+#stocksTable td.bad-value {
+    color: #ff6b6b !important;
+   
+}
+
+/* Remove Bootstrap text-center color override */
+#stocksTable td.text-center {
+    color: inherit !important;
+}
+
+/* Performance Cell Centering */
+.performance-cell {
+    text-align: center;
+    font-weight: bolder;
+    font-size: large;
+}
