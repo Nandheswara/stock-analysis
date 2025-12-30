@@ -1,0 +1,309 @@
+/**
+ * Analysis Page Styles for Stock Analysis Dashboard
+ * This file contains styles specific to the fundamental analysis page including:
+ * - Header section
+ * - Stock count badge
+ * - Analysis table
+ * - Table container
+ * - Add stock form
+ * - Empty state
+ * - Action buttons
+ */
+
+/* ========================================
+   Header Section
+   ======================================== */
+
+.header-section {
+    background: linear-gradient(135deg, #1f2a5a 0%, #3a245f 100%);
+    color: #f8f9fa;
+    padding: 30px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+/* ========================================
+   Stock Count Badge
+   ======================================== */
+
+.stock-count-badge {
+    background-color: #3ddc84;
+    color: #0b0c10;
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+}
+
+/* ========================================
+   Analysis Table
+   ======================================== */
+
+.analysis-table {
+    font-size: 0.85rem;
+    background-color: #111218;
+    color: #e9ecef;
+}
+
+.analysis-table th {
+    background-color: #1f232b;
+    color: #f8f9fa;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    white-space: nowrap;
+    border-bottom: 1px solid #343a40;
+}
+
+.analysis-table td {
+    vertical-align: middle;
+    white-space: nowrap;
+    border-bottom: 1px solid #1f2229;
+}
+
+.analysis-table td.neutral-value,
+.analysis-table td.text-center {
+    color: #e9ecef;
+}
+
+.metric-header {
+    background-color: #262b33 !important;
+    color: #f8f9fa;
+    font-weight: bold;
+}
+
+.metric-category {
+    background-color: #1f232b;
+    font-weight: 600;
+    color: #f8f9fa;
+}
+
+.stock-row:hover {
+    background-color: #191b23;
+}
+
+/* Value color coding */
+.good-value {
+    color: #3ddc84;
+    font-weight: bold;
+}
+
+.bad-value {
+    color: #ff6b6b;
+    font-weight: bold;
+}
+
+.neutral-value {
+    color: #adb5bd;
+}
+
+/* Stock symbol styling */
+.stock-symbol {
+    font-weight: bold;
+    color: #7289ff;
+}
+
+/* Sticky first column */
+#stocksTable th,
+#stocksTable td {
+    padding: 8px 12px;
+    text-align: center;
+    background-color: inherit;
+}
+
+#stocksTable th:first-child,
+#stocksTable td:first-child {
+    text-align: left;
+    position: sticky;
+    left: 0;
+    background-color: #1f232b;
+    z-index: 5;
+}
+
+/* ========================================
+   Table Container
+   ======================================== */
+
+.table-container {
+    overflow-x: auto;
+    max-height: 70vh;
+    background-color: #111218;
+    border-radius: 8px;
+    border: 1px solid #1f2229;
+}
+
+/* ========================================
+   Add Stock Form
+   ======================================== */
+
+.add-stock-form {
+    max-width: 100%;
+}
+
+.loading-spinner {
+    display: none;
+}
+
+.loading .loading-spinner {
+    display: inline-block;
+}
+
+/* ========================================
+   Action Buttons
+   ======================================== */
+
+.remove-btn {
+    padding: 2px 8px;
+    font-size: 0.75rem;
+}
+
+.btn-remove {
+    background-color: #dc3545;
+    color: #f8f9fa;
+    border: none;
+    padding: 3px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.75rem;
+}
+
+.btn-remove:hover {
+    background-color: #c82333;
+}
+
+/* ========================================
+   Empty State
+   ======================================== */
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #adb5bd;
+}
+
+.empty-state i {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    color: #343a40;
+}
+
+/* ========================================
+   LIGHT THEME OVERRIDES - Analysis Page
+   ======================================== */
+
+/* Header Section - Light Theme */
+body.light-theme .header-section {
+    background: linear-gradient(135deg, #4e73df 0%, #7c5cbf 100%);
+    color: #ffffff;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+}
+
+/* Stock Count Badge - Light Theme */
+body.light-theme .stock-count-badge {
+    background-color: #0d6efd;
+    color: #ffffff;
+}
+
+/* Analysis Table - Light Theme */
+body.light-theme .analysis-table {
+    background-color: #ffffff;
+    color: #212529;
+}
+
+body.light-theme .analysis-table th {
+    background-color: #f1f3f5;
+    color: #212529;
+    border-bottom: 1px solid #dee2e6;
+}
+
+body.light-theme .analysis-table td {
+    background-color: #ffffff;
+    color: #212529;
+    border-bottom: 1px solid #e9ecef;
+}
+
+body.light-theme .analysis-table thead {
+    background-color: #f1f3f5;
+}
+
+body.light-theme .analysis-table tbody tr {
+    background-color: #ffffff;
+    color: #212529;
+}
+
+body.light-theme .analysis-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+body.light-theme .analysis-table td strong,
+body.light-theme .analysis-table td {
+    color: #212529 !important;
+}
+
+body.light-theme .analysis-table td small.text-muted {
+    color: #6c757d !important;
+}
+
+body.light-theme .metric-category {
+    background-color: #f1f3f5;
+    color: #212529;
+}
+
+body.light-theme .stock-row:hover {
+    background-color: #f8f9fa;
+}
+
+/* Value colors - Light Theme (maintain good contrast) */
+body.light-theme .good-value {
+    color: #198754;
+}
+
+body.light-theme .bad-value {
+    color: #dc3545;
+}
+
+body.light-theme .neutral-value {
+    color: #6c757d;
+}
+
+body.light-theme .stock-symbol {
+    color: #0d6efd;
+}
+
+/* Sticky first column - Light Theme */
+body.light-theme #stocksTable th:first-child,
+body.light-theme #stocksTable td:first-child {
+    background-color: #f1f3f5;
+    color: #212529;
+}
+
+/* Table Container - Light Theme */
+body.light-theme .table-container {
+    background-color: #ffffff;
+    border: 1px solid #e9ecef;
+}
+
+/* Empty State - Light Theme */
+body.light-theme .empty-state {
+    color: #6c757d;
+}
+
+body.light-theme .empty-state i {
+    color: #adb5bd;
+}
+
+/* ========================================
+   Responsive Design - Analysis Page
+   ======================================== */
+
+@media (max-width: 768px) {
+    /* Mobile adjustments for table */
+    .analysis-table {
+        font-size: 0.75rem;
+    }
+    
+    #stocksTable th,
+    #stocksTable td {
+        padding: 6px 8px;
+    }
+}

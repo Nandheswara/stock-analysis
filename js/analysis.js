@@ -1,17 +1,40 @@
+/**
+ * Analysis Page JavaScript for Stock Analysis Dashboard
+ * 
+ * This file handles all functionality specific to the fundamental analysis page:
+ * - Stock management (add, remove, clear all)
+ * - Data persistence using localStorage
+ * - Manual data entry via modal
+ * - Table rendering and updates
+ * - Alert notifications
+ * - Form validation and submission
+ * 
+ * Dependencies: jQuery, Bootstrap 5
+ * Data Storage: localStorage key 'analysisStocks'
+ */
+
+/* ========================================
+   Global Variables
+   ======================================== */
+
 // Store stocks data in localStorage
 let stocksData = [];
+
+/* ========================================
+   Document Ready Handler
+   ======================================== */
 
 $(document).ready(function() {
     // Load saved stocks from localStorage
     loadSavedStocks();
     
-    // Form submit handler
+    // Form submit handler - Add new stock
     $('#addStockForm').on('submit', function(e) {
         e.preventDefault();
         addStock();
     });
     
-    // Clear all handler
+    // Clear all stocks handler
     $('#clearAllBtn').on('click', function() {
         if (confirm('Remove all stocks from the analysis?')) {
             stocksData = [];
@@ -20,13 +43,19 @@ $(document).ready(function() {
         }
     });
     
-    // Save data button handler
+    // Save manual data button handler
     $('#saveDataBtn').on('click', function() {
         submitManualData();
     });
 });
 
-// Load stocks from localStorage
+/* ========================================
+   Data Persistence Functions
+   ======================================== */
+
+/**
+ * Load stocks from localStorage
+ */
 function loadSavedStocks() {
     const saved = localStorage.getItem('analysisStocks');
     if (saved) {
@@ -40,12 +69,20 @@ function loadSavedStocks() {
     }
 }
 
-// Save stocks to localStorage
+/**
+ * Save stocks to localStorage
+ */
 function saveStocks() {
     localStorage.setItem('analysisStocks', JSON.stringify(stocksData));
 }
 
-// Add a new stock
+/* ========================================
+   Stock Management Functions
+   ======================================== */
+
+/**
+ * Add a new stock to the analysis
+ */
 function addStock() {
     const input = $('#stockSymbol');
     const nameInput = $('#stockName');
@@ -53,12 +90,13 @@ function addStock() {
     const name = nameInput.val().trim();
     const addBtn = $('#addBtn');
     
+    // Validation
     if (!symbol && !name) {
         showAlert('danger', 'Please enter either stock symbol or company name');
         return;
     }
     
-    // Check if already added
+    // Check for duplicates
     if (stocksData.some(s => s.symbol === symbol)) {
         showAlert('warning', 'This stock is already in the analysis');
         return;
@@ -68,13 +106,13 @@ function addStock() {
     addBtn.addClass('loading');
     addBtn.prop('disabled', true);
     
-    // Add stock with placeholder data
+    // Create stock object with placeholder data
     const stockData = {
         symbol: symbol || 'N/A',
         name: name || 'N/A',
         data_available: true,
         stock_id: Date.now(), // Use timestamp as unique ID
-        // All metrics as "Enter Data"
+        // Initialize all metrics with placeholder
         current_price: 'Enter Data',
         market_cap: 'Enter Data',
         sector: 'Enter Data',
@@ -98,12 +136,16 @@ function addStock() {
         promoter_holdings: 'Enter Data'
     };
     
+    // Add to array and save
     stocksData.push(stockData);
     saveStocks();
     renderTable();
+    
+    // Clear form inputs
     input.val('');
     nameInput.val('');
     
+    // Show success message
     showAlert('success', `Stock ${symbol || name} added! Click "Edit" button to enter details.`);
     
     // Remove loading state
@@ -111,7 +153,10 @@ function addStock() {
     addBtn.prop('disabled', false);
 }
 
-// Remove a stock
+/**
+ * Remove a stock from the analysis
+ * @param {string} symbol - Stock symbol to remove
+ */
 function removeStock(symbol) {
     if (confirm(`Remove ${symbol} from the analysis?`)) {
         stocksData = stocksData.filter(s => s.symbol !== symbol);
@@ -121,14 +166,20 @@ function removeStock(symbol) {
     }
 }
 
-// Render the comparison table
+/* ========================================
+   Table Rendering Functions
+   ======================================== */
+
+/**
+ * Render the comparison table with all stocks
+ */
 function renderTable() {
     const tbody = $('#metricsBody');
     const emptyState = $('#emptyState');
     const clearAllBtn = $('#clearAllBtn');
     const stockCount = $('#stockCount');
     
-    // Update stock count
+    // Update stock count badge
     stockCount.text(stocksData.length);
     
     // Show/hide empty state
@@ -143,7 +194,7 @@ function renderTable() {
     $('.table-container').show();
     clearAllBtn.show();
     
-    // Build table rows - Each stock is a ROW
+    // Build table rows - Each stock is a row
     let bodyHTML = '';
     stocksData.forEach((stock, index) => {
         bodyHTML += `
@@ -180,12 +231,21 @@ function renderTable() {
     tbody.html(bodyHTML);
 }
 
-// Escape single quotes for HTML attributes
+/**
+ * Escape single quotes for HTML attributes
+ * @param {string} str - String to escape
+ * @returns {string} Escaped string
+ */
 function escapeSingleQuotes(str) {
     return str.replace(/'/g, "\\'");
 }
 
-// Format value for display
+/**
+ * Format value for display in table
+ * @param {string} key - Metric key
+ * @param {*} value - Value to format
+ * @returns {string} Formatted HTML string
+ */
 function formatValue(key, value) {
     if (value === null || value === undefined || value === 'N/A') {
         return '<span class="text-muted">N/A</span>';
@@ -193,8 +253,15 @@ function formatValue(key, value) {
     return value;
 }
 
+/* ========================================
+   Alert Functions
+   ======================================== */
 
-// Show alert message
+/**
+ * Show alert message to user
+ * @param {string} type - Alert type (success, danger, warning, info)
+ * @param {string} message - Alert message
+ */
 function showAlert(type, message) {
     const container = $('#alertContainer');
     const alertHTML = `
@@ -213,7 +280,16 @@ function showAlert(type, message) {
     }, 5000);
 }
 
-// Open manual data entry modal
+/* ========================================
+   Modal Functions
+   ======================================== */
+
+/**
+ * Open manual data entry modal for a stock
+ * @param {string} symbol - Stock symbol
+ * @param {string} name - Stock name
+ * @param {number} stockId - Stock ID
+ */
 function openManualDataModal(symbol, name, stockId) {
     $('#modalStockSymbol').val(symbol);
     $('#modalName').val(name);
@@ -243,21 +319,23 @@ function openManualDataModal(symbol, name, stockId) {
         $('#modalLiquidity, #modalQuickRatio, #modalDebtEquity, #modalROE, #modalInvestorGrowth, #modalROA, #modalEBITDACurrent, #modalEBITDAPrevious, #modalDividendYield, #modalPE, #modalIndustryPE, #modalPriceToBook, #modalPriceToSales, #modalBeta, #modalPromoterHoldings').val('');
     }
     
-    // Set today's date as default
+    // Set today's date as default for price data
     $('#modalDate').val(new Date().toISOString().split('T')[0]);
     $('#modalOpen, #modalHigh, #modalLow, #modalClose, #modalVolume').val('');
     
-    // Show modal
+    // Show modal using Bootstrap 5
     const modal = new bootstrap.Modal(document.getElementById('manualDataModal'));
     modal.show();
 }
 
-// Submit manual data
+/**
+ * Submit manual data from modal form
+ */
 function submitManualData() {
     const symbol = $('#modalStockSymbol').val();
     const name = $('#modalName').val();
     
-    // Gather all 13 metrics
+    // Gather all 13 fundamental metrics
     const metrics = {
         liquidity: $('#modalLiquidity').val() || 'Enter Data',
         quick_ratio: $('#modalQuickRatio').val() || 'Enter Data',
@@ -276,7 +354,7 @@ function submitManualData() {
         promoter_holdings: $('#modalPromoterHoldings').val() || 'Enter Data'
     };
     
-    // Update the stock data in memory with all 13 metrics
+    // Update the stock data in memory with all metrics
     const stockIndex = stocksData.findIndex(s => s.symbol === symbol);
     if (stockIndex !== -1) {
         stocksData[stockIndex] = {
@@ -288,6 +366,8 @@ function submitManualData() {
         renderTable();
         
         showAlert('success', 'Data saved successfully! Table updated.');
+        
+        // Hide modal using Bootstrap 5
         bootstrap.Modal.getInstance(document.getElementById('manualDataModal')).hide();
     } else {
         showAlert('danger', 'Stock not found in the analysis');

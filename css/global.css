@@ -1,0 +1,359 @@
+/**
+ * Global Styles for Stock Analysis Dashboard
+ * This file contains styles shared across all pages including:
+ * - Base body and typography
+ * - Navigation bar
+ * - Footer
+ * - Card components
+ * - Form controls and buttons
+ * - Modal base styles
+ * - Theme switching (dark/light mode)
+ * 
+ * Follow BEM naming convention where applicable
+ * Use CSS custom properties for theme colors
+ */
+
+/* ========================================
+   Base Styles
+   ======================================== */
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background-color: #0b0c10;
+    color: #e9ecef;
+}
+
+/* ========================================
+   Card Components
+   ======================================== */
+
+.card {
+    background-color: #111218;
+    color: #e9ecef;
+    border: 1px solid #1f2229;
+}
+
+.card-header {
+    background-color: #14151b;
+    border-bottom: 1px solid #1f2229;
+    color: #f8f9fa;
+}
+
+.card-body {
+    background-color: #111218;
+    color: #e9ecef;
+}
+
+.card-header.bg-primary {
+    background-color: #7289ff !important;
+    color: #0b0c10 !important;
+    border-color: #7289ff;
+}
+
+.card-header.bg-primary h5,
+.card-header.bg-primary h6 {
+    color: #0b0c10;
+}
+
+/* ========================================
+   Navigation Bar
+   ======================================== */
+
+.navbar-dark.bg-dark {
+    background-color: #050608 !important;
+}
+
+/* ========================================
+   Footer
+   ======================================== */
+
+footer.bg-dark {
+    background-color: #050608 !important;
+    color: #e9ecef;
+}
+
+/* ========================================
+   Modal Components
+   ======================================== */
+
+.modal-content {
+    background-color: #111218;
+    color: #e9ecef;
+    border: 1px solid #1f2229;
+}
+
+.modal-header.bg-primary {
+    background: linear-gradient(135deg, #1f2a5a 0%, #3a245f 100%);
+}
+
+/* ========================================
+   Typography
+   ======================================== */
+
+.text-muted {
+    color: #adb5bd !important;
+}
+
+label.form-label {
+    color: #e9ecef;
+}
+
+/* ========================================
+   Form Controls
+   ======================================== */
+
+.form-control {
+    background-color: #14151b;
+    border: 1px solid #343a40;
+    color: #f8f9fa;
+}
+
+.form-control:focus {
+    background-color: #14151b;
+    color: #f8f9fa;
+    border-color: #7289ff;
+    box-shadow: 0 0 0 0.2rem rgba(114,137,255,0.25);
+}
+
+.form-control::placeholder {
+    color: #6c757d;
+    opacity: 1;
+}
+
+/* Cross-browser placeholder styles */
+::-webkit-input-placeholder {
+    color: #6c757d;
+}
+
+:-moz-placeholder {
+    color: #6c757d;
+    opacity: 1;
+}
+
+::-moz-placeholder {
+    color: #6c757d;
+    opacity: 1;
+}
+
+:-ms-input-placeholder {
+    color: #6c757d;
+}
+
+/* ========================================
+   Buttons
+   ======================================== */
+
+.btn-primary {
+    background-color: #7289ff;
+    border-color: #7289ff;
+    color: #0b0c10;
+}
+
+.btn-primary:hover {
+    background-color: #5a72e0;
+    border-color: #5a72e0;
+}
+
+.btn-secondary {
+    background-color: #343a40;
+    border-color: #343a40;
+    color: #f8f9fa;
+}
+
+.btn-outline-danger {
+    color: #ff6b6b;
+    border-color: #ff6b6b;
+}
+
+.btn-outline-danger:hover {
+    background-color: #ff6b6b;
+    color: #0b0c10;
+}
+
+/* Theme toggle button */
+#themeToggle {
+    min-width: 40px;
+}
+
+/* ========================================
+   Utility Classes
+   ======================================== */
+
+.text-center {
+    color: #e9ecef;
+}
+
+/* ========================================
+   LIGHT THEME OVERRIDES
+   ======================================== */
+
+/* Base Styles - Light Theme */
+body.light-theme {
+    background-color: #f8f9fa;
+    color: #212529;
+}
+
+/* Card Components - Light Theme */
+body.light-theme .card,
+body.light-theme .card-body,
+body.light-theme .card-header,
+body.light-theme .modal-content {
+    background-color: #ffffff;
+    color: #212529;
+    border-color: #e9ecef;
+}
+
+body.light-theme .card {
+    background-color: #ffffff;
+    color: #212529;
+    border: 1px solid #e9ecef;
+}
+
+body.light-theme .card-header {
+    background-color: #f8f9fa;
+    color: #212529;
+    border-bottom: 1px solid #e9ecef;
+}
+
+body.light-theme .card-header.bg-primary {
+    background-color: #4e73df !important;
+    color: #ffffff !important;
+    border-color: #4e73df;
+}
+
+body.light-theme .card-header.bg-primary h5,
+body.light-theme .card-header.bg-primary h6 {
+    color: #ffffff;
+}
+
+/* Navigation - Light Theme */
+body.light-theme .navbar-dark.bg-dark {
+    background-color: #ffffff !important;
+    border-bottom: 1px solid #e9ecef;
+}
+
+body.light-theme .navbar .navbar-brand,
+body.light-theme .navbar .nav-link,
+body.light-theme .navbar .nav-link.active {
+    color: #212529 !important;
+}
+
+body.light-theme .navbar .nav-link.active {
+    font-weight: 600;
+}
+
+body.light-theme .navbar-dark.bg-dark .navbar-toggler-icon {
+    filter: brightness(0) saturate(100%);
+}
+
+body.light-theme .navbar-dark.bg-dark .navbar-toggler {
+    border-color: #dee2e6;
+}
+
+/* Footer - Light Theme */
+body.light-theme footer.bg-dark {
+    background-color: #f8f9fa !important;
+    color: #212529 !important;
+    border-top: 1px solid #e9ecef;
+}
+
+body.light-theme footer.bg-dark p {
+    color: #212529 !important;
+}
+
+/* Modal - Light Theme */
+body.light-theme .modal-content {
+    background-color: #ffffff;
+    color: #212529;
+}
+
+body.light-theme .modal-header.bg-primary {
+    background: linear-gradient(135deg, #4e73df 0%, #7c5cbf 100%) !important;
+    color: #ffffff !important;
+}
+
+body.light-theme .modal-header .btn-close-white {
+    filter: brightness(0) invert(1);
+}
+
+/* Typography - Light Theme */
+body.light-theme .text-muted {
+    color: #6c757d !important;
+}
+
+body.light-theme label.form-label {
+    color: #212529;
+    font-weight: 500;
+}
+
+/* Form Controls - Light Theme */
+body.light-theme .form-control {
+    background-color: #ffffff;
+    border: 1px solid #ced4da;
+    color: #212529;
+}
+
+body.light-theme .form-control:focus {
+    background-color: #ffffff;
+    color: #212529;
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.2rem rgba(13,110,253,0.15);
+}
+
+body.light-theme .form-control::placeholder {
+    color: #9ca3af;
+}
+
+/* Buttons - Light Theme */
+body.light-theme .btn-primary {
+    background-color: #4e73df;
+    border-color: #4e73df;
+    color: #ffffff;
+}
+
+body.light-theme .btn-primary:hover {
+    background-color: #3a5ec7;
+    border-color: #3a5ec7;
+}
+
+body.light-theme .btn-secondary {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: #ffffff;
+}
+
+body.light-theme .btn-outline-danger {
+    color: #dc3545;
+    border-color: #dc3545;
+}
+
+body.light-theme .btn-outline-light {
+    color: #212529;
+    border-color: #ced4da;
+}
+
+body.light-theme .btn-outline-light:hover {
+    background-color: #f8f9fa;
+    border-color: #adb5bd;
+    color: #212529;
+}
+
+/* Theme Toggle - Light Theme */
+body.light-theme #themeToggle {
+    color: #212529;
+    border-color: #ced4da;
+    background-color: transparent;
+}
+
+/* Alert - Light Theme */
+body.light-theme .alert {
+    border-width: 1px;
+}
+
+/* ========================================
+   Responsive Design
+   ======================================== */
+
+@media (max-width: 768px) {
+    /* Mobile-specific adjustments can be added here */
+}
