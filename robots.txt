@@ -1,0 +1,27 @@
+# robots.txt for Stock Analysis Dashboard
+# https://nandheswara.github.io/stock-analysis/
+
+# Allow all search engines to crawl all content
+User-agent: *
+Allow: /
+
+# Sitemap location (update with your actual GitHub Pages URL)
+Sitemap: https://nandheswara.github.io/stock-analysis/sitemap.xml
+
+# Crawl-delay for polite crawling (optional)
+Crawl-delay: 1
+
+# Disallow crawling of configuration files (if any are accidentally exposed)
+Disallow: /js/firebase-config.js
+Disallow: /.git/
+Disallow: /.github/
+
+# Allow crawling of main pages
+Allow: /index.html
+Allow: /pages/
+Allow: /css/
+Allow: /js/
+
+# Block crawling of backup/example files
+Disallow: /*-backup.js
+Disallow: /*example.js

@@ -1,35 +1,75 @@
 /**
- * Analysis Page JavaScript for Stock Analysis Dashboard
+ * Analysis Page JavaScript for Stock Analysis Dashboard (Firebase Integrated)
  * 
  * This file handles all functionality specific to the fundamental analysis page:
- * - Stock management (add, remove, clear all)
- * - Data persistence using localStorage
+ * - Stock management (add, remove, clear all) using Firebase
+ * - Real-time data synchronization across devices
+ * - User authentication integration
  * - Manual data entry via modal
  * - Table rendering and updates
  * - Alert notifications
  * - Form validation and submission
+ * - Offline support with localStorage fallback
  * 
- * Dependencies: jQuery, Bootstrap 5
- * Data Storage: localStorage key 'analysisStocks'
+ * Dependencies: jQuery, Bootstrap 5, Firebase
+ * Data Storage: Firebase Realtime Database with localStorage backup
  */
+
+import { 
+    initAuthListener, 
+    onAuthStateChange, 
+    signUpUser, 
+    signInUser, 
+    signInWithGoogle,
+    signOutUser,
+    getCurrentUser,
+    isAuthenticated 
+} from './firebase-auth-service.js';
+
+import { 
+    listenToStocks, 
+    addStock as addStockToFirebase, 
+    updateStock as updateStockInFirebase, 
+    deleteStock as deleteStockFromFirebase, 
+    deleteAllStocks,
+    migrateLocalStorageToFirebase 
+} from './firebase-database-service.js';
 
 /* ========================================
    Global Variables
    ======================================== */
 
-// Store stocks data in localStorage
+// Store stocks data in memory (synced with Firebase)
 let stocksData = [];
 
 // Store active filters
 let activeFilters = {};
+
+// Firebase listener unsubscribe function
+let unsubscribeStocksListener = null;
 
 /* ========================================
    Document Ready Handler
    ======================================== */
 
 $(document).ready(function() {
-    // Load saved stocks from localStorage
-    loadSavedStocks();
+    // Initialize Firebase authentication listener
+    initAuthListener();
+    
+    // Listen for auth state changes
+    onAuthStateChange((user) => {
+        if (user) {
+            console.log('User logged in:', user.email);
+            loadStocksFromFirebase();
+        } else {
+            console.log('User logged out');
+            stocksData = [];
+            renderTable();
+        }
+    });
+    
+    // Setup authentication UI handlers
+    setupAuthHandlers();
     
     // Form submit handler - Add new stock
     $('#addStockForm').on('submit', function(e) {
@@ -39,10 +79,8 @@ $(document).ready(function() {
     
     // Clear all stocks handler
     $('#clearAllBtn').on('click', function() {
-        if (confirm('Remove all stocks from the analysis?')) {
-            stocksData = [];
-            localStorage.removeItem('analysisStocks');
-            renderTable();
+        if (confirm('Remove all stocks from the analysis? This will delete them from Firebase.')) {
+            clearAllStocks();
         }
     });
     
@@ -69,30 +107,200 @@ $(document).ready(function() {
 });
 
 /* ========================================
-   Data Persistence Functions
+   Authentication Functions
    ======================================== */
 
 /**
- * Load stocks from localStorage
+ * Setup authentication UI handlers
  */
-function loadSavedStocks() {
-    const saved = localStorage.getItem('analysisStocks');
-    if (saved) {
-        try {
-            stocksData = JSON.parse(saved);
-            renderTable();
-        } catch (e) {
-            console.error('Error loading saved stocks:', e);
-            stocksData = [];
+function setupAuthHandlers() {
+    // Show login modal
+    $('#loginBtn, #authPromptLoginBtn').on('click', function() {
+        showAuthModal('login');
+    });
+    
+    // Show signup modal
+    $('#signupBtn, #authPromptSignupBtn').on('click', function() {
+        showAuthModal('signup');
+    });
+    
+    // Toggle between login and signup forms
+    $('#showSignupForm').on('click', function(e) {
+        e.preventDefault();
+        $('#loginForm').hide();
+        $('#signupForm').show();
+        $('#authModalTitle').text('Create Account');
+    });
+    
+    $('#showLoginForm').on('click', function(e) {
+        e.preventDefault();
+        $('#signupForm').hide();
+        $('#loginForm').show();
+        $('#authModalTitle').text('Sign In');
+    });
+    
+    // Login form submission
+    $('#loginForm').on('submit', async function(e) {
+        e.preventDefault();
+        const email = $('#loginEmail').val();
+        const password = $('#loginPassword').val();
+        
+        const result = await signInUser(email, password);
+        if (result.success) {
+            showAuthAlert('success', 'Signed in successfully!');
+            setTimeout(() => {
+                bootstrap.Modal.getInstance(document.getElementById('authModal')).hide();
+            }, 1000);
+        } else {
+            showAuthAlert('danger', result.error);
         }
-    }
+    });
+    
+    // Signup form submission
+    $('#signupForm').on('submit', async function(e) {
+        e.preventDefault();
+        const name = $('#signupName').val();
+        const email = $('#signupEmail').val();
+        const password = $('#signupPassword').val();
+        const confirmPassword = $('#signupConfirmPassword').val();
+        
+        // Validate passwords match
+        if (password !== confirmPassword) {
+            showAuthAlert('danger', 'Passwords do not match');
+            return;
+        }
+        
+        const result = await signUpUser(email, password, name);
+        if (result.success) {
+            showAuthAlert('success', 'Account created successfully!');
+            setTimeout(() => {
+                bootstrap.Modal.getInstance(document.getElementById('authModal')).hide();
+            }, 1000);
+        } else {
+            showAuthAlert('danger', result.error);
+        }
+    });
+    
+    // Google Sign In
+    $('#googleSignInBtn, #googleSignUpBtn').on('click', async function() {
+        const result = await signInWithGoogle();
+        if (result.success) {
+            showAuthAlert('success', 'Signed in with Google successfully!');
+            setTimeout(() => {
+                bootstrap.Modal.getInstance(document.getElementById('authModal')).hide();
+            }, 1000);
+        } else {
+            showAuthAlert('danger', result.error);
+        }
+    });
+    
+    // Logout handler
+    $('#logoutBtn').on('click', async function(e) {
+        e.preventDefault();
+        if (confirm('Are you sure you want to logout?')) {
+            const result = await signOutUser();
+            if (result.success) {
+                // Unsubscribe from Firebase listener
+                if (unsubscribeStocksListener) {
+                    unsubscribeStocksListener();
+                    unsubscribeStocksListener = null;
+                }
+                showAlert('info', 'Logged out successfully');
+            }
+        }
+    });
+    
+    // Migrate data handler
+    $('#migrateDataBtn').on('click', async function(e) {
+        e.preventDefault();
+        if (confirm('Migrate your local data to Firebase? This will upload all stocks from your browser storage.')) {
+            const result = await migrateLocalStorageToFirebase();
+            if (result.success) {
+                showAlert('success', result.message);
+            } else {
+                showAlert('danger', result.error);
+            }
+        }
+    });
 }
 
 /**
- * Save stocks to localStorage
+ * Show authentication modal
+ * @param {string} mode - 'login' or 'signup'
  */
-function saveStocks() {
-    localStorage.setItem('analysisStocks', JSON.stringify(stocksData));
+function showAuthModal(mode) {
+    if (mode === 'login') {
+        $('#loginForm').show();
+        $('#signupForm').hide();
+        $('#authModalTitle').text('Sign In');
+    } else {
+        $('#loginForm').hide();
+        $('#signupForm').show();
+        $('#authModalTitle').text('Create Account');
+    }
+    
+    // Clear form inputs
+    $('#loginEmail, #loginPassword').val('');
+    $('#signupName, #signupEmail, #signupPassword, #signupConfirmPassword').val('');
+    $('#authAlertContainer').html('');
+    
+    const modal = new bootstrap.Modal(document.getElementById('authModal'));
+    modal.show();
+}
+
+/**
+ * Show alert in auth modal
+ * @param {string} type - Alert type (success, danger, warning, info)
+ * @param {string} message - Alert message
+ */
+function showAuthAlert(type, message) {
+    const container = $('#authAlertContainer');
+    const alertHTML = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    container.html(alertHTML);
+}
+
+/* ========================================
+   Firebase Data Functions
+   ======================================== */
+
+/**
+ * Load stocks from Firebase with real-time listener
+ */
+function loadStocksFromFirebase() {
+    // Unsubscribe from previous listener if exists
+    if (unsubscribeStocksListener) {
+        unsubscribeStocksListener();
+    }
+    
+    // Set up real-time listener
+    unsubscribeStocksListener = listenToStocks((stocks) => {
+        stocksData = stocks;
+        renderTable();
+        console.log('Stocks data updated:', stocks.length);
+    });
+}
+
+/**
+ * Clear all stocks from Firebase
+ */
+async function clearAllStocks() {
+    const addBtn = $('#clearAllBtn');
+    addBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Deleting...');
+    
+    const result = await deleteAllStocks();
+    
+    addBtn.prop('disabled', false).html('<i class="bi bi-trash"></i> Clear All');
+    
+    if (result.success) {
+        showAlert('info', result.message);
+    } else {
+        showAlert('danger', result.error);
+    }
 }
 
 /* ========================================
@@ -100,9 +308,15 @@ function saveStocks() {
    ======================================== */
 
 /**
- * Add a new stock to the analysis
+ * Add a new stock to Firebase
  */
-function addStock() {
+async function addStock() {
+    if (!isAuthenticated()) {
+        showAlert('warning', 'Please sign in to add stocks');
+        showAuthModal('login');
+        return;
+    }
+    
     const input = $('#stockSymbol');
     const nameInput = $('#stockName');
     const symbol = input.val().trim().toUpperCase();
@@ -130,7 +344,6 @@ function addStock() {
         symbol: symbol || 'N/A',
         name: name || 'N/A',
         data_available: true,
-        stock_id: Date.now(), // Use timestamp as unique ID
         // Initialize all metrics with placeholder
         current_price: 'Enter Data',
         market_cap: 'Enter Data',
@@ -155,17 +368,22 @@ function addStock() {
         promoter_holdings: 'Enter Data'
     };
     
-    // Add to array and save
-    stocksData.push(stockData);
-    saveStocks();
-    renderTable();
+    // Add to Firebase
+    const result = await addStockToFirebase(stockData);
     
     // Clear form inputs
     input.val('');
     nameInput.val('');
     
-    // Show success message
-    showAlert('success', `Stock ${symbol || name} added! Click "Edit" button to enter details.`);
+    // Show message
+    if (result.success) {
+        const message = result.offline 
+            ? `Stock ${symbol || name} added offline! Will sync when online.` 
+            : `Stock ${symbol || name} added! Click "Edit" button to enter details.`;
+        showAlert('success', message);
+    } else {
+        showAlert('danger', result.error);
+    }
     
     // Remove loading state
     addBtn.removeClass('loading');
@@ -173,17 +391,26 @@ function addStock() {
 }
 
 /**
- * Remove a stock from the analysis
- * @param {string} symbol - Stock symbol to remove
+ * Remove a stock from Firebase
+ * @param {string} stockId - Stock ID to remove
  */
-function removeStock(symbol) {
+window.removeStock = async function(stockId) {
+    const stock = stocksData.find(s => s.stock_id === stockId);
+    const symbol = stock ? stock.symbol : stockId;
+    
     if (confirm(`Remove ${symbol} from the analysis?`)) {
-        stocksData = stocksData.filter(s => s.symbol !== symbol);
-        saveStocks();
-        renderTable();
-        showAlert('info', `Stock ${symbol} removed successfully`);
+        const result = await deleteStockFromFirebase(stockId);
+        
+        if (result.success) {
+            const message = result.offline 
+                ? `Stock ${symbol} removed offline! Will sync when online.` 
+                : `Stock ${symbol} removed successfully`;
+            showAlert('info', message);
+        } else {
+            showAlert('danger', result.error);
+        }
     }
-}
+};
 
 /* ========================================
    Table Rendering Functions
@@ -262,13 +489,13 @@ function renderTable() {
                     <td class="text-center">${formatValue('beta', stock.beta)}</td>
                     <td class="text-center">${formatValue('promoter_holdings', stock.promoter_holdings)}</td>
                     <td class="text-center">
-                        <button class="btn btn-sm btn-success me-1" onclick="fetchStockData('${stock.symbol}', ${stock.stock_id})" title="Fetch Data">
+                        <button class="btn btn-sm btn-success me-1" onclick="fetchStockData('${stock.symbol}', '${stock.stock_id}')" title="Fetch Data">
                             <i class="bi bi-cloud-download"></i> Fetch
                         </button>
-                        <button class="btn btn-sm btn-primary me-1" onclick="openManualDataModal('${stock.symbol}', '${escapeSingleQuotes(stock.name)}', ${stock.stock_id})" title="Edit">
+                        <button class="btn btn-sm btn-primary me-1" onclick="openManualDataModal('${stock.symbol}', '${escapeSingleQuotes(stock.name)}', '${stock.stock_id}')" title="Edit">
                             <i class="bi bi-pencil"></i> Edit
                         </button>
-                        <button class="btn btn-sm btn-danger" onclick="removeStock('${stock.symbol}')" title="Delete">
+                        <button class="btn btn-sm btn-danger" onclick="removeStock('${stock.stock_id}')" title="Delete">
                             <i class="bi bi-trash"></i> Delete
                         </button>
                     </td>
@@ -296,7 +523,7 @@ function escapeSingleQuotes(str) {
  * @returns {string} Formatted HTML string
  */
 function formatValue(key, value) {
-    if (value === null || value === undefined || value === 'N/A') {
+    if (value === null || value === undefined || value === 'N/A' || value === 'Enter Data') {
         return '<span class="text-muted">N/A</span>';
     }
     return value;
@@ -337,14 +564,15 @@ function showAlert(type, message) {
  * Open manual data entry modal for a stock
  * @param {string} symbol - Stock symbol
  * @param {string} name - Stock name
- * @param {number} stockId - Stock ID
+ * @param {string} stockId - Stock ID
  */
-function openManualDataModal(symbol, name, stockId) {
+window.openManualDataModal = function(symbol, name, stockId) {
     $('#modalStockSymbol').val(symbol);
     $('#modalName').val(name);
+    $('#modalStockId').val(stockId); // Use .val() for hidden input
     
     // Find existing stock data
-    const stock = stocksData.find(s => s.symbol === symbol);
+    const stock = stocksData.find(s => s.stock_id === stockId);
     
     // Pre-fill metric fields if editing existing stock
     if (stock) {
@@ -375,17 +603,24 @@ function openManualDataModal(symbol, name, stockId) {
     // Show modal using Bootstrap 5
     const modal = new bootstrap.Modal(document.getElementById('manualDataModal'));
     modal.show();
-}
+};
 
 /**
  * Submit manual data from modal form
  */
-function submitManualData() {
+async function submitManualData() {
     const symbol = $('#modalStockSymbol').val();
     const name = $('#modalName').val();
+    const stockId = $('#modalStockId').val(); // Use .val() for hidden input
+    
+    if (!stockId) {
+        showAlert('danger', 'Stock ID not found');
+        return;
+    }
     
     // Gather all 13 fundamental metrics
     const metrics = {
+        name: name,
         liquidity: $('#modalLiquidity').val() || 'Enter Data',
         quick_ratio: $('#modalQuickRatio').val() || 'Enter Data',
         debt_to_equity: $('#modalDebtEquity').val() || 'Enter Data',
@@ -403,23 +638,19 @@ function submitManualData() {
         promoter_holdings: $('#modalPromoterHoldings').val() || 'Enter Data'
     };
     
-    // Update the stock data in memory with all metrics
-    const stockIndex = stocksData.findIndex(s => s.symbol === symbol);
-    if (stockIndex !== -1) {
-        stocksData[stockIndex] = {
-            ...stocksData[stockIndex],
-            name: name,
-            ...metrics
-        };
-        saveStocks();
-        renderTable();
-        
-        showAlert('success', 'Data saved successfully! Table updated.');
+    // Update in Firebase
+    const result = await updateStockInFirebase(stockId, metrics);
+    
+    if (result.success) {
+        const message = result.offline 
+            ? 'Data saved offline! Will sync when online.' 
+            : 'Data saved successfully! Table updated.';
+        showAlert('success', message);
         
         // Hide modal using Bootstrap 5
         bootstrap.Modal.getInstance(document.getElementById('manualDataModal')).hide();
     } else {
-        showAlert('danger', 'Stock not found in the analysis');
+        showAlert('danger', result.error);
     }
 }
 
@@ -567,12 +798,12 @@ function getFilteredData() {
 /**
  * Clear all active filters
  */
-function clearAllFilters() {
+window.clearAllFilters = function() {
     activeFilters = {};
     $('.filter-select-modal').val('');
     renderTable();
     showAlert('info', 'All filters cleared');
-}
+};
 
 /* ========================================
    Data Fetching Functions
@@ -581,10 +812,8 @@ function clearAllFilters() {
 /**
  * Fetch stock data from external API (Future Implementation)
  * @param {string} symbol - Stock symbol
- * @param {number} stockId - Stock ID
+ * @param {string} stockId - Stock ID
  */
-function fetchStockData(symbol, stockId) {
-    
+window.fetchStockData = function(symbol, stockId) {
     showAlert('info', `Fetch functionality for ${symbol} will be implemented soon. Use Edit button to enter data manually.`);
-    
-}
+};
