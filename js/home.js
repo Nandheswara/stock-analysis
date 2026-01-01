@@ -10,7 +10,9 @@ import {
     signInUser,
     signInWithGoogle,
     signOutUser,
-    resetPassword
+    resetPassword,
+    changePassword,
+    getCurrentUser
 } from './firebase-auth-service.js';
 
 /**
@@ -59,6 +61,7 @@ class AuthModalManager {
         this.bindGoogleAuth();
         this.bindPasswordReset();
         this.bindLogout();
+        this.bindProfile();
     }
 
     /**
@@ -202,25 +205,223 @@ class AuthModalManager {
     }
 
     /**
+     * Bind profile-related events (password toggles in any remaining modals)
+     * Note: Profile button now navigates to profile.html page directly
+     * @returns {void}
+     */
+    bindProfile() {
+        // Profile button now uses href to navigate to profile.html
+        // No need to intercept the click event
+        
+        // Bind password toggle buttons for any modals
+        this.bindPasswordToggles();
+    }
+
+    /**
+     * Bind password visibility toggle buttons
+     * @returns {void}
+     */
+    bindPasswordToggles() {
+        const toggleButtons = document.querySelectorAll('.toggle-password');
+        
+        toggleButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const targetId = button.getAttribute('data-target');
+                const input = document.getElementById(targetId);
+                const icon = button.querySelector('i');
+                
+                if (input && icon) {
+                    if (input.type === 'password') {
+                        input.type = 'text';
+                        icon.classList.remove('bi-eye');
+                        icon.classList.add('bi-eye-slash');
+                    } else {
+                        input.type = 'password';
+                        icon.classList.remove('bi-eye-slash');
+                        icon.classList.add('bi-eye');
+                    }
+                }
+            });
+        });
+    }
+
+    /**
+     * Show profile modal with user information
+     * @param {bootstrap.Modal} profileModal - Bootstrap modal instance
+     * @returns {void}
+     */
+    showProfileModal(profileModal) {
+        const user = getCurrentUser();
+        
+        if (user) {
+            const displayNameEl = document.getElementById('profileDisplayName');
+            const emailEl = document.getElementById('profileEmail');
+            
+            if (displayNameEl) {
+                displayNameEl.textContent = user.displayName || 'User';
+            }
+            if (emailEl) {
+                emailEl.textContent = user.email || '';
+            }
+        }
+
+        // Clear the change password form
+        const changePasswordForm = document.getElementById('changePasswordForm');
+        if (changePasswordForm) {
+            changePasswordForm.reset();
+        }
+
+        // Clear alerts
+        const alertContainer = document.getElementById('profileAlertContainer');
+        if (alertContainer) {
+            alertContainer.innerHTML = '';
+        }
+
+        profileModal.show();
+    }
+
+    /**
+     * Handle change password form submission
+     * @param {bootstrap.Modal} profileModal - Bootstrap modal instance
+     * @returns {Promise<void>}
+     */
+    async handleChangePassword(profileModal) {
+        const currentPassword = document.getElementById('currentPassword')?.value;
+        const newPassword = document.getElementById('newPassword')?.value;
+        const confirmNewPassword = document.getElementById('confirmNewPassword')?.value;
+        const submitBtn = document.getElementById('changePasswordBtn');
+        const alertContainer = document.getElementById('profileAlertContainer');
+
+        // Validate inputs
+        if (!currentPassword || !newPassword || !confirmNewPassword) {
+            this.showProfileAlert('Please fill in all password fields', 'danger');
+            return;
+        }
+
+        if (newPassword !== confirmNewPassword) {
+            this.showProfileAlert('New passwords do not match', 'danger');
+            return;
+        }
+
+        if (newPassword.length < 6) {
+            this.showProfileAlert('New password must be at least 6 characters', 'danger');
+            return;
+        }
+
+        if (currentPassword === newPassword) {
+            this.showProfileAlert('New password must be different from current password', 'danger');
+            return;
+        }
+
+        // Show loading state
+        const originalBtnText = submitBtn?.innerHTML;
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Updating...';
+        }
+
+        try {
+            const result = await changePassword(currentPassword, newPassword);
+
+            if (result.success) {
+                this.showProfileAlert(result.message, 'success');
+                // Clear form on success
+                document.getElementById('changePasswordForm')?.reset();
+                
+                // Hide modal after 2 seconds on success
+                setTimeout(() => {
+                    profileModal.hide();
+                }, 2000);
+            } else {
+                this.showProfileAlert(result.error, 'danger');
+            }
+        } catch (error) {
+            this.showProfileAlert('An unexpected error occurred. Please try again.', 'danger');
+        } finally {
+            // Restore button state
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnText;
+            }
+        }
+    }
+
+    /**
+     * Show alert in profile modal
+     * @param {string} message - Alert message
+     * @param {string} type - Alert type (success, danger, warning, info)
+     * @returns {void}
+     */
+    showProfileAlert(message, type = 'danger') {
+        const alertContainer = document.getElementById('profileAlertContainer');
+        if (!alertContainer) return;
+
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.role = 'alert';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+
+        alertContainer.innerHTML = '';
+        alertContainer.appendChild(alertDiv);
+
+        // Auto-dismiss success messages after 3 seconds
+        if (type === 'success') {
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 3000);
+        }
+    }
+
+    /**
      * Handle login form submission
+     * Optimized with loading states and immediate feedback
      * @returns {Promise<void>}
      */
     async handleLogin() {
-        const email = document.getElementById('loginEmail')?.value;
-        const password = document.getElementById('loginPassword')?.value;
+        const emailInput = document.getElementById('loginEmail');
+        const passwordInput = document.getElementById('loginPassword');
+        const submitBtn = this.forms.login?.querySelector('button[type="submit"]');
+        
+        const email = emailInput?.value?.trim();
+        const password = passwordInput?.value;
 
+        // Quick client-side validation
         if (!email || !password) {
             this.showAlert('Please enter email and password', 'danger');
             return;
         }
 
-        const result = await signInUser(email, password);
-        if (result.success) {
-            this.showAlert('Signed in successfully!', 'success');
-            this.modal.hide();
-            this.forms.login?.reset();
-        } else {
-            this.showAlert(result.error, 'danger');
+        // Show loading state immediately for better perceived performance
+        const originalBtnText = submitBtn?.innerHTML;
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Signing in...';
+        }
+
+        try {
+            const result = await signInUser(email, password);
+            
+            if (result.success) {
+                this.showAlert('Signed in successfully!', 'success');
+                this.modal.hide();
+                this.forms.login?.reset();
+            } else {
+                this.showAlert(result.error, 'danger');
+                // Focus on password field for quick retry
+                passwordInput?.focus();
+                passwordInput?.select();
+            }
+        } catch (error) {
+            this.showAlert(error.message || 'An unexpected error occurred', 'danger');
+        } finally {
+            // Restore button state
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnText;
+            }
         }
     }
 
