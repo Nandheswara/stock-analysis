@@ -9,10 +9,10 @@
  * - Table rendering and updates
  * - Alert notifications
  * - Form validation and submission
- * - Offline support with localStorage fallback
+ * - Offline support with sessionStorage fallback
  * 
  * Dependencies: jQuery, Bootstrap 5, Firebase
- * Data Storage: Firebase Realtime Database with localStorage backup
+ * Data Storage: Firebase Realtime Database with sessionStorage backup
  */
 
 import { 
@@ -24,7 +24,8 @@ import {
     signOutUser,
     getCurrentUser,
     isAuthenticated,
-    resetPassword
+    resetPassword,
+    changePassword
 } from './firebase-auth-service.js';
 
 import { 
@@ -33,7 +34,7 @@ import {
     updateStock as updateStockInFirebase, 
     deleteStock as deleteStockFromFirebase, 
     deleteAllStocks,
-    migrateLocalStorageToFirebase 
+    migrateSessionStorageToFirebase 
 } from './firebase-database-service.js';
 import { loadStockSymbols } from './stock-dropdown.js';
 import { makeFetchStockData, growwCrawler } from './fetch.js';
@@ -101,12 +102,31 @@ function hideButtonLoading($button) {
     }
 }
 
+/**
+ * Check for preloaded cache data and render immediately
+ * This runs before Firebase SDK loads for instant display
+ */
+function checkPreloadedCache() {
+    if (window.__PRELOADED_STOCKS__ && window.__PRELOADED_STOCKS__.length > 0) {
+        stocksData = window.__PRELOADED_STOCKS__;
+        renderTable();
+        hideLoading();
+        return true;
+    }
+    return false;
+}
+
 $(document).ready(function() {
+    // IMMEDIATELY render cached data if available (before Firebase loads)
+    const hadPreloadedData = checkPreloadedCache();
+    
+    // Initialize Firebase auth in parallel
     initAuthListener();
     
     onAuthStateChange((user) => {
         if (user) {
-            loadStocksFromFirebase();
+            // If we already rendered from cache, just set up listener for updates
+            loadStocksFromFirebase(!hadPreloadedData);
         } else {
             stocksData = [];
             renderTable();
@@ -287,7 +307,7 @@ function setupAuthHandlers() {
         if (confirm('Migrate your local data to Firebase? This will upload all stocks from your browser storage.')) {
             showLoading('Migrating data to Firebase...');
             
-            const result = await migrateLocalStorageToFirebase();
+            const result = await migrateSessionStorageToFirebase();
             
             hideLoading();
             if (result.success) {
@@ -337,6 +357,40 @@ function setupAuthHandlers() {
             showAuthAlert('danger', result.error);
         }
     });
+
+    // Profile button now navigates to profile.html page directly via href
+    // No need to intercept the click event
+
+    // Password toggle buttons
+    $(document).on('click', '.toggle-password', function() {
+        const targetId = $(this).data('target');
+        const $input = $('#' + targetId);
+        const $icon = $(this).find('i');
+        
+        if ($input.attr('type') === 'password') {
+            $input.attr('type', 'text');
+            $icon.removeClass('bi-eye').addClass('bi-eye-slash');
+        } else {
+            $input.attr('type', 'password');
+            $icon.removeClass('bi-eye-slash').addClass('bi-eye');
+        }
+    });
+}
+
+/**
+ * Show alert in profile modal
+ * @param {string} type - Alert type (success, danger, warning, info)
+ * @param {string} message - Alert message
+ */
+function showProfileAlert(type, message) {
+    const container = $('#profileAlertContainer');
+    const alertHTML = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    container.html(alertHTML);
 }
 
 /**
@@ -407,19 +461,60 @@ function showAuthAlert(type, message) {
    Firebase Data Functions
    ======================================== */
 
+// Flag to prevent duplicate renders during stock operations
+let isAddingStock = false;
+
 /**
  * Load stocks from Firebase with real-time listener
+ * Optimized for instant loading with localStorage cache
+ * @param {boolean} showLoadingIndicator - Whether to show loading indicator
  */
-function loadStocksFromFirebase() {
-    showLoading('Loading your stocks...');
+function loadStocksFromFirebase(showLoadingIndicator = true) {
+    // Check if we already have preloaded data
+    if (window.__CACHE_HIT__ && stocksData.length > 0) {
+        showLoadingIndicator = false;
+    }
+    
+    // Check if we have cached data - if so, skip loading indicator
+    if (showLoadingIndicator) {
+        const user = getCurrentUser();
+        const cacheKey = user ? `stocksCache_${user.uid || user._fromCache}` : null;
+        
+        if (cacheKey) {
+            try {
+                const cached = localStorage.getItem(cacheKey);
+                if (cached && JSON.parse(cached).length > 0) {
+                    showLoadingIndicator = false;
+                }
+            } catch (e) {
+                // Silent fail
+            }
+        }
+    }
+    
+    // Only show loading if no cached data available
+    if (showLoadingIndicator) {
+        showLoading('Loading your stocks...');
+    }
     
     if (unsubscribeStocksListener) {
         unsubscribeStocksListener();
     }
     
     unsubscribeStocksListener = listenToStocks((stocks) => {
-        stocksData = stocks;
-        renderTable();
+        // Skip update if we're in the middle of adding a stock (prevents double render)
+        if (isAddingStock) {
+            return;
+        }
+        
+        // Only update if data actually changed
+        const newJSON = JSON.stringify(stocks.map(s => s.stock_id).sort());
+        const oldJSON = JSON.stringify(stocksData.map(s => s.stock_id).sort());
+        
+        if (newJSON !== oldJSON || stocks.length !== stocksData.length) {
+            stocksData = stocks;
+            renderTable();
+        }
         hideLoading();
     });
 }
@@ -448,6 +543,7 @@ async function clearAllStocks() {
 
 /**
  * Add a new stock to Firebase
+ * Optimized for faster response with optimistic UI update
  */
 async function addStock() {
     if (!isAuthenticated()) {
@@ -467,13 +563,19 @@ async function addStock() {
         return;
     }
     
-    if (stocksData.some(s => s.symbol === symbol)) {
+    if (stocksData.some(s => s.symbol === symbol && symbol !== 'N/A')) {
         showAlert('warning', 'This stock is already in the analysis');
         return;
     }
     
-    addBtn.addClass('loading');
+    // Show button loading state only (no overlay)
+    const originalBtnHtml = addBtn.html();
+    addBtn.html('<span class="spinner-border spinner-border-sm" role="status"></span>');
     addBtn.prop('disabled', true);
+    
+    // Clear inputs immediately for better UX
+    input.val('');
+    nameInput.val('');
     
     const stockData = {
         symbol: symbol || 'N/A',
@@ -503,22 +605,49 @@ async function addStock() {
         promoter_holdings: 'Enter Data'
     };
     
+    // Optimistic UI update - add stock to local array immediately
+    const tempStockId = `stock_${Date.now()}`;
+    const optimisticStock = {
+        ...stockData,
+        stock_id: tempStockId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+    };
+    
+    // Set flag to prevent Firebase listener from causing duplicate render
+    isAddingStock = true;
+    
+    // Add to local data and render immediately (optimistic update)
+    stocksData.push(optimisticStock);
+    renderTable();
+    
+    // Now save to Firebase in background
     const result = await addStockToFirebase(stockData);
     
-    input.val('');
-    nameInput.val('');
+    // Clear the flag
+    isAddingStock = false;
+    
+    // Restore button state
+    addBtn.html(originalBtnHtml);
+    addBtn.prop('disabled', false);
     
     if (result.success) {
         const message = result.offline 
             ? `Stock ${symbol || name} added offline! Will sync when online.` 
             : `Stock ${symbol || name} added! Click "Edit" button to enter details.`;
         showAlert('success', message);
+        
+        // Update the optimistic stock with real ID from Firebase
+        const stockIndex = stocksData.findIndex(s => s.stock_id === tempStockId);
+        if (stockIndex !== -1 && result.stockId) {
+            stocksData[stockIndex].stock_id = result.stockId;
+        }
     } else {
+        // Remove optimistic stock on failure
+        stocksData = stocksData.filter(s => s.stock_id !== tempStockId);
+        renderTable();
         showAlert('danger', result.error);
     }
-    
-    addBtn.removeClass('loading');
-    addBtn.prop('disabled', false);
 }
 
 /**

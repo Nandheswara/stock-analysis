@@ -1,0 +1,32 @@
+{
+  "rules": {
+    "users": {
+      "$uid": {
+        ".read": "$uid === auth.uid",
+        ".write": "$uid === auth.uid",
+        
+        "stocks": {
+          "$stockId": {
+            ".validate": "newData.hasChildren(['symbol', 'name']) && newData.child('symbol').isString() && newData.child('name').isString()",
+            ".indexOn": ["symbol", "name", "createdAt", "sector"]
+          }
+        },
+        
+        "portfolio": {
+          "$stockId": {
+            ".validate": "newData.hasChildren(['name', 'quantity', 'buyPrice', 'totalCost', 'dateAdded']) && newData.child('name').isString() && newData.child('quantity').isNumber() && newData.child('quantity').val() > 0 && newData.child('buyPrice').isNumber() && newData.child('buyPrice').val() >= 0 && newData.child('totalCost').isNumber()",
+            ".indexOn": ["name", "dateAdded", "lastModified", "profitLoss"]
+          }
+        },
+        
+        "profile": {
+          ".validate": "newData.hasChild('email')"
+        },
+        
+        "phoneNumber": {
+          ".validate": "newData.isString() && newData.val().length <= 20"
+        }
+      }
+    }
+  }
+}

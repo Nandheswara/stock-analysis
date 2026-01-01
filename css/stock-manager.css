@@ -25,27 +25,7 @@ main {
     padding: 0 20px;
 }
 
-/* Page Header */
-.page-header {
-    text-align: center;
-    margin-bottom: 2rem;
-    margin-top: 1rem;
-    padding: 2rem 0;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border-radius: 10px;
-}
-
-.page-header h2 {
-    font-size: 2.5rem;
-    margin-bottom: 0.5rem;
-    font-weight: 700;
-}
-
-.page-header p {
-    font-size: 1.1rem;
-    opacity: 0.95;
-}
+/* Note: Header section styles are in global.css for consistency */
 
 /* Add Stock Section */
 .add-stock-section {
@@ -124,7 +104,8 @@ main {
     justify-content: flex-start;
 }
 
-.btn {
+/* Stock Manager Page Buttons - scoped to main content area only */
+main .btn {
     padding: 0.75rem 2rem;
     border: none;
     border-radius: 5px;
@@ -134,30 +115,30 @@ main {
     transition: all 0.3s ease;
 }
 
-.btn-primary {
+main .btn-primary {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
 }
 
-.btn-primary:hover {
+main .btn-primary:hover {
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
 }
 
-.btn-primary:active {
+main .btn-primary:active {
     transform: translateY(0);
 }
 
-.btn-secondary {
+main .btn-secondary {
     background: #343a40;
     color: #e9ecef;
 }
 
-.btn-secondary:hover {
+main .btn-secondary:hover {
     background: #23272b;
 }
 
-.btn-info {
+main .btn-info {
     background: #3498db;
     color: white;
     padding: 0.5rem 0.75rem;
@@ -171,12 +152,12 @@ main {
     vertical-align: middle;
 }
 
-.btn-info:hover {
+main .btn-info:hover {
     background: #2980b9;
     transform: translateY(-1px);
 }
 
-.btn-danger {
+main .btn-danger {
     background: #e74c3c;
     color: white;
     padding: 0.5rem 0.75rem;
@@ -189,7 +170,7 @@ main {
     vertical-align: middle;
 }
 
-.btn-danger:hover {
+main .btn-danger:hover {
     background: #c0392b;
     transform: translateY(-1px);
 }

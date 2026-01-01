@@ -9,7 +9,7 @@
 
 // Import Firebase SDKs
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+import { getAuth, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
 import { getDatabase } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-analytics.js";
 
@@ -39,6 +39,14 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const database = getDatabase(app);
 const analytics = getAnalytics(app);
+
+/**
+ * Set auth persistence to local storage for faster subsequent logins
+ * Persists across browser restarts for improved user experience
+ */
+setPersistence(auth, browserLocalPersistence).catch((error) => {
+    console.error('Failed to set auth persistence:', error.message);
+});
 
 /**
  * Export Firebase instances for use in other modules
