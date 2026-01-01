@@ -2,13 +2,13 @@
  * Firebase Database Service
  * 
  * Handles all database operations for stock data including CRUD operations,
- * real-time listeners, and offline support with localStorage fallback.
+ * real-time listeners, and offline support with localStorage caching for instant loading.
  * 
  * @module firebase-database-service
  */
 
 import { database } from './firebase-config.js';
-import { getCurrentUser } from './firebase-auth-service.js';
+import { getCurrentUser, waitForAuthReady } from './firebase-auth-service.js';
 import { 
     ref, 
     set, 
@@ -23,11 +23,26 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js";
 
 /**
+ * Cache keys for localStorage
+ */
+const CACHE_KEYS = {
+    STOCKS: 'stocksCache',
+    STOCKS_TIMESTAMP: 'stocksCacheTimestamp',
+    SESSION_STOCKS: 'analysisStocks'
+};
+
+/**
+ * Cache duration in milliseconds (1 hour for data cache)
+ */
+const DATA_CACHE_DURATION = 60 * 60 * 1000;
+
+/**
  * Local cache for offline support
  */
 let localStocksCache = [];
 let isOnline = navigator.onLine;
 let stocksListener = null;
+let isCacheWarmed = false;
 
 window.addEventListener('online', () => {
     isOnline = true;
@@ -37,6 +52,59 @@ window.addEventListener('online', () => {
 window.addEventListener('offline', () => {
     isOnline = false;
 });
+
+/**
+ * Save data to localStorage cache for instant loading
+ * @param {string} userId - User ID for cache key
+ * @param {Array} stocks - Stocks data to cache
+ */
+function saveToLocalCache(userId, stocks) {
+    try {
+        const cacheKey = `${CACHE_KEYS.STOCKS}_${userId}`;
+        localStorage.setItem(cacheKey, JSON.stringify(stocks));
+        localStorage.setItem(`${cacheKey}_timestamp`, Date.now().toString());
+    } catch (error) {
+        // Silent fail - localStorage might be full or disabled
+    }
+}
+
+/**
+ * Load data from localStorage cache for instant display
+ * @param {string} userId - User ID for cache key
+ * @returns {Array|null} Cached stocks or null if cache is invalid/missing
+ */
+function loadFromLocalCache(userId) {
+    try {
+        const cacheKey = `${CACHE_KEYS.STOCKS}_${userId}`;
+        const cached = localStorage.getItem(cacheKey);
+        const timestamp = localStorage.getItem(`${cacheKey}_timestamp`);
+        
+        if (cached && timestamp) {
+            const cacheAge = Date.now() - parseInt(timestamp);
+            // Return cached data if within cache duration
+            if (cacheAge < DATA_CACHE_DURATION) {
+                return JSON.parse(cached);
+            }
+        }
+    } catch (error) {
+        // Silent fail
+    }
+    return null;
+}
+
+/**
+ * Clear localStorage cache for a user
+ * @param {string} userId - User ID for cache key
+ */
+function clearLocalCache(userId) {
+    try {
+        const cacheKey = `${CACHE_KEYS.STOCKS}_${userId}`;
+        localStorage.removeItem(cacheKey);
+        localStorage.removeItem(`${cacheKey}_timestamp`);
+    } catch (error) {
+        // Silent fail
+    }
+}
 
 /**
  * Get user-specific database reference
@@ -65,19 +133,79 @@ function getStockRef(stockId) {
 
 /**
  * Listen to real-time stock data changes
+ * Optimized with localStorage cache for instant loading
  * @param {Function} callback - Callback function to handle stock data updates
  * @returns {Function} Unsubscribe function
  */
 export function listenToStocks(callback) {
-    const user = getCurrentUser();
+    let user = getCurrentUser();
+    
+    // If user is from cache, we need to wait for Firebase to confirm
+    // because Firebase Database requires actual auth token, not just uid
+    if (user && user._fromCache) {
+        // Try localStorage cache first for instant display
+        const cachedData = loadFromLocalCache(user.uid);
+        if (cachedData && cachedData.length > 0) {
+            isCacheWarmed = true;
+            localStocksCache = cachedData;
+            // Immediate callback with cached data - no loading delay
+            queueMicrotask(() => callback(cachedData));
+        } else {
+            // Fallback to sessionStorage
+            const sessionData = loadFromSessionStorage();
+            if (sessionData.length > 0) {
+                queueMicrotask(() => callback(sessionData));
+            }
+        }
+        
+        // Wait for auth and then set up real listener in background
+        waitForAuthReady().then((confirmedUser) => {
+            if (confirmedUser) {
+                setupFirebaseListener(confirmedUser, callback, isCacheWarmed);
+            } else {
+                // User not authenticated, show empty or cached data
+                const fallbackData = loadFromSessionStorage();
+                callback(fallbackData);
+            }
+        });
+        
+        return () => {
+            if (stocksListener) {
+                stocksListener();
+                stocksListener = null;
+            }
+        };
+    }
     
     if (!user) {
-        const localData = loadFromLocalStorage();
+        const localData = loadFromSessionStorage();
         callback(localData);
         return () => {};
     }
     
-    const stocksRef = getUserStocksRef();
+    // For confirmed users, check localStorage cache first
+    const cachedData = loadFromLocalCache(user.uid);
+    if (cachedData && cachedData.length > 0 && !isCacheWarmed) {
+        isCacheWarmed = true;
+        localStocksCache = cachedData;
+        // Immediate callback with cached data
+        queueMicrotask(() => callback(cachedData));
+    }
+    
+    return setupFirebaseListener(user, callback, isCacheWarmed);
+}
+
+/**
+ * Set up Firebase real-time listener for stocks
+ * Optimized to skip redundant callbacks when cache was already served
+ * @param {Object} user - Authenticated user object
+ * @param {Function} callback - Callback function
+ * @param {boolean} cacheAlreadyServed - Whether cached data was already sent to callback
+ * @returns {Function} Unsubscribe function
+ */
+function setupFirebaseListener(user, callback, cacheAlreadyServed = false) {
+    const stocksRef = ref(database, `users/${user.uid}/stocks`);
+    let isFirstLoad = true;
     
     stocksListener = onValue(stocksRef, (snapshot) => {
         const data = snapshot.val();
@@ -87,12 +215,27 @@ export function listenToStocks(callback) {
         })) : [];
         
         localStocksCache = stocksArray;
-        saveToLocalStorage(stocksArray);
         
+        // Save to both localStorage (for instant loading) and sessionStorage (for backup)
+        saveToLocalCache(user.uid, stocksArray);
+        saveToSessionStorage(stocksArray);
+        
+        // Skip first callback if we already served cached data and data hasn't changed
+        if (isFirstLoad && cacheAlreadyServed) {
+            isFirstLoad = false;
+            // Check if data actually changed from cache
+            const cacheJSON = JSON.stringify(loadFromLocalCache(user.uid) || []);
+            const newJSON = JSON.stringify(stocksArray);
+            if (cacheJSON === newJSON) {
+                return; // Skip - data matches cache
+            }
+        }
+        
+        isFirstLoad = false;
         callback(stocksArray);
     }, (error) => {
         console.error('Firebase listener error:', error.message);
-        const localData = loadFromLocalStorage();
+        const localData = loadFromSessionStorage();
         callback(localData);
     });
     
@@ -106,18 +249,28 @@ export function listenToStocks(callback) {
 
 /**
  * Add a new stock to Firebase
+ * Optimized for faster response - uses cached auth when available
  * @param {Object} stockData - Stock data object
  * @returns {Promise<Object>} Result with success status and stock ID
  */
 export async function addStock(stockData) {
-    const user = getCurrentUser();
+    let user = getCurrentUser();
     
+    // If user is from cache, try to proceed with cached uid first
+    // Firebase will use the persisted auth token
     if (!user) {
         return { success: false, error: 'User must be authenticated' };
     }
     
+    // Get actual uid - either from Firebase user or cache
+    const uid = user.uid;
+    if (!uid) {
+        return { success: false, error: 'User ID not available' };
+    }
+    
     try {
-        const stocksRef = getUserStocksRef();
+        // Use uid directly for faster operation
+        const stocksRef = ref(database, `users/${uid}/stocks`);
         
         const stockId = `stock_${Date.now()}`;
         const stockRef = child(stocksRef, stockId);
@@ -126,10 +279,15 @@ export async function addStock(stockData) {
             ...stockData,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
-            userId: user.uid
+            userId: uid
         };
         
         await set(stockRef, stockWithMeta);
+        
+        // Update local cache immediately
+        const newStock = { ...stockWithMeta, stock_id: stockId };
+        localStocksCache.push(newStock);
+        saveToLocalCache(uid, localStocksCache);
         
         return { 
             success: true, 
@@ -140,11 +298,19 @@ export async function addStock(stockData) {
     } catch (error) {
         console.error('Add stock failed:', error.message);
         
+        // If auth error, try waiting for auth and retry once
+        if (error.code === 'PERMISSION_DENIED' && user._fromCache) {
+            const confirmedUser = await waitForAuthReady();
+            if (confirmedUser) {
+                return addStock(stockData); // Retry with confirmed auth
+            }
+        }
+        
         if (!isOnline) {
             const stockId = `stock_${Date.now()}`;
             const stockWithId = { ...stockData, stock_id: stockId };
             localStocksCache.push(stockWithId);
-            saveToLocalStorage(localStocksCache);
+            saveToSessionStorage(localStocksCache);
             
             return { 
                 success: true, 
@@ -168,14 +334,20 @@ export async function addStock(stockData) {
  * @returns {Promise<Object>} Result with success status
  */
 export async function updateStock(stockId, updates) {
-    const user = getCurrentUser();
+    let user = getCurrentUser();
+    
+    // If user is from cache, wait for Firebase to confirm auth
+    if (user && user._fromCache) {
+        user = await waitForAuthReady();
+    }
     
     if (!user) {
         return { success: false, error: 'User must be authenticated' };
     }
     
     try {
-        const stockRef = getStockRef(stockId);
+        // Use user.uid directly instead of calling getStockRef()
+        const stockRef = ref(database, `users/${user.uid}/stocks/${stockId}`);
         
         const updatesWithMeta = {
             ...updates,
@@ -199,7 +371,7 @@ export async function updateStock(stockId, updates) {
                     ...localStocksCache[index], 
                     ...updates 
                 };
-                saveToLocalStorage(localStocksCache);
+                saveToSessionStorage(localStocksCache);
                 
                 return { 
                     success: true,
@@ -222,14 +394,20 @@ export async function updateStock(stockId, updates) {
  * @returns {Promise<Object>} Result with success status
  */
 export async function deleteStock(stockId) {
-    const user = getCurrentUser();
+    let user = getCurrentUser();
+    
+    // If user is from cache, wait for Firebase to confirm auth
+    if (user && user._fromCache) {
+        user = await waitForAuthReady();
+    }
     
     if (!user) {
         return { success: false, error: 'User must be authenticated' };
     }
     
     try {
-        const stockRef = getStockRef(stockId);
+        // Use user.uid directly instead of calling getStockRef()
+        const stockRef = ref(database, `users/${user.uid}/stocks/${stockId}`);
         
         await remove(stockRef);
         
@@ -243,7 +421,7 @@ export async function deleteStock(stockId) {
         
         if (!isOnline) {
             localStocksCache = localStocksCache.filter(s => s.stock_id !== stockId);
-            saveToLocalStorage(localStocksCache);
+            saveToSessionStorage(localStocksCache);
             
             return { 
                 success: true,
@@ -264,19 +442,25 @@ export async function deleteStock(stockId) {
  * @returns {Promise<Object>} Result with success status
  */
 export async function deleteAllStocks() {
-    const user = getCurrentUser();
+    let user = getCurrentUser();
+    
+    // If user is from cache, wait for Firebase to confirm auth
+    if (user && user._fromCache) {
+        user = await waitForAuthReady();
+    }
     
     if (!user) {
         return { success: false, error: 'User must be authenticated' };
     }
     
     try {
-        const stocksRef = getUserStocksRef();
+        // Use user.uid directly instead of calling getUserStocksRef()
+        const stocksRef = ref(database, `users/${user.uid}/stocks`);
         
         await remove(stocksRef);
         
         localStocksCache = [];
-        saveToLocalStorage([]);
+        saveToSessionStorage([]);
         
         return { 
             success: true,
@@ -298,14 +482,20 @@ export async function deleteAllStocks() {
  * @returns {Promise<Object>} Stock data or null
  */
 export async function getStock(stockId) {
-    const user = getCurrentUser();
+    let user = getCurrentUser();
+    
+    // If user is from cache, wait for Firebase to confirm auth
+    if (user && user._fromCache) {
+        user = await waitForAuthReady();
+    }
     
     if (!user) {
         return null;
     }
     
     try {
-        const stockRef = getStockRef(stockId);
+        // Use user.uid directly instead of calling getStockRef()
+        const stockRef = ref(database, `users/${user.uid}/stocks/${stockId}`);
         const snapshot = await get(stockRef);
         
         if (snapshot.exists()) {
@@ -326,7 +516,7 @@ export async function getStock(stockId) {
  * Sync offline data when connection is restored
  */
 async function syncOfflineData() {
-    const localData = loadFromLocalStorage();
+    const localData = loadFromSessionStorage();
     
     if (localData.length === 0) {
         return;
@@ -344,13 +534,13 @@ async function syncOfflineData() {
 }
 
 /**
- * Save stocks to localStorage (backup/offline support)
+ * Save stocks to sessionStorage (backup/offline support)
  * @param {Array} stocks - Array of stock objects
  */
-function saveToLocalStorage(stocks) {
+function saveToSessionStorage(stocks) {
     try {
-        localStorage.setItem('analysisStocks', JSON.stringify(stocks));
-        localStorage.setItem('analysisStocksBackup', JSON.stringify({
+        sessionStorage.setItem('analysisStocks', JSON.stringify(stocks));
+        sessionStorage.setItem('analysisStocksBackup', JSON.stringify({
             data: stocks,
             timestamp: new Date().toISOString()
         }));
@@ -360,12 +550,12 @@ function saveToLocalStorage(stocks) {
 }
 
 /**
- * Load stocks from localStorage
+ * Load stocks from sessionStorage
  * @returns {Array} Array of stock objects
  */
-function loadFromLocalStorage() {
+function loadFromSessionStorage() {
     try {
-        const saved = localStorage.getItem('analysisStocks');
+        const saved = sessionStorage.getItem('analysisStocks');
         if (saved) {
             return JSON.parse(saved);
         }
@@ -376,17 +566,22 @@ function loadFromLocalStorage() {
 }
 
 /**
- * Migrate existing localStorage data to Firebase
+ * Migrate existing sessionStorage data to Firebase
  * @returns {Promise<Object>} Migration result
  */
-export async function migrateLocalStorageToFirebase() {
-    const user = getCurrentUser();
+export async function migrateSessionStorageToFirebase() {
+    let user = getCurrentUser();
+    
+    // If user is from cache, wait for Firebase to confirm auth
+    if (user && user._fromCache) {
+        user = await waitForAuthReady();
+    }
     
     if (!user) {
         return { success: false, error: 'User must be authenticated' };
     }
     
-    const localData = loadFromLocalStorage();
+    const localData = loadFromSessionStorage();
     
     if (localData.length === 0) {
         return { 

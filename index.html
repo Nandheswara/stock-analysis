@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stock Analysis Dashboard | Indian Stock Fundamental Analysis Tool</title>
     
+    <!-- Preload Firebase SDKs for faster loading -->
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://stock-analysis-51b9a-default-rtdb.firebaseio.com" crossorigin>
+    <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+    <link rel="dns-prefetch" href="https://www.gstatic.com">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js">
+    
     <!-- Google Search Console Verification -->
     <meta name="google-site-verification" content="bbg6F-PmagomRNadwNHkZETsa3poJrvutkww2h-Bf6c" />
     
@@ -81,12 +90,14 @@
                         </button>
                     </li>
                     <!-- User Profile (shown when logged in) -->
-                    <li class="nav-item d-flex align-items-center ms-2" id="userInfo" style="display: none;">
+                    <li class="nav-item d-flex align-items-center ms-2" id="userProfile" style="display: none !important;">
                         <div class="dropdown">
                             <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="bi bi-person-circle"></i> <span id="userEmail">User</span>
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="pages/profile.html" id="profileBtn"><i class="bi bi-person-gear"></i> Profile</a></li>
+                                <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="#" id="logoutBtn"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
                             </ul>
                         </div>
@@ -100,12 +111,18 @@
     <main class="container-fluid py-4">
         <div class="container">
             <!-- Hero Section -->
-            <div class="hero-section">
-                <h1><i class="bi bi-graph-up-arrow"></i> Indian Stock Analysis Dashboard</h1>
-                <p>Add stocks and analyze their fundamental metrics with manual data entry.</p>
-                <a href="pages/analysis.html" class="btn btn-light cta-button">
-                    <i class="bi bi-bar-chart-line"></i> Start Analysis
-                </a>
+            <div class="header-section">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h1 class="mb-2"><i class="bi bi-graph-up-arrow"></i> Indian Stock Analysis Dashboard</h1>
+                        <p class="mb-0">Add stocks and analyze their fundamental metrics with manual data entry.</p>
+                    </div>
+                    <div class="col-md-4 text-md-end">
+                        <a href="pages/analysis.html" class="btn btn-cta">
+                            <i class="bi bi-bar-chart-line"></i> Start Analysis
+                        </a>
+                    </div>
+                </div>
             </div>
 
             <!-- Features Section -->
@@ -271,6 +288,75 @@
                             <small><a href="#" id="backToLoginBtn">Back to login</a></small>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Profile Modal -->
+    <div class="modal fade" id="profileModal" tabindex="-1" aria-labelledby="profileModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="profileModalTitle"><i class="bi bi-person-circle"></i> User Profile</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Alert Container for Profile Errors -->
+                    <div id="profileAlertContainer"></div>
+                    
+                    <!-- User Info Section -->
+                    <div class="user-info-section mb-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="profile-avatar me-3">
+                                <i class="bi bi-person-circle" style="font-size: 3rem; color: var(--bs-primary);"></i>
+                            </div>
+                            <div class="profile-details">
+                                <h6 class="mb-1" id="profileDisplayName">User Name</h6>
+                                <small class="text-muted" id="profileEmail">user@example.com</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <!-- Change Password Section -->
+                    <div class="change-password-section">
+                        <h6 class="mb-3"><i class="bi bi-key"></i> Change Password</h6>
+                        <form id="changePasswordForm">
+                            <div class="mb-3">
+                                <label for="currentPassword" class="form-label">Current Password</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="currentPassword" required>
+                                    <button class="btn btn-outline-secondary toggle-password" type="button" data-target="currentPassword" aria-label="Toggle password visibility">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="newPassword" class="form-label">New Password</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="newPassword" required minlength="6">
+                                    <button class="btn btn-outline-secondary toggle-password" type="button" data-target="newPassword" aria-label="Toggle password visibility">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                                <small class="text-muted">Minimum 6 characters</small>
+                            </div>
+                            <div class="mb-3">
+                                <label for="confirmNewPassword" class="form-label">Confirm New Password</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="confirmNewPassword" required minlength="6">
+                                    <button class="btn btn-outline-secondary toggle-password" type="button" data-target="confirmNewPassword" aria-label="Toggle password visibility">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100" id="changePasswordBtn">
+                                <i class="bi bi-shield-lock"></i> Update Password
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>

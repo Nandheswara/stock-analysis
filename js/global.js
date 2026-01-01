@@ -3,7 +3,7 @@
  * 
  * This file contains shared functionality across all pages including:
  * - Theme management (dark/light mode switching)
- * - Theme persistence using localStorage
+ * - Theme persistence using sessionStorage
  * - System preference detection
  * 
  * Dependencies: None (Vanilla JavaScript)
@@ -34,7 +34,7 @@ function applyTheme(theme) {
     }
     
     try {
-        localStorage.setItem('theme', theme);
+        sessionStorage.setItem('theme', theme);
     } catch (e) {
         // Ignore storage errors (e.g., in private browsing mode)
     }
@@ -44,7 +44,7 @@ function applyTheme(theme) {
  * Toggle between light and dark themes
  */
 function toggleTheme() {
-    const current = (localStorage.getItem('theme') === 'light') ? 'light' : 'dark';
+    const current = (sessionStorage.getItem('theme') === 'light') ? 'light' : 'dark';
     const next = current === 'light' ? 'dark' : 'light';
     applyTheme(next);
 }
@@ -57,7 +57,7 @@ function initTheme() {
     
     // Try to get stored theme preference
     try { 
-        stored = localStorage.getItem('theme'); 
+        stored = sessionStorage.getItem('theme'); 
     } catch (e) { 
         stored = null; 
     }

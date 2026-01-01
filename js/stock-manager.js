@@ -4,7 +4,7 @@
  * Integrated with Firebase for user-specific data storage
  * 
  * Authentication Required: All data operations require user authentication
- * Data Storage: Firebase Realtime Database only (no localStorage fallback)
+ * Data Storage: Firebase Realtime Database only (no sessionStorage fallback)
  * Multi-Device Sync: Real-time synchronization across all devices
  */
 
@@ -24,7 +24,8 @@ import {
     logoutUser,
     initAuthListener,
     signInWithGoogle,
-    isAuthenticated
+    isAuthenticated,
+    changePassword
 } from './firebase-auth-service.js';
 
 // Constants for brokerage and tax calculations (Indian market rates)
@@ -162,16 +163,76 @@ class Stock {
 class PortfolioManager {
     constructor() {
         this.stocks = [];
-        // Auth sync will be set up by auth state change listener
+        // Check for preloaded portfolio data for instant display
+        this.loadPreloadedData();
+    }
+
+    /**
+     * Load preloaded data from inline cache script for instant display
+     */
+    loadPreloadedData() {
+        if (window.__PRELOADED_PORTFOLIO__ && window.__PRELOADED_PORTFOLIO__.length > 0) {
+            this.stocks = window.__PRELOADED_PORTFOLIO__.map(stockData => {
+                const stock = new Stock(
+                    stockData.name,
+                    stockData.quantity,
+                    stockData.buyPrice,
+                    stockData.sellPrice
+                );
+                stock.id = stockData.id;
+                stock.dateAdded = stockData.dateAdded;
+                return stock;
+            });
+            // Immediately render the cached data
+            window.__PORTFOLIO_RENDERED__ = true;
+            renderStocksTable();
+            updateSummaryDisplay();
+            
+            // Hide loading overlay immediately
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) overlay.style.display = 'none';
+        }
     }
 
     /**
      * Set up Firebase real-time sync
+     * Optimized to serve cached data instantly
      */
     setupFirebaseSync() {
         const user = getCurrentUser();
         
         if (user) {
+            // Try to load from localStorage cache immediately if not already loaded
+            if (this.stocks.length === 0 && !window.__PORTFOLIO_CACHE_HIT__) {
+                const userId = user.uid;
+                if (userId) {
+                    try {
+                        const cacheKey = `portfolioCache_${userId}`;
+                        const cached = localStorage.getItem(cacheKey);
+                        if (cached) {
+                            const cachedStocks = JSON.parse(cached);
+                            if (cachedStocks && cachedStocks.length > 0) {
+                                this.stocks = cachedStocks.map(stockData => {
+                                    const stock = new Stock(
+                                        stockData.name,
+                                        stockData.quantity,
+                                        stockData.buyPrice,
+                                        stockData.sellPrice
+                                    );
+                                    stock.id = stockData.id;
+                                    stock.dateAdded = stockData.dateAdded;
+                                    return stock;
+                                });
+                                renderStocksTable();
+                                updateSummaryDisplay();
+                            }
+                        }
+                    } catch (e) {
+                        // Silent fail
+                    }
+                }
+            }
+            
             if (unsubscribePortfolio) {
                 unsubscribePortfolio();
                 unsubscribePortfolio = null;
@@ -179,24 +240,28 @@ class PortfolioManager {
             
             unsubscribePortfolio = listenToPortfolio((firebaseStocks) => {
                 if (!isSyncing) {
-                    this.stocks = firebaseStocks.map(stockData => {
-                        const stock = new Stock(
-                            stockData.name,
-                            stockData.quantity,
-                            stockData.buyPrice,
-                            stockData.sellPrice
-                        );
-                        stock.id = stockData.id;
-                        stock.dateAdded = stockData.dateAdded;
-                        return stock;
-                    });
+                    // Only update if data actually changed
+                    const newIds = firebaseStocks.map(s => s.id).sort().join(',');
+                    const currentIds = this.stocks.map(s => s.id).sort().join(',');
                     
-                    renderStocksTable();
-                    updateSummaryDisplay();
+                    if (newIds !== currentIds || firebaseStocks.length !== this.stocks.length) {
+                        this.stocks = firebaseStocks.map(stockData => {
+                            const stock = new Stock(
+                                stockData.name,
+                                stockData.quantity,
+                                stockData.buyPrice,
+                                stockData.sellPrice
+                            );
+                            stock.id = stockData.id;
+                            stock.dateAdded = stockData.dateAdded;
+                            return stock;
+                        });
+                        
+                        renderStocksTable();
+                        updateSummaryDisplay();
+                    }
                 }
             });
-            
-            this.loadFromFirebase();
         } else {
             this.stocks = [];
             renderStocksTable();
@@ -627,10 +692,17 @@ function showNotification(message, type = 'success') {
 
 /**
  * Initialize the application
+ * Optimized for instant data display from cache
  */
 function initApp() {
     try {
+        // Try to load and display cached data IMMEDIATELY (before auth)
+        loadCachedDataInstantly();
+        
+        // Initialize auth listener (non-blocking)
         initAuthListener();
+        
+        // Create portfolio manager (will also try to load preloaded data)
         portfolioManager = new PortfolioManager();
         
         const form = document.getElementById('stockForm');
@@ -639,8 +711,12 @@ function initApp() {
         }
 
         setupAuthUI();
-        renderStocksTable();
-        updateSummaryDisplay();
+        
+        // Only render if we haven't already rendered from cache
+        if (!window.__PORTFOLIO_RENDERED__) {
+            renderStocksTable();
+            updateSummaryDisplay();
+        }
 
         const style = document.createElement('style');
         style.textContent = `
@@ -668,6 +744,40 @@ function initApp() {
         document.head.appendChild(style);
     } catch (error) {
         // Silent fail - app may still work partially
+    }
+}
+
+/**
+ * Load cached data instantly without waiting for auth
+ * This provides immediate data display on page load
+ */
+function loadCachedDataInstantly() {
+    try {
+        // Check for preloaded data from inline script
+        if (window.__PRELOADED_PORTFOLIO__ && window.__PRELOADED_PORTFOLIO__.length > 0) {
+            window.__PORTFOLIO_RENDERED__ = true;
+            return; // Already handled by PortfolioManager constructor
+        }
+        
+        // Try to get user ID from auth cache
+        const authCache = sessionStorage.getItem('authStateCache');
+        if (authCache) {
+            const auth = JSON.parse(authCache);
+            const userId = auth.uid;
+            if (userId) {
+                const cacheKey = `portfolioCache_${userId}`;
+                const cached = localStorage.getItem(cacheKey);
+                if (cached) {
+                    const stocks = JSON.parse(cached);
+                    if (stocks && stocks.length > 0) {
+                        window.__PRELOADED_PORTFOLIO__ = stocks;
+                        window.__PORTFOLIO_CACHE_HIT__ = true;
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        // Silent fail
     }
 }
 
@@ -729,7 +839,19 @@ function setupAuthUI() {
         });
     }
 
+    // Profile button now navigates to profile.html page directly via href
+    // No need to intercept the click event
+
     setupAuthModalHandlers();
+    
+    // Setup calculation info button handler
+    const calculationInfoBtn = document.getElementById('calculationInfoBtn');
+    if (calculationInfoBtn) {
+        calculationInfoBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            showCalculationInfo();
+        });
+    }
 }
 
 /**
@@ -889,6 +1011,181 @@ function closeAuthModal() {
     }, 300);
 }
 
+/**
+ * Show user profile modal
+ */
+function showProfileModal() {
+    const user = getCurrentUser();
+    
+    if (user) {
+        const displayNameEl = document.getElementById('profileDisplayName');
+        const emailEl = document.getElementById('profileEmail');
+        
+        if (displayNameEl) {
+            displayNameEl.textContent = user.displayName || 'User';
+        }
+        if (emailEl) {
+            emailEl.textContent = user.email || '';
+        }
+    }
+
+    // Clear form and alerts
+    const form = document.getElementById('changePasswordForm');
+    if (form) {
+        form.reset();
+    }
+    const alertContainer = document.getElementById('profileAlertContainer');
+    if (alertContainer) {
+        alertContainer.innerHTML = '';
+    }
+
+    const modal = document.getElementById('profileModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        modal.classList.add('active');
+    }
+}
+
+/**
+ * Close profile modal
+ */
+function closeProfileModal() {
+    const modal = document.getElementById('profileModal');
+    if (modal) {
+        modal.classList.remove('active');
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 300);
+    }
+}
+
+/**
+ * Setup profile modal handlers
+ */
+function setupProfileModalHandlers() {
+    const changePasswordForm = document.getElementById('changePasswordForm');
+    
+    if (changePasswordForm) {
+        changePasswordForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await handleChangePassword();
+        });
+    }
+
+    // Password toggle buttons
+    const toggleButtons = document.querySelectorAll('.toggle-password');
+    toggleButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const targetId = button.getAttribute('data-target');
+            const input = document.getElementById(targetId);
+            const icon = button.querySelector('i');
+            
+            if (input && icon) {
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.classList.remove('bi-eye');
+                    icon.classList.add('bi-eye-slash');
+                } else {
+                    input.type = 'password';
+                    icon.classList.remove('bi-eye-slash');
+                    icon.classList.add('bi-eye');
+                }
+            }
+        });
+    });
+}
+
+/**
+ * Handle change password form submission
+ */
+async function handleChangePassword() {
+    const currentPassword = document.getElementById('currentPassword')?.value;
+    const newPassword = document.getElementById('newPassword')?.value;
+    const confirmNewPassword = document.getElementById('confirmNewPassword')?.value;
+    const submitBtn = document.getElementById('changePasswordBtn');
+
+    // Validate inputs
+    if (!currentPassword || !newPassword || !confirmNewPassword) {
+        showProfileAlert('Please fill in all password fields', 'error');
+        return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+        showProfileAlert('New passwords do not match', 'error');
+        return;
+    }
+
+    if (newPassword.length < 6) {
+        showProfileAlert('New password must be at least 6 characters', 'error');
+        return;
+    }
+
+    if (currentPassword === newPassword) {
+        showProfileAlert('New password must be different from current password', 'error');
+        return;
+    }
+
+    // Show loading state
+    const originalBtnText = submitBtn?.innerHTML;
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner"></span> Updating...';
+    }
+
+    try {
+        const result = await changePassword(currentPassword, newPassword);
+
+        if (result.success) {
+            showProfileAlert(result.message, 'success');
+            // Clear form on success
+            document.getElementById('changePasswordForm')?.reset();
+            
+            // Close modal after 2 seconds on success
+            setTimeout(() => {
+                closeProfileModal();
+            }, 2000);
+        } else {
+            showProfileAlert(result.error, 'error');
+        }
+    } catch (error) {
+        showProfileAlert('An unexpected error occurred. Please try again.', 'error');
+    } finally {
+        // Restore button state
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
+        }
+    }
+}
+
+/**
+ * Show alert in profile modal
+ * @param {string} message - Alert message
+ * @param {string} type - Alert type (success, error)
+ */
+function showProfileAlert(message, type = 'error') {
+    const alertContainer = document.getElementById('profileAlertContainer');
+    if (!alertContainer) return;
+
+    const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+    const bgColor = type === 'success' ? '#d4edda' : '#f8d7da';
+    const textColor = type === 'success' ? '#155724' : '#721c24';
+    const borderColor = type === 'success' ? '#c3e6cb' : '#f5c6cb';
+
+    alertContainer.innerHTML = `
+        <div class="alert ${alertClass}" style="padding: 0.75rem; border-radius: 5px; background-color: ${bgColor}; color: ${textColor}; border: 1px solid ${borderColor}; margin-bottom: 1rem;">
+            ${message}
+        </div>
+    `;
+
+    // Auto-dismiss success messages after 3 seconds
+    if (type === 'success') {
+        setTimeout(() => {
+            alertContainer.innerHTML = '';
+        }, 3000);
+    }
+}
+
 // Initialize app when DOM is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initApp);
@@ -905,12 +1202,15 @@ window.showCalculationInfo = showCalculationInfo;
 window.closeCalculationModal = closeCalculationModal;
 window.closeAuthModal = closeAuthModal;
 window.showAuthModal = showAuthModal;
+window.closeProfileModal = closeProfileModal;
+window.showProfileModal = showProfileModal;
 
 // Close modal when clicking outside of it
 document.addEventListener('click', (event) => {
     const editModal = document.getElementById('editModal');
     const calcModal = document.getElementById('calculationModal');
     const authModal = document.getElementById('authModal');
+    const profileModal = document.getElementById('profileModal');
     
     if (event.target === editModal) {
         closeEditModal();
@@ -921,6 +1221,9 @@ document.addEventListener('click', (event) => {
     if (event.target === authModal) {
         closeAuthModal();
     }
+    if (event.target === profileModal) {
+        closeProfileModal();
+    }
 });
 
 // Close modal with Escape key
@@ -929,6 +1232,7 @@ document.addEventListener('keydown', (event) => {
         const editModal = document.getElementById('editModal');
         const calcModal = document.getElementById('calculationModal');
         const authModal = document.getElementById('authModal');
+        const profileModal = document.getElementById('profileModal');
         
         if (editModal && editModal.classList.contains('active')) {
             closeEditModal();
@@ -938,6 +1242,9 @@ document.addEventListener('keydown', (event) => {
         }
         if (authModal && authModal.classList.contains('active')) {
             closeAuthModal();
+        }
+        if (profileModal && profileModal.classList.contains('active')) {
+            closeProfileModal();
         }
     }
 });
