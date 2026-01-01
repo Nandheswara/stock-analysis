@@ -35,6 +35,8 @@ import {
     deleteAllStocks,
     migrateLocalStorageToFirebase 
 } from './firebase-database-service.js';
+import { loadStockSymbols } from './stock-dropdown.js';
+import { makeFetchStockData, growwCrawler } from './fetch.js';
 
 /* ========================================
    Global Variables
@@ -112,6 +114,8 @@ $(document).ready(function() {
     });
     
     setupAuthHandlers();
+    // Load stock symbols for the dropdown (implemented in stock-dropdown.js)
+    loadStockSymbols();
     
     $('#addStockForm').on('submit', function(e) {
         e.preventDefault();
@@ -141,6 +145,8 @@ $(document).ready(function() {
         bootstrap.Modal.getInstance(document.getElementById('filterModal')).hide();
     });
 });
+
+
 
 /* ========================================
    Authentication Functions
@@ -910,11 +916,14 @@ window.clearAllFilters = function() {
    Data Fetching Functions
    ======================================== */
 
-/**
- * Fetch stock data from external API (Future Implementation)
- * @param {string} symbol - Stock symbol
- * @param {string} stockId - Stock ID
- */
-window.fetchStockData = function(symbol, stockId) {
-    showAlert('info', `Fetch functionality for ${symbol} will be implemented soon. Use Edit button to enter data manually.`);
-};
+// Data fetching moved to `js/fetch.js`. Create a fetchStockData bound to this module's
+// data and UI helpers using the provided factory, then expose it globally for
+// the inline onclick handlers in the table HTML.
+const fetchStockData = makeFetchStockData({
+    getStocksData: () => stocksData,
+    renderTable,
+    showAlert
+});
+window.fetchStockData = fetchStockData;
+// Backwards compatibility: expose crawler object on window
+window.growwCrawler = growwCrawler;

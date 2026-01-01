@@ -186,17 +186,13 @@ function applyMetricToColumn(config) {
                 cell.classList.remove('good-value', 'neutral-value', 'bad-value', 'text-muted');
                 cell.classList.add(rule.color);
                 
+                // remove any existing visible badge spans (we will not create new ones)
                 const existingBadges = cell.querySelectorAll(`.${config.badgeClass}`);
                 existingBadges.forEach(badge => badge.remove());
-                
+
+                // preserve state as data attributes for CSS or logic to consume
                 cell.setAttribute(`data-${config.badgeClass}-score`, rule.label);
                 cell.setAttribute(`data-${config.badgeClass}-value`, value);
-                
-                const badge = document.createElement('span');
-                badge.className = `${config.badgeClass} badge ms-1 ${rule.color}`;
-                badge.textContent = rule.label;
-                badge.style.fontSize = '0.7rem';
-                cell.appendChild(badge);
             }
         }
     });
