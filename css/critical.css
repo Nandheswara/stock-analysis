@@ -1,0 +1,96 @@
+/**
+ * Critical CSS for Stock Analysis Dashboard
+ * 
+ * This file contains only the critical above-the-fold styles
+ * that are needed for the initial render. Include inline in <head>
+ * for faster First Contentful Paint (FCP).
+ * 
+ * Rules:
+ * - Only include styles visible in viewport on initial load
+ * - No animations or transitions
+ * - Minimal selectors for faster parsing
+ */
+
+/* Base reset */
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,sans-serif;background:#0b0c10;color:#e9ecef;min-height:100vh}
+
+/* Navigation - critical for header */
+.navbar{position:relative;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;padding:.5rem 1rem}
+.navbar-dark{--bs-navbar-color:rgba(255,255,255,.55);--bs-navbar-brand-color:#fff}
+.navbar-dark.bg-dark{background-color:#050608!important}
+.navbar-brand{padding-top:.3125rem;padding-bottom:.3125rem;margin-right:1rem;font-size:1.25rem;text-decoration:none;white-space:nowrap;color:#fff}
+.navbar-toggler{padding:.25rem .75rem;font-size:1.25rem;line-height:1;background-color:transparent;border:1px solid rgba(255,255,255,.1);border-radius:.375rem}
+.nav-link{display:block;padding:.5rem 1rem;color:rgba(255,255,255,.55);text-decoration:none}
+.nav-link:hover,.nav-link:focus{color:rgba(255,255,255,.75)}
+.nav-link.active{color:#fff}
+
+/* Container */
+.container,.container-fluid{width:100%;padding-right:1rem;padding-left:1rem;margin-right:auto;margin-left:auto}
+@media(min-width:576px){.container{max-width:540px}}
+@media(min-width:768px){.container{max-width:720px}}
+@media(min-width:992px){.container{max-width:960px}}
+@media(min-width:1200px){.container{max-width:1140px}}
+
+/* Loading overlay - must be visible immediately */
+.loading-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(11,12,16,.95);display:flex;align-items:center;justify-content:center;z-index:9999}
+.loading-overlay-text{color:#e9ecef;margin-top:1rem;font-size:1.1rem}
+.spinner-border{display:inline-block;width:2rem;height:2rem;vertical-align:-.125em;border:.25em solid currentColor;border-right-color:transparent;border-radius:50%;animation:spinner .75s linear infinite}
+@keyframes spinner{to{transform:rotate(360deg)}}
+
+/* Card - above the fold on analysis page */
+.card{position:relative;display:flex;flex-direction:column;min-width:0;background:#111218;color:#e9ecef;border:1px solid #1f2229;border-radius:.375rem}
+.card-header{padding:.5rem 1rem;margin-bottom:0;background:#14151b;border-bottom:1px solid #1f2229}
+.card-body{flex:1 1 auto;padding:1rem}
+.card-header.bg-primary{background:linear-gradient(135deg,#1f2a5a 0%,#3a245f 100%)!important;color:#fff}
+
+/* Buttons - critical for interactivity */
+.btn{display:inline-block;font-weight:400;line-height:1.5;text-align:center;text-decoration:none;vertical-align:middle;cursor:pointer;user-select:none;background-color:transparent;border:1px solid transparent;padding:.375rem .75rem;font-size:1rem;border-radius:.375rem;transition:color .15s ease-in-out,background-color .15s ease-in-out}
+.btn-primary{color:#fff;background-color:#0d6efd;border-color:#0d6efd}
+.btn-primary:hover{background-color:#0b5ed7;border-color:#0a58ca}
+.btn-outline-light{color:#f8f9fa;border-color:#f8f9fa}
+.btn-outline-light:hover{color:#212529;background-color:#f8f9fa}
+.btn-sm{padding:.25rem .5rem;font-size:.875rem;border-radius:.25rem}
+
+/* Form controls - for add stock form */
+.form-control,.form-select{display:block;width:100%;padding:.375rem .75rem;font-size:1rem;font-weight:400;line-height:1.5;color:#e9ecef;background-color:#0b0c10;background-clip:padding-box;border:1px solid #1f2229;border-radius:.375rem;transition:border-color .15s ease-in-out,box-shadow .15s ease-in-out}
+.form-control:focus,.form-select:focus{color:#e9ecef;background-color:#0b0c10;border-color:#86b7fe;outline:0;box-shadow:0 0 0 .25rem rgba(13,110,253,.25)}
+.form-label{margin-bottom:.5rem;color:#e9ecef}
+
+/* Header section */
+.header-section{background:linear-gradient(135deg,#1f2a5a 0%,#3a245f 100%);padding:1.5rem;border-radius:10px;margin-bottom:2rem;color:#fff}
+.header-section h1{font-size:1.75rem;font-weight:600}
+
+/* Alert */
+.alert{position:relative;padding:1rem;margin-bottom:1rem;border:1px solid transparent;border-radius:.375rem}
+.alert-success{color:#0f5132;background-color:#d1e7dd;border-color:#badbcc}
+.alert-danger{color:#842029;background-color:#f8d7da;border-color:#f5c2c7}
+.alert-warning{color:#664d03;background-color:#fff3cd;border-color:#ffecb5}
+.alert-info{color:#055160;background-color:#cff4fc;border-color:#b6effb}
+
+/* Grid basics */
+.row{display:flex;flex-wrap:wrap;margin-right:-.75rem;margin-left:-.75rem}
+.col-md-4,.col-md-8{position:relative;width:100%;padding-right:.75rem;padding-left:.75rem}
+@media(min-width:768px){.col-md-4{flex:0 0 33.333333%;max-width:33.333333%}.col-md-8{flex:0 0 66.666667%;max-width:66.666667%}}
+
+/* Visibility helpers */
+.visually-hidden{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+
+/* Flexbox utilities */
+.d-flex{display:flex!important}
+.d-none{display:none!important}
+.align-items-center{align-items:center!important}
+.justify-content-between{justify-content:space-between!important}
+.ms-auto{margin-left:auto!important}
+.me-2{margin-right:.5rem!important}
+.mb-0{margin-bottom:0!important}
+.mb-2{margin-bottom:.5rem!important}
+.mb-4{margin-bottom:1.5rem!important}
+.py-4{padding-top:1.5rem!important;padding-bottom:1.5rem!important}
+.text-center{text-align:center!important}
+.text-muted{color:#6c757d!important}
+.text-white{color:#fff!important}
+
+/* Auth buttons initial state */
+#authButtons{display:flex}
+#userProfile{display:none!important}

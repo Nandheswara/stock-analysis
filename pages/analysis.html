@@ -9,7 +9,9 @@
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://stock-analysis-51b9a-default-rtdb.firebaseio.com" crossorigin>
     <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="dns-prefetch" href="https://www.gstatic.com">
+    <link rel="dns-prefetch" href="https://code.jquery.com">
     <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js">
     <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js">
     <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js">
@@ -36,11 +38,14 @@
     <meta name="twitter:description" content="Analyze Indian stocks with 13 fundamental metrics. Cloud-based with real-time sync.">
     <meta name="twitter:image" content="https://nandheswara.github.io/stock-analysis/images/twitter-stock-analysis.jpg">
     
-    <!-- External CSS -->
+    <!-- Critical CSS for fast first paint -->
+    <link rel="stylesheet" href="../css/critical.css">
+    
+    <!-- External CSS - defer non-critical -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" media="print" onload="this.media='all'">
     <!-- Select2 CSS for searchable dropdown -->
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" media="print" onload="this.media='all'">
     
     <!-- Global CSS -->
     <link rel="stylesheet" href="../css/global.css">
@@ -196,6 +201,9 @@
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-table"></i> Stock Fundamental Analysis</h5>
                 <div>
+                    <button class="btn btn-sm btn-outline-success me-2" id="fetchAllBtn" style="display: none;" title="Fetch data for all stocks from Groww">
+                        <i class="bi bi-cloud-download"></i> Fetch All
+                    </button>
                     <button class="btn btn-sm btn-outline-primary me-2" id="filterBtn" style="display: none;">
                         <i class="bi bi-funnel"></i> Filter <span id="filterCount" class="badge bg-primary ms-1" style="display: none;">0</span>
                     </button>
@@ -736,6 +744,9 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
+    <!-- Loading Optimizations - lazy loading, performance monitoring -->
+    <script src="../js/loading-optimizations.js" defer></script>
+    
     <!-- Instant Cache Load - Runs before modules to show data immediately -->
     <script>
         (function() {
@@ -769,26 +780,28 @@
                         if (userEmail) userEmail.textContent = auth.displayName || auth.email;
                     }
                 }
-            } catch(e) {}
+            } catch(e) {
+                // Silent fail - will fallback to Firebase auth
+                console.debug('Cache preload skipped:', e.message);
+            }
         })();
     </script>
     
     <!-- Global JavaScript -->
     <script src="../js/global.js"></script>
-    <!-- Select2 JS (searchable select) -->
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <!-- Select2 JS (searchable select) - defer for non-critical -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js" defer></script>
     
     <!-- Page-specific JavaScript -->
     <!-- External debug helper (keeps HTML clean) -->
-    <script src="../js/analysis-debug.js?v=1"></script>
+    <script src="../js/analysis-debug.js" defer></script>
 
     <!-- Groww crawler for live fetch (simple scraper for Market Cap) -->
-    <script src="../js/groww-crawler.js?v=2"></script>
-    <script type="module" src="../js/analysis.js?v=2"></script>
+    <script src="../js/groww-crawler.js" defer></script>
+    <script type="module" src="../js/analysis.js"></script>
 
      <!-- Stock specific Metrics JavaScript -->
-    <script src="../js/metrics.js"></script>
-    <script src="../js/groww-storage.js?v=1"></script>
+    <script src="../js/metrics.js" defer></script>
+    <script src="../js/groww-storage.js" defer></script>
 </body>
 </html>
-

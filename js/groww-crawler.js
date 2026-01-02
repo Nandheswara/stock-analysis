@@ -48,26 +48,50 @@
 
   async function fetchWithCorsFallback(url) {
     const tried = []
-    // Prefer a local proxy when available (run scripts/cors-proxy.js)
-    const localProxy = (u) => `http://localhost:8080/proxy?url=${encodeURIComponent(u)}`
-    // Then try reliable public CORS proxies
+    
+    // List of CORS proxy services to try (in order of reliability)
     const proxies = [
-      localProxy,
-      (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
-      (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`
+      // Local proxy (if running cors-proxy.js)
+      (u) => `http://localhost:8080/proxy?url=${encodeURIComponent(u)}`,
+      // Public CORS proxies
+      (u) => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
+      (u) => `https://corsproxy.org/?${encodeURIComponent(u)}`,
+      (u) => `https://proxy.cors.sh/${u}`,
+      (u) => `https://thingproxy.freeboard.io/fetch/${u}`,
+      (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
     ]
 
     for (const makeProxy of proxies) {
       const proxyUrl = makeProxy(url)
       try {
         console.debug('growwCrawler: trying proxy', proxyUrl)
-        const r = await fetch(proxyUrl)
+        
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 10000)
+        
+        const r = await fetch(proxyUrl, { signal: controller.signal })
+        clearTimeout(timeoutId)
+        
         if (!r.ok) throw new Error('Proxy response not ok: ' + r.status)
-        const txt = await r.text()
-        return txt
+        
+        let txt = await r.text()
+        
+        // allorigins.win returns JSON with 'contents' field
+        if (proxyUrl.includes('api.allorigins.win/get')) {
+          try {
+            const json = JSON.parse(txt)
+            txt = json.contents || txt
+          } catch (e) { /* Not JSON */ }
+        }
+        
+        if (txt && (txt.includes('<!DOCTYPE') || txt.includes('<html'))) {
+          return txt
+        }
+        throw new Error('Response does not contain HTML')
       } catch (err) {
-        console.warn('growwCrawler: proxy failed', proxyUrl, err && err.message)
-        tried.push({ proxy: proxyUrl, error: err && err.message })
+        const errorMsg = err.name === 'AbortError' ? 'Timeout' : (err && err.message)
+        console.warn('growwCrawler: proxy failed', proxyUrl.substring(0, 50), errorMsg)
+        tried.push({ proxy: proxyUrl, error: errorMsg })
       }
     }
 
@@ -79,7 +103,7 @@
       return await res.text()
     } catch (err) {
       tried.push({ direct: url, error: err && err.message })
-      const msg = 'All fetch attempts failed: ' + JSON.stringify(tried)
+      const msg = 'All fetch attempts failed. Start local proxy: node js/cors-proxy.js'
       throw new Error(msg)
     }
   }

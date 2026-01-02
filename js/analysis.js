@@ -13,6 +13,13 @@
  * 
  * Dependencies: jQuery, Bootstrap 5, Firebase
  * Data Storage: Firebase Realtime Database with sessionStorage backup
+ * 
+ * Performance Optimizations:
+ * - Debounced rendering to prevent excessive DOM updates
+ * - Request caching to avoid duplicate API calls
+ * - Optimistic UI updates for faster perceived performance
+ * - Event delegation for better memory usage
+ * - DocumentFragment for efficient DOM insertion
  */
 
 import { 
@@ -38,6 +45,15 @@ import {
 } from './firebase-database-service.js';
 import { loadStockSymbols } from './stock-dropdown.js';
 import { makeFetchStockData, growwCrawler } from './fetch.js';
+import { 
+    debounce, 
+    throttle, 
+    setupGlobalErrorHandler, 
+    logError, 
+    escapeAttribute,
+    perfMonitor,
+    batchDOMUpdate
+} from './utils.js';
 
 /* ========================================
    Global Variables
@@ -51,6 +67,11 @@ let activeFilters = {};
 
 // Firebase listener unsubscribe function
 let unsubscribeStocksListener = null;
+
+// Render state tracking to prevent excessive renders
+let renderPending = false;
+let lastRenderTimestamp = 0;
+const MIN_RENDER_INTERVAL = 50; // Minimum ms between renders
 
 /* ========================================
    Loading State Management
@@ -117,6 +138,9 @@ function checkPreloadedCache() {
 }
 
 $(document).ready(function() {
+    // Setup global error handler for better error management
+    setupGlobalErrorHandler(false); // Don't auto-show errors, we handle manually
+    
     // IMMEDIATELY render cached data if available (before Firebase loads)
     const hadPreloadedData = checkPreloadedCache();
     
@@ -137,6 +161,9 @@ $(document).ready(function() {
     // Load stock symbols for the dropdown (implemented in stock-dropdown.js)
     loadStockSymbols();
     
+    // Setup event delegation for table actions (more efficient than individual listeners)
+    setupTableEventDelegation();
+    
     $('#addStockForm').on('submit', function(e) {
         e.preventDefault();
         addStock();
@@ -146,6 +173,10 @@ $(document).ready(function() {
         if (confirm('Remove all stocks from the analysis? This will delete them from Firebase.')) {
             clearAllStocks();
         }
+    });
+    
+    $('#fetchAllBtn').on('click', function() {
+        fetchAllStocks();
     });
     
     $('#saveDataBtn').on('click', function() {
@@ -692,92 +723,181 @@ window.removeStock = async function(stockId) {
    ======================================== */
 
 /**
+ * Debounced render function to prevent excessive DOM updates
+ * Uses requestAnimationFrame for smoother rendering
+ */
+const debouncedRender = debounce(() => {
+    renderTableInternal();
+}, 16); // ~60fps
+
+/**
  * Render the comparison table with all stocks
+ * Uses debouncing to prevent excessive renders
  */
 function renderTable() {
-    const tbody = $('#metricsBody');
-    const emptyState = $('#emptyState');
-    const clearAllBtn = $('#clearAllBtn');
-    const filterBtn = $('#filterBtn');
-    const stockCount = $('#stockCount');
+    const now = performance.now();
     
-    if (stocksData.length === 0) {
-        emptyState.show();
-        $('.table-container').hide();
-        clearAllBtn.hide();
-        filterBtn.hide();
-        stockCount.text(0);
+    // Prevent rapid successive renders
+    if (now - lastRenderTimestamp < MIN_RENDER_INTERVAL) {
+        if (!renderPending) {
+            renderPending = true;
+            debouncedRender();
+        }
         return;
     }
     
-    emptyState.hide();
-    $('.table-container').show();
-    clearAllBtn.show();
-    filterBtn.show();
+    lastRenderTimestamp = now;
+    renderPending = false;
+    renderTableInternal();
+}
+
+/**
+ * Internal render function - actual DOM manipulation
+ * Optimized with DocumentFragment and batch updates
+ */
+function renderTableInternal() {
+    perfMonitor.start('renderTable');
+    
+    const tbody = document.getElementById('metricsBody');
+    const emptyState = document.getElementById('emptyState');
+    const clearAllBtn = document.getElementById('clearAllBtn');
+    const filterBtn = document.getElementById('filterBtn');
+    const fetchAllBtn = document.getElementById('fetchAllBtn');
+    const stockCount = document.getElementById('stockCount');
+    const tableContainer = document.querySelector('.table-container');
+    
+    if (stocksData.length === 0) {
+        emptyState.style.display = 'block';
+        tableContainer.style.display = 'none';
+        clearAllBtn.style.display = 'none';
+        filterBtn.style.display = 'none';
+        fetchAllBtn.style.display = 'none';
+        stockCount.textContent = '0';
+        perfMonitor.end('renderTable');
+        return;
+    }
+    
+    emptyState.style.display = 'none';
+    tableContainer.style.display = 'block';
+    clearAllBtn.style.display = 'inline-block';
+    filterBtn.style.display = 'inline-block';
+    fetchAllBtn.style.display = 'inline-block';
     
     updateFilterBadge();
     
     const filteredData = getFilteredData();
     
     if (Object.keys(activeFilters).length > 0) {
-        stockCount.html(`${filteredData.length} of ${stocksData.length}`);
+        stockCount.innerHTML = `${filteredData.length} of ${stocksData.length}`;
     } else {
-        stockCount.text(stocksData.length);
+        stockCount.textContent = stocksData.length;
     }
     
-    let bodyHTML = '';
+    // Use DocumentFragment for efficient DOM insertion
+    const fragment = document.createDocumentFragment();
     
     if (filteredData.length === 0) {
-        bodyHTML = `
-            <tr>
-                <td colspan="19" class="text-center py-4">
-                    <i class="bi bi-funnel text-muted" style="font-size: 2rem;"></i>
-                    <p class="text-muted mt-2 mb-0">No stocks match your filter criteria</p>
-                    <button class="btn btn-sm btn-outline-primary mt-2" onclick="clearAllFilters()">Clear Filters</button>
-                </td>
-            </tr>
+        const emptyRow = document.createElement('tr');
+        emptyRow.innerHTML = `
+            <td colspan="19" class="text-center py-4">
+                <i class="bi bi-funnel text-muted" style="font-size: 2rem;"></i>
+                <p class="text-muted mt-2 mb-0">No stocks match your filter criteria</p>
+                <button class="btn btn-sm btn-outline-primary mt-2" onclick="clearAllFilters()">Clear Filters</button>
+            </td>
         `;
+        fragment.appendChild(emptyRow);
     } else {
+        // Build rows using DocumentFragment for better performance
         filteredData.forEach((stock, index) => {
-            // Get display symbol - prefer stock_symbol (NSE/BSE) over slug
+            const row = document.createElement('tr');
             const displaySymbol = stock.stock_symbol || stock.symbol;
-            bodyHTML += `
-                <tr>
-                    <td class="text-center"><strong>${index + 1}</strong></td>
-                    <td class="text-muted"><strong>${stock.name}</strong><br><small class="text-primary">${displaySymbol}</small></td>
-                    <td class="text-center">${formatValue('liquidity', stock.liquidity)}</td>
-                    <td class="text-center">${formatValue('quick_ratio', stock.quick_ratio)}</td>
-                    <td class="text-center">${formatValue('debt_to_equity', stock.debt_to_equity)}</td>
-                    <td class="text-center">${formatValue('roe', stock.roe)}</td>
-                    <td class="text-center">${formatValue('investor_growth_ratio', stock.investor_growth_ratio)}</td>
-                    <td class="text-center">${formatValue('roa', stock.roa)}</td>
-                    <td class="text-center">${formatValue('ebitda_current', stock.ebitda_current)}</td>
-                    <td class="text-center">${formatValue('ebitda_previous', stock.ebitda_previous)}</td>
-                    <td class="text-center">${formatValue('dividend_yield', stock.dividend_yield)}</td>
-                    <td class="text-center">${formatValue('pe_ratio', stock.pe_ratio)}</td>
-                    <td class="text-center">${formatValue('industry_pe', stock.industry_pe)}</td>
-                    <td class="text-center">${formatValue('price_to_book', stock.price_to_book)}</td>
-                    <td class="text-center">${formatValue('price_to_sales', stock.price_to_sales)}</td>
-                    <td class="text-center">${formatValue('beta', stock.beta)}</td>
-                    <td class="text-center">${formatValue('promoter_holdings', stock.promoter_holdings)}</td>
-                    <td class="text-center performance-cell"></td>
-                    <td class="text-center">
-                        <button class="btn btn-sm btn-success me-1" onclick="fetchStockData('${stock.symbol}', '${stock.stock_id}')" title="Fetch Data from Groww">
-                            <i class="bi bi-cloud-download"></i> Fetch
-                        </button>
-                        <button class="btn btn-sm btn-primary me-1" onclick="openManualDataModal('${stock.symbol}', '${escapeSingleQuotes(stock.name)}', '${stock.stock_id}')" title="Edit">
-                            <i class="bi bi-pencil"></i> Edit
-                        </button>
-                        <button class="btn btn-sm btn-danger" onclick="removeStock('${stock.stock_id}')" title="Delete">
-                            <i class="bi bi-trash"></i> Delete
-                        </button>
-                    </td>
-                </tr>
+            const escapedName = escapeAttribute(stock.name || '');
+            const escapedSymbol = escapeAttribute(stock.symbol || '');
+            
+            row.innerHTML = `
+                <td class="text-center"><strong>${index + 1}</strong></td>
+                <td class="text-muted"><strong>${escapeAttribute(stock.name)}</strong><br><small class="text-primary">${escapeAttribute(displaySymbol)}</small></td>
+                <td class="text-center">${formatValue('liquidity', stock.liquidity)}</td>
+                <td class="text-center">${formatValue('quick_ratio', stock.quick_ratio)}</td>
+                <td class="text-center">${formatValue('debt_to_equity', stock.debt_to_equity)}</td>
+                <td class="text-center">${formatValue('roe', stock.roe)}</td>
+                <td class="text-center">${formatValue('investor_growth_ratio', stock.investor_growth_ratio)}</td>
+                <td class="text-center">${formatValue('roa', stock.roa)}</td>
+                <td class="text-center">${formatValue('ebitda_current', stock.ebitda_current)}</td>
+                <td class="text-center">${formatValue('ebitda_previous', stock.ebitda_previous)}</td>
+                <td class="text-center">${formatValue('dividend_yield', stock.dividend_yield)}</td>
+                <td class="text-center">${formatValue('pe_ratio', stock.pe_ratio)}</td>
+                <td class="text-center">${formatValue('industry_pe', stock.industry_pe)}</td>
+                <td class="text-center">${formatValue('price_to_book', stock.price_to_book)}</td>
+                <td class="text-center">${formatValue('price_to_sales', stock.price_to_sales)}</td>
+                <td class="text-center">${formatValue('beta', stock.beta)}</td>
+                <td class="text-center">${formatValue('promoter_holdings', stock.promoter_holdings)}</td>
+                <td class="text-center performance-cell"></td>
+                <td class="text-center">
+                    <button class="btn btn-sm btn-success me-1" data-action="fetch" data-symbol="${escapedSymbol}" data-id="${stock.stock_id}" title="Fetch Data from Groww">
+                        <i class="bi bi-cloud-download"></i> Fetch
+                    </button>
+                    <button class="btn btn-sm btn-primary me-1" data-action="edit" data-symbol="${escapedSymbol}" data-name="${escapedName}" data-id="${stock.stock_id}" title="Edit">
+                        <i class="bi bi-pencil"></i> Edit
+                    </button>
+                    <button class="btn btn-sm btn-danger" data-action="delete" data-id="${stock.stock_id}" title="Delete">
+                        <i class="bi bi-trash"></i> Delete
+                    </button>
+                </td>
             `;
+            fragment.appendChild(row);
         });
     }
     
-    tbody.html(bodyHTML);
+    // Batch DOM update - clear and append in one operation
+    batchDOMUpdate(() => {
+        tbody.innerHTML = '';
+        tbody.appendChild(fragment);
+    });
+    
+    perfMonitor.end('renderTable');
+}
+
+/**
+ * Setup event delegation for table action buttons
+ * Uses single event listener on parent instead of individual listeners per button
+ * This improves memory usage and performance for large tables
+ */
+function setupTableEventDelegation() {
+    const metricsBody = document.getElementById('metricsBody');
+    if (!metricsBody) return;
+    
+    // Use single click handler with event delegation
+    metricsBody.addEventListener('click', async function(e) {
+        // Find the button that was clicked (handle clicks on icon inside button)
+        const button = e.target.closest('button[data-action]');
+        if (!button) return;
+        
+        const action = button.dataset.action;
+        const stockId = button.dataset.id;
+        const symbol = button.dataset.symbol;
+        const name = button.dataset.name;
+        
+        switch (action) {
+            case 'fetch':
+                if (symbol && stockId) {
+                    fetchStockData(symbol, stockId);
+                }
+                break;
+            case 'edit':
+                if (symbol && name && stockId) {
+                    openManualDataModal(symbol, name, stockId);
+                }
+                break;
+            case 'delete':
+                if (stockId) {
+                    removeStock(stockId);
+                }
+                break;
+            default:
+                logError('Unknown table action', new Error(`Unknown action: ${action}`));
+        }
+    });
 }
 
 /**
@@ -1074,3 +1194,67 @@ const fetchStockData = makeFetchStockData({
 window.fetchStockData = fetchStockData;
 // Backwards compatibility: expose crawler object on window
 window.growwCrawler = growwCrawler;
+
+/**
+ * Fetch data for all stocks in the portfolio sequentially
+ * Adds a delay between requests to avoid rate limiting
+ */
+async function fetchAllStocks() {
+    if (stocksData.length === 0) {
+        showAlert('warning', 'No stocks to fetch data for. Add some stocks first.');
+        return;
+    }
+    
+    const totalStocks = stocksData.length;
+    const $fetchAllBtn = $('#fetchAllBtn');
+    const originalBtnHtml = $fetchAllBtn.html();
+    
+    // Disable the button during fetch
+    $fetchAllBtn.prop('disabled', true);
+    
+    showAlert('info', `Starting to fetch data for ${totalStocks} stocks. This may take a while...`);
+    
+    let successCount = 0;
+    let failCount = 0;
+    const delayBetweenRequests = 2000; // 2 seconds delay between requests to avoid rate limiting
+    
+    for (let i = 0; i < stocksData.length; i++) {
+        const stock = stocksData[i];
+        const progress = i + 1;
+        
+        // Update button text to show progress
+        $fetchAllBtn.html(`<i class="bi bi-hourglass-split"></i> ${progress}/${totalStocks}`);
+        
+        try {
+            // Skip if no symbol available
+            if (!stock.symbol) {
+                console.warn(`Skipping stock ${stock.name || stock.stock_id}: No symbol available`);
+                failCount++;
+                continue;
+            }
+            
+            await fetchStockData(stock.symbol, stock.stock_id);
+            successCount++;
+            
+        } catch (error) {
+            console.error(`Error fetching data for ${stock.symbol}:`, error);
+            failCount++;
+        }
+        
+        // Add delay before next request (except for the last one)
+        if (i < stocksData.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, delayBetweenRequests));
+        }
+    }
+    
+    // Restore button
+    $fetchAllBtn.prop('disabled', false);
+    $fetchAllBtn.html(originalBtnHtml);
+    
+    // Show summary
+    if (failCount === 0) {
+        showAlert('success', `Successfully fetched data for all ${successCount} stocks!`);
+    } else {
+        showAlert('warning', `Fetch complete: ${successCount} succeeded, ${failCount} failed. Check console for details.`);
+    }
+}

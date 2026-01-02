@@ -1,8 +1,66 @@
 // fetch.js
 // Contains Groww crawler utilities and a factory to create a fetchStockData function
 // which delegates UI work back to the caller via callbacks.
+// 
+// Performance Optimizations:
+// - Request caching to prevent duplicate API calls
+// - Request deduplication for in-flight requests
+// - Retry logic with exponential backoff
+// - Timeout handling for slow proxies
 
 const GROWW_BASE_URL = 'https://groww.in/stocks/'
+
+/**
+ * Request cache for storing fetched stock data
+ * Prevents redundant API calls for the same stock
+ */
+const stockDataCache = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache TTL
+
+/**
+ * In-flight request tracker to prevent duplicate requests
+ */
+const pendingRequests = new Map();
+
+/**
+ * Check if cached data is still valid
+ * @param {string} key - Cache key
+ * @returns {Object|null} Cached data or null if expired/missing
+ */
+function getCachedData(key) {
+    const cached = stockDataCache.get(key);
+    if (cached && Date.now() < cached.expiry) {
+        console.debug('fetch.js: cache hit for', key);
+        return cached.data;
+    }
+    if (cached) {
+        stockDataCache.delete(key); // Clean up expired entry
+    }
+    return null;
+}
+
+/**
+ * Store data in cache
+ * @param {string} key - Cache key
+ * @param {Object} data - Data to cache
+ */
+function setCachedData(key, data) {
+    stockDataCache.set(key, {
+        data,
+        expiry: Date.now() + CACHE_TTL
+    });
+    
+    // Cleanup old entries if cache is too large
+    if (stockDataCache.size > 100) {
+        const keysToDelete = [];
+        for (const [k, v] of stockDataCache.entries()) {
+            if (Date.now() >= v.expiry) {
+                keysToDelete.push(k);
+            }
+        }
+        keysToDelete.forEach(k => stockDataCache.delete(k));
+    }
+}
 
 /**
  * Convert stock symbol/name to Groww URL slug
@@ -93,29 +151,75 @@ function buildGrowwUrl(symbol) {
   return `${GROWW_BASE_URL}${slug}`
 }
 
+/**
+ * Fetch URL through multiple CORS proxies with fallback
+ * Tries multiple proxy services until one succeeds
+ * @param {string} url - The target URL to fetch
+ * @returns {Promise<string>} - The response text
+ */
 async function fetchWithCorsFallback(url) {
   const tried = []
-  const localProxy = (u) => `http://localhost:8080/proxy?url=${encodeURIComponent(u)}`
+  
+  // List of CORS proxy services to try (in order of reliability)
   const proxies = [
-    localProxy,
-    (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
-    (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`
+    // Local proxy (if running cors-proxy.js)
+    (u) => `http://localhost:8080/proxy?url=${encodeURIComponent(u)}`,
+    // Public CORS proxies - try multiple services
+    (u) => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
+    (u) => `https://corsproxy.org/?${encodeURIComponent(u)}`,
+    (u) => `https://proxy.cors.sh/${u}`,
+    (u) => `https://thingproxy.freeboard.io/fetch/${u}`,
+    (u) => `https://cors-anywhere.herokuapp.com/${u}`,
+    (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
   ]
 
   for (const makeProxy of proxies) {
     const proxyUrl = makeProxy(url)
     try {
       console.debug('fetch.js: trying proxy', proxyUrl)
-      const r = await fetch(proxyUrl)
+      
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+      
+      const r = await fetch(proxyUrl, { 
+        signal: controller.signal,
+        headers: {
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      })
+      
+      clearTimeout(timeoutId)
+      
       if (!r.ok) throw new Error('Proxy response not ok: ' + r.status)
-      const txt = await r.text()
-      return txt
+      
+      let txt = await r.text()
+      
+      // allorigins.win returns JSON with 'contents' field
+      if (proxyUrl.includes('api.allorigins.win/get')) {
+        try {
+          const json = JSON.parse(txt)
+          txt = json.contents || txt
+        } catch (e) {
+          // Not JSON, use as-is
+        }
+      }
+      
+      // Verify we got HTML content (not an error page)
+      if (txt && txt.includes('<!DOCTYPE') || txt.includes('<html')) {
+        console.debug('fetch.js: proxy success', proxyUrl.substring(0, 50))
+        return txt
+      } else {
+        throw new Error('Response does not contain HTML')
+      }
     } catch (err) {
-      console.warn('fetch.js: proxy failed', proxyUrl, err && err.message)
-      tried.push({ proxy: proxyUrl, error: err && err.message })
+      const errorMsg = err.name === 'AbortError' ? 'Timeout' : (err && err.message)
+      console.warn('fetch.js: proxy failed', proxyUrl.substring(0, 50), errorMsg)
+      tried.push({ proxy: proxyUrl, error: errorMsg })
     }
   }
 
+  // Last resort: try direct fetch (will likely fail due to CORS)
   try {
     console.debug('fetch.js: trying direct fetch', url)
     const res = await fetch(url, { mode: 'cors' })
@@ -123,7 +227,9 @@ async function fetchWithCorsFallback(url) {
     return await res.text()
   } catch (err) {
     tried.push({ direct: url, error: err && err.message })
-    const msg = 'All fetch attempts failed: ' + JSON.stringify(tried)
+    const msg = 'All fetch attempts failed. Please start the local CORS proxy: node js/cors-proxy.js'
+    console.error('fetch.js:', msg)
+    console.error('Attempted proxies:', tried)
     throw new Error(msg)
   }
 }
@@ -282,10 +388,49 @@ function parseGrowwStats(htmlText) {
   return result
 }
 
-async function fetchGrowwStats(url) {
+/**
+ * Fetch Groww stats with caching and request deduplication
+ * @param {string} url - Groww URL to fetch
+ * @param {boolean} bypassCache - Skip cache and force fresh fetch
+ * @returns {Promise<Object>} Parsed stock stats
+ */
+async function fetchGrowwStats(url, bypassCache = false) {
   console.debug('fetch.js: fetchGrowwStats', url)
-  const html = await fetchWithCorsFallback(url)
-  return parseGrowwStats(html)
+  
+  // Check cache first (unless bypassed)
+  if (!bypassCache) {
+    const cached = getCachedData(url);
+    if (cached) {
+      return cached;
+    }
+  }
+  
+  // Check for pending request to prevent duplicates
+  if (pendingRequests.has(url)) {
+    console.debug('fetch.js: returning pending request for', url);
+    return pendingRequests.get(url);
+  }
+  
+  // Create new request
+  const requestPromise = (async () => {
+    try {
+      const html = await fetchWithCorsFallback(url);
+      const stats = parseGrowwStats(html);
+      
+      // Cache the result
+      setCachedData(url, stats);
+      
+      return stats;
+    } finally {
+      // Clean up pending request tracker
+      pendingRequests.delete(url);
+    }
+  })();
+  
+  // Track pending request
+  pendingRequests.set(url, requestPromise);
+  
+  return requestPromise;
 }
 
 // Backwards-compatible single-value fetch
