@@ -1051,7 +1051,8 @@ window.clearAllFilters = function() {
 const fetchStockData = makeFetchStockData({
     getStocksData: () => stocksData,
     renderTable,
-    showAlert
+    showAlert,
+    updateStockInFirebase
 });
 window.fetchStockData = fetchStockData;
 // Backwards compatibility: expose crawler object on window
