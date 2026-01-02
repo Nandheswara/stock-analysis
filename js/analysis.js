@@ -137,12 +137,54 @@ function checkPreloadedCache() {
     return false;
 }
 
+// Handle page restoration from bfcache (back-forward cache)
+// This ensures data is refreshed when user navigates back using browser buttons
+window.addEventListener('pageshow', function(event) {
+    if (event.persisted) {
+        // Page was restored from bfcache
+        // Reset state and reload data from Firebase
+        stocksData = [];
+        isAddingStock = false;
+        isSubmitting = false;
+        
+        if (unsubscribeStocksListener) {
+            unsubscribeStocksListener();
+            unsubscribeStocksListener = null;
+        }
+        
+        // Reload data
+        if (isAuthenticated()) {
+            loadStocksFromFirebase(false);
+        } else {
+            renderTable();
+        }
+    }
+});
+
 $(document).ready(function() {
     // Setup global error handler for better error management
     setupGlobalErrorHandler(false); // Don't auto-show errors, we handle manually
     
+    // Reset state in case page is restored from bfcache (back-forward cache)
+    // This prevents duplicate data when using browser back/forward buttons
+    stocksData = [];
+    isAddingStock = false;
+    isSubmitting = false;
+    
+    // Unsubscribe any existing listener from previous session
+    if (unsubscribeStocksListener) {
+        unsubscribeStocksListener();
+        unsubscribeStocksListener = null;
+    }
+    
     // IMMEDIATELY render cached data if available (before Firebase loads)
     const hadPreloadedData = checkPreloadedCache();
+    
+    // If no preloaded data, render empty table immediately for better UX
+    if (!hadPreloadedData) {
+        stocksData = [];
+        renderTable();
+    }
     
     // Initialize Firebase auth in parallel
     initAuthListener();
@@ -495,6 +537,9 @@ function showAuthAlert(type, message) {
 // Flag to prevent duplicate renders during stock operations
 let isAddingStock = false;
 
+// Flag to prevent duplicate form submissions
+let isSubmitting = false;
+
 /**
  * Load stocks from Firebase with real-time listener
  * Optimized for instant loading with localStorage cache
@@ -538,11 +583,15 @@ function loadStocksFromFirebase(showLoadingIndicator = true) {
             return;
         }
         
-        // Only update if data actually changed
-        const newJSON = JSON.stringify(stocks.map(s => s.stock_id).sort());
-        const oldJSON = JSON.stringify(stocksData.map(s => s.stock_id).sort());
+        // Only update if data actually changed (compare by stock_id and count)
+        const newStockIds = stocks.map(s => s.stock_id).sort().join(',');
+        const oldStockIds = stocksData.map(s => s.stock_id).sort().join(',');
         
-        if (newJSON !== oldJSON || stocks.length !== stocksData.length) {
+        // Also check if any stock data has actually changed (not just IDs)
+        const newDataHash = JSON.stringify(stocks.map(s => ({ id: s.stock_id, symbol: s.symbol, name: s.name })).sort((a, b) => a.id.localeCompare(b.id)));
+        const oldDataHash = JSON.stringify(stocksData.map(s => ({ id: s.stock_id, symbol: s.symbol, name: s.name })).sort((a, b) => a.id.localeCompare(b.id)));
+        
+        if (newStockIds !== oldStockIds || newDataHash !== oldDataHash) {
             stocksData = stocks;
             renderTable();
         }
@@ -554,6 +603,12 @@ function loadStocksFromFirebase(showLoadingIndicator = true) {
  * Clear all stocks from Firebase
  */
 async function clearAllStocks() {
+    if (!isAuthenticated()) {
+        showAlert('warning', 'Please sign in to clear stocks');
+        showAuthModal('login');
+        return;
+    }
+    
     const $clearBtn = $('#clearAllBtn');
     showButtonLoading($clearBtn, $clearBtn.html());
     
@@ -577,6 +632,11 @@ async function clearAllStocks() {
  * Optimized for faster response with optimistic UI update
  */
 async function addStock() {
+    // Prevent duplicate submissions (double-click protection)
+    if (isSubmitting) {
+        return;
+    }
+    
     if (!isAuthenticated()) {
         showAlert('warning', 'Please sign in to add stocks');
         showAuthModal('login');
@@ -603,11 +663,20 @@ async function addStock() {
         return;
     }
     
-    // Check for duplicates (by slug/symbol)
-    if (stocksData.some(s => s.symbol === symbol && symbol !== 'N/A')) {
+    // Check for duplicate stock BEFORE clearing inputs
+    if (symbol && symbol !== 'N/A' && stocksData.some(s => s.symbol === symbol)) {
         showAlert('warning', 'This stock is already in the analysis');
         return;
     }
+    
+    // Check for duplicate by name as well
+    if (name && name !== 'N/A' && stocksData.some(s => s.name.toLowerCase() === name.toLowerCase())) {
+        showAlert('warning', 'A stock with this name is already in the analysis');
+        return;
+    }
+    
+    // Set submission flag to prevent duplicate submissions
+    isSubmitting = true;
     
     // Show button loading state only (no overlay)
     const originalBtnHtml = addBtn.html();
@@ -667,11 +736,8 @@ async function addStock() {
     stocksData.push(optimisticStock);
     renderTable();
     
-    // Now save to Firebase in background
-    const result = await addStockToFirebase(stockData);
-    
-    // Clear the flag
-    isAddingStock = false;
+    // Now save to Firebase in background - pass the tempStockId to ensure consistency
+    const result = await addStockToFirebase(stockData, tempStockId);
     
     // Restore button state
     addBtn.html(originalBtnHtml);
@@ -683,17 +749,21 @@ async function addStock() {
             : `Stock ${symbol || name} added! Click "Edit" button to enter details.`;
         showAlert('success', message);
         
-        // Update the optimistic stock with real ID from Firebase
-        const stockIndex = stocksData.findIndex(s => s.stock_id === tempStockId);
-        if (stockIndex !== -1 && result.stockId) {
-            stocksData[stockIndex].stock_id = result.stockId;
-        }
+        // No need to update stock ID since we pass the same ID to Firebase
+        // The optimistic stock and Firebase stock now share the same ID
     } else {
         // Remove optimistic stock on failure
         stocksData = stocksData.filter(s => s.stock_id !== tempStockId);
         renderTable();
         showAlert('danger', result.error);
     }
+    
+    // Clear the flag after a short delay to ensure Firebase listener doesn't add duplicate
+    // This delay allows time for the Firebase listener callback to fire and be ignored
+    setTimeout(() => {
+        isAddingStock = false;
+        isSubmitting = false;
+    }, 500);
 }
 
 /**
@@ -701,6 +771,12 @@ async function addStock() {
  * @param {string} stockId - Stock ID to remove
  */
 window.removeStock = async function(stockId) {
+    if (!isAuthenticated()) {
+        showAlert('warning', 'Please sign in to remove stocks');
+        showAuthModal('login');
+        return;
+    }
+    
     const stock = stocksData.find(s => s.stock_id === stockId);
     const symbol = stock ? stock.symbol : stockId;
     
@@ -960,6 +1036,12 @@ function showAlert(type, message) {
  * @param {string} stockId - Stock ID
  */
 window.openManualDataModal = function(symbol, name, stockId) {
+    if (!isAuthenticated()) {
+        showAlert('warning', 'Please sign in to edit stock data');
+        showAuthModal('login');
+        return;
+    }
+    
     $('#modalStockSymbol').val(symbol);
     $('#modalName').val(name);
     $('#modalStockId').val(stockId);
@@ -997,6 +1079,12 @@ window.openManualDataModal = function(symbol, name, stockId) {
  * Submit manual data from modal form
  */
 async function submitManualData() {
+    if (!isAuthenticated()) {
+        showAlert('warning', 'Please sign in to save stock data');
+        showAuthModal('login');
+        return;
+    }
+    
     const symbol = $('#modalStockSymbol').val();
     const name = $('#modalName').val();
     const stockId = $('#modalStockId').val();

@@ -128,23 +128,8 @@
 
     <!-- Main Content -->
     <main class="container-fluid py-4">
-        <!-- Auth Prompt (shown when not logged in) -->
-        <div id="authPrompt" style="display: none;">
-            <div class="text-center py-5">
-                <i class="bi bi-lock" style="font-size: 4rem; color: #6c757d;"></i>
-                <h3 class="mt-3">Authentication Required</h3>
-                <p class="text-muted">Please sign in to access your stock analysis dashboard</p>
-                <button class="btn btn-primary me-2" id="authPromptLoginBtn">
-                    <i class="bi bi-box-arrow-in-right"></i> Sign In
-                </button>
-                <button class="btn btn-outline-primary" id="authPromptSignupBtn">
-                    <i class="bi bi-person-plus"></i> Create Account
-                </button>
-            </div>
-        </div>
-
-        <!-- Analysis Content (shown when logged in) -->
-        <div id="analysisContent" style="display: none;">
+        <!-- Analysis Content (always visible - login prompt on action) -->
+        <div id="analysisContent">
         <div class="header-section">
             <div class="row align-items-center">
                 <div class="col-md-8">
