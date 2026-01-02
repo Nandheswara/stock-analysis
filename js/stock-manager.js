@@ -28,20 +28,43 @@ import {
     changePassword
 } from './firebase-auth-service.js';
 
-// Constants for brokerage and tax calculations (Indian market rates)
+/**
+ * Constants for brokerage and tax calculations
+ * Based on Groww Pricing (https://groww.in/pricing) - Updated January 2026
+ * 
+ * These rates apply to Equity Delivery trading on NSE/BSE
+ */
 const BROKERAGE_RATES = {
-    BUY: 0.0003, // 0.03% or ₹20 per executed order (whichever is lower)
-    SELL: 0.0003, // 0.03% or ₹20 per executed order (whichever is lower)
-    MAX_PER_ORDER: 20
+    PERCENTAGE: 0.001, // 0.1% per executed order
+    MAX_PER_ORDER: 20, // Maximum ₹20 per order
+    MIN_PER_ORDER: 5   // Minimum ₹5 per order (Groww specific)
 };
 
 const TAX_RATES = {
-    STT_BUY: 0.0001, // 0.01% on buy side
-    STT_SELL: 0.00025, // 0.025% on sell side
-    TRANSACTION_CHARGES: 0.0000325, // 0.00325% (NSE charges)
-    GST: 0.18, // 18% GST on brokerage and transaction charges
-    SEBI_CHARGES: 0.0000001, // ₹10 per crore
-    STAMP_DUTY: 0.00015 // 0.015% or ₹1500 per crore on buy side
+    // STT (Securities Transaction Tax) - Equity Delivery
+    STT_BUY: 0.001,  // 0.1% on buy side for delivery
+    STT_SELL: 0.001, // 0.1% on sell side for delivery
+    
+    // Exchange Transaction Charges (NSE)
+    EXCHANGE_TRANSACTION_NSE: 0.0000297, // 0.00297% (NSE)
+    EXCHANGE_TRANSACTION_BSE: 0.0000375, // 0.00375% (BSE) - using NSE as default
+    
+    // SEBI Turnover Charges
+    SEBI_CHARGES: 0.000001, // 0.0001% 
+    
+    // Stamp Duty (only on buy side)
+    STAMP_DUTY_BUY: 0.00015, // 0.015% on buy
+    STAMP_DUTY_SELL: 0,       // 0% on sell
+    
+    // GST (Goods and Services Tax)
+    GST: 0.18, // 18% on brokerage, DP charges, exchange transaction, IPFT, SEBI turnover
+    
+    // Investor Protection Fund Trust (IPFT) charges - NSE only
+    IPFT_CHARGES: 0.000001, // 0.0001%
+    
+    // DP Charges (Depository Participant) - only on sell side
+    DP_CHARGES_DEPOSITORY: 3.5,  // ₹3.5 per sell transaction (male, ₹3.25 for female)
+    DP_CHARGES_BROKER: 16.5      // ₹16.5 per sell transaction (₹0 for < 100 debit value)
 };
 
 // Real-time listener unsubscribe function
@@ -74,47 +97,71 @@ class Stock {
     }
 
     /**
-     * Calculates brokerage charges
+     * Calculates brokerage charges based on Groww pricing
+     * 0.1% per order or ₹20 (whichever is lower), minimum ₹5
+     * @param {number} price - Stock price per share
+     * @param {number} quantity - Number of shares
+     * @returns {number} Brokerage amount
      */
     calculateBrokerage(price, quantity) {
         const turnover = price * quantity;
-        const calculatedBrokerage = turnover * BROKERAGE_RATES.BUY;
-        return Math.min(calculatedBrokerage, BROKERAGE_RATES.MAX_PER_ORDER);
+        const calculatedBrokerage = turnover * BROKERAGE_RATES.PERCENTAGE;
+        // Apply min ₹5 and max ₹20 limits
+        return Math.max(
+            BROKERAGE_RATES.MIN_PER_ORDER,
+            Math.min(calculatedBrokerage, BROKERAGE_RATES.MAX_PER_ORDER)
+        );
     }
 
     /**
-     * Calculates all taxes and charges
+     * Calculates all taxes and statutory charges based on Groww pricing
+     * Includes: STT, Exchange Transaction Charges, SEBI, Stamp Duty, GST, IPFT, DP Charges
+     * @param {number} price - Stock price per share
+     * @param {number} quantity - Number of shares
+     * @param {boolean} isSell - Whether this is a sell transaction
+     * @returns {Object} Object containing all tax components and total
      */
     calculateTaxes(price, quantity, isSell = false) {
         const turnover = price * quantity;
         
-        // STT (Securities Transaction Tax)
+        // STT (Securities Transaction Tax) - 0.1% on both buy and sell for delivery
         const stt = isSell 
             ? turnover * TAX_RATES.STT_SELL 
             : turnover * TAX_RATES.STT_BUY;
         
-        // Transaction charges
-        const transactionCharges = turnover * TAX_RATES.TRANSACTION_CHARGES;
+        // Exchange Transaction Charges (NSE: 0.00297%)
+        const exchangeCharges = turnover * TAX_RATES.EXCHANGE_TRANSACTION_NSE;
         
-        // SEBI charges
+        // SEBI Turnover Charges (0.0001%)
         const sebiCharges = turnover * TAX_RATES.SEBI_CHARGES;
         
-        // Stamp duty (only on buy side)
-        const stampDuty = !isSell ? turnover * TAX_RATES.STAMP_DUTY : 0;
+        // IPFT Charges (Investor Protection Fund Trust) - 0.0001%
+        const ipftCharges = turnover * TAX_RATES.IPFT_CHARGES;
+        
+        // Stamp Duty (0.015% only on buy side)
+        const stampDuty = !isSell ? turnover * TAX_RATES.STAMP_DUTY_BUY : 0;
+        
+        // DP Charges (only on sell side) - ₹20 total (₹16.5 broker + ₹3.5 depository)
+        const dpCharges = isSell 
+            ? TAX_RATES.DP_CHARGES_DEPOSITORY + TAX_RATES.DP_CHARGES_BROKER 
+            : 0;
         
         // Calculate brokerage for GST calculation
         const brokerage = this.calculateBrokerage(price, quantity);
         
-        // GST on brokerage and transaction charges
-        const gst = (brokerage + transactionCharges) * TAX_RATES.GST;
+        // GST (18%) on brokerage, DP charges, exchange transaction, IPFT, SEBI turnover
+        const gstableAmount = brokerage + exchangeCharges + ipftCharges + sebiCharges + dpCharges;
+        const gst = gstableAmount * TAX_RATES.GST;
         
         return {
             stt,
-            transactionCharges,
+            exchangeCharges,
             sebiCharges,
+            ipftCharges,
             stampDuty,
+            dpCharges,
             gst,
-            total: stt + transactionCharges + sebiCharges + stampDuty + gst
+            total: stt + exchangeCharges + sebiCharges + ipftCharges + stampDuty + dpCharges + gst
         };
     }
 
@@ -785,8 +832,6 @@ function loadCachedDataInstantly() {
  * Set up authentication UI handlers
  */
 function setupAuthUI() {
-    let isLoginMode = true;
-
     const loginBtn = document.getElementById('loginBtn');
     const signupBtn = document.getElementById('signupBtn');
     const logoutBtn = document.getElementById('logoutBtn');
@@ -805,18 +850,22 @@ function setupAuthUI() {
         loginBtn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            isLoginMode = true;
-            showAuthModal(true);
+            console.log('Login button clicked');
+            showAuthModal('login');
         });
+    } else {
+        console.warn('Login button not found');
     }
 
     if (signupBtn) {
         signupBtn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            isLoginMode = false;
-            showAuthModal(false);
+            console.log('Signup button clicked');
+            showAuthModal('signup');
         });
+    } else {
+        console.warn('Signup button not found');
     }
 
     if (logoutBtn) {
@@ -855,160 +904,341 @@ function setupAuthUI() {
 }
 
 /**
- * Setup auth modal handlers
- * Note: isLoginMode is stored in the data attribute of the modal
+ * Setup auth modal handlers for Bootstrap modal
  */
 function setupAuthModalHandlers() {
-    const authSubmitBtn = document.getElementById('authSubmitBtn');
-    const authForm = document.getElementById('authForm');
+    // Login form submission
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await handleLogin();
+        });
+    }
+
+    // Signup form submission
+    const signupForm = document.getElementById('signupForm');
+    if (signupForm) {
+        signupForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await handleSignup();
+        });
+    }
+
+    // Form switching
+    const showSignupLink = document.getElementById('showSignupForm');
+    const showLoginLink = document.getElementById('showLoginForm');
+    const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+    const backToLoginBtn = document.getElementById('backToLoginBtn');
+    const sendResetEmailBtn = document.getElementById('sendResetEmailBtn');
+
+    if (showSignupLink) {
+        showSignupLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            toggleAuthForms('signup');
+        });
+    }
+
+    if (showLoginLink) {
+        showLoginLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            toggleAuthForms('login');
+        });
+    }
+
+    if (forgotPasswordLink) {
+        forgotPasswordLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            toggleAuthForms('forgotPassword');
+        });
+    }
+
+    if (backToLoginBtn) {
+        backToLoginBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            toggleAuthForms('login');
+        });
+    }
+
+    if (sendResetEmailBtn) {
+        sendResetEmailBtn.addEventListener('click', async () => {
+            await handlePasswordReset();
+        });
+    }
+
+    // Google authentication
     const googleSignInBtn = document.getElementById('googleSignInBtn');
-    
-    const handleAuthSubmit = async (e) => {
-        if (e) e.preventDefault();
-        
-        const email = document.getElementById('authEmail')?.value;
-        const password = document.getElementById('authPassword')?.value;
-        const errorDiv = document.getElementById('authError');
-        const modal = document.getElementById('authModal');
-        
-        const isLoginMode = modal?.dataset.loginMode === 'true';
+    const googleSignUpBtn = document.getElementById('googleSignUpBtn');
 
-        if (errorDiv) errorDiv.style.display = 'none';
-
-        if (!email || !password) {
-            if (errorDiv) {
-                errorDiv.textContent = 'Please enter both email and password';
-                errorDiv.style.display = 'block';
-            }
-            return;
-        }
-
-        if (authSubmitBtn) {
-            authSubmitBtn.disabled = true;
-            authSubmitBtn.textContent = isLoginMode ? 'Logging in...' : 'Signing up...';
-        }
-
+    const handleGoogleAuth = async (e) => {
+        e.preventDefault();
         try {
-            if (isLoginMode) {
-                await loginUser(email, password);
-                showNotification('Logged in successfully!');
+            const result = await signInWithGoogle();
+            if (result.success) {
+                showNotification('Signed in with Google successfully!');
+                closeAuthModal();
             } else {
-                await signupUser(email, password);
-                showNotification('Account created successfully!');
+                showAuthAlert(result.error || 'Google sign-in failed', 'danger');
             }
-            closeAuthModal();
         } catch (error) {
-            if (errorDiv) {
-                errorDiv.textContent = error.message || 'Authentication failed';
-                errorDiv.style.display = 'block';
-            }
-        } finally {
-            if (authSubmitBtn) {
-                authSubmitBtn.disabled = false;
-                authSubmitBtn.textContent = isLoginMode ? 'Login' : 'Sign Up';
-            }
+            showAuthAlert(error.message || 'Google sign-in failed', 'danger');
         }
     };
 
-    if (authSubmitBtn) {
-        authSubmitBtn.onclick = handleAuthSubmit;
-    }
-    
-    if (authForm) {
-        authForm.onsubmit = handleAuthSubmit;
-    }
-    
     if (googleSignInBtn) {
-        googleSignInBtn.onclick = async (e) => {
-            e.preventDefault();
-            const errorDiv = document.getElementById('authError');
-            const googleSignInText = document.getElementById('googleSignInText');
-            
-            if (errorDiv) errorDiv.style.display = 'none';
-            
-            googleSignInBtn.disabled = true;
-            if (googleSignInText) googleSignInText.textContent = 'Signing in...';
-            
-            try {
-                const result = await signInWithGoogle();
-                
-                if (result.success) {
-                    showNotification('Signed in with Google successfully!');
-                    closeAuthModal();
-                } else {
-                    throw new Error(result.error || 'Google sign-in failed');
-                }
-            } catch (error) {
-                if (errorDiv) {
-                    errorDiv.textContent = error.message || 'Failed to sign in with Google. Please try again.';
-                    errorDiv.style.display = 'block';
-                }
-            } finally {
-                googleSignInBtn.disabled = false;
-                if (googleSignInText) googleSignInText.textContent = 'Continue with Google';
-            }
-        };
+        googleSignInBtn.addEventListener('click', handleGoogleAuth);
+    }
+
+    if (googleSignUpBtn) {
+        googleSignUpBtn.addEventListener('click', handleGoogleAuth);
+    }
+}
+
+/**
+ * Handle login form submission
+ */
+async function handleLogin() {
+    const email = document.getElementById('loginEmail')?.value?.trim();
+    const password = document.getElementById('loginPassword')?.value;
+    const submitBtn = document.querySelector('#loginForm button[type="submit"]');
+
+    if (!email || !password) {
+        showAuthAlert('Please enter email and password', 'danger');
+        return;
+    }
+
+    const originalBtnText = submitBtn?.innerHTML;
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Signing in...';
+    }
+
+    try {
+        await loginUser(email, password);
+        showNotification('Logged in successfully!');
+        closeAuthModal();
+        document.getElementById('loginForm')?.reset();
+    } catch (error) {
+        showAuthAlert(error.message || 'Login failed', 'danger');
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
+        }
+    }
+}
+
+/**
+ * Handle signup form submission
+ */
+async function handleSignup() {
+    const name = document.getElementById('signupName')?.value?.trim();
+    const email = document.getElementById('signupEmail')?.value?.trim();
+    const password = document.getElementById('signupPassword')?.value;
+    const confirmPassword = document.getElementById('signupConfirmPassword')?.value;
+    const submitBtn = document.querySelector('#signupForm button[type="submit"]');
+
+    if (!name || !email || !password || !confirmPassword) {
+        showAuthAlert('Please fill in all fields', 'danger');
+        return;
+    }
+
+    if (password !== confirmPassword) {
+        showAuthAlert('Passwords do not match', 'danger');
+        return;
+    }
+
+    if (password.length < 6) {
+        showAuthAlert('Password must be at least 6 characters', 'danger');
+        return;
+    }
+
+    const originalBtnText = submitBtn?.innerHTML;
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Creating account...';
+    }
+
+    try {
+        await signupUser(email, password, name);
+        showNotification('Account created successfully!');
+        closeAuthModal();
+        document.getElementById('signupForm')?.reset();
+    } catch (error) {
+        showAuthAlert(error.message || 'Signup failed', 'danger');
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
+        }
+    }
+}
+
+/**
+ * Handle password reset
+ */
+async function handlePasswordReset() {
+    const email = document.getElementById('resetEmail')?.value?.trim();
+    const sendBtn = document.getElementById('sendResetEmailBtn');
+
+    if (!email) {
+        showAuthAlert('Please enter your email address', 'danger');
+        return;
+    }
+
+    const originalBtnText = sendBtn?.innerHTML;
+    if (sendBtn) {
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Sending...';
+    }
+
+    try {
+        // Assuming resetPassword function exists in firebase-auth-service
+        const { resetPassword } = await import('./firebase-auth-service.js');
+        const result = await resetPassword(email);
+        if (result.success) {
+            showAuthAlert('Password reset email sent! Check your inbox.', 'success');
+            document.getElementById('resetEmail').value = '';
+            setTimeout(() => {
+                toggleAuthForms('login');
+            }, 2000);
+        } else {
+            showAuthAlert(result.error || 'Failed to send reset email', 'danger');
+        }
+    } catch (error) {
+        showAuthAlert(error.message || 'Failed to send reset email', 'danger');
+    } finally {
+        if (sendBtn) {
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = originalBtnText;
+        }
+    }
+}
+
+/**
+ * Toggle between auth forms
+ * @param {string} formType - 'login', 'signup', or 'forgotPassword'
+ */
+function toggleAuthForms(formType) {
+    const loginForm = document.getElementById('loginForm');
+    const signupForm = document.getElementById('signupForm');
+    const forgotPasswordForm = document.getElementById('forgotPasswordForm');
+    const modalTitle = document.getElementById('authModalTitle');
+
+    // Hide all forms
+    if (loginForm) loginForm.style.display = 'none';
+    if (signupForm) signupForm.style.display = 'none';
+    if (forgotPasswordForm) forgotPasswordForm.style.display = 'none';
+
+    // Show selected form and update title
+    switch (formType) {
+        case 'login':
+            if (loginForm) loginForm.style.display = 'block';
+            if (modalTitle) modalTitle.textContent = 'Sign In';
+            break;
+        case 'signup':
+            if (signupForm) signupForm.style.display = 'block';
+            if (modalTitle) modalTitle.textContent = 'Create Account';
+            break;
+        case 'forgotPassword':
+            if (forgotPasswordForm) forgotPasswordForm.style.display = 'block';
+            if (modalTitle) modalTitle.textContent = 'Reset Password';
+            break;
+    }
+
+    // Clear alerts
+    const alertContainer = document.getElementById('authAlertContainer');
+    if (alertContainer) alertContainer.innerHTML = '';
+}
+
+/**
+ * Show alert in auth modal
+ * @param {string} message - Alert message
+ * @param {string} type - Alert type (success, danger, warning, info)
+ */
+function showAuthAlert(message, type = 'danger') {
+    const alertContainer = document.getElementById('authAlertContainer');
+    if (!alertContainer) return;
+
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.role = 'alert';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+
+    alertContainer.innerHTML = '';
+    alertContainer.appendChild(alertDiv);
+
+    // Auto-dismiss success messages
+    if (type === 'success') {
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 3000);
     }
 }
 
 /**
  * Show auth modal
+ * @param {string|boolean} mode - 'login', 'signup', true (login), or false (signup)
  */
-function showAuthModal(isLogin) {
-    const modal = document.getElementById('authModal');
-    const title = document.getElementById('authModalTitle');
-    const submitBtn = document.getElementById('authSubmitBtn');
-    const switchText = document.getElementById('authSwitchText');
+function showAuthModal(mode) {
+    // Support boolean for backward compatibility
+    let formMode = mode;
+    if (mode === true) formMode = 'login';
+    if (mode === false) formMode = 'signup';
+    
+    toggleAuthForms(formMode);
+    
+    // Clear form inputs
+    const loginEmail = document.getElementById('loginEmail');
+    const loginPassword = document.getElementById('loginPassword');
+    const signupName = document.getElementById('signupName');
+    const signupEmail = document.getElementById('signupEmail');
+    const signupPassword = document.getElementById('signupPassword');
+    const signupConfirmPassword = document.getElementById('signupConfirmPassword');
+    const resetEmail = document.getElementById('resetEmail');
+    const alertContainer = document.getElementById('authAlertContainer');
 
-    if (!modal || !title || !submitBtn || !switchText) {
+    if (loginEmail) loginEmail.value = '';
+    if (loginPassword) loginPassword.value = '';
+    if (signupName) signupName.value = '';
+    if (signupEmail) signupEmail.value = '';
+    if (signupPassword) signupPassword.value = '';
+    if (signupConfirmPassword) signupConfirmPassword.value = '';
+    if (resetEmail) resetEmail.value = '';
+    if (alertContainer) alertContainer.innerHTML = '';
+
+    // Show Bootstrap modal
+    const modalElement = document.getElementById('authModal');
+    if (!modalElement) {
+        console.error('Auth modal element not found');
         return;
     }
 
-    modal.dataset.loginMode = isLogin ? 'true' : 'false';
-
-    title.textContent = isLogin ? 'Login' : 'Sign Up';
-    submitBtn.textContent = isLogin ? 'Login' : 'Sign Up';
-    submitBtn.disabled = false;
-    
-    if (isLogin) {
-        switchText.innerHTML = 'Don\'t have an account? <a href="#" id="authSwitchLink" style="color: #667eea; text-decoration: none;">Sign Up</a>';
-    } else {
-        switchText.innerHTML = 'Already have an account? <a href="#" id="authSwitchLink" style="color: #667eea; text-decoration: none;">Login</a>';
+    try {
+        let modal = bootstrap.Modal.getInstance(modalElement);
+        if (!modal) {
+            modal = new bootstrap.Modal(modalElement);
+        }
+        modal.show();
+    } catch (error) {
+        console.error('Error showing auth modal:', error);
     }
-
-    const switchLink = document.getElementById('authSwitchLink');
-    if (switchLink) {
-        switchLink.onclick = (e) => {
-            e.preventDefault();
-            showAuthModal(!isLogin);
-        };
-    }
-
-    modal.style.display = 'flex';
-    modal.classList.add('active');
-
-    const emailInput = document.getElementById('authEmail');
-    const passwordInput = document.getElementById('authPassword');
-    const errorDiv = document.getElementById('authError');
-    
-    if (emailInput) emailInput.value = '';
-    if (passwordInput) passwordInput.value = '';
-    if (errorDiv) errorDiv.style.display = 'none';
-    
-    setTimeout(() => {
-        if (emailInput) emailInput.focus();
-    }, 100);
 }
 
 /**
  * Close auth modal
  */
 function closeAuthModal() {
-    const modal = document.getElementById('authModal');
-    modal.classList.remove('active');
-    setTimeout(() => {
-        modal.style.display = 'none';
-    }, 300);
+    const modalElement = document.getElementById('authModal');
+    if (!modalElement) return;
+
+    const modal = bootstrap.Modal.getInstance(modalElement);
+    if (modal) {
+        modal.hide();
+    }
 }
 
 /**
@@ -1039,23 +1269,27 @@ function showProfileModal() {
         alertContainer.innerHTML = '';
     }
 
-    const modal = document.getElementById('profileModal');
-    if (modal) {
-        modal.style.display = 'flex';
-        modal.classList.add('active');
+    // Show Bootstrap modal
+    const modalElement = document.getElementById('profileModal');
+    if (!modalElement) return;
+
+    let modal = bootstrap.Modal.getInstance(modalElement);
+    if (!modal) {
+        modal = new bootstrap.Modal(modalElement);
     }
+    modal.show();
 }
 
 /**
  * Close profile modal
  */
 function closeProfileModal() {
-    const modal = document.getElementById('profileModal');
+    const modalElement = document.getElementById('profileModal');
+    if (!modalElement) return;
+
+    const modal = bootstrap.Modal.getInstance(modalElement);
     if (modal) {
-        modal.classList.remove('active');
-        setTimeout(() => {
-            modal.style.display = 'none';
-        }, 300);
+        modal.hide();
     }
 }
 
@@ -1209,20 +1443,13 @@ window.showProfileModal = showProfileModal;
 document.addEventListener('click', (event) => {
     const editModal = document.getElementById('editModal');
     const calcModal = document.getElementById('calculationModal');
-    const authModal = document.getElementById('authModal');
-    const profileModal = document.getElementById('profileModal');
     
+    // Only handle custom modals (not Bootstrap modals)
     if (event.target === editModal) {
         closeEditModal();
     }
     if (event.target === calcModal) {
         closeCalculationModal();
-    }
-    if (event.target === authModal) {
-        closeAuthModal();
-    }
-    if (event.target === profileModal) {
-        closeProfileModal();
     }
 });
 
@@ -1231,20 +1458,13 @@ document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
         const editModal = document.getElementById('editModal');
         const calcModal = document.getElementById('calculationModal');
-        const authModal = document.getElementById('authModal');
-        const profileModal = document.getElementById('profileModal');
         
+        // Only handle custom modals (Bootstrap modals handle Escape key automatically)
         if (editModal && editModal.classList.contains('active')) {
             closeEditModal();
         }
         if (calcModal && calcModal.classList.contains('active')) {
             closeCalculationModal();
-        }
-        if (authModal && authModal.classList.contains('active')) {
-            closeAuthModal();
-        }
-        if (profileModal && profileModal.classList.contains('active')) {
-            closeProfileModal();
         }
     }
 });

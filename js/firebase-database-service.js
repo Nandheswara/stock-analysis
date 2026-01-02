@@ -140,6 +140,17 @@ function getStockRef(stockId) {
 export function listenToStocks(callback) {
     let user = getCurrentUser();
     
+    // Reset cache state when setting up a new listener
+    // This ensures proper behavior when navigating between pages or restoring from bfcache
+    isCacheWarmed = false;
+    localStocksCache = [];
+    
+    // Unsubscribe from any existing listener
+    if (stocksListener) {
+        stocksListener();
+        stocksListener = null;
+    }
+    
     // If user is from cache, we need to wait for Firebase to confirm
     // because Firebase Database requires actual auth token, not just uid
     if (user && user._fromCache) {
@@ -214,24 +225,34 @@ function setupFirebaseListener(user, callback, cacheAlreadyServed = false) {
             stock_id: key
         })) : [];
         
+        // Check if data actually changed from cache BEFORE saving
+        // This prevents unnecessary callback when cache is still valid
+        if (isFirstLoad && cacheAlreadyServed) {
+            isFirstLoad = false;
+            const cachedData = loadFromLocalCache(user.uid);
+            const cacheJSON = JSON.stringify(cachedData || []);
+            const newJSON = JSON.stringify(stocksArray);
+            
+            // Update cache and local storage regardless
+            localStocksCache = stocksArray;
+            saveToLocalCache(user.uid, stocksArray);
+            saveToSessionStorage(stocksArray);
+            
+            if (cacheJSON === newJSON) {
+                return; // Skip callback - data matches cache
+            }
+            // Data changed, continue to callback
+            callback(stocksArray);
+            return;
+        }
+        
+        isFirstLoad = false;
         localStocksCache = stocksArray;
         
         // Save to both localStorage (for instant loading) and sessionStorage (for backup)
         saveToLocalCache(user.uid, stocksArray);
         saveToSessionStorage(stocksArray);
         
-        // Skip first callback if we already served cached data and data hasn't changed
-        if (isFirstLoad && cacheAlreadyServed) {
-            isFirstLoad = false;
-            // Check if data actually changed from cache
-            const cacheJSON = JSON.stringify(loadFromLocalCache(user.uid) || []);
-            const newJSON = JSON.stringify(stocksArray);
-            if (cacheJSON === newJSON) {
-                return; // Skip - data matches cache
-            }
-        }
-        
-        isFirstLoad = false;
         callback(stocksArray);
     }, (error) => {
         console.error('Firebase listener error:', error.message);
@@ -251,9 +272,10 @@ function setupFirebaseListener(user, callback, cacheAlreadyServed = false) {
  * Add a new stock to Firebase
  * Optimized for faster response - uses cached auth when available
  * @param {Object} stockData - Stock data object
+ * @param {string} customStockId - Optional custom stock ID (for optimistic UI updates)
  * @returns {Promise<Object>} Result with success status and stock ID
  */
-export async function addStock(stockData) {
+export async function addStock(stockData, customStockId = null) {
     let user = getCurrentUser();
     
     // If user is from cache, try to proceed with cached uid first
@@ -272,7 +294,8 @@ export async function addStock(stockData) {
         // Use uid directly for faster operation
         const stocksRef = ref(database, `users/${uid}/stocks`);
         
-        const stockId = `stock_${Date.now()}`;
+        // Use custom ID if provided (for optimistic updates), otherwise generate new
+        const stockId = customStockId || `stock_${Date.now()}`;
         const stockRef = child(stocksRef, stockId);
         
         const stockWithMeta = {
@@ -284,10 +307,9 @@ export async function addStock(stockData) {
         
         await set(stockRef, stockWithMeta);
         
-        // Update local cache immediately
-        const newStock = { ...stockWithMeta, stock_id: stockId };
-        localStocksCache.push(newStock);
-        saveToLocalCache(uid, localStocksCache);
+        // Note: We don't update localStocksCache here because the Firebase listener
+        // will automatically fire and update the cache with the new data.
+        // Updating here would cause duplicates.
         
         return { 
             success: true, 
@@ -302,19 +324,20 @@ export async function addStock(stockData) {
         if (error.code === 'PERMISSION_DENIED' && user._fromCache) {
             const confirmedUser = await waitForAuthReady();
             if (confirmedUser) {
-                return addStock(stockData); // Retry with confirmed auth
+                return addStock(stockData, customStockId); // Retry with confirmed auth
             }
         }
         
         if (!isOnline) {
-            const stockId = `stock_${Date.now()}`;
-            const stockWithId = { ...stockData, stock_id: stockId };
+            // Use custom ID if provided, otherwise generate new
+            const offlineStockId = customStockId || `stock_${Date.now()}`;
+            const stockWithId = { ...stockData, stock_id: offlineStockId };
             localStocksCache.push(stockWithId);
             saveToSessionStorage(localStocksCache);
             
             return { 
                 success: true, 
-                stockId: stockId,
+                stockId: offlineStockId,
                 message: 'Stock saved offline - will sync when online',
                 offline: true
             };
