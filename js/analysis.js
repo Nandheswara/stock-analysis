@@ -554,15 +554,25 @@ async function addStock() {
     
     const input = $('#stockSymbol');
     const nameInput = $('#stockName');
-    const symbol = input.val().trim().toUpperCase();
-    const name = nameInput.val().trim();
     const addBtn = $('#addBtn');
     
+    // Get the slug from dropdown (value) and selected option data
+    const slug = input.val() ? input.val().trim() : '';
+    const selectedOption = input.find('option:selected');
+    const displayName = selectedOption.attr('data-display-name') || selectedOption.text() || '';
+    const stockSymbol = selectedOption.attr('data-symbol') || '';
+    const manualName = nameInput.val().trim();
+    
+    // Use slug as symbol (for Groww URL building), display name as name
+    const symbol = slug || manualName.toLowerCase().replace(/\s+/g, '-');
+    const name = manualName || displayName || slug;
+    
     if (!symbol && !name) {
-        showAlert('danger', 'Please enter either stock symbol or company name');
+        showAlert('danger', 'Please select a stock from dropdown or enter company name');
         return;
     }
     
+    // Check for duplicates (by slug/symbol)
     if (stocksData.some(s => s.symbol === symbol && symbol !== 'N/A')) {
         showAlert('warning', 'This stock is already in the analysis');
         return;
@@ -574,12 +584,17 @@ async function addStock() {
     addBtn.prop('disabled', true);
     
     // Clear inputs immediately for better UX
-    input.val('');
+    if (window.jQuery && input.hasClass('select2-hidden-accessible')) {
+        input.val(null).trigger('change'); // Reset Select2
+    } else {
+        input.val('');
+    }
     nameInput.val('');
     
     const stockData = {
-        symbol: symbol || 'N/A',
-        name: name || 'N/A',
+        symbol: symbol, // Store slug for Groww URL
+        name: name,
+        stock_symbol: stockSymbol, // Store NSE/BSE symbol if available
         data_available: true,
         // Initialize all metrics with placeholder
         current_price: 'Enter Data',
@@ -724,10 +739,12 @@ function renderTable() {
         `;
     } else {
         filteredData.forEach((stock, index) => {
+            // Get display symbol - prefer stock_symbol (NSE/BSE) over slug
+            const displaySymbol = stock.stock_symbol || stock.symbol;
             bodyHTML += `
                 <tr>
                     <td class="text-center"><strong>${index + 1}</strong></td>
-                    <td class="text-muted"><strong>${stock.name}</strong><br><small >${stock.symbol}</small></td>
+                    <td class="text-muted"><strong>${stock.name}</strong><br><small class="text-primary">${displaySymbol}</small></td>
                     <td class="text-center">${formatValue('liquidity', stock.liquidity)}</td>
                     <td class="text-center">${formatValue('quick_ratio', stock.quick_ratio)}</td>
                     <td class="text-center">${formatValue('debt_to_equity', stock.debt_to_equity)}</td>
@@ -745,7 +762,7 @@ function renderTable() {
                     <td class="text-center">${formatValue('promoter_holdings', stock.promoter_holdings)}</td>
                     <td class="text-center performance-cell"></td>
                     <td class="text-center">
-                        <button class="btn btn-sm btn-success me-1" onclick="fetchStockData('${stock.symbol}', '${stock.stock_id}')" title="Fetch Data">
+                        <button class="btn btn-sm btn-success me-1" onclick="fetchStockData('${stock.symbol}', '${stock.stock_id}')" title="Fetch Data from Groww">
                             <i class="bi bi-cloud-download"></i> Fetch
                         </button>
                         <button class="btn btn-sm btn-primary me-1" onclick="openManualDataModal('${stock.symbol}', '${escapeSingleQuotes(stock.name)}', '${stock.stock_id}')" title="Edit">
