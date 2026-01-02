@@ -407,8 +407,9 @@ main .btn-danger:hover {
     }
 }
 
-/* Modal Styles */
-.modal-overlay {
+/* Custom Modal Styles (for edit and calculation modals, not Bootstrap modals) */
+#editModal.modal-overlay,
+#calculationModal.modal-overlay {
     display: none;
     position: fixed;
     top: 0;
@@ -421,11 +422,13 @@ main .btn-danger:hover {
     align-items: center;
 }
 
-.modal-overlay.active {
+#editModal.modal-overlay.active,
+#calculationModal.modal-overlay.active {
     display: flex !important;
 }
 
-.modal-content {
+#editModal > .modal-content,
+#calculationModal > .modal-content {
     background: #111218;
     padding: 2rem;
     border-radius: 10px;
@@ -448,19 +451,25 @@ main .btn-danger:hover {
     }
 }
 
-.modal-header {
+#editModal .modal-header,
+#calculationModal .modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1.5rem;
+    background: transparent;
+    border-bottom: none;
+    padding: 0;
 }
 
-.modal-header h3 {
+#editModal .modal-header h3,
+#calculationModal .modal-header h3 {
     margin: 0;
     color: #e9ecef;
 }
 
-.modal-close {
+#editModal .modal-close,
+#calculationModal .modal-close {
     background: none;
     border: none;
     font-size: 1.5rem;
@@ -474,18 +483,24 @@ main .btn-danger:hover {
     justify-content: center;
 }
 
-.modal-close:hover {
+#editModal .modal-close:hover,
+#calculationModal .modal-close:hover {
     color: #e74c3c;
 }
 
-.modal-body {
+#editModal .modal-body,
+#calculationModal .modal-body {
     margin-bottom: 1.5rem;
+    padding: 0;
 }
 
-.modal-footer {
+#editModal .modal-footer,
+#calculationModal .modal-footer {
     display: flex;
     justify-content: flex-end;
     gap: 1rem;
+    padding: 0;
+    border-top: none;
 }
 
 /* Google Sign-In Button Styles */
@@ -654,21 +669,25 @@ body.light-theme .btn-google:active {
     background-color: #e9ecef !important;
 }
 
-body.light-theme .modal-content {
+body.light-theme #editModal > .modal-content,
+body.light-theme #calculationModal > .modal-content {
     background: #ffffff;
     border: 1px solid #dee2e6;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
     color: #212529;
 }
 
-body.light-theme .modal-header h3 {
+body.light-theme #editModal .modal-header h3,
+body.light-theme #calculationModal .modal-header h3 {
     color: #212529;
 }
 
-body.light-theme .modal-close {
+body.light-theme #editModal .modal-close,
+body.light-theme #calculationModal .modal-close {
     color: #6c757d;
 }
 
-body.light-theme .modal-close:hover {
+body.light-theme #editModal .modal-close:hover,
+body.light-theme #calculationModal .modal-close:hover {
     color: #e74c3c;
 }

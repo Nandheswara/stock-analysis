@@ -785,8 +785,6 @@ function loadCachedDataInstantly() {
  * Set up authentication UI handlers
  */
 function setupAuthUI() {
-    let isLoginMode = true;
-
     const loginBtn = document.getElementById('loginBtn');
     const signupBtn = document.getElementById('signupBtn');
     const logoutBtn = document.getElementById('logoutBtn');
@@ -805,18 +803,22 @@ function setupAuthUI() {
         loginBtn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            isLoginMode = true;
-            showAuthModal(true);
+            console.log('Login button clicked');
+            showAuthModal('login');
         });
+    } else {
+        console.warn('Login button not found');
     }
 
     if (signupBtn) {
         signupBtn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            isLoginMode = false;
-            showAuthModal(false);
+            console.log('Signup button clicked');
+            showAuthModal('signup');
         });
+    } else {
+        console.warn('Signup button not found');
     }
 
     if (logoutBtn) {
@@ -855,160 +857,341 @@ function setupAuthUI() {
 }
 
 /**
- * Setup auth modal handlers
- * Note: isLoginMode is stored in the data attribute of the modal
+ * Setup auth modal handlers for Bootstrap modal
  */
 function setupAuthModalHandlers() {
-    const authSubmitBtn = document.getElementById('authSubmitBtn');
-    const authForm = document.getElementById('authForm');
+    // Login form submission
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await handleLogin();
+        });
+    }
+
+    // Signup form submission
+    const signupForm = document.getElementById('signupForm');
+    if (signupForm) {
+        signupForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await handleSignup();
+        });
+    }
+
+    // Form switching
+    const showSignupLink = document.getElementById('showSignupForm');
+    const showLoginLink = document.getElementById('showLoginForm');
+    const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+    const backToLoginBtn = document.getElementById('backToLoginBtn');
+    const sendResetEmailBtn = document.getElementById('sendResetEmailBtn');
+
+    if (showSignupLink) {
+        showSignupLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            toggleAuthForms('signup');
+        });
+    }
+
+    if (showLoginLink) {
+        showLoginLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            toggleAuthForms('login');
+        });
+    }
+
+    if (forgotPasswordLink) {
+        forgotPasswordLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            toggleAuthForms('forgotPassword');
+        });
+    }
+
+    if (backToLoginBtn) {
+        backToLoginBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            toggleAuthForms('login');
+        });
+    }
+
+    if (sendResetEmailBtn) {
+        sendResetEmailBtn.addEventListener('click', async () => {
+            await handlePasswordReset();
+        });
+    }
+
+    // Google authentication
     const googleSignInBtn = document.getElementById('googleSignInBtn');
-    
-    const handleAuthSubmit = async (e) => {
-        if (e) e.preventDefault();
-        
-        const email = document.getElementById('authEmail')?.value;
-        const password = document.getElementById('authPassword')?.value;
-        const errorDiv = document.getElementById('authError');
-        const modal = document.getElementById('authModal');
-        
-        const isLoginMode = modal?.dataset.loginMode === 'true';
+    const googleSignUpBtn = document.getElementById('googleSignUpBtn');
 
-        if (errorDiv) errorDiv.style.display = 'none';
-
-        if (!email || !password) {
-            if (errorDiv) {
-                errorDiv.textContent = 'Please enter both email and password';
-                errorDiv.style.display = 'block';
-            }
-            return;
-        }
-
-        if (authSubmitBtn) {
-            authSubmitBtn.disabled = true;
-            authSubmitBtn.textContent = isLoginMode ? 'Logging in...' : 'Signing up...';
-        }
-
+    const handleGoogleAuth = async (e) => {
+        e.preventDefault();
         try {
-            if (isLoginMode) {
-                await loginUser(email, password);
-                showNotification('Logged in successfully!');
+            const result = await signInWithGoogle();
+            if (result.success) {
+                showNotification('Signed in with Google successfully!');
+                closeAuthModal();
             } else {
-                await signupUser(email, password);
-                showNotification('Account created successfully!');
+                showAuthAlert(result.error || 'Google sign-in failed', 'danger');
             }
-            closeAuthModal();
         } catch (error) {
-            if (errorDiv) {
-                errorDiv.textContent = error.message || 'Authentication failed';
-                errorDiv.style.display = 'block';
-            }
-        } finally {
-            if (authSubmitBtn) {
-                authSubmitBtn.disabled = false;
-                authSubmitBtn.textContent = isLoginMode ? 'Login' : 'Sign Up';
-            }
+            showAuthAlert(error.message || 'Google sign-in failed', 'danger');
         }
     };
 
-    if (authSubmitBtn) {
-        authSubmitBtn.onclick = handleAuthSubmit;
-    }
-    
-    if (authForm) {
-        authForm.onsubmit = handleAuthSubmit;
-    }
-    
     if (googleSignInBtn) {
-        googleSignInBtn.onclick = async (e) => {
-            e.preventDefault();
-            const errorDiv = document.getElementById('authError');
-            const googleSignInText = document.getElementById('googleSignInText');
-            
-            if (errorDiv) errorDiv.style.display = 'none';
-            
-            googleSignInBtn.disabled = true;
-            if (googleSignInText) googleSignInText.textContent = 'Signing in...';
-            
-            try {
-                const result = await signInWithGoogle();
-                
-                if (result.success) {
-                    showNotification('Signed in with Google successfully!');
-                    closeAuthModal();
-                } else {
-                    throw new Error(result.error || 'Google sign-in failed');
-                }
-            } catch (error) {
-                if (errorDiv) {
-                    errorDiv.textContent = error.message || 'Failed to sign in with Google. Please try again.';
-                    errorDiv.style.display = 'block';
-                }
-            } finally {
-                googleSignInBtn.disabled = false;
-                if (googleSignInText) googleSignInText.textContent = 'Continue with Google';
-            }
-        };
+        googleSignInBtn.addEventListener('click', handleGoogleAuth);
+    }
+
+    if (googleSignUpBtn) {
+        googleSignUpBtn.addEventListener('click', handleGoogleAuth);
+    }
+}
+
+/**
+ * Handle login form submission
+ */
+async function handleLogin() {
+    const email = document.getElementById('loginEmail')?.value?.trim();
+    const password = document.getElementById('loginPassword')?.value;
+    const submitBtn = document.querySelector('#loginForm button[type="submit"]');
+
+    if (!email || !password) {
+        showAuthAlert('Please enter email and password', 'danger');
+        return;
+    }
+
+    const originalBtnText = submitBtn?.innerHTML;
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Signing in...';
+    }
+
+    try {
+        await loginUser(email, password);
+        showNotification('Logged in successfully!');
+        closeAuthModal();
+        document.getElementById('loginForm')?.reset();
+    } catch (error) {
+        showAuthAlert(error.message || 'Login failed', 'danger');
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
+        }
+    }
+}
+
+/**
+ * Handle signup form submission
+ */
+async function handleSignup() {
+    const name = document.getElementById('signupName')?.value?.trim();
+    const email = document.getElementById('signupEmail')?.value?.trim();
+    const password = document.getElementById('signupPassword')?.value;
+    const confirmPassword = document.getElementById('signupConfirmPassword')?.value;
+    const submitBtn = document.querySelector('#signupForm button[type="submit"]');
+
+    if (!name || !email || !password || !confirmPassword) {
+        showAuthAlert('Please fill in all fields', 'danger');
+        return;
+    }
+
+    if (password !== confirmPassword) {
+        showAuthAlert('Passwords do not match', 'danger');
+        return;
+    }
+
+    if (password.length < 6) {
+        showAuthAlert('Password must be at least 6 characters', 'danger');
+        return;
+    }
+
+    const originalBtnText = submitBtn?.innerHTML;
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Creating account...';
+    }
+
+    try {
+        await signupUser(email, password, name);
+        showNotification('Account created successfully!');
+        closeAuthModal();
+        document.getElementById('signupForm')?.reset();
+    } catch (error) {
+        showAuthAlert(error.message || 'Signup failed', 'danger');
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
+        }
+    }
+}
+
+/**
+ * Handle password reset
+ */
+async function handlePasswordReset() {
+    const email = document.getElementById('resetEmail')?.value?.trim();
+    const sendBtn = document.getElementById('sendResetEmailBtn');
+
+    if (!email) {
+        showAuthAlert('Please enter your email address', 'danger');
+        return;
+    }
+
+    const originalBtnText = sendBtn?.innerHTML;
+    if (sendBtn) {
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Sending...';
+    }
+
+    try {
+        // Assuming resetPassword function exists in firebase-auth-service
+        const { resetPassword } = await import('./firebase-auth-service.js');
+        const result = await resetPassword(email);
+        if (result.success) {
+            showAuthAlert('Password reset email sent! Check your inbox.', 'success');
+            document.getElementById('resetEmail').value = '';
+            setTimeout(() => {
+                toggleAuthForms('login');
+            }, 2000);
+        } else {
+            showAuthAlert(result.error || 'Failed to send reset email', 'danger');
+        }
+    } catch (error) {
+        showAuthAlert(error.message || 'Failed to send reset email', 'danger');
+    } finally {
+        if (sendBtn) {
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = originalBtnText;
+        }
+    }
+}
+
+/**
+ * Toggle between auth forms
+ * @param {string} formType - 'login', 'signup', or 'forgotPassword'
+ */
+function toggleAuthForms(formType) {
+    const loginForm = document.getElementById('loginForm');
+    const signupForm = document.getElementById('signupForm');
+    const forgotPasswordForm = document.getElementById('forgotPasswordForm');
+    const modalTitle = document.getElementById('authModalTitle');
+
+    // Hide all forms
+    if (loginForm) loginForm.style.display = 'none';
+    if (signupForm) signupForm.style.display = 'none';
+    if (forgotPasswordForm) forgotPasswordForm.style.display = 'none';
+
+    // Show selected form and update title
+    switch (formType) {
+        case 'login':
+            if (loginForm) loginForm.style.display = 'block';
+            if (modalTitle) modalTitle.textContent = 'Sign In';
+            break;
+        case 'signup':
+            if (signupForm) signupForm.style.display = 'block';
+            if (modalTitle) modalTitle.textContent = 'Create Account';
+            break;
+        case 'forgotPassword':
+            if (forgotPasswordForm) forgotPasswordForm.style.display = 'block';
+            if (modalTitle) modalTitle.textContent = 'Reset Password';
+            break;
+    }
+
+    // Clear alerts
+    const alertContainer = document.getElementById('authAlertContainer');
+    if (alertContainer) alertContainer.innerHTML = '';
+}
+
+/**
+ * Show alert in auth modal
+ * @param {string} message - Alert message
+ * @param {string} type - Alert type (success, danger, warning, info)
+ */
+function showAuthAlert(message, type = 'danger') {
+    const alertContainer = document.getElementById('authAlertContainer');
+    if (!alertContainer) return;
+
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.role = 'alert';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+
+    alertContainer.innerHTML = '';
+    alertContainer.appendChild(alertDiv);
+
+    // Auto-dismiss success messages
+    if (type === 'success') {
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 3000);
     }
 }
 
 /**
  * Show auth modal
+ * @param {string|boolean} mode - 'login', 'signup', true (login), or false (signup)
  */
-function showAuthModal(isLogin) {
-    const modal = document.getElementById('authModal');
-    const title = document.getElementById('authModalTitle');
-    const submitBtn = document.getElementById('authSubmitBtn');
-    const switchText = document.getElementById('authSwitchText');
+function showAuthModal(mode) {
+    // Support boolean for backward compatibility
+    let formMode = mode;
+    if (mode === true) formMode = 'login';
+    if (mode === false) formMode = 'signup';
+    
+    toggleAuthForms(formMode);
+    
+    // Clear form inputs
+    const loginEmail = document.getElementById('loginEmail');
+    const loginPassword = document.getElementById('loginPassword');
+    const signupName = document.getElementById('signupName');
+    const signupEmail = document.getElementById('signupEmail');
+    const signupPassword = document.getElementById('signupPassword');
+    const signupConfirmPassword = document.getElementById('signupConfirmPassword');
+    const resetEmail = document.getElementById('resetEmail');
+    const alertContainer = document.getElementById('authAlertContainer');
 
-    if (!modal || !title || !submitBtn || !switchText) {
+    if (loginEmail) loginEmail.value = '';
+    if (loginPassword) loginPassword.value = '';
+    if (signupName) signupName.value = '';
+    if (signupEmail) signupEmail.value = '';
+    if (signupPassword) signupPassword.value = '';
+    if (signupConfirmPassword) signupConfirmPassword.value = '';
+    if (resetEmail) resetEmail.value = '';
+    if (alertContainer) alertContainer.innerHTML = '';
+
+    // Show Bootstrap modal
+    const modalElement = document.getElementById('authModal');
+    if (!modalElement) {
+        console.error('Auth modal element not found');
         return;
     }
 
-    modal.dataset.loginMode = isLogin ? 'true' : 'false';
-
-    title.textContent = isLogin ? 'Login' : 'Sign Up';
-    submitBtn.textContent = isLogin ? 'Login' : 'Sign Up';
-    submitBtn.disabled = false;
-    
-    if (isLogin) {
-        switchText.innerHTML = 'Don\'t have an account? <a href="#" id="authSwitchLink" style="color: #667eea; text-decoration: none;">Sign Up</a>';
-    } else {
-        switchText.innerHTML = 'Already have an account? <a href="#" id="authSwitchLink" style="color: #667eea; text-decoration: none;">Login</a>';
+    try {
+        let modal = bootstrap.Modal.getInstance(modalElement);
+        if (!modal) {
+            modal = new bootstrap.Modal(modalElement);
+        }
+        modal.show();
+    } catch (error) {
+        console.error('Error showing auth modal:', error);
     }
-
-    const switchLink = document.getElementById('authSwitchLink');
-    if (switchLink) {
-        switchLink.onclick = (e) => {
-            e.preventDefault();
-            showAuthModal(!isLogin);
-        };
-    }
-
-    modal.style.display = 'flex';
-    modal.classList.add('active');
-
-    const emailInput = document.getElementById('authEmail');
-    const passwordInput = document.getElementById('authPassword');
-    const errorDiv = document.getElementById('authError');
-    
-    if (emailInput) emailInput.value = '';
-    if (passwordInput) passwordInput.value = '';
-    if (errorDiv) errorDiv.style.display = 'none';
-    
-    setTimeout(() => {
-        if (emailInput) emailInput.focus();
-    }, 100);
 }
 
 /**
  * Close auth modal
  */
 function closeAuthModal() {
-    const modal = document.getElementById('authModal');
-    modal.classList.remove('active');
-    setTimeout(() => {
-        modal.style.display = 'none';
-    }, 300);
+    const modalElement = document.getElementById('authModal');
+    if (!modalElement) return;
+
+    const modal = bootstrap.Modal.getInstance(modalElement);
+    if (modal) {
+        modal.hide();
+    }
 }
 
 /**
@@ -1039,23 +1222,27 @@ function showProfileModal() {
         alertContainer.innerHTML = '';
     }
 
-    const modal = document.getElementById('profileModal');
-    if (modal) {
-        modal.style.display = 'flex';
-        modal.classList.add('active');
+    // Show Bootstrap modal
+    const modalElement = document.getElementById('profileModal');
+    if (!modalElement) return;
+
+    let modal = bootstrap.Modal.getInstance(modalElement);
+    if (!modal) {
+        modal = new bootstrap.Modal(modalElement);
     }
+    modal.show();
 }
 
 /**
  * Close profile modal
  */
 function closeProfileModal() {
-    const modal = document.getElementById('profileModal');
+    const modalElement = document.getElementById('profileModal');
+    if (!modalElement) return;
+
+    const modal = bootstrap.Modal.getInstance(modalElement);
     if (modal) {
-        modal.classList.remove('active');
-        setTimeout(() => {
-            modal.style.display = 'none';
-        }, 300);
+        modal.hide();
     }
 }
 
@@ -1209,20 +1396,13 @@ window.showProfileModal = showProfileModal;
 document.addEventListener('click', (event) => {
     const editModal = document.getElementById('editModal');
     const calcModal = document.getElementById('calculationModal');
-    const authModal = document.getElementById('authModal');
-    const profileModal = document.getElementById('profileModal');
     
+    // Only handle custom modals (not Bootstrap modals)
     if (event.target === editModal) {
         closeEditModal();
     }
     if (event.target === calcModal) {
         closeCalculationModal();
-    }
-    if (event.target === authModal) {
-        closeAuthModal();
-    }
-    if (event.target === profileModal) {
-        closeProfileModal();
     }
 });
 
@@ -1231,20 +1411,13 @@ document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
         const editModal = document.getElementById('editModal');
         const calcModal = document.getElementById('calculationModal');
-        const authModal = document.getElementById('authModal');
-        const profileModal = document.getElementById('profileModal');
         
+        // Only handle custom modals (Bootstrap modals handle Escape key automatically)
         if (editModal && editModal.classList.contains('active')) {
             closeEditModal();
         }
         if (calcModal && calcModal.classList.contains('active')) {
             closeCalculationModal();
-        }
-        if (authModal && authModal.classList.contains('active')) {
-            closeAuthModal();
-        }
-        if (profileModal && profileModal.classList.contains('active')) {
-            closeProfileModal();
         }
     }
 });
