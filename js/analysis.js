@@ -118,6 +118,12 @@ $(document).ready(function() {
     // IMMEDIATELY render cached data if available (before Firebase loads)
     const hadPreloadedData = checkPreloadedCache();
     
+    // If no preloaded data, render empty table immediately for better UX
+    if (!hadPreloadedData) {
+        stocksData = [];
+        renderTable();
+    }
+    
     // Initialize Firebase auth in parallel
     initAuthListener();
     
@@ -517,6 +523,12 @@ function loadStocksFromFirebase(showLoadingIndicator = true) {
  * Clear all stocks from Firebase
  */
 async function clearAllStocks() {
+    if (!isAuthenticated()) {
+        showAlert('warning', 'Please sign in to clear stocks');
+        showAuthModal('login');
+        return;
+    }
+    
     const $clearBtn = $('#clearAllBtn');
     showButtonLoading($clearBtn, $clearBtn.html());
     
@@ -649,6 +661,12 @@ async function addStock() {
  * @param {string} stockId - Stock ID to remove
  */
 window.removeStock = async function(stockId) {
+    if (!isAuthenticated()) {
+        showAlert('warning', 'Please sign in to remove stocks');
+        showAuthModal('login');
+        return;
+    }
+    
     const stock = stocksData.find(s => s.stock_id === stockId);
     const symbol = stock ? stock.symbol : stockId;
     
@@ -817,6 +835,12 @@ function showAlert(type, message) {
  * @param {string} stockId - Stock ID
  */
 window.openManualDataModal = function(symbol, name, stockId) {
+    if (!isAuthenticated()) {
+        showAlert('warning', 'Please sign in to edit stock data');
+        showAuthModal('login');
+        return;
+    }
+    
     $('#modalStockSymbol').val(symbol);
     $('#modalName').val(name);
     $('#modalStockId').val(stockId);
@@ -854,6 +878,12 @@ window.openManualDataModal = function(symbol, name, stockId) {
  * Submit manual data from modal form
  */
 async function submitManualData() {
+    if (!isAuthenticated()) {
+        showAlert('warning', 'Please sign in to save stock data');
+        showAuthModal('login');
+        return;
+    }
+    
     const symbol = $('#modalStockSymbol').val();
     const name = $('#modalName').val();
     const stockId = $('#modalStockId').val();
