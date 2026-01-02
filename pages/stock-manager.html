@@ -375,7 +375,7 @@
             </form>
         </section>
 
-        <section class="stocks-table-section">
+        <section id="stocksTableSection" class="stocks-table-section" style="display: none;">
             <h3>Your Stock Portfolio</h3>
             <div class="table-container">
                 <table id="stocksTable" class="stocks-table">
@@ -397,9 +397,7 @@
                         </tr>
                     </thead>
                     <tbody id="stocksTableBody">
-                        <tr class="no-data">
-                            <td colspan="13">No stocks added yet. Add your first stock transaction above.</td>
-                        </tr>
+                        <!-- Stocks will be dynamically rendered here -->
                     </tbody>
                 </table>
             </div>

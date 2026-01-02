@@ -287,11 +287,10 @@ class PortfolioManager {
             
             unsubscribePortfolio = listenToPortfolio((firebaseStocks) => {
                 if (!isSyncing) {
-                    // Only update if data actually changed
-                    const newIds = firebaseStocks.map(s => s.id).sort().join(',');
-                    const currentIds = this.stocks.map(s => s.id).sort().join(',');
+                    // Check if data actually changed (IDs, count, or content)
+                    const hasDataChanged = this.hasPortfolioDataChanged(firebaseStocks);
                     
-                    if (newIds !== currentIds || firebaseStocks.length !== this.stocks.length) {
+                    if (hasDataChanged) {
                         this.stocks = firebaseStocks.map(stockData => {
                             const stock = new Stock(
                                 stockData.name,
@@ -464,6 +463,46 @@ class PortfolioManager {
     }
 
     /**
+     * Checks if portfolio data has changed compared to incoming Firebase data
+     * Compares IDs, count, and actual content (sellPrice, quantity, etc.)
+     * @param {Array} firebaseStocks - Stocks from Firebase
+     * @returns {boolean} True if data has changed
+     */
+    hasPortfolioDataChanged(firebaseStocks) {
+        // Check if count changed
+        if (firebaseStocks.length !== this.stocks.length) {
+            return true;
+        }
+        
+        // Check if IDs changed
+        const newIds = firebaseStocks.map(s => s.id).sort().join(',');
+        const currentIds = this.stocks.map(s => s.id).sort().join(',');
+        
+        if (newIds !== currentIds) {
+            return true;
+        }
+        
+        // Check if any stock content changed (compare key fields)
+        for (const firebaseStock of firebaseStocks) {
+            const localStock = this.stocks.find(s => s.id === firebaseStock.id);
+            
+            if (!localStock) {
+                return true;
+            }
+            
+            // Compare critical fields that can be updated
+            if (localStock.name !== firebaseStock.name ||
+                localStock.quantity !== firebaseStock.quantity ||
+                localStock.buyPrice !== firebaseStock.buyPrice ||
+                localStock.sellPrice !== firebaseStock.sellPrice) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
      * Gets all stocks
      */
     getAllStocks() {
@@ -513,17 +552,15 @@ function updateSummaryDisplay() {
 
 /**
  * Renders the stocks table
+ * Shows the table section only when stocks are present
  */
 function renderStocksTable() {
     const tbody = document.getElementById('stocksTableBody');
+    const tableSection = document.getElementById('stocksTableSection');
     
     if (!portfolioManager) {
-        if (tbody) {
-            tbody.innerHTML = `
-                <tr class="no-data">
-                    <td colspan="13">Loading...</td>
-                </tr>
-            `;
+        if (tableSection) {
+            tableSection.style.display = 'none';
         }
         return;
     }
@@ -531,12 +568,16 @@ function renderStocksTable() {
     const stocks = portfolioManager.getAllStocks();
 
     if (stocks.length === 0) {
-        tbody.innerHTML = `
-            <tr class="no-data">
-                <td colspan="13">No stocks added yet. Add your first stock transaction above.</td>
-            </tr>
-        `;
+        // Hide the table section when no stocks
+        if (tableSection) {
+            tableSection.style.display = 'none';
+        }
         return;
+    }
+
+    // Show the table section when stocks exist
+    if (tableSection) {
+        tableSection.style.display = 'block';
     }
 
     tbody.innerHTML = stocks.map(stock => `

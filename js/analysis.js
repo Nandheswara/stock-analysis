@@ -583,20 +583,61 @@ function loadStocksFromFirebase(showLoadingIndicator = true) {
             return;
         }
         
-        // Only update if data actually changed (compare by stock_id and count)
-        const newStockIds = stocks.map(s => s.stock_id).sort().join(',');
-        const oldStockIds = stocksData.map(s => s.stock_id).sort().join(',');
+        // Check if data actually changed using comprehensive comparison
+        const hasDataChanged = checkStocksDataChanged(stocks, stocksData);
         
-        // Also check if any stock data has actually changed (not just IDs)
-        const newDataHash = JSON.stringify(stocks.map(s => ({ id: s.stock_id, symbol: s.symbol, name: s.name })).sort((a, b) => a.id.localeCompare(b.id)));
-        const oldDataHash = JSON.stringify(stocksData.map(s => ({ id: s.stock_id, symbol: s.symbol, name: s.name })).sort((a, b) => a.id.localeCompare(b.id)));
-        
-        if (newStockIds !== oldStockIds || newDataHash !== oldDataHash) {
+        if (hasDataChanged) {
             stocksData = stocks;
             renderTable();
         }
         hideLoading();
     });
+}
+
+/**
+ * Check if stocks data has changed (IDs, count, or any field content)
+ * @param {Array} newStocks - New stocks from Firebase
+ * @param {Array} oldStocks - Current stocks in memory
+ * @returns {boolean} True if data has changed
+ */
+function checkStocksDataChanged(newStocks, oldStocks) {
+    // Check count
+    if (newStocks.length !== oldStocks.length) {
+        return true;
+    }
+    
+    // Check if IDs changed
+    const newStockIds = newStocks.map(s => s.stock_id).sort().join(',');
+    const oldStockIds = oldStocks.map(s => s.stock_id).sort().join(',');
+    
+    if (newStockIds !== oldStockIds) {
+        return true;
+    }
+    
+    // Check if any stock content changed (all editable fields)
+    for (const newStock of newStocks) {
+        const oldStock = oldStocks.find(s => s.stock_id === newStock.stock_id);
+        
+        if (!oldStock) {
+            return true;
+        }
+        
+        // Compare all fields that can be updated
+        const fieldsToCompare = [
+            'name', 'symbol', 'liquidity', 'quick_ratio', 'debt_to_equity',
+            'roe', 'investor_growth_ratio', 'roa', 'ebitda_current', 
+            'ebitda_previous', 'dividend_yield', 'pe_ratio', 'industry_pe',
+            'price_to_book', 'price_to_sales', 'beta', 'promoter_holdings'
+        ];
+        
+        for (const field of fieldsToCompare) {
+            if (newStock[field] !== oldStock[field]) {
+                return true;
+            }
+        }
+    }
+    
+    return false;
 }
 
 /**
