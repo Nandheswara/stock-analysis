@@ -691,3 +691,145 @@ body.light-theme #editModal .modal-close:hover,
 body.light-theme #calculationModal .modal-close:hover {
     color: #e74c3c;
 }
+
+/* ========================================
+   Calculation Modal Content Styles (Dark Theme - Default)
+   ======================================== */
+
+#calculationModal .calc-info-subtitle {
+    color: #adb5bd;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+#calculationModal .calc-info-subtitle a {
+    color: #667eea;
+    text-decoration: underline;
+}
+
+#calculationModal .calc-info-subtitle a:hover {
+    color: #764ba2;
+}
+
+#calculationModal .calc-section-title {
+    color: #667eea;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+}
+
+#calculationModal .calc-section-title:first-of-type {
+    margin-top: 0;
+}
+
+#calculationModal .calc-subsection-title {
+    color: #adb5bd;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+}
+
+#calculationModal .calc-list {
+    color: #e9ecef;
+    margin-bottom: 0.5rem;
+    padding-left: 1.5rem;
+}
+
+#calculationModal .calc-list li {
+    margin-bottom: 0.25rem;
+}
+
+#calculationModal .calc-formula-box {
+    background: #1a1b23;
+    padding: 1rem;
+    border-radius: 5px;
+    border-left: 4px solid #667eea;
+    margin: 1rem 0;
+}
+
+#calculationModal .calc-formula-box p {
+    color: #e9ecef;
+    margin: 0;
+}
+
+#calculationModal .calc-code-block {
+    display: block;
+    background: #14151b;
+    padding: 0.5rem;
+    margin: 0.5rem 0;
+    border-radius: 4px;
+    color: #adb5bd;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.9rem;
+}
+
+#calculationModal .calc-example-box {
+    background: #1a2e1a;
+    padding: 1rem;
+    border-radius: 5px;
+    border-left: 4px solid #27ae60;
+    margin: 1rem 0;
+    color: #e9ecef;
+}
+
+#calculationModal .calc-example-box ul {
+    padding-left: 1.5rem;
+    margin: 0.5rem 0;
+}
+
+#calculationModal .calc-example-box li {
+    color: #d4edda;
+}
+
+#calculationModal .profit-highlight {
+    color: #27ae60;
+    font-weight: bold;
+}
+
+/* ========================================
+   Calculation Modal Light Theme Overrides
+   ======================================== */
+
+body.light-theme #calculationModal .calc-info-subtitle {
+    color: #6c757d;
+}
+
+body.light-theme #calculationModal .calc-info-subtitle a {
+    color: #667eea;
+}
+
+body.light-theme #calculationModal .calc-subsection-title {
+    color: #495057;
+}
+
+body.light-theme #calculationModal .calc-list {
+    color: #212529;
+}
+
+body.light-theme #calculationModal .calc-formula-box {
+    background: #f8f9fa;
+    border-left-color: #667eea;
+}
+
+body.light-theme #calculationModal .calc-formula-box p {
+    color: #212529;
+}
+
+body.light-theme #calculationModal .calc-code-block {
+    background: #ffffff;
+    color: #495057;
+    border: 1px solid #dee2e6;
+}
+
+body.light-theme #calculationModal .calc-example-box {
+    background: #d4edda;
+    border-left-color: #27ae60;
+    color: #212529;
+}
+
+body.light-theme #calculationModal .calc-example-box li {
+    color: #155724;
+}
+
+body.light-theme #calculationModal .profit-highlight {
+    color: #155724;
+}

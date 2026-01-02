@@ -28,20 +28,43 @@ import {
     changePassword
 } from './firebase-auth-service.js';
 
-// Constants for brokerage and tax calculations (Indian market rates)
+/**
+ * Constants for brokerage and tax calculations
+ * Based on Groww Pricing (https://groww.in/pricing) - Updated January 2026
+ * 
+ * These rates apply to Equity Delivery trading on NSE/BSE
+ */
 const BROKERAGE_RATES = {
-    BUY: 0.0003, // 0.03% or ₹20 per executed order (whichever is lower)
-    SELL: 0.0003, // 0.03% or ₹20 per executed order (whichever is lower)
-    MAX_PER_ORDER: 20
+    PERCENTAGE: 0.001, // 0.1% per executed order
+    MAX_PER_ORDER: 20, // Maximum ₹20 per order
+    MIN_PER_ORDER: 5   // Minimum ₹5 per order (Groww specific)
 };
 
 const TAX_RATES = {
-    STT_BUY: 0.0001, // 0.01% on buy side
-    STT_SELL: 0.00025, // 0.025% on sell side
-    TRANSACTION_CHARGES: 0.0000325, // 0.00325% (NSE charges)
-    GST: 0.18, // 18% GST on brokerage and transaction charges
-    SEBI_CHARGES: 0.0000001, // ₹10 per crore
-    STAMP_DUTY: 0.00015 // 0.015% or ₹1500 per crore on buy side
+    // STT (Securities Transaction Tax) - Equity Delivery
+    STT_BUY: 0.001,  // 0.1% on buy side for delivery
+    STT_SELL: 0.001, // 0.1% on sell side for delivery
+    
+    // Exchange Transaction Charges (NSE)
+    EXCHANGE_TRANSACTION_NSE: 0.0000297, // 0.00297% (NSE)
+    EXCHANGE_TRANSACTION_BSE: 0.0000375, // 0.00375% (BSE) - using NSE as default
+    
+    // SEBI Turnover Charges
+    SEBI_CHARGES: 0.000001, // 0.0001% 
+    
+    // Stamp Duty (only on buy side)
+    STAMP_DUTY_BUY: 0.00015, // 0.015% on buy
+    STAMP_DUTY_SELL: 0,       // 0% on sell
+    
+    // GST (Goods and Services Tax)
+    GST: 0.18, // 18% on brokerage, DP charges, exchange transaction, IPFT, SEBI turnover
+    
+    // Investor Protection Fund Trust (IPFT) charges - NSE only
+    IPFT_CHARGES: 0.000001, // 0.0001%
+    
+    // DP Charges (Depository Participant) - only on sell side
+    DP_CHARGES_DEPOSITORY: 3.5,  // ₹3.5 per sell transaction (male, ₹3.25 for female)
+    DP_CHARGES_BROKER: 16.5      // ₹16.5 per sell transaction (₹0 for < 100 debit value)
 };
 
 // Real-time listener unsubscribe function
@@ -74,47 +97,71 @@ class Stock {
     }
 
     /**
-     * Calculates brokerage charges
+     * Calculates brokerage charges based on Groww pricing
+     * 0.1% per order or ₹20 (whichever is lower), minimum ₹5
+     * @param {number} price - Stock price per share
+     * @param {number} quantity - Number of shares
+     * @returns {number} Brokerage amount
      */
     calculateBrokerage(price, quantity) {
         const turnover = price * quantity;
-        const calculatedBrokerage = turnover * BROKERAGE_RATES.BUY;
-        return Math.min(calculatedBrokerage, BROKERAGE_RATES.MAX_PER_ORDER);
+        const calculatedBrokerage = turnover * BROKERAGE_RATES.PERCENTAGE;
+        // Apply min ₹5 and max ₹20 limits
+        return Math.max(
+            BROKERAGE_RATES.MIN_PER_ORDER,
+            Math.min(calculatedBrokerage, BROKERAGE_RATES.MAX_PER_ORDER)
+        );
     }
 
     /**
-     * Calculates all taxes and charges
+     * Calculates all taxes and statutory charges based on Groww pricing
+     * Includes: STT, Exchange Transaction Charges, SEBI, Stamp Duty, GST, IPFT, DP Charges
+     * @param {number} price - Stock price per share
+     * @param {number} quantity - Number of shares
+     * @param {boolean} isSell - Whether this is a sell transaction
+     * @returns {Object} Object containing all tax components and total
      */
     calculateTaxes(price, quantity, isSell = false) {
         const turnover = price * quantity;
         
-        // STT (Securities Transaction Tax)
+        // STT (Securities Transaction Tax) - 0.1% on both buy and sell for delivery
         const stt = isSell 
             ? turnover * TAX_RATES.STT_SELL 
             : turnover * TAX_RATES.STT_BUY;
         
-        // Transaction charges
-        const transactionCharges = turnover * TAX_RATES.TRANSACTION_CHARGES;
+        // Exchange Transaction Charges (NSE: 0.00297%)
+        const exchangeCharges = turnover * TAX_RATES.EXCHANGE_TRANSACTION_NSE;
         
-        // SEBI charges
+        // SEBI Turnover Charges (0.0001%)
         const sebiCharges = turnover * TAX_RATES.SEBI_CHARGES;
         
-        // Stamp duty (only on buy side)
-        const stampDuty = !isSell ? turnover * TAX_RATES.STAMP_DUTY : 0;
+        // IPFT Charges (Investor Protection Fund Trust) - 0.0001%
+        const ipftCharges = turnover * TAX_RATES.IPFT_CHARGES;
+        
+        // Stamp Duty (0.015% only on buy side)
+        const stampDuty = !isSell ? turnover * TAX_RATES.STAMP_DUTY_BUY : 0;
+        
+        // DP Charges (only on sell side) - ₹20 total (₹16.5 broker + ₹3.5 depository)
+        const dpCharges = isSell 
+            ? TAX_RATES.DP_CHARGES_DEPOSITORY + TAX_RATES.DP_CHARGES_BROKER 
+            : 0;
         
         // Calculate brokerage for GST calculation
         const brokerage = this.calculateBrokerage(price, quantity);
         
-        // GST on brokerage and transaction charges
-        const gst = (brokerage + transactionCharges) * TAX_RATES.GST;
+        // GST (18%) on brokerage, DP charges, exchange transaction, IPFT, SEBI turnover
+        const gstableAmount = brokerage + exchangeCharges + ipftCharges + sebiCharges + dpCharges;
+        const gst = gstableAmount * TAX_RATES.GST;
         
         return {
             stt,
-            transactionCharges,
+            exchangeCharges,
             sebiCharges,
+            ipftCharges,
             stampDuty,
+            dpCharges,
             gst,
-            total: stt + transactionCharges + sebiCharges + stampDuty + gst
+            total: stt + exchangeCharges + sebiCharges + ipftCharges + stampDuty + dpCharges + gst
         };
     }
 

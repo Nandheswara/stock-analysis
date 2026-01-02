@@ -414,95 +414,117 @@
                 <button class="modal-close" onclick="closeCalculationModal()" aria-label="Close modal">&times;</button>
             </div>
             <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
-                <h4 style="color: #667eea; margin-top: 0;">📊 Brokerage Charges (Buy & Sell)</h4>
-                <ul>
-                    <li><strong>Rate:</strong> 0.03% of transaction value</li>
-                    <li><strong>Maximum:</strong> ₹20 per order (whichever is lower)</li>
-                    <li><strong>Formula:</strong> min(Transaction Value × 0.0003, ₹20)</li>
+                <p class="calc-info-subtitle">
+                    <i class="bi bi-info-circle"></i> Based on <a href="https://groww.in/pricing" target="_blank" rel="noopener noreferrer">Groww Pricing</a> for Equity Delivery trading
+                </p>
+
+                <h4 class="calc-section-title">📊 Brokerage Charges (Buy &amp; Sell)</h4>
+                <ul class="calc-list">
+                    <li><strong>Rate:</strong> 0.1% of transaction value</li>
+                    <li><strong>Maximum:</strong> ₹20 per order</li>
+                    <li><strong>Minimum:</strong> ₹5 per order</li>
+                    <li><strong>Formula:</strong> max(₹5, min(Transaction Value × 0.001, ₹20))</li>
                 </ul>
 
-                <h4 style="color: #667eea;">💰 Tax Breakdown</h4>
+                <h4 class="calc-section-title">💰 Tax &amp; Statutory Charges Breakdown</h4>
                 
-                <h5 style="color: #555;">1. STT (Securities Transaction Tax)</h5>
-                <ul>
-                    <li><strong>Buy Side:</strong> 0.01% on transaction value</li>
-                    <li><strong>Sell Side:</strong> 0.025% on transaction value</li>
+                <h5 class="calc-subsection-title">1. STT (Securities Transaction Tax)</h5>
+                <ul class="calc-list">
+                    <li><strong>Buy Side (Delivery):</strong> 0.1% on transaction value</li>
+                    <li><strong>Sell Side (Delivery):</strong> 0.1% on transaction value</li>
                 </ul>
 
-                <h5 style="color: #555;">2. Transaction Charges</h5>
-                <ul>
-                    <li><strong>NSE Charges:</strong> 0.00325% of transaction value</li>
+                <h5 class="calc-subsection-title">2. Exchange Transaction Charges</h5>
+                <ul class="calc-list">
+                    <li><strong>NSE:</strong> 0.00297% of transaction value</li>
+                    <li><strong>BSE:</strong> 0.00375% of transaction value</li>
                 </ul>
 
-                <h5 style="color: #555;">3. GST (Goods and Services Tax)</h5>
-                <ul>
-                    <li><strong>Rate:</strong> 18% on (Brokerage + Transaction Charges)</li>
+                <h5 class="calc-subsection-title">3. SEBI Turnover Charges</h5>
+                <ul class="calc-list">
+                    <li><strong>Rate:</strong> 0.0001% of transaction value</li>
                 </ul>
 
-                <h5 style="color: #555;">4. SEBI Charges</h5>
-                <ul>
-                    <li><strong>Rate:</strong> ₹10 per crore (0.0000001 of transaction value)</li>
+                <h5 class="calc-subsection-title">4. IPFT (Investor Protection Fund Trust)</h5>
+                <ul class="calc-list">
+                    <li><strong>Rate:</strong> 0.0001% of transaction value (NSE only)</li>
                 </ul>
 
-                <h5 style="color: #555;">5. Stamp Duty (Buy Side Only)</h5>
-                <ul>
+                <h5 class="calc-subsection-title">5. Stamp Duty (Buy Side Only)</h5>
+                <ul class="calc-list">
                     <li><strong>Rate:</strong> 0.015% on buy side transaction</li>
-                    <li><strong>Maximum:</strong> ₹1500 per crore</li>
                 </ul>
 
-                <h4 style="color: #667eea;">🧮 Net Worth Calculation</h4>
-                <div style="background: #f8f9fa; padding: 1rem; border-radius: 5px; border-left: 4px solid #667eea;">
+                <h5 class="calc-subsection-title">6. DP Charges (Sell Side Only)</h5>
+                <ul class="calc-list">
+                    <li><strong>Depository:</strong> ₹3.50 per sell transaction</li>
+                    <li><strong>Broker:</strong> ₹16.50 per sell transaction</li>
+                    <li><strong>Total:</strong> ₹20.00 per sell transaction</li>
+                </ul>
+
+                <h5 class="calc-subsection-title">7. GST (Goods and Services Tax)</h5>
+                <ul class="calc-list">
+                    <li><strong>Rate:</strong> 18% on (Brokerage + Exchange Charges + SEBI + IPFT + DP Charges)</li>
+                </ul>
+
+                <h4 class="calc-section-title">🧮 Net Worth Calculation</h4>
+                <div class="calc-formula-box">
                     <p><strong>Total Cost (Buy Side):</strong></p>
-                    <code style="display: block; background: white; padding: 0.5rem; margin: 0.5rem 0;">
-                        = (Buy Price × Quantity) + Buy Brokerage + Buy Taxes
+                    <code class="calc-code-block">
+                        = (Buy Price × Quantity) + Brokerage + STT + Exchange Charges + SEBI + IPFT + Stamp Duty + GST
                     </code>
 
                     <p style="margin-top: 1rem;"><strong>Total Revenue (Sell Side):</strong></p>
-                    <code style="display: block; background: white; padding: 0.5rem; margin: 0.5rem 0;">
-                        = (Sell Price × Quantity) - Sell Brokerage - Sell Taxes
+                    <code class="calc-code-block">
+                        = (Sell Price × Quantity) - Brokerage - STT - Exchange Charges - SEBI - IPFT - DP Charges - GST
                     </code>
 
                     <p style="margin-top: 1rem;"><strong>Profit/Loss per Stock:</strong></p>
-                    <code style="display: block; background: white; padding: 0.5rem; margin: 0.5rem 0;">
+                    <code class="calc-code-block">
                         = Total Revenue - Total Cost
                     </code>
 
                     <p style="margin-top: 1rem;"><strong>Portfolio Net Worth:</strong></p>
-                    <code style="display: block; background: white; padding: 0.5rem; margin: 0.5rem 0;">
+                    <code class="calc-code-block">
                         = Current Value - Total Investment + Total Profit/Loss
                     </code>
                 </div>
 
-                <h4 style="color: #667eea;">💡 Example Calculation</h4>
-                <div style="background: #e8f5e9; padding: 1rem; border-radius: 5px;">
+                <h4 class="calc-section-title">💡 Example Calculation</h4>
+                <div class="calc-example-box">
                     <p><strong>Stock:</strong> Reliance, Quantity: 10, Buy Price: ₹2,500, Sell Price: ₹2,700</p>
                     
-                    <p style="margin-top: 0.5rem;"><strong>Buy Side:</strong></p>
+                    <p style="margin-top: 0.5rem;"><strong>Buy Side (Transaction Value: ₹25,000):</strong></p>
                     <ul style="margin-left: 1rem;">
-                        <li>Transaction Value: ₹25,000</li>
-                        <li>Brokerage: ₹7.50 (0.03% of ₹25,000)</li>
-                        <li>STT: ₹2.50 (0.01%)</li>
-                        <li>Other Taxes: ~₹5.50</li>
-                        <li><strong>Total Cost: ₹25,015.50</strong></li>
+                        <li>Brokerage: ₹20 (0.1% = ₹25, capped at ₹20)</li>
+                        <li>STT: ₹25.00 (0.1%)</li>
+                        <li>Exchange Charges: ₹0.74 (0.00297%)</li>
+                        <li>SEBI + IPFT: ₹0.05</li>
+                        <li>Stamp Duty: ₹3.75 (0.015%)</li>
+                        <li>GST: ₹3.74 (18% on applicable charges)</li>
+                        <li><strong>Total Cost: ₹25,053.28</strong></li>
                     </ul>
 
-                    <p style="margin-top: 0.5rem;"><strong>Sell Side:</strong></p>
+                    <p style="margin-top: 0.5rem;"><strong>Sell Side (Transaction Value: ₹27,000):</strong></p>
                     <ul style="margin-left: 1rem;">
-                        <li>Transaction Value: ₹27,000</li>
-                        <li>Brokerage: ₹8.10 (0.03% of ₹27,000)</li>
-                        <li>STT: ₹6.75 (0.025%)</li>
-                        <li>Other Taxes: ~₹6.00</li>
-                        <li><strong>Total Revenue: ₹26,979.15</strong></li>
+                        <li>Brokerage: ₹20 (0.1% = ₹27, capped at ₹20)</li>
+                        <li>STT: ₹27.00 (0.1%)</li>
+                        <li>Exchange Charges: ₹0.80 (0.00297%)</li>
+                        <li>SEBI + IPFT: ₹0.05</li>
+                        <li>DP Charges: ₹20.00</li>
+                        <li>GST: ₹7.35 (18% on applicable charges)</li>
+                        <li><strong>Total Revenue: ₹26,924.80</strong></li>
                     </ul>
 
-                    <p style="margin-top: 0.5rem;"><strong>Profit:</strong> ₹26,979.15 - ₹25,015.50 = <span style="color: #27ae60; font-weight: bold;">₹1,963.65</span></p>
+                    <p style="margin-top: 0.5rem;"><strong>Profit:</strong> ₹26,924.80 - ₹25,053.28 = <span class="profit-highlight">₹1,871.52</span></p>
                 </div>
 
-                <h4 style="color: #667eea;">📌 Important Notes</h4>
-                <ul>
+                <h4 class="calc-section-title">📌 Important Notes</h4>
+                <ul class="calc-list">
                     <li>All calculations follow Indian stock market regulations</li>
-                    <li>Rates are based on standard discount broker charges</li>
-                    <li>Actual charges may vary slightly based on your broker</li>
+                    <li>Rates are based on <strong>Groww's pricing</strong> for Equity Delivery</li>
+                    <li>Actual charges may vary slightly based on your broker and exchange</li>
+                    <li>DP Charges are ₹0 for transactions with less than ₹100 debit value</li>
                     <li>For unsold stocks, current value equals buy price × quantity</li>
                 </ul>
             </div>
