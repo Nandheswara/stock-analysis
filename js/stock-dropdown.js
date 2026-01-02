@@ -124,6 +124,13 @@ export function loadStockSymbols() {
             // Clear existing options except the placeholder
             select.innerHTML = '<option value=""></option>';
             
+            // Add Manual Entry option at the top
+            const manualOpt = document.createElement('option');
+            manualOpt.value = '__manual__';
+            manualOpt.textContent = '➕ Add Stock Manually (Not in list)';
+            manualOpt.setAttribute('data-manual', 'true');
+            select.appendChild(manualOpt);
+            
             validStocks.forEach(slug => {
                 const opt = document.createElement('option');
                 opt.value = slug; // Store slug as value for easy URL building
@@ -153,12 +160,23 @@ export function loadStockSymbols() {
             ];
             
             select.innerHTML = '<option value=""></option>';
+            
+            // Add Manual Entry option at the top for fallback too
+            const manualOpt = document.createElement('option');
+            manualOpt.value = '__manual__';
+            manualOpt.textContent = '➕ Add Stock Manually (Not in list)';
+            manualOpt.setAttribute('data-manual', 'true');
+            select.appendChild(manualOpt);
+            
             fallback.forEach(slug => {
                 const opt = document.createElement('option');
                 opt.value = slug;
                 const displayName = slugToDisplayName(slug);
                 const symbol = getStockSymbol(slug);
                 opt.textContent = symbol ? `${displayName} (${symbol})` : displayName;
+                opt.setAttribute('data-slug', slug);
+                opt.setAttribute('data-display-name', displayName);
+                if (symbol) opt.setAttribute('data-symbol', symbol);
                 select.appendChild(opt);
             });
 

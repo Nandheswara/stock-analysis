@@ -43,7 +43,7 @@ import {
     deleteAllStocks,
     migrateSessionStorageToFirebase 
 } from './firebase-database-service.js';
-import { loadStockSymbols } from './stock-dropdown.js';
+import { loadStockSymbols, slugToDisplayName, getStockSymbol } from './stock-dropdown.js';
 import { makeFetchStockData, growwCrawler } from './fetch.js';
 import { 
     debounce, 
@@ -202,6 +202,9 @@ $(document).ready(function() {
     setupAuthHandlers();
     // Load stock symbols for the dropdown (implemented in stock-dropdown.js)
     loadStockSymbols();
+    
+    // Setup auto-fill for company name when stock is selected from dropdown
+    setupStockDropdownHandlers();
     
     // Setup event delegation for table actions (more efficient than individual listeners)
     setupTableEventDelegation();
@@ -686,18 +689,41 @@ async function addStock() {
     
     const input = $('#stockSymbol');
     const nameInput = $('#stockName');
+    const manualSymbolInput = $('#manualStockSymbol');
     const addBtn = $('#addBtn');
     
     // Get the slug from dropdown (value) and selected option data
-    const slug = input.val() ? input.val().trim() : '';
+    const dropdownValue = input.val() ? input.val().trim() : '';
+    const isManualEntry = dropdownValue === '__manual__';
     const selectedOption = input.find('option:selected');
     const displayName = selectedOption.attr('data-display-name') || selectedOption.text() || '';
     const stockSymbol = selectedOption.attr('data-symbol') || '';
     const manualName = nameInput.val().trim();
+    const manualSymbol = manualSymbolInput.length ? manualSymbolInput.val().trim() : '';
     
-    // Use slug as symbol (for Groww URL building), display name as name
-    const symbol = slug || manualName.toLowerCase().replace(/\s+/g, '-');
-    const name = manualName || displayName || slug;
+    // Handle manual entry vs dropdown selection
+    let symbol, name, nseSymbol;
+    
+    if (isManualEntry) {
+        // Manual entry mode
+        if (!manualName) {
+            showAlert('danger', 'Please enter the company name');
+            return;
+        }
+        // For manual entry, generate a slug from company name
+        symbol = manualName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        name = manualName;
+        nseSymbol = manualSymbol.toUpperCase() || '';
+    } else if (dropdownValue) {
+        // Selected from dropdown
+        symbol = dropdownValue;
+        name = manualName || displayName || dropdownValue;
+        nseSymbol = stockSymbol;
+    } else {
+        // Neither manual nor dropdown selection
+        showAlert('danger', 'Please select a stock from dropdown or choose "Add Stock Manually"');
+        return;
+    }
     
     if (!symbol && !name) {
         showAlert('danger', 'Please select a stock from dropdown or enter company name');
@@ -731,11 +757,17 @@ async function addStock() {
         input.val('');
     }
     nameInput.val('');
+    nameInput.prop('readonly', false);
+    if (manualSymbolInput.length) {
+        manualSymbolInput.val('');
+        $('#manualSymbolGroup').addClass('d-none');
+    }
     
     const stockData = {
         symbol: symbol, // Store slug for Groww URL
         name: name,
-        stock_symbol: stockSymbol, // Store NSE/BSE symbol if available
+        stock_symbol: nseSymbol, // Store NSE/BSE symbol if available
+        is_manual_entry: isManualEntry, // Track if this was manually added
         data_available: true,
         // Initialize all metrics with placeholder
         current_price: 'Enter Data',
@@ -973,6 +1005,79 @@ function renderTableInternal() {
     });
     
     perfMonitor.end('renderTable');
+}
+
+/**
+ * Setup event handlers for stock symbol dropdown
+ * Handles auto-fill of company name and manual entry mode
+ */
+function setupStockDropdownHandlers() {
+    const stockSymbolSelect = $('#stockSymbol');
+    const stockNameInput = $('#stockName');
+    const manualSymbolGroup = $('#manualSymbolGroup');
+    const manualSymbolInput = $('#manualStockSymbol');
+    
+    // Handle stock selection change (works with Select2)
+    stockSymbolSelect.on('select2:select change', function(e) {
+        const selectedValue = $(this).val();
+        const selectedOption = $(this).find('option:selected');
+        
+        if (selectedValue === '__manual__') {
+            // Manual entry mode - show manual symbol input, enable name input
+            stockNameInput.prop('readonly', false);
+            stockNameInput.val('');
+            stockNameInput.attr('placeholder', 'Enter company name manually');
+            
+            // Show manual symbol input if it exists
+            if (manualSymbolGroup.length) {
+                manualSymbolGroup.removeClass('d-none');
+                manualSymbolInput.prop('required', true);
+            }
+            
+            // Focus on name input for manual entry
+            stockNameInput.focus();
+        } else if (selectedValue) {
+            // Stock selected from list - auto-fill company name
+            const displayName = selectedOption.attr('data-display-name') || selectedOption.text();
+            const symbol = selectedOption.attr('data-symbol');
+            
+            // Auto-fill company name
+            stockNameInput.val(displayName);
+            stockNameInput.prop('readonly', true);
+            
+            // Hide manual symbol input
+            if (manualSymbolGroup.length) {
+                manualSymbolGroup.addClass('d-none');
+                manualSymbolInput.prop('required', false);
+                manualSymbolInput.val('');
+            }
+        } else {
+            // No selection - reset form
+            stockNameInput.val('');
+            stockNameInput.prop('readonly', false);
+            stockNameInput.attr('placeholder', 'e.g., Tata Consultancy Services');
+            
+            // Hide manual symbol input
+            if (manualSymbolGroup.length) {
+                manualSymbolGroup.addClass('d-none');
+                manualSymbolInput.prop('required', false);
+                manualSymbolInput.val('');
+            }
+        }
+    });
+    
+    // Handle Select2 clear
+    stockSymbolSelect.on('select2:clear', function() {
+        stockNameInput.val('');
+        stockNameInput.prop('readonly', false);
+        stockNameInput.attr('placeholder', 'e.g., Tata Consultancy Services');
+        
+        if (manualSymbolGroup.length) {
+            manualSymbolGroup.addClass('d-none');
+            manualSymbolInput.prop('required', false);
+            manualSymbolInput.val('');
+        }
+    });
 }
 
 /**

@@ -152,19 +152,28 @@
             <div class="card-body">
                 <form id="addStockForm" class="add-stock-form">
                     <div class="row g-3">
-                        <div class="col-md-4">
-                            <label for="stockSymbol" class="form-label">Stock Symbol *</label>
+                        <div class="col-md-3">
+                            <label for="stockSymbol" class="form-label">Select Stock *</label>
                             <select class="form-select" id="stockSymbol" required>
-                                <option value="">Select symbol</option>
+                                <option value="">Search or select a stock...</option>
                             </select>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label for="stockName" class="form-label">Company Name *</label>
                             <input type="text" class="form-control" id="stockName" 
-                                   placeholder="e.g., Tata Consultancy Services" 
+                                   placeholder="Auto-filled or enter manually" 
                                    required>
                         </div>
-                        <div class="col-md-4 d-flex align-items-end">
+                        <!-- Manual Stock Symbol Input (shown only for manual entry) -->
+                        <div class="col-md-3 d-none" id="manualSymbolGroup">
+                            <label for="manualStockSymbol" class="form-label">NSE/BSE Symbol</label>
+                            <input type="text" class="form-control" id="manualStockSymbol" 
+                                   placeholder="e.g., TCS, RELIANCE"
+                                   maxlength="20"
+                                   style="text-transform: uppercase;">
+                            <small class="text-muted">Optional - for reference</small>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
                             <button class="btn btn-primary w-100" type="submit" id="addBtn">
                                 <span class="loading-spinner spinner-border spinner-border-sm me-1"></span>
                                 <i class="bi bi-plus"></i> Add Stock
@@ -172,7 +181,7 @@
                         </div>
                     </div>
                     <small class="text-muted mt-2 d-block">
-                        <i class="bi bi-info-circle"></i> After adding, click "Edit" to enter stock details and prices manually.
+                        <i class="bi bi-info-circle"></i> Select a stock from the list or choose "Add Stock Manually" to enter a stock not in the list. After adding, click "Edit" to enter stock details.
                     </small>
                 </form>
             </div>
