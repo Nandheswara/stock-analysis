@@ -211,25 +211,24 @@
                     <table class="table table-hover table-bordered analysis-table mb-0" id="stocksTable">
                         <thead class="table-dark">
                             <tr>
-                                <th style="width: 60px;">S.No</th>
-                                <th style="min-width: 150px;">Stock Name</th>
-                                <th>Liquidity</th>
-                                <th>Quick Ratio</th>
-                                <th>Debt/Equity</th>
-                                <th>ROE (%)</th>
-                                <th>Investor Growth</th>
-                                <th>ROA (%)</th>
-                                <th>EBITDA Latest</th>
-                                <th>EBITDA Previous</th>
-                                <th>Div Yield (%)</th>
-                                <th>Stock PE</th>
-                                <th>Industry PE</th>
-                                <th>P/B</th>
-                                <th>P/S YoY</th>
-                                <th>BETA</th>
-                                <th>Promoter %</th>
-                                <th>Overall Performance</th>
-                                <th style="width: 150px;">Action</th>
+                                <th scope="col" style="width: 60px;">S.No</th>
+                                <th scope="col" style="min-width: 150px;">Stock Name</th>
+                                <th scope="col">Liquidity</th>
+                                <th scope="col">Quick Ratio</th>
+                                <th scope="col">Leverage Debt/Equity</th>
+                                <th scope="col">ROE (%)</th>
+                                <th scope="col">ROA (%)</th>
+                                <th scope="col">EBITDA Latest</th>
+                                <th scope="col">EBITDA Previous</th>
+                                <th scope="col">Div Yield (%)</th>
+                                <th scope="col">Stock PE</th>
+                                <th scope="col">Industry PE</th>
+                                <th scope="col">P/B</th>
+                                <th scope="col">P/S YoY</th>
+                                <th scope="col">BETA</th>
+                                <th scope="col">Promoter %</th>
+                                <th scope="col">Overall Performance</th>
+                                <th scope="col" style="width: 150px;">Action</th>
                             </tr>
                         </thead>
                         <tbody id="metricsBody">
@@ -338,13 +337,6 @@
                         <div class="col-md-4">
                             <label class="form-label">ROE (%)</label>
                             <select class="form-select form-select-sm filter-select-modal" id="filterROE" data-field="roe">
-                                <option value="">All</option>
-                            </select>
-                        </div>
-                        
-                        <div class="col-md-4">
-                            <label class="form-label">Investor Growth Ratio</label>
-                            <select class="form-select form-select-sm filter-select-modal" id="filterInvestorGrowth" data-field="investor_growth_ratio">
                                 <option value="">All</option>
                             </select>
                         </div>
@@ -475,10 +467,6 @@
                             <div class="col-md-6">
                                 <label for="modalROE" class="form-label">4. ROE (%)</label>
                                 <input type="number" step="0.01" class="form-control" id="modalROE" placeholder="e.g., 15.5">
-                            </div>
-                            <div class="col-md-6">
-                                <label for="modalInvestorGrowth" class="form-label">5. Investor's Money Growth Ratio (%)</label>
-                                <input type="number" step="0.01" class="form-control" id="modalInvestorGrowth" placeholder="e.g., 12.0">
                             </div>
                             <div class="col-md-6">
                                 <label for="modalROA" class="form-label">6. Return on Asset (%)</label>

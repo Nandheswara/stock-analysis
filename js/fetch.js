@@ -259,6 +259,7 @@ function parseGrowwStats(htmlText) {
     bookValue: null,
     debtToEquity: null,
     faceValue: null,
+    promoterHoldings: null,
     // Performance
     currentPrice: null,
     priceChange: null,
@@ -345,6 +346,108 @@ function parseGrowwStats(htmlText) {
     return match ? match[1]?.trim() : null
   }
 
+  function findPercentInNode(node) {
+    if (!node) return null
+    const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT, null, false)
+    let current
+    while (current = walker.nextNode()) {
+      const text = (current.textContent || '').trim()
+      const percentMatch = text.match(/([\d.,]+%)/)
+      if (percentMatch) {
+        return percentMatch[1].trim()
+      }
+    }
+    return null
+  }
+
+  function searchPercentInCandidates(candidates) {
+    for (const candidate of candidates) {
+      if (!candidate) continue
+      const percent = findPercentInNode(candidate)
+      if (percent) return percent
+    }
+    return null
+  }
+
+  function extractPromoterHoldings() {
+    // Method 1: Target the specific Groww Shareholding Pattern structure
+    // Look for div with class 'shp76TextRight' (the percentage display element)
+    const shpElements = Array.from(doc.querySelectorAll('div.shp76TextRight'))
+    for (const el of shpElements) {
+      // Check if parent section contains "Promoter" text
+      const section = el.closest('section')
+      if (section) {
+        const sectionText = section.textContent || ''
+        // Ensure we're in the Promoters section, not other shareholding categories
+        if (/Promoter(?:s)?/i.test(sectionText) && !/(Retail|Foreign|Domestic|Mutual)/i.test(sectionText.substring(0, sectionText.indexOf(el.textContent || '')))) {
+          const percentMatch = el.textContent?.trim().match(/([\d.,]+%)/)
+          if (percentMatch) {
+            console.debug('extractPromoterHoldings: Found via shp76TextRight', percentMatch[1])
+            return percentMatch[1].trim()
+          }
+        }
+      }
+    }
+
+    // Method 2: Look for "Promoters" label (bodyLarge class) and find adjacent percentage
+    const bodyLargeElements = Array.from(doc.querySelectorAll('div.bodyLarge'))
+    for (const el of bodyLargeElements) {
+      if (/^Promoter(?:s)?$/i.test(el.textContent?.trim() || '')) {
+        // Look for shp76TextRight in the same section
+        const section = el.closest('section')
+        if (section) {
+          const percentEl = section.querySelector('div.shp76TextRight')
+          if (percentEl) {
+            const percentMatch = percentEl.textContent?.trim().match(/([\d.,]+%)/)
+            if (percentMatch) {
+              console.debug('extractPromoterHoldings: Found via bodyLarge label', percentMatch[1])
+              return percentMatch[1].trim()
+            }
+          }
+        }
+      }
+    }
+
+    // Method 3: Generic label search
+    const labelRegex = /Promoter(?:s| Holdings?)?/i
+    const labelNodes = Array.from(doc.querySelectorAll('div, span, td, th, p'))
+      .filter(node => labelRegex.test(node.textContent || ''))
+
+    for (const label of labelNodes) {
+      const percent = searchPercentInCandidates([
+        label,
+        label.nextElementSibling,
+        label.parentElement,
+        label.parentElement?.nextElementSibling
+      ])
+      if (percent) {
+        return percent
+      }
+    }
+
+    const heading = Array.from(doc.querySelectorAll('h1, h2, h3, h4, h5, h6'))
+      .find(el => /Shareholding Pattern/i.test(el.textContent || ''))
+
+    if (heading) {
+      const percent = searchPercentInCandidates([
+        heading.nextElementSibling,
+        heading.parentElement,
+        heading.parentElement?.nextElementSibling
+      ])
+      if (percent) {
+        return percent
+      }
+    }
+
+    const fallbackText = doc.body?.textContent || ''
+    const fallbackMatch = fallbackText.match(/Promoter(?:s| Holdings?)?[^%]{0,60}([\d.,]+%)/i)
+    if (fallbackMatch) {
+      return fallbackMatch[1].trim()
+    }
+
+    return null
+  }
+
   // Extract fundamentals
   result.marketCap = findValueByLabel(/^Market Cap/i) || findFromFullText(/Market Cap[₹\s]*([\d,\.]+\s*Cr)/i)
   result.roe = findValueByLabel(/^ROE/i) || findFromFullText(/ROE\s*([\d\.]+%?)/i)
@@ -368,6 +471,7 @@ function parseGrowwStats(htmlText) {
   result.totalTradedValue = findValueByLabel(/Total traded value/i) || findFromFullText(/Total traded value\s*([\d,\.]+\s*Cr)/i)
   result.upperCircuit = findValueByLabel(/Upper Circuit/i) || findFromFullText(/Upper Circuit\s*([\d,\.]+)/i)
   result.lowerCircuit = findValueByLabel(/Lower Circuit/i) || findFromFullText(/Lower Circuit\s*([\d,\.]+)/i)
+  result.promoterHoldings = extractPromoterHoldings()
 
   // Try to extract current price from h1 or price display elements
   const priceMatch = doc.body?.textContent.match(/₹\s*([\d,\.]+)\s*([+\-][\d\.]+)\s*\(([\d\.]+%?)\)/i)
@@ -442,6 +546,251 @@ async function fetchMarketCap(url) {
 // Expose a lightweight crawler object for compatibility
 export const growwCrawler = { fetchMarketCap, fetchGrowwStats, buildGrowwUrl, symbolToGrowwSlug }
 
+// ============================================================================
+// Yahoo Finance Integration
+// ============================================================================
+
+const YAHOO_BASE_URL = 'https://finance.yahoo.com/quote/'
+
+/**
+ * Yahoo symbol mapping cache (loaded once from resource/yahoo-symbols.json)
+ */
+let yahooSymbolsCache = null
+
+/**
+ * Load Yahoo symbols mapping from JSON file
+ * @returns {Promise<Object>} Symbol mapping object
+ */
+async function loadYahooSymbols() {
+  if (yahooSymbolsCache) {
+    return yahooSymbolsCache
+  }
+  
+  try {
+    const response = await fetch('/resource/yahoo-symbols.json')
+    if (!response.ok) {
+      throw new Error(`Failed to load Yahoo symbols: ${response.status}`)
+    }
+    yahooSymbolsCache = await response.json()
+    console.debug('fetch.js: Loaded Yahoo symbols mapping', yahooSymbolsCache)
+    return yahooSymbolsCache
+  } catch (err) {
+    console.error('fetch.js: Failed to load Yahoo symbols mapping', err)
+    // Return basic fallback mapping
+    yahooSymbolsCache = { 'ITC': 'ITC.NS' }
+    return yahooSymbolsCache
+  }
+}
+
+/**
+ * Convert stock symbol to Yahoo Finance symbol format
+ * @param {string} symbol - Stock symbol (e.g., "ITC", "TCS")
+ * @returns {Promise<string|null>} Yahoo symbol (e.g., "ITC.NS") or null if not found
+ */
+async function symbolToYahooSymbol(symbol) {
+  if (!symbol) return null
+  
+  const mapping = await loadYahooSymbols()
+  const upperSymbol = symbol.toUpperCase().trim()
+  
+  // Try exact match first
+  if (mapping[upperSymbol]) {
+    return mapping[upperSymbol]
+  }
+  
+  // Try to extract symbol from common formats
+  // e.g., "ITC Ltd" -> "ITC", "Reliance Industries" -> "RELIANCE"
+  const parts = upperSymbol.split(/\s+/)
+  if (parts.length > 0 && mapping[parts[0]]) {
+    return mapping[parts[0]]
+  }
+  
+  // If not found, try appending .NS as default for NSE stocks
+  console.warn('fetch.js: Yahoo symbol not found in mapping, using default .NS format:', upperSymbol)
+  return `${upperSymbol}.NS`
+}
+
+/**
+ * Build Yahoo Finance key statistics URL
+ * @param {string} symbol - Stock symbol
+ * @returns {Promise<string>} Full Yahoo Finance URL
+ */
+async function buildYahooUrl(symbol) {
+  const yahooSymbol = await symbolToYahooSymbol(symbol)
+  if (!yahooSymbol) {
+    throw new Error(`Cannot build Yahoo URL: invalid symbol ${symbol}`)
+  }
+  return `${YAHOO_BASE_URL}${encodeURIComponent(yahooSymbol)}/key-statistics`
+}
+
+/**
+ * Parse Yahoo Finance key-statistics page to extract metrics
+ * Extracts: ROA (%), EBITDA Latest, EBITDA Previous, P/S YoY, BETA
+ * @param {string} htmlText - Raw HTML from Yahoo Finance page
+ * @returns {object} - Object containing extracted Yahoo metrics
+ */
+function parseYahooStats(htmlText) {
+  const parser = new DOMParser()
+  const doc = parser.parseFromString(htmlText, 'text/html')
+
+  const result = {
+    roa: null,           // ROA (%) - Return on Assets
+    ebitdaLatest: null,  // EBITDA Latest
+    ebitdaPrevious: null,// EBITDA Previous
+    psYoY: null,         // P/S YoY - Price/Sales Year over Year
+    beta: null           // Beta (volatility measure)
+  }
+
+  // Helper to clean numeric values
+  function cleanNumber(str) {
+    if (!str) return null
+    // Remove commas, percentage signs, currency symbols
+    const cleaned = str.replace(/[$,₹%]/g, '').trim()
+    
+    // Handle 'N/A', '-', or empty strings
+    if (cleaned === 'N/A' || cleaned === '-' || cleaned === '') return null
+    
+    // Handle values with B (Billion), M (Million), K (Thousand)
+    const multiplierMatch = cleaned.match(/([\d.]+)([BMK])/i)
+    if (multiplierMatch) {
+      const num = parseFloat(multiplierMatch[1])
+      const multiplier = multiplierMatch[2].toUpperCase()
+      const multipliers = { 'B': 1e9, 'M': 1e6, 'K': 1e3 }
+      return num * (multipliers[multiplier] || 1)
+    }
+    
+    const num = parseFloat(cleaned)
+    return isNaN(num) ? null : num
+  }
+
+  // Helper to find value by label in table rows
+  function findValueByLabel(labelPattern) {
+    const allRows = Array.from(doc.querySelectorAll('tr'))
+    
+    for (const row of allRows) {
+      const cells = row.querySelectorAll('td, th')
+      if (cells.length < 2) continue
+      
+      // Check if first cell contains the label
+      const labelText = cells[0].textContent?.trim() || ''
+      if (labelPattern.test(labelText)) {
+        // Return the value from the second cell
+        const valueText = cells[1].textContent?.trim()
+        console.debug(`parseYahooStats: Found ${labelPattern} -> ${valueText}`)
+        return valueText
+      }
+    }
+    return null
+  }
+
+  // Helper to find value by label in spans/divs (alternate structure)
+  function findValueInSpans(labelPattern) {
+    const allSpans = Array.from(doc.querySelectorAll('span, div, p'))
+    
+    for (let i = 0; i < allSpans.length - 1; i++) {
+      const span = allSpans[i]
+      const text = span.textContent?.trim() || ''
+      
+      if (labelPattern.test(text)) {
+        // Check next sibling or parent's next sibling for value
+        const candidates = [
+          span.nextElementSibling,
+          span.parentElement?.nextElementSibling,
+          allSpans[i + 1]
+        ]
+        
+        for (const candidate of candidates) {
+          if (candidate) {
+            const valueText = candidate.textContent?.trim()
+            if (valueText && valueText !== text) {
+              console.debug(`parseYahooStats: Found in spans ${labelPattern} -> ${valueText}`)
+              return valueText
+            }
+          }
+        }
+      }
+    }
+    return null
+  }
+
+  // Extract ROA (Return on Assets)
+  const roaValue = findValueByLabel(/Return on Assets|ROA/i) || findValueInSpans(/Return on Assets|ROA/i)
+  result.roa = cleanNumber(roaValue)
+
+  // Extract EBITDA (look for latest and previous quarters/years)
+  const ebitdaValue = findValueByLabel(/^EBITDA$/i) || findValueInSpans(/^EBITDA$/i)
+  if (ebitdaValue) {
+    // If we find EBITDA, it's typically the latest value
+    result.ebitdaLatest = cleanNumber(ebitdaValue)
+    
+    // Try to find previous EBITDA (may be in adjacent cells or rows)
+    // This is tricky - Yahoo may show quarterly EBITDA in a table
+    // For now, set previous to null - will need page inspection to refine
+    result.ebitdaPrevious = null
+  }
+
+  // Extract Price/Sales (P/S) - Yahoo may show "Price/Sales" with TTM or YoY info
+  const psValue = findValueByLabel(/Price\/Sales|P\/S/i) || findValueInSpans(/Price\/Sales|P\/S/i)
+  result.psYoY = cleanNumber(psValue)
+
+  // Extract Beta (usually labeled as "Beta (5Y Monthly)" or just "Beta")
+  const betaValue = findValueByLabel(/Beta/i) || findValueInSpans(/Beta/i)
+  result.beta = cleanNumber(betaValue)
+
+  console.debug('parseYahooStats result:', result)
+  return result
+}
+
+/**
+ * Fetch Yahoo Finance stats with error handling
+ * @param {string} url - Yahoo Finance URL
+ * @returns {Promise<Object>} Parsed Yahoo stats
+ */
+async function fetchYahooStats(url) {
+  console.debug('fetch.js: fetchYahooStats', url)
+  
+  // Check cache first
+  const cached = getCachedData(url)
+  if (cached) {
+    return cached
+  }
+  
+  try {
+    const html = await fetchWithCorsFallback(url)
+    const stats = parseYahooStats(html)
+    
+    // Cache the result
+    setCachedData(url, stats)
+    
+    return stats
+  } catch (err) {
+    console.error('fetch.js: fetchYahooStats failed', err)
+    // Return null object on failure (non-blocking)
+    return {
+      roa: null,
+      ebitdaLatest: null,
+      ebitdaPrevious: null,
+      psYoY: null,
+      beta: null
+    }
+  }
+}
+
+/**
+ * Map Yahoo metrics to analysis table fields
+ * @param {object} yahooData - Data from parseYahooStats
+ * @returns {object} - Mapped data for the analysis table
+ */
+function mapYahooToTableFields(yahooData) {
+  return {
+    roa: yahooData.roa,
+    ebitda_latest: yahooData.ebitdaLatest,
+    ebitda_previous: yahooData.ebitdaPrevious,
+    ps_yoy: yahooData.psYoY,
+    beta: yahooData.beta
+  }
+}
+
 /**
  * Map Groww metrics to analysis table fields
  * @param {object} growwData - Data from parseGrowwStats
@@ -465,6 +814,7 @@ function mapGrowwToTableFields(growwData) {
     price_to_book: growwData.pbRatio ? parseNum(growwData.pbRatio) : null,
     dividend_yield: growwData.dividendYield ? parseNum(growwData.dividendYield) : null,
     debt_to_equity: growwData.debtToEquity ? parseNum(growwData.debtToEquity) : null,
+    promoter_holdings: growwData.promoterHoldings ? parseNum(growwData.promoterHoldings) : null,
     // Additional fields that could be added
     market_cap: growwData.marketCap || null,
     eps: growwData.eps ? parseNum(growwData.eps) : null,
@@ -482,68 +832,107 @@ function mapGrowwToTableFields(growwData) {
 /**
  * Factory: create a fetchStockData function bound to UI callbacks.
  * Callers should provide: getStocksData(), renderTable(), showAlert(type,msg), updateStockInFirebase(optional)
+ * 
+ * Now fetches data from BOTH Groww and Yahoo Finance in parallel for comprehensive metrics
  */
 export function makeFetchStockData({ getStocksData, renderTable, showAlert, updateStockInFirebase }) {
   return async function fetchStockData(symbol, stockId) {
     console.debug('fetchStockData called', { symbol, stockId })
     try {
-      if (showAlert) showAlert('info', `Fetching data for ${symbol}...`)
+      if (showAlert) showAlert('info', `Fetching data for ${symbol} from Groww and Yahoo Finance...`)
 
-      // Build the Groww URL from symbol
-      const url = buildGrowwUrl(symbol)
-      console.debug('fetchStockData: Groww URL', url)
-
-      // Fetch all available stats
-      const growwData = await fetchGrowwStats(url)
+      // Build URLs for both Groww and Yahoo Finance
+      const growwUrl = buildGrowwUrl(symbol)
+      const yahooUrl = await buildYahooUrl(symbol)
       
-      if (!growwData || Object.values(growwData).every(v => v === null)) {
-        if (showAlert) showAlert('warning', `No data found for ${symbol}. The stock URL might be incorrect.`)
+      console.debug('fetchStockData: Groww URL', growwUrl)
+      console.debug('fetchStockData: Yahoo URL', yahooUrl)
+
+      // Fetch from BOTH sources in parallel using Promise.all
+      const [growwData, yahooData] = await Promise.all([
+        fetchGrowwStats(growwUrl).catch(err => {
+          console.error('Groww fetch failed:', err)
+          return null // Non-blocking: continue even if Groww fails
+        }),
+        fetchYahooStats(yahooUrl).catch(err => {
+          console.error('Yahoo fetch failed:', err)
+          return null // Non-blocking: continue even if Yahoo fails
+        })
+      ])
+      
+      // Check if we got any data from either source
+      const hasGrowwData = growwData && !Object.values(growwData).every(v => v === null)
+      const hasYahooData = yahooData && !Object.values(yahooData).every(v => v === null)
+      
+      if (!hasGrowwData && !hasYahooData) {
+        if (showAlert) showAlert('warning', `No data found for ${symbol} from either source.`)
         return
       }
 
-      // Map Groww data to table fields
-      const mappedData = mapGrowwToTableFields(growwData)
+      // Map data from both sources
+      const mappedGrowwData = hasGrowwData ? mapGrowwToTableFields(growwData) : {}
+      const mappedYahooData = hasYahooData ? mapYahooToTableFields(yahooData) : {}
       
-      // Count how many fields were fetched
+      // Combine data from both sources
+      const mappedData = { ...mappedGrowwData, ...mappedYahooData }
+      
+      const promoterFetched = Boolean(growwData?.promoterHoldings)
+      
+      // Count how many fields were fetched from both sources
       const fetchedFields = Object.entries(mappedData).filter(([k, v]) => v !== null)
-      const fieldsSummary = fetchedFields.map(([k, v]) => `${k}: ${v}`).join(', ')
       
-      console.debug('fetchStockData: mapped data', mappedData)
+      console.debug('fetchStockData: combined mapped data', mappedData)
 
-      if (fetchedFields.length > 0) {
-        if (showAlert) showAlert('success', `Fetched ${fetchedFields.length} metrics for ${symbol}`)
-
-        // Update in-memory data
-        try {
-          const stocks = getStocksData ? getStocksData() : null
-          if (stocks && Array.isArray(stocks)) {
-            const stock = stocks.find(s => s.stock_id === stockId)
-            if (stock) {
-              // Update only fields that have values
-              for (const [key, value] of Object.entries(mappedData)) {
-                if (value !== null) {
-                  stock[key] = value
-                }
-              }
-              
-              // If Firebase update function is available, persist to Firebase
-              if (updateStockInFirebase && typeof updateStockInFirebase === 'function') {
-                try {
-                  await updateStockInFirebase(stockId, mappedData)
-                  console.debug('fetchStockData: saved to Firebase', stockId)
-                } catch (fbErr) {
-                  console.warn('fetchStockData: Firebase save failed', fbErr)
-                }
-              }
-              
-              if (renderTable) renderTable()
-            }
-          }
-        } catch (err) {
-          console.warn('Could not update stock data', err)
-        }
-      } else {
+      const shouldUpdate = fetchedFields.length > 0 || !promoterFetched
+      if (!shouldUpdate) {
         if (showAlert) showAlert('warning', `Could not extract any metrics for ${symbol}`)
+        return
+      }
+
+      // Build success message showing data from both sources
+      let successMsg = `Fetched ${fetchedFields.length} metrics for ${symbol}`
+      if (hasGrowwData && hasYahooData) {
+        successMsg += ' (Groww + Yahoo Finance)'
+      } else if (hasGrowwData) {
+        successMsg += ' (Groww only)'
+      } else if (hasYahooData) {
+        successMsg += ' (Yahoo Finance only)'
+      }
+      
+      if (showAlert) showAlert('success', successMsg)
+
+      // Update in-memory data
+      try {
+        const stocks = getStocksData ? getStocksData() : null
+        if (stocks && Array.isArray(stocks)) {
+          const stock = stocks.find(s => s.stock_id === stockId)
+          if (stock) {
+            if (!promoterFetched) {
+              mappedData.promoter_holdings = 0
+            }
+            
+            // Update only fields that have values
+            for (const [key, value] of Object.entries(mappedData)) {
+              if (value !== null) {
+                stock[key] = value
+              }
+            }
+            
+            // If Firebase update function is available, persist to Firebase
+            if (updateStockInFirebase && typeof updateStockInFirebase === 'function') {
+              try {
+                await updateStockInFirebase(stockId, mappedData)
+                console.debug('fetchStockData: saved to Firebase', stockId)
+              } catch (fbErr) {
+                console.warn('fetchStockData: Firebase save failed', fbErr)
+              }
+            }
+            
+            if (renderTable) renderTable()
+          }
+        }
+      } catch (err) {
+        console.warn('Could not update stock data', err)
       }
     } catch (err) {
       console.error('fetchStockData error', err)

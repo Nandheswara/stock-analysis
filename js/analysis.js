@@ -628,7 +628,7 @@ function checkStocksDataChanged(newStocks, oldStocks) {
         // Compare all fields that can be updated
         const fieldsToCompare = [
             'name', 'symbol', 'liquidity', 'quick_ratio', 'debt_to_equity',
-            'roe', 'investor_growth_ratio', 'roa', 'ebitda_current', 
+            'roe', 'roa', 'ebitda_current', 
             'ebitda_previous', 'dividend_yield', 'pe_ratio', 'industry_pe',
             'price_to_book', 'price_to_sales', 'beta', 'promoter_holdings'
         ];
@@ -711,7 +711,7 @@ async function addStock() {
             return;
         }
         // For manual entry, generate a slug from company name
-        symbol = manualName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        symbol = manualName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '').replace(/^-+/, '');
         name = manualName;
         nseSymbol = manualSymbol.toUpperCase() || '';
     } else if (dropdownValue) {
@@ -778,7 +778,6 @@ async function addStock() {
         quick_ratio: 'Enter Data',
         debt_to_equity: 'Enter Data',
         roe: 'Enter Data',
-        investor_growth_ratio: 'Enter Data',
         roa: 'Enter Data',
         ebitda_current: 'Enter Data',
         ebitda_previous: 'Enter Data',
@@ -948,10 +947,10 @@ function renderTableInternal() {
     if (filteredData.length === 0) {
         const emptyRow = document.createElement('tr');
         emptyRow.innerHTML = `
-            <td colspan="19" class="text-center py-4">
+            <td colspan="18" class="text-center py-4">
                 <i class="bi bi-funnel text-muted" style="font-size: 2rem;"></i>
                 <p class="text-muted mt-2 mb-0">No stocks match your filter criteria</p>
-                <button class="btn btn-sm btn-outline-primary mt-2" onclick="clearAllFilters()">Clear Filters</button>
+                <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="clearAllFilters()">Clear Filters</button>
             </td>
         `;
         fragment.appendChild(emptyRow);
@@ -970,7 +969,6 @@ function renderTableInternal() {
                 <td class="text-center">${formatValue('quick_ratio', stock.quick_ratio)}</td>
                 <td class="text-center">${formatValue('debt_to_equity', stock.debt_to_equity)}</td>
                 <td class="text-center">${formatValue('roe', stock.roe)}</td>
-                <td class="text-center">${formatValue('investor_growth_ratio', stock.investor_growth_ratio)}</td>
                 <td class="text-center">${formatValue('roa', stock.roa)}</td>
                 <td class="text-center">${formatValue('ebitda_current', stock.ebitda_current)}</td>
                 <td class="text-center">${formatValue('ebitda_previous', stock.ebitda_previous)}</td>
@@ -983,13 +981,13 @@ function renderTableInternal() {
                 <td class="text-center">${formatValue('promoter_holdings', stock.promoter_holdings)}</td>
                 <td class="text-center performance-cell"></td>
                 <td class="text-center">
-                    <button class="btn btn-sm btn-success me-1" data-action="fetch" data-symbol="${escapedSymbol}" data-id="${stock.stock_id}" title="Fetch Data from Groww">
+                    <button type="button" class="btn btn-sm btn-success me-1" data-action="fetch" data-symbol="${escapedSymbol}" data-id="${stock.stock_id}" title="Fetch Data from Groww">
                         <i class="bi bi-cloud-download"></i> Fetch
                     </button>
-                    <button class="btn btn-sm btn-primary me-1" data-action="edit" data-symbol="${escapedSymbol}" data-name="${escapedName}" data-id="${stock.stock_id}" title="Edit">
+                    <button type="button" class="btn btn-sm btn-primary me-1" data-action="edit" data-symbol="${escapedSymbol}" data-name="${escapedName}" data-id="${stock.stock_id}" title="Edit">
                         <i class="bi bi-pencil"></i> Edit
                     </button>
-                    <button class="btn btn-sm btn-danger" data-action="delete" data-id="${stock.stock_id}" title="Delete">
+                    <button type="button" class="btn btn-sm btn-danger" data-action="delete" data-id="${stock.stock_id}" title="Delete">
                         <i class="bi bi-trash"></i> Delete
                     </button>
                 </td>
@@ -1199,7 +1197,6 @@ window.openManualDataModal = function(symbol, name, stockId) {
         $('#modalQuickRatio').val((stock.quick_ratio && stock.quick_ratio !== 'Enter Data') ? stock.quick_ratio : '');
         $('#modalDebtEquity').val((stock.debt_to_equity && stock.debt_to_equity !== 'Enter Data') ? stock.debt_to_equity : '');
         $('#modalROE').val((stock.roe && stock.roe !== 'Enter Data') ? stock.roe : '');
-        $('#modalInvestorGrowth').val((stock.investor_growth_ratio && stock.investor_growth_ratio !== 'Enter Data') ? stock.investor_growth_ratio : '');
         $('#modalROA').val((stock.roa && stock.roa !== 'Enter Data') ? stock.roa : '');
         $('#modalEBITDACurrent').val((stock.ebitda_current && stock.ebitda_current !== 'Enter Data') ? stock.ebitda_current : '');
         $('#modalEBITDAPrevious').val((stock.ebitda_previous && stock.ebitda_previous !== 'Enter Data') ? stock.ebitda_previous : '');
@@ -1211,7 +1208,7 @@ window.openManualDataModal = function(symbol, name, stockId) {
         $('#modalBeta').val((stock.beta && stock.beta !== 'Enter Data') ? stock.beta : '');
         $('#modalPromoterHoldings').val((stock.promoter_holdings && stock.promoter_holdings !== 'Enter Data') ? stock.promoter_holdings : '');
     } else {
-        $('#modalLiquidity, #modalQuickRatio, #modalDebtEquity, #modalROE, #modalInvestorGrowth, #modalROA, #modalEBITDACurrent, #modalEBITDAPrevious, #modalDividendYield, #modalPE, #modalIndustryPE, #modalPriceToBook, #modalPriceToSales, #modalBeta, #modalPromoterHoldings').val('');
+        $('#modalLiquidity, #modalQuickRatio, #modalDebtEquity, #modalROE, #modalROA, #modalEBITDACurrent, #modalEBITDAPrevious, #modalDividendYield, #modalPE, #modalIndustryPE, #modalPriceToBook, #modalPriceToSales, #modalBeta, #modalPromoterHoldings').val('');
     }
     
     $('#modalDate').val(new Date().toISOString().split('T')[0]);
@@ -1246,7 +1243,6 @@ async function submitManualData() {
         quick_ratio: $('#modalQuickRatio').val() || 'Enter Data',
         debt_to_equity: $('#modalDebtEquity').val() || 'Enter Data',
         roe: $('#modalROE').val() || 'Enter Data',
-        investor_growth_ratio: $('#modalInvestorGrowth').val() || 'Enter Data',
         roa: $('#modalROA').val() || 'Enter Data',
         ebitda_current: $('#modalEBITDACurrent').val() || 'Enter Data',
         ebitda_previous: $('#modalEBITDAPrevious').val() || 'Enter Data',
@@ -1310,7 +1306,6 @@ function openFilterModal() {
         'filterQuickRatio': 'quick_ratio',
         'filterDebtEquity': 'debt_to_equity',
         'filterROE': 'roe',
-        'filterInvestorGrowth': 'investor_growth_ratio',
         'filterROA': 'roa',
         'filterEBITDACurrent': 'ebitda_current',
         'filterEBITDAPrevious': 'ebitda_previous',
