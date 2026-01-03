@@ -253,6 +253,18 @@ function setupFirebaseListener(user, callback, cacheAlreadyServed = false) {
         saveToLocalCache(user.uid, stocksArray);
         saveToSessionStorage(stocksArray);
         
+        // Skip first callback if we already served cached data and data hasn't changed
+        if (isFirstLoad && cacheAlreadyServed) {
+            isFirstLoad = false;
+            // Check if data actually changed from cache
+            const cacheJSON = JSON.stringify(loadFromLocalCache(user.uid) || []);
+            const newJSON = JSON.stringify(stocksArray);
+            if (cacheJSON === newJSON) {
+                return; // Skip - data matches cache
+            }
+        }
+        
+        isFirstLoad = false;
         callback(stocksArray);
     }, (error) => {
         console.error('Firebase listener error:', error.message);

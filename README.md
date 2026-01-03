@@ -4,6 +4,13 @@ A modern web application for analyzing Indian stocks with fundamental metrics. N
 
 ## 🚀 Latest Updates
 
+### 🌐 Dual Data Source Integration (Groww + Yahoo Finance) ✅ NEW
+- 📊 **Yahoo Finance Integration**: Fetch ROA, EBITDA, P/S YoY, and BETA from Yahoo Finance
+- 🔄 **Parallel Fetching**: Fetch from both Groww and Yahoo Finance simultaneously
+- 🎯 **Comprehensive Metrics**: Get the best of both sources automatically
+- 📈 **Enhanced Accuracy**: Cross-reference data from multiple reliable sources
+- 🗺️ **Symbol Mapping**: Automatic mapping from stock names to Yahoo Finance symbols
+
 ### 🔥 Firebase Integration ✅ COMPLETE
 - ☁️ **Cloud Storage**: All data stored in Firebase Realtime Database
 - 🔄 **Real-time Sync**: Changes sync instantly across all devices
@@ -29,7 +36,6 @@ A modern web application for analyzing Indian stocks with fundamental metrics. N
 2. Quick Ratio (In-Hand Cash)
 3. Leverage (Debt Equity Ratio)
 4. Profitability (ROE)
-5. Investor's Money Growth Ratio
 6. Return on Asset (ROA)
 7. EBITDA (Latest & Previous FY)
 8. Dividend Yield
@@ -115,15 +121,45 @@ stock-analysis/
 ├── js/
 │   ├── global.js                       # Global JavaScript
 │   ├── analysis.js                     # Main application logic with Firebase
+│   ├── fetch.js                        # Data fetching (Groww + Yahoo Finance)
 │   ├── firebase-config.js              # Firebase configuration (gitignored)
 │   ├── firebase-auth-service.js        # Authentication service
 │   ├── firebase-database-service.js    # Database operations service
 │   └── analysis-localStorage-backup.js # Original localStorage version (backup)
+├── resource/
+│   ├── stocks.json                     # Stock data
+│   └── yahoo-symbols.json              # Yahoo Finance symbol mappings
 ├── .gitignore                          # Git ignore rules
 ├── README.md                           # This file
 ├── FIREBASE_INTEGRATION_COMPLETE.md    # Firebase setup guide
 └── firebase-config.example.js          # Firebase config template
 ```
+
+## 🔄 Data Fetching
+
+### Dual Source Integration
+The app now fetches data from **two sources simultaneously**:
+
+1. **Groww.in**: Fetches fundamental metrics like ROE, P/E, Debt-to-Equity, Promoter Holdings, etc.
+2. **Yahoo Finance**: Fetches additional metrics like ROA (%), EBITDA, P/S YoY, and BETA
+
+When you click the **Fetch** button:
+- Both sources are queried in parallel using `Promise.all()`
+- Data is combined automatically
+- The UI displays metrics from both sources
+- If one source fails, the other continues (non-blocking)
+
+### Yahoo Symbol Mapping
+The file `resource/yahoo-symbols.json` maps stock symbols to Yahoo Finance format:
+```json
+{
+  "ITC": "ITC.NS",
+  "TCS": "TCS.NS",
+  "RELIANCE": "RELIANCE.NS"
+}
+```
+
+To add new stocks, update this file with the appropriate Yahoo Finance symbol (usually `SYMBOL.NS` for NSE stocks).
 
 ## 💾 Data Storage
 

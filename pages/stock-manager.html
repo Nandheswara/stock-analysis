@@ -375,7 +375,7 @@
             </form>
         </section>
 
-        <section class="stocks-table-section">
+        <section id="stocksTableSection" class="stocks-table-section" style="display: none;">
             <h3>Your Stock Portfolio</h3>
             <div class="table-container">
                 <table id="stocksTable" class="stocks-table">
@@ -397,9 +397,7 @@
                         </tr>
                     </thead>
                     <tbody id="stocksTableBody">
-                        <tr class="no-data">
-                            <td colspan="13">No stocks added yet. Add your first stock transaction above.</td>
-                        </tr>
+                        <!-- Stocks will be dynamically rendered here -->
                     </tbody>
                 </table>
             </div>
@@ -411,7 +409,7 @@
         <div class="modal-content" style="max-width: 800px;">
             <div class="modal-header">
                 <h3><i class="bi bi-calculator"></i> How Calculations Work</h3>
-                <button class="modal-close" onclick="closeCalculationModal()" aria-label="Close modal">&times;</button>
+                <button class="modal-close" id="calcModalCloseBtn" aria-label="Close modal">&times;</button>
             </div>
             <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
                 <p class="calc-info-subtitle">
@@ -529,7 +527,7 @@
                 </ul>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-primary" onclick="closeCalculationModal()">Got it!</button>
+                <button type="button" class="btn btn-primary" id="calcModalGotItBtn">Got it!</button>
             </div>
         </div>
     </div>
@@ -539,7 +537,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3>Edit Stock</h3>
-                <button class="modal-close" onclick="closeEditModal()" aria-label="Close modal">&times;</button>
+                <button class="modal-close" id="editModalCloseBtn" aria-label="Close modal">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="editStockForm">
@@ -589,8 +587,8 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="saveEditStock()">Save Changes</button>
+                <button type="button" class="btn btn-secondary" id="editModalCancelBtn">Cancel</button>
+                <button type="button" class="btn btn-primary" id="editModalSaveBtn">Save Changes</button>
             </div>
         </div>
     </div>
