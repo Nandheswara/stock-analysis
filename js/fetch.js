@@ -558,6 +558,64 @@ const YAHOO_BASE_URL = 'https://finance.yahoo.com/quote/'
 let yahooSymbolsCache = null
 
 /**
+ * Groww slug to stock symbol mapping
+ * Converts slug format (e.g., "tata-consultancy-services-ltd") to symbol (e.g., "TCS")
+ */
+const slugToSymbolMap = {
+  'tata-consultancy-services-ltd': 'TCS',
+  'itc-ltd': 'ITC',
+  'reliance-industries-ltd': 'RELIANCE',
+  'hdfc-bank-ltd': 'HDFCBANK',
+  'infosys-ltd': 'INFY',
+  'icici-bank-ltd': 'ICICIBANK',
+  'wipro-ltd': 'WIPRO',
+  'state-bank-of-india': 'SBIN',
+  'kotak-mahindra-bank-ltd': 'KOTAKBANK',
+  'hcl-technologies-ltd': 'HCLTECH',
+  'bharti-airtel-ltd': 'BHARTIARTL',
+  'axis-bank-ltd': 'AXISBANK',
+  'tata-motors-ltd': 'TATAMOTORS',
+  'tata-steel-ltd': 'TATASTEEL',
+  'sun-pharmaceutical-industries-ltd': 'SUNPHARMA',
+  'maruti-suzuki-india-ltd': 'MARUTI',
+  'hindustan-unilever-ltd': 'HINDUNILVR',
+  'asian-paints-ltd': 'ASIANPAINT',
+  'larsen-toubro-ltd': 'LT',
+  'bajaj-finance-ltd': 'BAJFINANCE',
+  'bajaj-finserv-ltd': 'BAJAJFINSV',
+  'tech-mahindra-ltd': 'TECHM',
+  'ultratech-cement-ltd': 'ULTRACEMCO',
+  'titan-company-ltd': 'TITAN',
+  'oil-natural-gas-corporation-ltd': 'ONGC',
+  'ntpc-ltd': 'NTPC',
+  'power-grid-corporation-of-india-ltd': 'POWERGRID',
+  'jsw-steel-ltd': 'JSWSTEEL',
+  'adani-ports-special-economic-zone-ltd': 'ADANIPORTS',
+  'adani-enterprises-ltd': 'ADANIENT',
+  'coal-india-ltd': 'COALINDIA',
+  'dr-reddys-laboratories-ltd': 'DRREDDY',
+  'cipla-ltd': 'CIPLA',
+  'divis-laboratories-ltd': 'DIVISLAB',
+  'nestle-india-ltd': 'NESTLEIND',
+  'britannia-industries-ltd': 'BRITANNIA',
+  'eicher-motors-ltd': 'EICHERMOT',
+  'mahindra-mahindra-ltd': 'M&M',
+  'hero-motocorp-ltd': 'HEROMOTOCO',
+  'indusind-bank-ltd': 'INDUSINDBK',
+  'grasim-industries-ltd': 'GRASIM',
+  'upl-ltd': 'UPL',
+  'bharat-petroleum-corporation-ltd': 'BPCL',
+  'indian-oil-corporation-ltd': 'IOC',
+  'sbi-life-insurance-company-ltd': 'SBILIFE',
+  'hdfc-life-insurance-company-ltd': 'HDFCLIFE',
+  'zomato-ltd': 'ZOMATO',
+  'bharat-electronics-ltd': 'BEL',
+  'gail-india-ltd': 'GAIL',
+  'jio-financial-services-ltd': 'JIOFIN',
+  'vodafone-idea-ltd': 'IDEA'
+}
+
+/**
  * Load Yahoo symbols mapping from JSON file
  * @returns {Promise<Object>} Symbol mapping object
  */
@@ -584,17 +642,26 @@ async function loadYahooSymbols() {
 
 /**
  * Convert stock symbol to Yahoo Finance symbol format
- * @param {string} symbol - Stock symbol (e.g., "ITC", "TCS")
- * @returns {Promise<string|null>} Yahoo symbol (e.g., "ITC.NS") or null if not found
+ * Handles both direct symbols (e.g., "TCS") and Groww slugs (e.g., "tata-consultancy-services-ltd")
+ * @param {string} symbol - Stock symbol or Groww slug
+ * @returns {Promise<string|null>} Yahoo symbol (e.g., "TCS.NS") or null if not found
  */
 async function symbolToYahooSymbol(symbol) {
   if (!symbol) return null
   
   const mapping = await loadYahooSymbols()
-  const upperSymbol = symbol.toUpperCase().trim()
+  let upperSymbol = symbol.toUpperCase().trim()
+  
+  // First check if this is a Groww slug and convert to symbol
+  const lowerSymbol = symbol.toLowerCase().trim()
+  if (slugToSymbolMap[lowerSymbol]) {
+    upperSymbol = slugToSymbolMap[lowerSymbol]
+    console.debug('fetch.js: Converted Groww slug to symbol:', lowerSymbol, '->', upperSymbol)
+  }
   
   // Try exact match first
   if (mapping[upperSymbol]) {
+    console.debug('fetch.js: Found Yahoo symbol for', upperSymbol, '->', mapping[upperSymbol])
     return mapping[upperSymbol]
   }
   
@@ -602,6 +669,7 @@ async function symbolToYahooSymbol(symbol) {
   // e.g., "ITC Ltd" -> "ITC", "Reliance Industries" -> "RELIANCE"
   const parts = upperSymbol.split(/\s+/)
   if (parts.length > 0 && mapping[parts[0]]) {
+    console.debug('fetch.js: Extracted and found Yahoo symbol:', parts[0], '->', mapping[parts[0]])
     return mapping[parts[0]]
   }
   
@@ -713,12 +781,78 @@ function parseYahooStats(htmlText) {
     return null
   }
 
+  // Helper to find value in Yahoo Finance's new Valuation Measures table structure
+  function findInValuationMeasures(labelPattern) {
+    // Look for the Valuation Measures section
+    const allElements = doc.querySelectorAll('[class*="yf-"], table td, table th, div, span')
+    
+    for (let i = 0; i < allElements.length; i++) {
+      const elem = allElements[i]
+      const text = elem.textContent?.trim() || ''
+      
+      if (labelPattern.test(text)) {
+        console.debug(`parseYahooStats: Found label match for ${labelPattern}:`, text)
+        
+        // Strategy 1: Look in same row (table structure)
+        const row = elem.closest('tr')
+        if (row) {
+          const cells = Array.from(row.querySelectorAll('td'))
+          // Find the cell with the label and get the next cell
+          for (let j = 0; j < cells.length - 1; j++) {
+            if (labelPattern.test(cells[j].textContent?.trim() || '')) {
+              const value = cells[j + 1].textContent?.trim()
+              console.debug('parseYahooStats: Found value in next cell:', value)
+              return value
+            }
+          }
+          // If cells exist, return last cell as it often contains the value
+          if (cells.length > 0) {
+            const value = cells[cells.length - 1].textContent?.trim()
+            if (value && value !== text) {
+              console.debug('parseYahooStats: Found value in last cell:', value)
+              return value
+            }
+          }
+        }
+        
+        // Strategy 2: Look in next sibling elements
+        let nextElem = elem.nextElementSibling
+        let attempts = 0
+        while (nextElem && attempts < 5) {
+          const value = nextElem.textContent?.trim()
+          if (value && value !== text && !/^[A-Za-z\s]+$/.test(value)) {
+            console.debug('parseYahooStats: Found value in next sibling:', value)
+            return value
+          }
+          nextElem = nextElem.nextElementSibling
+          attempts++
+        }
+        
+        // Strategy 3: Look in parent's next sibling
+        const parent = elem.parentElement
+        if (parent?.nextElementSibling) {
+          const value = parent.nextElementSibling.textContent?.trim()
+          if (value && value !== text) {
+            console.debug('parseYahooStats: Found value in parent next sibling:', value)
+            return value
+          }
+        }
+      }
+    }
+    return null
+  }
+
   // Extract ROA (Return on Assets)
-  const roaValue = findValueByLabel(/Return on Assets|ROA/i) || findValueInSpans(/Return on Assets|ROA/i)
+  let roaValue = findInValuationMeasures(/Return on Assets|ROA/i) || 
+                 findValueByLabel(/Return on Assets|ROA/i) || 
+                 findValueInSpans(/Return on Assets|ROA/i)
   result.roa = cleanNumber(roaValue)
+  console.debug('parseYahooStats: ROA extracted:', result.roa)
 
   // Extract EBITDA (look for latest and previous quarters/years)
-  const ebitdaValue = findValueByLabel(/^EBITDA$/i) || findValueInSpans(/^EBITDA$/i)
+  let ebitdaValue = findInValuationMeasures(/^EBITDA$/i) || 
+                    findValueByLabel(/^EBITDA$/i) || 
+                    findValueInSpans(/^EBITDA$/i)
   if (ebitdaValue) {
     // If we find EBITDA, it's typically the latest value
     result.ebitdaLatest = cleanNumber(ebitdaValue)
@@ -728,14 +862,42 @@ function parseYahooStats(htmlText) {
     // For now, set previous to null - will need page inspection to refine
     result.ebitdaPrevious = null
   }
+  console.debug('parseYahooStats: EBITDA extracted:', result.ebitdaLatest)
 
-  // Extract Price/Sales (P/S) - Yahoo may show "Price/Sales" with TTM or YoY info
-  const psValue = findValueByLabel(/Price\/Sales|P\/S/i) || findValueInSpans(/Price\/Sales|P\/S/i)
+  // Extract Price/Sales (P/S) from Valuation Measures table
+  // Yahoo Finance shows this in a table with class "yf-18eg72q" or similar
+  let psValue = null
+  
+  // Method 1: Use the specialized Valuation Measures finder
+  psValue = findInValuationMeasures(/Price\/Sales|Price-to-Sales|P\/S/i)
+  if (psValue) {
+    console.debug('parseYahooStats: Found P/S in Valuation Measures:', psValue)
+  }
+  
+  // Method 2: Fallback to traditional table row search
+  if (!psValue) {
+    psValue = findValueByLabel(/Price\/Sales|Price-to-Sales|P\/S.*TTM/i)
+    if (psValue) {
+      console.debug('parseYahooStats: Found P/S in table rows:', psValue)
+    }
+  }
+  
+  // Method 3: Fallback to span/div search
+  if (!psValue) {
+    psValue = findValueInSpans(/Price\/Sales|Price-to-Sales|P\/S/i)
+    if (psValue) {
+      console.debug('parseYahooStats: Found P/S in spans:', psValue)
+    }
+  }
+  
   result.psYoY = cleanNumber(psValue)
 
   // Extract Beta (usually labeled as "Beta (5Y Monthly)" or just "Beta")
-  const betaValue = findValueByLabel(/Beta/i) || findValueInSpans(/Beta/i)
+  let betaValue = findInValuationMeasures(/Beta/i) || 
+                  findValueByLabel(/Beta/i) || 
+                  findValueInSpans(/Beta/i)
   result.beta = cleanNumber(betaValue)
+  console.debug('parseYahooStats: BETA extracted:', result.beta)
 
   console.debug('parseYahooStats result:', result)
   return result
@@ -940,3 +1102,6 @@ export function makeFetchStockData({ getStocksData, renderTable, showAlert, upda
     }
   }
 }
+
+// Export buildYahooUrl for testing
+export { buildYahooUrl }
