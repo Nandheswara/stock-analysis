@@ -172,6 +172,15 @@ body.light-theme .metric-badge {
     box-shadow: 0 2px 5px rgba(0,0,0,0.08);
 }
 
+/* Feature Card Text - Light Theme */
+body.light-theme .feature-card h5 {
+    color: #212529;
+}
+
+body.light-theme .feature-card p {
+    color: #6c757d;
+}
+
 /* ========================================
    Responsive Design - Home Page
    ======================================== */
