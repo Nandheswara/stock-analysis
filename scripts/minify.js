@@ -15,27 +15,36 @@ const jsOut = path.join(__dirname, '../js/bundle.min.js');
 const cssDir = path.join(__dirname, '../css');
 const cssOut = path.join(__dirname, '../css/bundle.min.css');
 
+
 // Get all JS files (exclude .min.js)
 const jsFiles = fs.readdirSync(jsDir)
-  .filter(f => f.endsWith('.js') && !f.endsWith('.min.js'))
-  .map(f => path.join(jsDir, f));
+  .filter(f => f.endsWith('.js') && !f.endsWith('.min.js'));
+
+// Create a temporary entry file that imports all JS files
+const tempEntryPath = path.join(__dirname, '_bundle-entry.js');
+const importLines = jsFiles.map(f => `import '../js/${f.replace(/'/g, "\\'")}'`).join(';
+') + ';\n';
+fs.writeFileSync(tempEntryPath, importLines);
 
 // Get all CSS files (exclude .min.css)
 const cssFiles = fs.readdirSync(cssDir)
   .filter(f => f.endsWith('.css') && !f.endsWith('.min.css'))
   .map(f => path.join(cssDir, f));
 
-// Bundle and minify JS
+
+// Bundle and minify JS using the temp entry file
 build({
-  entryPoints: jsFiles,
+  entryPoints: [tempEntryPath],
   bundle: true,
   minify: true,
   outfile: jsOut,
   sourcemap: false,
   legalComments: 'none',
 }).then(() => {
+  fs.unlinkSync(tempEntryPath);
   console.log('JS bundled and minified.');
 }).catch((e) => {
+  if (fs.existsSync(tempEntryPath)) fs.unlinkSync(tempEntryPath);
   console.error('JS minification failed:', e);
   process.exit(1);
 });
