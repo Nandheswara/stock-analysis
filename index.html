@@ -43,17 +43,11 @@
     
     <!-- Critical CSS for fast first paint -->
     <link rel="stylesheet" href="css/critical.css">
-    
-    <!-- External CSS -->
+    <!-- External CSS (CDN) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" media="print" onload="this.media='all'">
-    
-    <!-- Global CSS -->
-    <link rel="stylesheet" href="css/global.css">
-    
-    <!-- Page-specific CSS -->
-    <link rel="stylesheet" href="css/home.css">
-    <link rel="stylesheet" href="css/firebase-auth.css">
+    <!-- Bundled & Minified CSS -->
+    <link rel="stylesheet" href="css/bundle.min.css">
 </head>
 <body>
     <!-- Navigation -->
@@ -389,14 +383,7 @@
     <!-- External JavaScript -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- Loading Optimizations - lazy loading, performance monitoring -->
-    <script src="js/loading-optimizations.js" defer></script>
-    
-    <!-- Global JavaScript -->
-    <script src="js/global.js"></script>
-    
-    <!-- Page-specific JavaScript (Home Authentication) -->
-    <script type="module" src="js/home.js"></script>
+    <!-- Bundled & Minified JS -->
+    <script src="js/bundle.min.js" defer></script>
 </body>
 </html>

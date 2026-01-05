@@ -40,22 +40,12 @@
     
     <!-- Critical CSS for fast first paint -->
     <link rel="stylesheet" href="../css/critical.css">
-    
-    <!-- External CSS - defer non-critical -->
+    <!-- External CSS (CDN) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" media="print" onload="this.media='all'">
-    <!-- Select2 CSS for searchable dropdown -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" media="print" onload="this.media='all'">
-    
-    <!-- Global CSS -->
-    <link rel="stylesheet" href="../css/global.css">
-    
-    <!-- Page-specific CSS -->
-    <link rel="stylesheet" href="../css/analysis.css">
-    <link rel="stylesheet" href="../css/firebase-auth.css">
-
-    <!-- Stock specific Metrics CSS -->
-    <link rel="stylesheet" href="../css/metrics.css">
+    <!-- Bundled & Minified CSS -->
+    <link rel="stylesheet" href="../css/bundle.min.css">
 </head>
 <body>
     <!-- Loading Overlay -->
@@ -725,10 +715,8 @@
     <!-- External JavaScript -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
     <!-- Loading Optimizations - lazy loading, performance monitoring -->
     <script src="../js/loading-optimizations.js" defer></script>
-    
     <!-- Instant Cache Load - Runs before modules to show data immediately -->
     <script>
         (function() {
@@ -768,22 +756,7 @@
             }
         })();
     </script>
-    
-    <!-- Global JavaScript -->
-    <script src="../js/global.js"></script>
-    <!-- Select2 JS (searchable select) - defer for non-critical -->
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js" defer></script>
-    
-    <!-- Page-specific JavaScript -->
-    <!-- External debug helper (keeps HTML clean) -->
-    <script src="../js/analysis-debug.js" defer></script>
-
-    <!-- Groww crawler for live fetch (simple scraper for Market Cap) -->
-    <script src="../js/groww-crawler.js" defer></script>
-    <script type="module" src="../js/analysis.js"></script>
-
-     <!-- Stock specific Metrics JavaScript -->
-    <script src="../js/metrics.js" defer></script>
-    <script src="../js/groww-storage.js" defer></script>
+    <!-- Bundled & Minified JS -->
+    <script src="../js/bundle.min.js" defer></script>
 </body>
 </html>
