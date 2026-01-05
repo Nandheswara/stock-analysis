@@ -280,3 +280,115 @@
     border-top-color: #667eea;
     animation: spinner 0.8s linear infinite;
 }
+
+/* ========================================
+   Light Theme Overrides
+   ======================================== */
+
+/* Auth Modal - Light Theme */
+body.light-theme #authModal .modal-content {
+    background-color: #ffffff;
+    color: #212529;
+    border-color: #dee2e6;
+}
+
+body.light-theme #authModal .modal-header {
+    background: linear-gradient(135deg, #4e73df 0%, #7c5cbf 100%);
+    color: #ffffff;
+}
+
+body.light-theme #authModal .form-label {
+    color: #212529;
+}
+
+body.light-theme #authModal .form-control {
+    background-color: #ffffff;
+    border-color: #ced4da;
+    color: #212529;
+}
+
+body.light-theme #authModal .form-control:focus {
+    background-color: #ffffff;
+    border-color: #667eea;
+    color: #212529;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+body.light-theme #authModal .form-control::placeholder {
+    color: #6c757d;
+}
+
+body.light-theme #authModal .text-muted {
+    color: #6c757d !important;
+}
+
+/* Auth Prompt - Light Theme */
+body.light-theme #authPrompt {
+    background-color: #f8f9fa;
+}
+
+body.light-theme #authPrompt i {
+    color: #adb5bd;
+}
+
+body.light-theme #authPrompt .card {
+    background-color: #ffffff;
+    border-color: #dee2e6;
+}
+
+body.light-theme #authPrompt h4 {
+    color: #212529;
+}
+
+body.light-theme #authPrompt p {
+    color: #6c757d;
+}
+
+/* Loading Overlay - Light Theme */
+body.light-theme .loading-overlay {
+    background: rgba(255, 255, 255, 0.85);
+}
+
+body.light-theme .loading-overlay .spinner-border {
+    color: #4e73df !important;
+}
+
+body.light-theme .loading-overlay-text {
+    color: #212529;
+}
+
+/* Sync Indicator - Light Theme */
+body.light-theme .sync-indicator {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Offline Badge - Light Theme */
+body.light-theme .offline-badge {
+    background: #ffc107;
+    color: #000000;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+}
+
+/* User Dropdown - Light Theme */
+body.light-theme #userProfile .dropdown-menu {
+    background-color: #ffffff;
+    border-color: #dee2e6;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+body.light-theme #userProfile .dropdown-item {
+    color: #212529;
+}
+
+body.light-theme #userProfile .dropdown-item:hover {
+    background-color: #f8f9fa;
+}
+
+body.light-theme #userProfile .dropdown-item.active {
+    background-color: #e9ecef;
+    color: #212529;
+}
+
+body.light-theme #userProfile .dropdown-divider {
+    border-color: #dee2e6;
+}

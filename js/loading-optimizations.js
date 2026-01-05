@@ -192,7 +192,6 @@
             
             // Log slow operations
             if (duration > 100) {
-                console.warn(`[Perf] ${name}: ${duration.toFixed(2)}ms`);
             }
             
             return duration;
@@ -207,7 +206,6 @@
                 const lcpObserver = new PerformanceObserver((list) => {
                     const entries = list.getEntries();
                     const lastEntry = entries[entries.length - 1];
-                    console.log('[Web Vitals] LCP:', lastEntry.renderTime || lastEntry.loadTime);
                 });
                 
                 try {
@@ -220,7 +218,6 @@
                 const fidObserver = new PerformanceObserver((list) => {
                     const entries = list.getEntries();
                     entries.forEach(entry => {
-                        console.log('[Web Vitals] FID:', entry.processingStart - entry.startTime);
                     });
                 });
                 
@@ -247,7 +244,6 @@
                     // Report final CLS on page unload
                     window.addEventListener('visibilitychange', () => {
                         if (document.visibilityState === 'hidden') {
-                            console.log('[Web Vitals] CLS:', clsValue);
                         }
                     });
                 } catch (e) {

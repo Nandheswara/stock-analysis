@@ -30,7 +30,7 @@ const pendingRequests = new Map();
 function getCachedData(key) {
     const cached = stockDataCache.get(key);
     if (cached && Date.now() < cached.expiry) {
-        console.debug('fetch.js: cache hit for', key);
+        
         return cached.data;
     }
     if (cached) {
@@ -176,7 +176,7 @@ async function fetchWithCorsFallback(url) {
   for (const makeProxy of proxies) {
     const proxyUrl = makeProxy(url)
     try {
-      console.debug('fetch.js: trying proxy', proxyUrl)
+      
       
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
@@ -207,7 +207,7 @@ async function fetchWithCorsFallback(url) {
       
       // Verify we got HTML content (not an error page)
       if (txt && txt.includes('<!DOCTYPE') || txt.includes('<html')) {
-        console.debug('fetch.js: proxy success', proxyUrl.substring(0, 50))
+        
         return txt
       } else {
         throw new Error('Response does not contain HTML')
@@ -221,7 +221,7 @@ async function fetchWithCorsFallback(url) {
 
   // Last resort: try direct fetch (will likely fail due to CORS)
   try {
-    console.debug('fetch.js: trying direct fetch', url)
+    
     const res = await fetch(url, { mode: 'cors' })
     if (!res.ok) throw new Error('Network response not ok: ' + res.status)
     return await res.text()
@@ -382,7 +382,7 @@ function parseGrowwStats(htmlText) {
         if (/Promoter(?:s)?/i.test(sectionText) && !/(Retail|Foreign|Domestic|Mutual)/i.test(sectionText.substring(0, sectionText.indexOf(el.textContent || '')))) {
           const percentMatch = el.textContent?.trim().match(/([\d.,]+%)/)
           if (percentMatch) {
-            console.debug('extractPromoterHoldings: Found via shp76TextRight', percentMatch[1])
+            
             return percentMatch[1].trim()
           }
         }
@@ -400,7 +400,7 @@ function parseGrowwStats(htmlText) {
           if (percentEl) {
             const percentMatch = percentEl.textContent?.trim().match(/([\d.,]+%)/)
             if (percentMatch) {
-              console.debug('extractPromoterHoldings: Found via bodyLarge label', percentMatch[1])
+              
               return percentMatch[1].trim()
             }
           }
@@ -488,7 +488,7 @@ function parseGrowwStats(htmlText) {
     }
   }
 
-  console.debug('parseGrowwStats result:', result)
+  
   return result
 }
 
@@ -499,7 +499,7 @@ function parseGrowwStats(htmlText) {
  * @returns {Promise<Object>} Parsed stock stats
  */
 async function fetchGrowwStats(url, bypassCache = false) {
-  console.debug('fetch.js: fetchGrowwStats', url)
+  
   
   // Check cache first (unless bypassed)
   if (!bypassCache) {
@@ -511,7 +511,7 @@ async function fetchGrowwStats(url, bypassCache = false) {
   
   // Check for pending request to prevent duplicates
   if (pendingRequests.has(url)) {
-    console.debug('fetch.js: returning pending request for', url);
+    
     return pendingRequests.get(url);
   }
   
@@ -630,7 +630,7 @@ async function loadYahooSymbols() {
       throw new Error(`Failed to load Yahoo symbols: ${response.status}`)
     }
     yahooSymbolsCache = await response.json()
-    console.debug('fetch.js: Loaded Yahoo symbols mapping', yahooSymbolsCache)
+    
     return yahooSymbolsCache
   } catch (err) {
     console.error('fetch.js: Failed to load Yahoo symbols mapping', err)
@@ -656,12 +656,12 @@ async function symbolToYahooSymbol(symbol) {
   const lowerSymbol = symbol.toLowerCase().trim()
   if (slugToSymbolMap[lowerSymbol]) {
     upperSymbol = slugToSymbolMap[lowerSymbol]
-    console.debug('fetch.js: Converted Groww slug to symbol:', lowerSymbol, '->', upperSymbol)
+    
   }
   
   // Try exact match first
   if (mapping[upperSymbol]) {
-    console.debug('fetch.js: Found Yahoo symbol for', upperSymbol, '->', mapping[upperSymbol])
+    
     return mapping[upperSymbol]
   }
   
@@ -669,7 +669,7 @@ async function symbolToYahooSymbol(symbol) {
   // e.g., "ITC Ltd" -> "ITC", "Reliance Industries" -> "RELIANCE"
   const parts = upperSymbol.split(/\s+/)
   if (parts.length > 0 && mapping[parts[0]]) {
-    console.debug('fetch.js: Extracted and found Yahoo symbol:', parts[0], '->', mapping[parts[0]])
+    
     return mapping[parts[0]]
   }
   
@@ -744,7 +744,7 @@ function parseYahooStats(htmlText) {
       if (labelPattern.test(labelText)) {
         // Return the value from the second cell
         const valueText = cells[1].textContent?.trim()
-        console.debug(`parseYahooStats: Found ${labelPattern} -> ${valueText}`)
+        
         return valueText
       }
     }
@@ -771,7 +771,7 @@ function parseYahooStats(htmlText) {
           if (candidate) {
             const valueText = candidate.textContent?.trim()
             if (valueText && valueText !== text) {
-              console.debug(`parseYahooStats: Found in spans ${labelPattern} -> ${valueText}`)
+              
               return valueText
             }
           }
@@ -791,7 +791,7 @@ function parseYahooStats(htmlText) {
       const text = elem.textContent?.trim() || ''
       
       if (labelPattern.test(text)) {
-        console.debug(`parseYahooStats: Found label match for ${labelPattern}:`, text)
+        
         
         // Strategy 1: Look in same row (table structure)
         const row = elem.closest('tr')
@@ -801,7 +801,7 @@ function parseYahooStats(htmlText) {
           for (let j = 0; j < cells.length - 1; j++) {
             if (labelPattern.test(cells[j].textContent?.trim() || '')) {
               const value = cells[j + 1].textContent?.trim()
-              console.debug('parseYahooStats: Found value in next cell:', value)
+              
               return value
             }
           }
@@ -809,7 +809,7 @@ function parseYahooStats(htmlText) {
           if (cells.length > 0) {
             const value = cells[cells.length - 1].textContent?.trim()
             if (value && value !== text) {
-              console.debug('parseYahooStats: Found value in last cell:', value)
+              
               return value
             }
           }
@@ -821,7 +821,7 @@ function parseYahooStats(htmlText) {
         while (nextElem && attempts < 5) {
           const value = nextElem.textContent?.trim()
           if (value && value !== text && !/^[A-Za-z\s]+$/.test(value)) {
-            console.debug('parseYahooStats: Found value in next sibling:', value)
+            
             return value
           }
           nextElem = nextElem.nextElementSibling
@@ -833,7 +833,7 @@ function parseYahooStats(htmlText) {
         if (parent?.nextElementSibling) {
           const value = parent.nextElementSibling.textContent?.trim()
           if (value && value !== text) {
-            console.debug('parseYahooStats: Found value in parent next sibling:', value)
+            
             return value
           }
         }
@@ -847,7 +847,7 @@ function parseYahooStats(htmlText) {
                  findValueByLabel(/Return on Assets|ROA/i) || 
                  findValueInSpans(/Return on Assets|ROA/i)
   result.roa = cleanNumber(roaValue)
-  console.debug('parseYahooStats: ROA extracted:', result.roa)
+  
 
   // Extract EBITDA (look for latest and previous quarters/years)
   let ebitdaValue = findInValuationMeasures(/^EBITDA$/i) || 
@@ -862,7 +862,7 @@ function parseYahooStats(htmlText) {
     // For now, set previous to null - will need page inspection to refine
     result.ebitdaPrevious = null
   }
-  console.debug('parseYahooStats: EBITDA extracted:', result.ebitdaLatest)
+  
 
   // Extract Price/Sales (P/S) from Valuation Measures table
   // Yahoo Finance shows this in a table with class "yf-18eg72q" or similar
@@ -871,14 +871,14 @@ function parseYahooStats(htmlText) {
   // Method 1: Use the specialized Valuation Measures finder
   psValue = findInValuationMeasures(/Price\/Sales|Price-to-Sales|P\/S/i)
   if (psValue) {
-    console.debug('parseYahooStats: Found P/S in Valuation Measures:', psValue)
+    
   }
   
   // Method 2: Fallback to traditional table row search
   if (!psValue) {
     psValue = findValueByLabel(/Price\/Sales|Price-to-Sales|P\/S.*TTM/i)
     if (psValue) {
-      console.debug('parseYahooStats: Found P/S in table rows:', psValue)
+      
     }
   }
   
@@ -886,7 +886,7 @@ function parseYahooStats(htmlText) {
   if (!psValue) {
     psValue = findValueInSpans(/Price\/Sales|Price-to-Sales|P\/S/i)
     if (psValue) {
-      console.debug('parseYahooStats: Found P/S in spans:', psValue)
+      
     }
   }
   
@@ -897,9 +897,9 @@ function parseYahooStats(htmlText) {
                   findValueByLabel(/Beta/i) || 
                   findValueInSpans(/Beta/i)
   result.beta = cleanNumber(betaValue)
-  console.debug('parseYahooStats: BETA extracted:', result.beta)
+  
 
-  console.debug('parseYahooStats result:', result)
+  
   return result
 }
 
@@ -909,7 +909,7 @@ function parseYahooStats(htmlText) {
  * @returns {Promise<Object>} Parsed Yahoo stats
  */
 async function fetchYahooStats(url) {
-  console.debug('fetch.js: fetchYahooStats', url)
+  
   
   // Check cache first
   const cached = getCachedData(url)
@@ -999,7 +999,7 @@ function mapGrowwToTableFields(growwData) {
  */
 export function makeFetchStockData({ getStocksData, renderTable, showAlert, updateStockInFirebase }) {
   return async function fetchStockData(symbol, stockId) {
-    console.debug('fetchStockData called', { symbol, stockId })
+    
     try {
       if (showAlert) showAlert('info', `Fetching data for ${symbol} from Groww and Yahoo Finance...`)
 
@@ -1007,8 +1007,8 @@ export function makeFetchStockData({ getStocksData, renderTable, showAlert, upda
       const growwUrl = buildGrowwUrl(symbol)
       const yahooUrl = await buildYahooUrl(symbol)
       
-      console.debug('fetchStockData: Groww URL', growwUrl)
-      console.debug('fetchStockData: Yahoo URL', yahooUrl)
+      
+      
 
       // Fetch from BOTH sources in parallel using Promise.all
       const [growwData, yahooData] = await Promise.all([
@@ -1043,7 +1043,7 @@ export function makeFetchStockData({ getStocksData, renderTable, showAlert, upda
       // Count how many fields were fetched from both sources
       const fetchedFields = Object.entries(mappedData).filter(([k, v]) => v !== null)
       
-      console.debug('fetchStockData: combined mapped data', mappedData)
+      
 
       const shouldUpdate = fetchedFields.length > 0 || !promoterFetched
       if (!shouldUpdate) {
@@ -1084,7 +1084,7 @@ export function makeFetchStockData({ getStocksData, renderTable, showAlert, upda
             if (updateStockInFirebase && typeof updateStockInFirebase === 'function') {
               try {
                 await updateStockInFirebase(stockId, mappedData)
-                console.debug('fetchStockData: saved to Firebase', stockId)
+                
               } catch (fbErr) {
                 console.warn('fetchStockData: Firebase save failed', fbErr)
               }

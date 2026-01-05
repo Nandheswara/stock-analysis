@@ -499,9 +499,8 @@ export const perfMonitor = {
         
         // Log slow operations (> 100ms)
         if (duration > 100) {
-            console.warn(`[Perf] ${name}: ${duration.toFixed(2)}ms (slow)`);
         } else {
-            console.debug(`[Perf] ${name}: ${duration.toFixed(2)}ms`);
+            
         }
         
         return duration;

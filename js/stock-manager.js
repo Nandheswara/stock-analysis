@@ -930,22 +930,16 @@ function setupAuthUI() {
         loginBtn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            console.log('Login button clicked');
             showAuthModal('login');
         });
-    } else {
-        console.warn('Login button not found');
     }
 
     if (signupBtn) {
         signupBtn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            console.log('Signup button clicked');
             showAuthModal('signup');
         });
-    } else {
-        console.warn('Signup button not found');
     }
 
     if (logoutBtn) {

@@ -146,11 +146,8 @@ export function loadStockSymbols() {
 
             // Initialize Select2 with enhanced search
             initSelect2(select);
-            
-            console.debug(`Loaded ${validStocks.length} stocks into dropdown`);
         })
         .catch(err => {
-            console.warn('Failed to load symbols, using fallback', err);
             const fallback = [
                 'tata-consultancy-services-ltd',
                 'reliance-industries-ltd',

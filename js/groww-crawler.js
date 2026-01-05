@@ -64,7 +64,7 @@
     for (const makeProxy of proxies) {
       const proxyUrl = makeProxy(url)
       try {
-        console.debug('growwCrawler: trying proxy', proxyUrl)
+        
         
         const controller = new AbortController()
         const timeoutId = setTimeout(() => controller.abort(), 10000)
@@ -97,7 +97,7 @@
 
     // Last resort: try direct fetch (may be blocked by CORS)
     try {
-      console.debug('growwCrawler: trying direct fetch', url)
+      
       const res = await fetch(url, { mode: 'cors' })
       if (!res.ok) throw new Error('Network response not ok: ' + res.status)
       return await res.text()
@@ -175,12 +175,12 @@
     result.week52High = findValueByLabel(/52W High/i) || findFromFullText(/52W High\s*([\d,\.]+)/i)
     result.volume = findValueByLabel(/^Volume$/i) || findFromFullText(/Volume\s*([\d,\.]+)/i)
 
-    console.debug('parseGrowwStats result:', result)
+    
     return result
   }
 
   async function fetchGrowwStats(url) {
-    console.debug('growwCrawler: fetchGrowwStats', url)
+    
     const html = await fetchWithCorsFallback(url)
     return parseGrowwStats(html)
   }
@@ -208,7 +208,7 @@
   }
 
   function wireButtons() {
-    console.debug('growwCrawler: wiring buttons')
+    
     const byId = document.getElementById('fetch-live')
     const buttons = [].slice.call(document.querySelectorAll('.fetch-live'))
     if (byId) buttons.unshift(byId)

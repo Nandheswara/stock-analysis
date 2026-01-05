@@ -654,6 +654,32 @@ body.light-theme .stocks-table .stock-name {
     color: #212529;
 }
 
+/* Light theme for stocks table header */
+body.light-theme .stocks-table thead th {
+    background-color: #f8f9fa;
+    color: #212529;
+    border-bottom-color: #dee2e6;
+}
+
+/* Light theme for table actions (edit/delete buttons) */
+body.light-theme .stocks-table .btn-info {
+    background: #4e73df;
+    color: #ffffff;
+}
+
+body.light-theme .stocks-table .btn-info:hover {
+    background: #3a5ec7;
+}
+
+body.light-theme .stocks-table .btn-danger {
+    background: #dc3545;
+    color: #ffffff;
+}
+
+body.light-theme .stocks-table .btn-danger:hover {
+    background: #bb2d3b;
+}
+
 /* Light theme Google button */
 body.light-theme .btn-google {
     background-color: #fff;

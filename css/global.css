@@ -14,6 +14,71 @@
  */
 
 /* ========================================
+   CSS Custom Properties (Dark Theme - Default)
+   ======================================== */
+
+:root {
+    /* Background Colors */
+    --bg-primary: #0b0c10;
+    --bg-secondary: #111218;
+    --bg-tertiary: #14151b;
+    --bg-card: #111218;
+    --bg-card-header: #14151b;
+    
+    /* Text Colors */
+    --text-primary: #e9ecef;
+    --text-secondary: #adb5bd;
+    --text-muted: #6c757d;
+    --text-heading: #f8f9fa;
+    
+    /* Border Colors */
+    --border-color: #1f2229;
+    --border-light: #343a40;
+    
+    /* Accent Colors */
+    --accent-primary: #7289ff;
+    --accent-success: #3ddc84;
+    --accent-warning: #ffb454;
+    --accent-danger: #ff6b6b;
+    
+    /* Gradient */
+    --header-gradient: linear-gradient(135deg, #1f2a5a 0%, #3a245f 100%);
+    
+    /* Shadows */
+    --shadow-sm: 0 2px 5px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 15px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.6);
+}
+
+/* Light Theme Custom Properties */
+body.light-theme {
+    --bg-primary: #f8f9fa;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #f8f9fa;
+    --bg-card: #ffffff;
+    --bg-card-header: #f8f9fa;
+    
+    --text-primary: #212529;
+    --text-secondary: #495057;
+    --text-muted: #6c757d;
+    --text-heading: #212529;
+    
+    --border-color: #e9ecef;
+    --border-light: #ced4da;
+    
+    --accent-primary: #4e73df;
+    --accent-success: #198754;
+    --accent-warning: #fd7e14;
+    --accent-danger: #dc3545;
+    
+    --header-gradient: linear-gradient(135deg, #4e73df 0%, #7c5cbf 100%);
+    
+    --shadow-sm: 0 2px 5px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 15px rgba(0, 0, 0, 0.15);
+    --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.12);
+}
+
+/* ========================================
    Base Styles
    ======================================== */
 
