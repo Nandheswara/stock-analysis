@@ -16,14 +16,13 @@ const cssDir = path.join(__dirname, '../css');
 const cssOut = path.join(__dirname, '../css/bundle.min.css');
 
 
-// Get all JS files (exclude .min.js)
+// Get all JS files (exclude .min.js and Node.js server files)
 const jsFiles = fs.readdirSync(jsDir)
-  .filter(f => f.endsWith('.js') && !f.endsWith('.min.js'));
+  .filter(f => f.endsWith('.js') && !f.endsWith('.min.js') && f !== 'cors-proxy.js');
 
 // Create a temporary entry file that imports all JS files
 const tempEntryPath = path.join(__dirname, '_bundle-entry.js');
-const importLines = jsFiles.map(f => `import '../js/${f.replace(/'/g, "\\'")}'`).join(';
-') + ';\n';
+const importLines = jsFiles.map(f => `import '../js/${f.replace(/'/g, "\\'")}'`).join(';\n') + ';\n';
 fs.writeFileSync(tempEntryPath, importLines);
 
 // Get all CSS files (exclude .min.css)
@@ -38,6 +37,8 @@ build({
   bundle: true,
   minify: true,
   outfile: jsOut,
+  platform: 'browser',
+  format: 'iife',
   sourcemap: false,
   legalComments: 'none',
 }).then(() => {
