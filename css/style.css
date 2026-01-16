@@ -1,119 +1,14 @@
-body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    background-color: #0b0c10;
-    color: #e9ecef;
-}
+/**
+ * Legacy styles file - DEPRECATED
+ * All general styles have been moved to global.css with CSS custom properties
+ * Unique styles below have been kept for backwards compatibility
+ * TODO: Move these to appropriate page-specific CSS files (home.css, analysis.css, etc.)
+ */
 
-.card {
-    background-color: #111218;
-    color: #e9ecef;
-    border: 1px solid #1f2229;
-}
-
-.card-header {
-    background-color: #14151b;
-    border-bottom: 1px solid #1f2229;
-    color: #f8f9fa;
-}
-
-.card-body {
-    background-color: #111218;
-    color: #e9ecef;
-}
-
-.navbar-dark.bg-dark {
-    background-color: #050608 !important;
-}
-
-footer.bg-dark {
-    background-color: #050608 !important;
-    color: #e9ecef;
-}
-
-.modal-content {
-    background-color: #111218;
-    color: #e9ecef;
-    border: 1px solid #1f2229;
-}
-
-.modal-header.bg-primary {
-    background: linear-gradient(135deg, #1f2a5a 0%, #3a245f 100%);
-}
-
-.text-muted {
-    color: #adb5bd !important;
-}
-
-.form-control {
-    background-color: #14151b;
-    border: 1px solid #343a40;
-    color: #f8f9fa;
-}
-
-.form-control:focus {
-    background-color: #14151b;
-    color: #f8f9fa;
-    border-color: #7289ff;
-    box-shadow: 0 0 0 0.2rem rgba(114,137,255,0.25);
-}
-
-.form-control::placeholder {
-    color: #6c757d;
-    opacity: 1;
-}
-
-::-webkit-input-placeholder {
-    color: #6c757d;
-}
-
-:-moz-placeholder {
-    color: #6c757d;
-    opacity: 1;
-}
-
-::-moz-placeholder {
-    color: #6c757d;
-    opacity: 1;
-}
-
-:-ms-input-placeholder {
-    color: #6c757d;
-}
-
-label.form-label {
-    color: #e9ecef;
-}
-
-.btn-primary {
-    background-color: #7289ff;
-    border-color: #7289ff;
-    color: #0b0c10;
-}
-
-.btn-primary:hover {
-    background-color: #5a72e0;
-    border-color: #5a72e0;
-}
-
-.btn-secondary {
-    background-color: #343a40;
-    border-color: #343a40;
-    color: #f8f9fa;
-}
-
-.btn-outline-danger {
-    color: #ff6b6b;
-    border-color: #ff6b6b;
-}
-
-.btn-outline-danger:hover {
-    background-color: #ff6b6b;
-    color: #0b0c10;
-}
-
+/* Hero Section - Home Page Specific (should be in home.css) */
 .hero-section {
-    background: linear-gradient(135deg, #1f2a5a 0%, #3a245f 100%);
-    color: #f8f9fa;
+    background: var(--header-gradient);
+    color: var(--text-heading);
     padding: 80px 20px;
     text-align: center;
     border-radius: 15px;
@@ -131,21 +26,22 @@ label.form-label {
     opacity: 0.9;
     max-width: 600px;
     margin: 0 auto 30px;
-    color: #ced4da;
+    color: var(--text-secondary);
 }
 
+/* Feature Cards - Home Page Specific */
 .feature-card {
-    background-color: #14151b;
+    background-color: var(--bg-card-header);
     border-radius: 10px;
-    border: 1px solid #1f2229;
+    border: 1px solid var(--border-color);
     transition: transform 0.3s, box-shadow 0.3s, background-color 0.3s;
     height: 100%;
 }
 
 .feature-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-    background-color: #191b23;
+    box-shadow: var(--shadow-lg);
+    background-color: var(--bg-tertiary);
 }
 
 .feature-icon {
@@ -153,11 +49,12 @@ label.form-label {
     margin-bottom: 20px;
 }
 
-.feature-icon.blue { color: #7289ff; }
-.feature-icon.green { color: #3ddc84; }
-.feature-icon.orange { color: #ffb454; }
-.feature-icon.red { color: #ff6b6b; }
+.feature-icon.blue { color: var(--accent-primary); }
+.feature-icon.green { color: var(--accent-success); }
+.feature-icon.orange { color: var(--accent-warning); }
+.feature-icon.red { color: var(--accent-danger); }
 
+/* CTA Buttons - Home Page Specific */
 .cta-button {
     padding: 15px 40px;
     font-size: 1.2rem;
@@ -166,8 +63,8 @@ label.form-label {
 }
 
 .cta-button.primary {
-    background-color: #7289ff;
-    color: #0b0c10;
+    background-color: var(--accent-primary);
+    color: var(--bg-primary);
     border: none;
 }
 
@@ -175,68 +72,46 @@ label.form-label {
     background-color: #5a72e0;
 }
 
+/* Metrics Preview - Home Page Specific */
 .metrics-preview {
-    background-color: #14151b;
+    background-color: var(--bg-tertiary);
     border-radius: 10px;
     padding: 30px;
     margin-top: 40px;
-    border: 1px solid #1f2229;
+    border: 1px solid var(--border-color);
 }
 
 .metric-badge {
     display: inline-block;
     padding: 8px 15px;
     margin: 5px;
-    background-color: #1e2028;
+    background-color: var(--bg-secondary);
     border-radius: 20px;
     font-size: 0.9rem;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.4);
-    color: #e9ecef;
+    box-shadow: var(--shadow-sm);
+    color: var(--text-primary);
 }
 
-.header-section {
-    background: linear-gradient(135deg, #1f2a5a 0%, #3a245f 100%);
-    color: #f8f9fa;
-    padding: 30px;
-    border-radius: 10px;
-    margin-bottom: 30px;
-}
-
-.stock-count-badge {
-    background-color: #3ddc84;
-    color: #0b0c10;
-    padding: 5px 15px;
-    border-radius: 20px;
-    font-size: 0.9rem;
-}
-
+/* Analysis Table Styles - Analysis Page Specific (should be in analysis.css) */
 .analysis-table {
     font-size: 0.85rem;
-    background-color: #111218;
-    color: #e9ecef;
-}
-
-/* Prevent header cells from showing underlying row content when sticky */
-.analysis-table {
-    /* use separate borders so sticky header background doesn't blend with collapsed cells */
+    background-color: var(--bg-card);
+    color: var(--text-primary);
     border-collapse: separate;
     border-spacing: 0;
 }
 
 .analysis-table th {
-    background-color: #1f232b;
-    color: #f8f9fa;
+    background-color: var(--bg-tertiary);
+    color: var(--text-heading);
     position: sticky;
     top: 0;
-    /* higher z-index so header stays above body cells */
     z-index: 20;
     white-space: nowrap;
-    border-bottom: 1px solid #343a40;
-    /* subtle separation from rows when sticky */
-    box-shadow: 0 2px 4px rgba(0,0,0,0.35);
+    border-bottom: 1px solid var(--border-light);
+    box-shadow: var(--shadow-sm);
 }
 
-/* Ensure header paints its background fully when sticky */
 .analysis-table thead th {
     background-clip: padding-box;
     padding-top: 10px;
@@ -246,77 +121,55 @@ label.form-label {
 .analysis-table td {
     vertical-align: middle;
     white-space: nowrap;
-    border-bottom: 1px solid #1f2229;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .metric-header {
-    background-color: #262b33 !important;
-    color: #f8f9fa;
+    background-color: var(--bg-card-header) !important;
+    color: var(--text-heading);
     font-weight: bold;
 }
 
 .stock-row:hover {
-    background-color: #191b23;
+    background-color: var(--bg-tertiary);
 }
 
 .good-value {
-    color: #3ddc84;
+    color: var(--accent-success);
     font-weight: bold;
 }
 
 .bad-value {
-    color: #ff6b6b;
+    color: var(--accent-danger);
     font-weight: bold;
 }
 
 .neutral-value {
-    color: #adb5bd;
-}
-
-.text-center .text-center{
-    color: #e9ecef;
+    color: var(--text-secondary);
 }
 
 .analysis-table td.neutral-value,
 .analysis-table td.text-center {
-    color: #e9ecef;
-}
-
-.remove-btn {
-    padding: 2px 8px;
-    font-size: 0.75rem;
+    color: var(--text-primary);
 }
 
 .table-container {
-    /* allow both horizontal and vertical scrolling so sticky headers/columns work reliably */
     overflow: auto;
     max-height: 70vh;
-    background-color: #111218;
+    background-color: var(--bg-card);
     border-radius: 8px;
-    border: 1px solid #1f2229;
-}
-
-.add-stock-form {
-    max-width: 100%;
-}
-
-.loading-spinner {
-    display: none;
-}
-
-.loading .loading-spinner {
-    display: inline-block;
+    border: 1px solid var(--border-color);
 }
 
 .stock-symbol {
     font-weight: bold;
-    color: #7289ff;
+    color: var(--accent-primary);
 }
 
 .metric-category {
-    background-color: #1f232b;
+    background-color: var(--bg-tertiary);
     font-weight: 600;
-    color: #f8f9fa;
+    color: var(--text-heading);
 }
 
 #stocksTable th,
@@ -331,21 +184,18 @@ label.form-label {
     text-align: left;
     position: sticky;
     left: 0;
-    /* keep first column visually consistent with header */
-    background-color: #1f232b;
-    /* sit below the header but above body cells */
+    background-color: var(--bg-tertiary);
     z-index: 15;
 }
 
-/* Ensure the top-left corner (header + first column) is above the header row shadow */
 #stocksTable thead th:first-child {
     z-index: 30;
-    background-color: #1f232b;
+    background-color: var(--bg-tertiary);
 }
 
 .btn-remove {
-    background-color: #dc3545;
-    color: #f8f9fa;
+    background-color: var(--accent-danger);
+    color: var(--text-heading);
     border: none;
     padding: 3px 8px;
     border-radius: 3px;
@@ -360,15 +210,16 @@ label.form-label {
 .empty-state {
     text-align: center;
     padding: 60px 20px;
-    color: #adb5bd;
+    color: var(--text-secondary);
 }
 
 .empty-state i {
     font-size: 4rem;
     margin-bottom: 20px;
-    color: #343a40;
+    color: var(--border-light);
 }
 
+/* Responsive Design */
 @media (max-width: 768px) {
     .hero-section h1 {
         font-size: 2rem;
@@ -386,151 +237,4 @@ label.form-label {
     .feature-icon {
         font-size: 2rem;
     }
-}
-
-/* Light theme overrides when `body` has class `light-theme` */
-body.light-theme {
-    background-color: #f8f9fa;
-    color: #212529;
-}
-
-body.light-theme .card,
-body.light-theme .card-body,
-body.light-theme .card-header,
-body.light-theme .modal-content {
-    background-color: #ffffff;
-    color: #212529;
-    border-color: #e9ecef;
-}
-
-body.light-theme .navbar-dark.bg-dark {
-    background-color: #ffffff !important;
-}
-
-body.light-theme footer.bg-dark {
-    background-color: #f1f3f5 !important;
-    color: #212529;
-}
-
-body.light-theme .form-control {
-    background-color: #ffffff;
-    border: 1px solid #ced4da;
-    color: #212529;
-}
-
-body.light-theme .form-control:focus {
-    background-color: #ffffff;
-    color: #212529;
-    border-color: #86b7fe;
-    box-shadow: 0 0 0 0.2rem rgba(13,110,253,0.15);
-}
-
-body.light-theme .analysis-table th {
-    background-color: #f1f3f5;
-    color: #212529;
-}
-
-body.light-theme .analysis-table td {
-    background-color: #ffffff;
-    color: #212529;
-}
-
-body.light-theme .text-muted {
-    color: #6c757d !important;
-}
-
-body.light-theme .stock-count-badge {
-    background-color: #0d6efd;
-    color: #ffffff;
-}
-
-body.light-theme .btn-outline-danger {
-    color: #dc3545;
-    border-color: #dc3545;
-}
-
-/* Ensure toggle button looks good in both themes */
-#themeToggle {
-    min-width: 40px;
-}
-
-/* Additional light-theme fixes for consistent appearance */
-body.light-theme .navbar-dark.bg-dark {
-    background-color: #ffffff !important;
-    border-bottom: 1px solid #e9ecef;
-}
-
-body.light-theme .navbar .navbar-brand,
-body.light-theme .navbar .nav-link,
-body.light-theme .navbar .nav-link.active {
-    color: #212529 !important;
-}
-
-body.light-theme .navbar .nav-link.active {
-    font-weight: 600;
-}
-
-body.light-theme .card {
-    background-color: #ffffff;
-    color: #212529;
-    border: 1px solid #e9ecef;
-}
-
-body.light-theme .card-header {
-    background-color: #f8f9fa;
-    color: #212529;
-    border-bottom: 1px solid #e9ecef;
-}
-
-body.light-theme .modal-content {
-    background-color: #ffffff;
-    color: #212529;
-}
-
-body.light-theme .modal-header.bg-primary {
-    background: linear-gradient(135deg, #dbe9ff 0%, #c6dbff 100%);
-    color: #0b0c10;
-}
-
-body.light-theme .analysis-table th {
-    background-color: #f1f3f5;
-    color: #212529;
-    border-bottom: 1px solid #dee2e6;
-}
-
-body.light-theme .analysis-table td {
-    background-color: #ffffff;
-    color: #212529;
-    border-bottom: 1px solid #e9ecef;
-}
-
-body.light-theme .table-container {
-    background-color: #ffffff;
-    border: 1px solid #e9ecef;
-}
-
-body.light-theme .empty-state {
-    color: #6c757d;
-}
-
-body.light-theme .empty-state i {
-    color: #ced4da;
-}
-
-/* Make the theme toggle visible in light theme */
-body.light-theme #themeToggle {
-    color: #212529;
-    border-color: #ced4da;
-    background-color: transparent;
-}
-
-/* Ensure outline-danger looks correct in light theme */
-body.light-theme .btn-outline-danger {
-    color: #dc3545;
-    border-color: #dc3545;
-}
-
-/* Adjust stock symbol color for light theme */
-body.light-theme .stock-symbol {
-    color: #0d6efd;
 }
