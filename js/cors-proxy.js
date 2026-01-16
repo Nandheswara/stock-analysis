@@ -53,17 +53,40 @@ const server = http.createServer(async (req, res) => {
         return
       }
 
+      console.log(`[CORS Proxy] Fetching: ${target}`)
+
       // Fetch target server-side and stream response back
-      const fetchRes = await fetch(target, { method: 'GET' })
-      const contentType = fetchRes.headers.get('content-type') || 'text/plain'
+      const fetchRes = await fetch(target, { 
+        method: 'GET',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Connection': 'keep-alive',
+          'Upgrade-Insecure-Requests': '1'
+        }
+      })
+      
+      if (!fetchRes.ok) {
+        console.error(`[CORS Proxy] Failed to fetch ${target}: ${fetchRes.status} ${fetchRes.statusText}`)
+        sendJSON(res, fetchRes.status, { error: `Upstream returned ${fetchRes.status}: ${fetchRes.statusText}` })
+        return
+      }
+      
+      const contentType = fetchRes.headers.get('content-type') || 'text/html'
+      console.log(`[CORS Proxy] Success: ${target} (${contentType})`)
 
       res.writeHead(200, {
         'Content-Type': contentType,
-        'Access-Control-Allow-Origin': '*'
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type'
       })
 
       const body = await fetchRes.arrayBuffer()
       res.end(Buffer.from(body))
+
     } catch (err) {
       console.error('cors-proxy error', err && err.stack ? err.stack : err)
       sendJSON(res, 500, { error: String(err) })

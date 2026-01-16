@@ -44,8 +44,13 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" media="print" onload="this.media='all'">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" media="print" onload="this.media='all'">
-    <!-- Bundled & Minified CSS -->
-    <link rel="stylesheet" href="../css/bundle.min.css">
+    <!-- CSS Files -->
+    <link rel="stylesheet" href="../css/critical.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/analysis.css">
+    <link rel="stylesheet" href="../css/metrics.css">
+    <link rel="stylesheet" href="../css/firebase-auth.css">
 </head>
 <body>
     <!-- Loading Overlay -->
@@ -717,7 +722,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js" defer></script>
     <!-- Loading Optimizations - lazy loading, performance monitoring -->
-    <script src="../js/loading-optimizations.min.js" defer></script>
+    <script src="../js/loading-optimizations.js" defer></script>
     <!-- Instant Cache Load - Runs before modules to show data immediately -->
     <script>
         (function() {
@@ -757,12 +762,13 @@
             }
         })();
     </script>
-    <!-- Minified JS -->
-    <script src="../js/global.min.js"></script>
-    <!-- Debug script disabled for production -->\n    <!-- <script src="../js/analysis-debug.min.js" defer></script> -->
-    <script src="../js/groww-crawler.min.js" defer></script>
-    <script type="module" src="../js/analysis.min.js"></script>
-    <script src="../js/metrics.min.js" defer></script>
-    <script src="../js/groww-storage.min.js" defer></script>
+    <!-- JavaScript -->
+    <script src="../js/global.js"></script>
+    <!-- Debug script disabled for production -->
+    <!-- <script src="../js/analysis-debug.js" defer></script> -->
+    <script src="../js/groww-crawler.js" defer></script>
+    <script type="module" src="../js/analysis.js"></script>
+    <script src="../js/metrics.js" defer></script>
+    <script src="../js/groww-storage.js" defer></script>
 </body>
 </html>

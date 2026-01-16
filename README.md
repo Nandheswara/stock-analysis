@@ -60,6 +60,21 @@ A modern web application for analyzing Indian stocks with fundamental metrics. N
 
 ## How to Use
 
+### ⚠️ Prerequisites
+
+**CRITICAL: Local CORS Proxy Must Be Running**
+
+Before using the stock analysis features, you **MUST** start the local CORS proxy server:
+
+```powershell
+# Run with Node.js
+node js/cors-proxy.js
+```
+
+The proxy enables fetching data from Groww and Yahoo Finance. Without it, data fetching will fail.
+
+**Keep the proxy running in the background** while using the application.
+
 ### Local Development
 
 1. Clone or download this folder
@@ -141,13 +156,40 @@ stock-analysis/
 The app now fetches data from **two sources simultaneously**:
 
 1. **Groww.in**: Fetches fundamental metrics like ROE, P/E, Debt-to-Equity, Promoter Holdings, etc.
-2. **Yahoo Finance**: Fetches additional metrics like ROA (%), EBITDA, P/S YoY, and BETA
+2. **Yahoo Finance**: Fetches additional metrics like ROA (%), EBITDA, P/S YoY, and **BETA (5Y Monthly)**
 
 When you click the **Fetch** button:
 - Both sources are queried in parallel using `Promise.all()`
 - Data is combined automatically
 - The UI displays metrics from both sources
 - If one source fails, the other continues (non-blocking)
+
+### Beta Value Crawling ⭐ NEW
+The **BETA** metric is now automatically fetched from Yahoo Finance:
+- **What is Beta?**: Measures stock volatility relative to the market
+  - Beta < 1: Less volatile than market
+  - Beta = 1: Moves with market
+  - Beta > 1: More volatile than market
+- **Data Source**: Yahoo Finance Key Statistics page
+- **Location**: Trading Information → Stock Price History → Beta (5Y Monthly)
+- **Example**: TCS has Beta ~0.30, meaning it's less volatile than the market
+
+#### CORS Proxy Setup
+
+⚠️ **IMPORTANT: The local CORS proxy MUST be running for data fetching to work!**
+
+**Start CORS Proxy** (required for fetching external data):
+
+```bash
+node js/cors-proxy.js
+```
+
+The proxy will start on `http://localhost:8080` and must remain running while using the app.
+
+**Troubleshooting:**
+- If you get "port already in use" error, the proxy may already be running
+- Check running process: `Get-NetTCPConnection -LocalPort 8080`
+- Stop existing: Find process PID and use `Stop-Process -Id <PID>`
 
 ### Yahoo Symbol Mapping
 The file `resource/yahoo-symbols.json` maps stock symbols to Yahoo Finance format:

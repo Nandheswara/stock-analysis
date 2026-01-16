@@ -173,10 +173,13 @@ async function fetchWithCorsFallback(url) {
     (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
   ]
 
-  for (const makeProxy of proxies) {
+  for (let i = 0; i < proxies.length; i++) {
+    const makeProxy = proxies[i]
     const proxyUrl = makeProxy(url)
+    const proxyName = proxyUrl.includes('localhost') ? 'LOCAL PROXY' : `PROXY ${i + 1}`
+    
     try {
-      
+      console.log(`fetch.js: Trying ${proxyName}: ${proxyUrl.substring(0, 60)}...`)
       
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
@@ -206,30 +209,47 @@ async function fetchWithCorsFallback(url) {
       }
       
       // Verify we got HTML content (not an error page)
-      if (txt && txt.includes('<!DOCTYPE') || txt.includes('<html')) {
-        
+      if (txt && (txt.includes('<!DOCTYPE') || txt.includes('<html'))) {
+        console.log(`fetch.js: ✓ ${proxyName} succeeded`)
         return txt
       } else {
         throw new Error('Response does not contain HTML')
       }
     } catch (err) {
       const errorMsg = err.name === 'AbortError' ? 'Timeout' : (err && err.message)
-      console.warn('fetch.js: proxy failed', proxyUrl.substring(0, 50), errorMsg)
+      console.warn(`fetch.js: ✗ ${proxyName} failed:`, errorMsg)
       tried.push({ proxy: proxyUrl, error: errorMsg })
     }
   }
 
   // Last resort: try direct fetch (will likely fail due to CORS)
   try {
-    
+    console.log('fetch.js: Trying DIRECT fetch (will likely fail due to CORS)...')
     const res = await fetch(url, { mode: 'cors' })
     if (!res.ok) throw new Error('Network response not ok: ' + res.status)
+    console.log('fetch.js: ✓ DIRECT fetch succeeded (unexpected)')
     return await res.text()
   } catch (err) {
     tried.push({ direct: url, error: err && err.message })
-    const msg = 'All fetch attempts failed. Please start the local CORS proxy: node js/cors-proxy.js'
-    console.error('fetch.js:', msg)
-    console.error('Attempted proxies:', tried)
+    
+    // Check if local proxy was tried
+    const localProxyAttempted = tried.some(t => t.proxy && t.proxy.includes('localhost:8080'))
+    
+    let msg = 'All fetch attempts failed.'
+    if (!localProxyAttempted) {
+      msg += ' Local CORS proxy not reachable.'
+    }
+    
+    // Only log detailed errors if it's not a Yahoo Finance URL (Yahoo blocks are expected)
+    if (!url.includes('finance.yahoo.com')) {
+      console.error('fetch.js:', msg)
+      console.error('Attempted proxies:', tried)
+      msg += ' Please ensure the local CORS proxy is running: node js/cors-proxy.js'
+    } else {
+      console.warn('fetch.js: Yahoo Finance blocked all proxies (this is normal - Yahoo has strong anti-bot protection)')
+      msg = 'Yahoo Finance is currently unavailable due to CORS/anti-bot protection'
+    }
+    
     throw new Error(msg)
   }
 }
@@ -893,11 +913,123 @@ function parseYahooStats(htmlText) {
   result.psYoY = cleanNumber(psValue)
 
   // Extract Beta (usually labeled as "Beta (5Y Monthly)" or just "Beta")
-  let betaValue = findInValuationMeasures(/Beta/i) || 
-                  findValueByLabel(/Beta/i) || 
-                  findValueInSpans(/Beta/i)
-  result.beta = cleanNumber(betaValue)
+  // Yahoo Finance shows Beta in "Stock Price History" section under "Trading Information"
+  let betaValue = null
   
+  // Method 1: Look for Beta in Yahoo Finance's modern structure with fin-streamer tags
+  // Yahoo uses <fin-streamer> or similar custom elements
+  const allElements = Array.from(doc.querySelectorAll('*'))
+  for (let i = 0; i < allElements.length; i++) {
+    const elem = allElements[i]
+    const text = elem.textContent?.trim() || ''
+    
+    // Look for "Beta (5Y Monthly)" label
+    if (/Beta\s*\(5Y\s*Monthly\)|Beta\s*\(.*?\)|^Beta$/i.test(text) && text.length < 30) {
+      console.log('fetch.js: Found Beta label:', text)
+      
+      // Strategy A: Check next sibling elements
+      let nextElem = elem.nextElementSibling
+      let attempts = 0
+      while (nextElem && attempts < 5) {
+        const value = nextElem.textContent?.trim()
+        // Beta values are typically like "0.85", "1.23", "-0.5", "N/A"
+        if (value && /^[-]?\d+\.?\d*$|^N\/A$/i.test(value)) {
+          betaValue = value
+          console.log('fetch.js: Found Beta value in next sibling:', betaValue)
+          break
+        }
+        nextElem = nextElem.nextElementSibling
+        attempts++
+      }
+      
+      if (betaValue) break
+      
+      // Strategy B: Check parent's next sibling
+      const parent = elem.parentElement
+      if (parent?.nextElementSibling) {
+        const value = parent.nextElementSibling.textContent?.trim()
+        if (value && /^[-]?\d+\.?\d*$|^N\/A$/i.test(value)) {
+          betaValue = value
+          console.log('fetch.js: Found Beta value in parent\'s next sibling:', betaValue)
+          break
+        }
+      }
+      
+      // Strategy C: Check if value is in the same element but in a child
+      const children = Array.from(elem.children)
+      for (const child of children) {
+        const value = child.textContent?.trim()
+        if (value && value !== text && /^[-]?\d+\.?\d*$|^N\/A$/i.test(value)) {
+          betaValue = value
+          console.log('fetch.js: Found Beta value in child element:', betaValue)
+          break
+        }
+      }
+      
+      if (betaValue) break
+    }
+  }
+  
+  // Method 2: Look for Beta in table rows with specific Yahoo Finance class structure
+  if (!betaValue) {
+    const tableRows = Array.from(doc.querySelectorAll('tr'))
+    for (const row of tableRows) {
+      const cells = Array.from(row.querySelectorAll('td, th'))
+      
+      for (let i = 0; i < cells.length - 1; i++) {
+        const labelText = cells[i].textContent?.trim() || ''
+        if (/Beta\s*\(5Y Monthly\)|Beta\s*\(.*?\)|^Beta$/i.test(labelText) && labelText.length < 30) {
+          // Check next cell for value
+          const value = cells[i + 1].textContent?.trim()
+          if (value && /^[-]?\d+\.?\d*$|^N\/A$/i.test(value)) {
+            betaValue = value
+            console.log('fetch.js: Found Beta in table row:', betaValue)
+            break
+          }
+        }
+      }
+      
+      if (betaValue) break
+    }
+  }
+  
+  // Method 3: Fallback to generic table structure search
+  if (!betaValue) {
+    betaValue = findValueByLabel(/Beta\s*\(5Y Monthly\)|Beta\s*\(.*?\)|^Beta$/i)
+    if (betaValue) {
+      console.log('fetch.js: Found Beta using findValueByLabel:', betaValue)
+    }
+  }
+  
+  // Method 4: Use Valuation Measures finder
+  if (!betaValue) {
+    betaValue = findInValuationMeasures(/Beta/i)
+    if (betaValue) {
+      console.log('fetch.js: Found Beta using findInValuationMeasures:', betaValue)
+    }
+  }
+  
+  // Method 5: Span/div search
+  if (!betaValue) {
+    betaValue = findValueInSpans(/Beta/i)
+    if (betaValue) {
+      console.log('fetch.js: Found Beta using findValueInSpans:', betaValue)
+    }
+  }
+  
+  // Method 6: Raw text search with regex as last resort
+  if (!betaValue) {
+    const bodyText = doc.body?.textContent || ''
+    // Look for patterns like "Beta (5Y Monthly)0.85" or "Beta1.23"
+    const betaMatch = bodyText.match(/Beta\s*\(5Y\s*Monthly\)?[:\s]*?([-]?\d+\.?\d*)/i)
+    if (betaMatch && betaMatch[1]) {
+      betaValue = betaMatch[1]
+      console.log('fetch.js: Found Beta using raw text search:', betaValue)
+    }
+  }
+  
+  result.beta = cleanNumber(betaValue)
+  console.log('fetch.js: Final Beta value:', result.beta)
 
   
   return result
@@ -926,8 +1058,8 @@ async function fetchYahooStats(url) {
     
     return stats
   } catch (err) {
-    console.error('fetch.js: fetchYahooStats failed', err)
-    // Return null object on failure (non-blocking)
+    console.warn('fetch.js: Yahoo Finance fetch failed (this is normal - Yahoo blocks proxies):', err.message)
+    // Return null object on failure (non-blocking) - Yahoo Finance is optional
     return {
       roa: null,
       ebitdaLatest: null,
@@ -1011,14 +1143,15 @@ export function makeFetchStockData({ getStocksData, renderTable, showAlert, upda
       
 
       // Fetch from BOTH sources in parallel using Promise.all
+      // Yahoo Finance is optional since it often blocks proxies
       const [growwData, yahooData] = await Promise.all([
         fetchGrowwStats(growwUrl).catch(err => {
-          console.error('Groww fetch failed:', err)
+          console.error('fetch.js: Groww fetch failed:', err.message)
           return null // Non-blocking: continue even if Groww fails
         }),
         fetchYahooStats(yahooUrl).catch(err => {
-          console.error('Yahoo fetch failed:', err)
-          return null // Non-blocking: continue even if Yahoo fails
+          console.warn('fetch.js: Yahoo Finance unavailable (blocked by CORS) - continuing with Groww data only')
+          return null // Non-blocking: Yahoo Finance is optional
         })
       ])
       
@@ -1056,6 +1189,7 @@ export function makeFetchStockData({ getStocksData, renderTable, showAlert, upda
       if (hasGrowwData && hasYahooData) {
         successMsg += ' (Groww + Yahoo Finance)'
       } else if (hasGrowwData) {
+        // Yahoo Finance may be blocked by CORS
         successMsg += ' (Groww only)'
       } else if (hasYahooData) {
         successMsg += ' (Yahoo Finance only)'
