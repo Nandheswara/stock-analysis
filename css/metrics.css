@@ -53,9 +53,9 @@
    
 }
 
-/* Remove Bootstrap text-center color override */
+
 #stocksTable td.text-center {
-    color: inherit !important;
+  color: inherit !important;
 }
 
 /* Performance Cell Centering */

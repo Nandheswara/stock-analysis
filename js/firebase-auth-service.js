@@ -26,7 +26,8 @@ import {
 import {
     ref as dbRef,
     set,
-    get
+    get,
+    update
 } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js";
 
 /**
@@ -48,6 +49,19 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * Minimum password length
  */
 const MIN_PASSWORD_LENGTH = 6;
+
+/**
+ * Primary admin email - cannot be removed from admin access
+ * This is the super admin with full control
+ */
+const PRIMARY_ADMIN_EMAIL = 'nandheswara21@gmail.com';
+
+/**
+ * Cached admin emails from database
+ */
+let cachedAdminEmails = null;
+let adminCacheTimestamp = 0;
+const ADMIN_CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
 
 /**
  * Current user object
@@ -283,6 +297,26 @@ export async function signUpUser(email, password, displayName) {
             });
         }
         
+        // Save user data to database for admin panel visibility
+        try {
+            const userRef = dbRef(database, `users/${userCredential.user.uid}`);
+            await set(userRef, {
+                email: userCredential.user.email,
+                displayName: displayName || null,
+                createdAt: Date.now(),
+                lastActive: Date.now(),
+                role: 'user',
+                status: 'active',
+                metadata: {
+                    createdAt: Date.now(),
+                    lastLogin: Date.now()
+                }
+            });
+        } catch (dbError) {
+            console.error('Error saving user to database:', dbError);
+            // Don't fail signup if database write fails
+        }
+        
         return { success: true, user: userCredential.user };
     } catch (error) {
         console.error('Sign up failed:', error.code);
@@ -339,6 +373,44 @@ export async function signInUser(email, password) {
         currentUser = user;
         authStateResolved = true;
         
+        // Update last active timestamp in database
+        try {
+            const userRef = dbRef(database, `users/${user.uid}`);
+            const snapshot = await get(userRef);
+            if (snapshot.exists()) {
+                // Update existing user's lastActive and sync data from Auth
+                const updates = {
+                    lastActive: Date.now(),
+                    'metadata/lastLogin': Date.now()
+                };
+                // Always sync email and displayName from Firebase Auth
+                if (user.email) {
+                    updates.email = user.email;
+                }
+                if (user.displayName) {
+                    updates.displayName = user.displayName;
+                }
+                await update(userRef, updates);
+            } else {
+                // Create user record if doesn't exist (for existing auth users)
+                await set(userRef, {
+                    email: user.email,
+                    displayName: user.displayName || null,
+                    createdAt: Date.now(),
+                    lastActive: Date.now(),
+                    role: 'user',
+                    status: 'active',
+                    metadata: {
+                        createdAt: Date.now(),
+                        lastLogin: Date.now()
+                    }
+                });
+            }
+        } catch (dbError) {
+            console.error('Error updating user activity:', dbError);
+            // Don't fail login if database write fails
+        }
+        
         return { success: true, user };
     } catch (error) {
         console.error('Sign in failed:', error.code);
@@ -378,6 +450,44 @@ export async function signInWithGoogle() {
         // Update current user reference
         currentUser = user;
         authStateResolved = true;
+        
+        // Save/update user data in database
+        try {
+            const userRef = dbRef(database, `users/${user.uid}`);
+            const snapshot = await get(userRef);
+            if (snapshot.exists()) {
+                // Update existing user's lastActive and sync data from Auth
+                const updates = {
+                    lastActive: Date.now(),
+                    'metadata/lastLogin': Date.now()
+                };
+                // Always sync email and displayName from Firebase Auth
+                if (user.email) {
+                    updates.email = user.email;
+                }
+                if (user.displayName) {
+                    updates.displayName = user.displayName;
+                }
+                await update(userRef, updates);
+            } else {
+                // Create user record for new Google sign-in users
+                await set(userRef, {
+                    email: user.email,
+                    displayName: user.displayName || null,
+                    createdAt: Date.now(),
+                    lastActive: Date.now(),
+                    role: 'user',
+                    status: 'active',
+                    metadata: {
+                        createdAt: Date.now(),
+                        lastLogin: Date.now()
+                    }
+                });
+            }
+        } catch (dbError) {
+            console.error('Error saving Google user to database:', dbError);
+            // Don't fail login if database write fails
+        }
         
         return { success: true, user };
     } catch (error) {
@@ -832,15 +942,124 @@ export function isEmailVerified() {
 }
 
 /**
+ * Check if the current user is an admin
+ * @param {Object} user - Optional user object, defaults to currentUser
+ * @returns {Promise<boolean>} True if user is admin
+ */
+export async function isUserAdmin(user = null) {
+    const checkUser = user || currentUser;
+    
+    if (!checkUser) {
+        console.log('isUserAdmin: No user to check');
+        return false;
+    }
+    
+    const userEmail = checkUser.email?.toLowerCase();
+    console.log('isUserAdmin: Checking admin status for:', userEmail);
+    
+    // Method 1: Check if primary admin
+    if (userEmail === PRIMARY_ADMIN_EMAIL.toLowerCase()) {
+        console.log('isUserAdmin: User is PRIMARY admin');
+        return true;
+    }
+    
+    // Method 2: Check database admin list
+    try {
+        const adminEmails = await getAdminEmailsFromDB();
+        console.log('isUserAdmin: Admin emails from DB:', adminEmails);
+        if (adminEmails.includes(userEmail)) {
+            console.log('isUserAdmin: User found in admin list');
+            return true;
+        }
+    } catch (error) {
+        console.error('Error checking admin list:', error);
+    }
+    
+    // Method 3: Check user's role in their profile
+    try {
+        const userRef = dbRef(database, `users/${checkUser.uid}/role`);
+        const snapshot = await get(userRef);
+        if (snapshot.exists() && snapshot.val() === 'admin') {
+            console.log('isUserAdmin: User has admin role in profile');
+            return true;
+        }
+    } catch (error) {
+        console.error('Error checking admin status:', error);
+    }
+    
+    console.log('isUserAdmin: User is NOT admin');
+    return false;
+}
+
+/**
+ * Get admin emails from database with caching
+ * @returns {Promise<string[]>} Array of admin emails
+ */
+async function getAdminEmailsFromDB() {
+    const now = Date.now();
+    
+    // Return cached if valid
+    if (cachedAdminEmails && (now - adminCacheTimestamp) < ADMIN_CACHE_DURATION_MS) {
+        return cachedAdminEmails;
+    }
+    
+    try {
+        const adminsRef = dbRef(database, 'adminUsers');
+        const snapshot = await get(adminsRef);
+        
+        if (snapshot.exists()) {
+            const adminsData = snapshot.val();
+            cachedAdminEmails = Object.values(adminsData)
+                .filter(admin => admin.active !== false)
+                .map(admin => admin.email?.toLowerCase());
+        } else {
+            cachedAdminEmails = [];
+        }
+        
+        adminCacheTimestamp = now;
+        return cachedAdminEmails;
+    } catch (error) {
+        console.error('Error fetching admin emails:', error);
+        return cachedAdminEmails || [];
+    }
+}
+
+/**
+ * Clear admin cache (call when admin list changes)
+ */
+export function clearAdminCache() {
+    cachedAdminEmails = null;
+    adminCacheTimestamp = 0;
+}
+
+/**
+ * Check if email is the primary admin
+ * @param {string} email - Email to check
+ * @returns {boolean}
+ */
+export function isPrimaryAdmin(email) {
+    return email?.toLowerCase() === PRIMARY_ADMIN_EMAIL.toLowerCase();
+}
+
+/**
+ * Get primary admin email
+ * @returns {string}
+ */
+export function getPrimaryAdminEmail() {
+    return PRIMARY_ADMIN_EMAIL;
+}
+
+/**
  * Update UI elements based on authentication state
  * @param {Object|null} user - Current user object
  */
-function updateAuthUI(user) {
+async function updateAuthUI(user) {
     const authButtons = document.getElementById('authButtons');
     const userProfile = document.getElementById('userProfile');
     const userEmail = document.getElementById('userEmail');
     const analysisContent = document.getElementById('analysisContent');
     const authPrompt = document.getElementById('authPrompt');
+    const adminPanelLink = document.getElementById('adminPanelLink');
     
     if (user) {
         // User is logged in - hide auth buttons, show user profile
@@ -862,6 +1081,13 @@ function updateAuthUI(user) {
         if (authPrompt) {
             authPrompt.style.display = 'none';
         }
+        
+        // Check and show admin link if user is admin
+        if (adminPanelLink) {
+            const isAdmin = await isUserAdmin(user);
+            console.log('Admin check result:', isAdmin, 'for user:', user.email);
+            adminPanelLink.style.display = isAdmin ? 'block' : 'none';
+        }
     } else {
         // User is logged out - show auth buttons, hide user profile
         if (authButtons) {
@@ -877,6 +1103,11 @@ function updateAuthUI(user) {
         }
         if (authPrompt) {
             authPrompt.style.display = 'block';
+        }
+        
+        // Hide admin link when logged out
+        if (adminPanelLink) {
+            adminPanelLink.style.display = 'none';
         }
     }
 }

@@ -4,6 +4,13 @@ A modern web application for analyzing Indian stocks with fundamental metrics. N
 
 ## 🚀 Latest Updates
 
+### 🌐 Dual Data Source Integration (Groww + Yahoo Finance) ✅ NEW
+- 📊 **Yahoo Finance Integration**: Fetch ROA, EBITDA, P/S YoY, and BETA from Yahoo Finance
+- 🔄 **Parallel Fetching**: Fetch from both Groww and Yahoo Finance simultaneously
+- 🎯 **Comprehensive Metrics**: Get the best of both sources automatically
+- 📈 **Enhanced Accuracy**: Cross-reference data from multiple reliable sources
+- 🗺️ **Symbol Mapping**: Automatic mapping from stock names to Yahoo Finance symbols
+
 ### 🔥 Firebase Integration ✅ COMPLETE
 - ☁️ **Cloud Storage**: All data stored in Firebase Realtime Database
 - 🔄 **Real-time Sync**: Changes sync instantly across all devices
@@ -29,7 +36,6 @@ A modern web application for analyzing Indian stocks with fundamental metrics. N
 2. Quick Ratio (In-Hand Cash)
 3. Leverage (Debt Equity Ratio)
 4. Profitability (ROE)
-5. Investor's Money Growth Ratio
 6. Return on Asset (ROA)
 7. EBITDA (Latest & Previous FY)
 8. Dividend Yield
@@ -53,6 +59,21 @@ A modern web application for analyzing Indian stocks with fundamental metrics. N
   - Firebase Analytics
 
 ## How to Use
+
+### ⚠️ Prerequisites
+
+**CRITICAL: Local CORS Proxy Must Be Running**
+
+Before using the stock analysis features, you **MUST** start the local CORS proxy server:
+
+```powershell
+# Run with Node.js
+node js/cors-proxy.js
+```
+
+The proxy enables fetching data from Groww and Yahoo Finance. Without it, data fetching will fail.
+
+**Keep the proxy running in the background** while using the application.
 
 ### Local Development
 
@@ -115,15 +136,72 @@ stock-analysis/
 ├── js/
 │   ├── global.js                       # Global JavaScript
 │   ├── analysis.js                     # Main application logic with Firebase
+│   ├── fetch.js                        # Data fetching (Groww + Yahoo Finance)
 │   ├── firebase-config.js              # Firebase configuration (gitignored)
 │   ├── firebase-auth-service.js        # Authentication service
 │   ├── firebase-database-service.js    # Database operations service
 │   └── analysis-localStorage-backup.js # Original localStorage version (backup)
+├── resource/
+│   ├── stocks.json                     # Stock data
+│   └── yahoo-symbols.json              # Yahoo Finance symbol mappings
 ├── .gitignore                          # Git ignore rules
 ├── README.md                           # This file
 ├── FIREBASE_INTEGRATION_COMPLETE.md    # Firebase setup guide
 └── firebase-config.example.js          # Firebase config template
 ```
+
+## 🔄 Data Fetching
+
+### Dual Source Integration
+The app now fetches data from **two sources simultaneously**:
+
+1. **Groww.in**: Fetches fundamental metrics like ROE, P/E, Debt-to-Equity, Promoter Holdings, etc.
+2. **Yahoo Finance**: Fetches additional metrics like ROA (%), EBITDA, P/S YoY, and **BETA (5Y Monthly)**
+
+When you click the **Fetch** button:
+- Both sources are queried in parallel using `Promise.all()`
+- Data is combined automatically
+- The UI displays metrics from both sources
+- If one source fails, the other continues (non-blocking)
+
+### Beta Value Crawling ⭐ NEW
+The **BETA** metric is now automatically fetched from Yahoo Finance:
+- **What is Beta?**: Measures stock volatility relative to the market
+  - Beta < 1: Less volatile than market
+  - Beta = 1: Moves with market
+  - Beta > 1: More volatile than market
+- **Data Source**: Yahoo Finance Key Statistics page
+- **Location**: Trading Information → Stock Price History → Beta (5Y Monthly)
+- **Example**: TCS has Beta ~0.30, meaning it's less volatile than the market
+
+#### CORS Proxy Setup
+
+⚠️ **IMPORTANT: The local CORS proxy MUST be running for data fetching to work!**
+
+**Start CORS Proxy** (required for fetching external data):
+
+```bash
+node js/cors-proxy.js
+```
+
+The proxy will start on `http://localhost:8080` and must remain running while using the app.
+
+**Troubleshooting:**
+- If you get "port already in use" error, the proxy may already be running
+- Check running process: `Get-NetTCPConnection -LocalPort 8080`
+- Stop existing: Find process PID and use `Stop-Process -Id <PID>`
+
+### Yahoo Symbol Mapping
+The file `resource/yahoo-symbols.json` maps stock symbols to Yahoo Finance format:
+```json
+{
+  "ITC": "ITC.NS",
+  "TCS": "TCS.NS",
+  "RELIANCE": "RELIANCE.NS"
+}
+```
+
+To add new stocks, update this file with the appropriate Yahoo Finance symbol (usually `SYMBOL.NS` for NSE stocks).
 
 ## 💾 Data Storage
 

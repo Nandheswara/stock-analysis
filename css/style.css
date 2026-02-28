@@ -1,0 +1,240 @@
+/**
+ * Legacy styles file - DEPRECATED
+ * All general styles have been moved to global.css with CSS custom properties
+ * Unique styles below have been kept for backwards compatibility
+ * TODO: Move these to appropriate page-specific CSS files (home.css, analysis.css, etc.)
+ */
+
+/* Hero Section - Home Page Specific (should be in home.css) */
+.hero-section {
+    background: var(--header-gradient);
+    color: var(--text-heading);
+    padding: 80px 20px;
+    text-align: center;
+    border-radius: 15px;
+    margin-bottom: 40px;
+}
+
+.hero-section h1 {
+    font-size: 3rem;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+.hero-section p {
+    font-size: 1.2rem;
+    opacity: 0.9;
+    max-width: 600px;
+    margin: 0 auto 30px;
+    color: var(--text-secondary);
+}
+
+/* Feature Cards - Home Page Specific */
+.feature-card {
+    background-color: var(--bg-card-header);
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    transition: transform 0.3s, box-shadow 0.3s, background-color 0.3s;
+    height: 100%;
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+    background-color: var(--bg-tertiary);
+}
+
+.feature-icon {
+    font-size: 3rem;
+    margin-bottom: 20px;
+}
+
+.feature-icon.blue { color: var(--accent-primary); }
+.feature-icon.green { color: var(--accent-success); }
+.feature-icon.orange { color: var(--accent-warning); }
+.feature-icon.red { color: var(--accent-danger); }
+
+/* CTA Buttons - Home Page Specific */
+.cta-button {
+    padding: 15px 40px;
+    font-size: 1.2rem;
+    border-radius: 30px;
+    text-decoration: none;
+}
+
+.cta-button.primary {
+    background-color: var(--accent-primary);
+    color: var(--bg-primary);
+    border: none;
+}
+
+.cta-button.primary:hover {
+    background-color: #5a72e0;
+}
+
+/* Metrics Preview - Home Page Specific */
+.metrics-preview {
+    background-color: var(--bg-tertiary);
+    border-radius: 10px;
+    padding: 30px;
+    margin-top: 40px;
+    border: 1px solid var(--border-color);
+}
+
+.metric-badge {
+    display: inline-block;
+    padding: 8px 15px;
+    margin: 5px;
+    background-color: var(--bg-secondary);
+    border-radius: 20px;
+    font-size: 0.9rem;
+    box-shadow: var(--shadow-sm);
+    color: var(--text-primary);
+}
+
+/* Analysis Table Styles - Analysis Page Specific (should be in analysis.css) */
+.analysis-table {
+    font-size: 0.85rem;
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.analysis-table th {
+    background-color: var(--bg-tertiary);
+    color: var(--text-heading);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--border-light);
+    box-shadow: var(--shadow-sm);
+}
+
+.analysis-table thead th {
+    background-clip: padding-box;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+.analysis-table td {
+    vertical-align: middle;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.metric-header {
+    background-color: var(--bg-card-header) !important;
+    color: var(--text-heading);
+    font-weight: bold;
+}
+
+.stock-row:hover {
+    background-color: var(--bg-tertiary);
+}
+
+.good-value {
+    color: var(--accent-success);
+    font-weight: bold;
+}
+
+.bad-value {
+    color: var(--accent-danger);
+    font-weight: bold;
+}
+
+.neutral-value {
+    color: var(--text-secondary);
+}
+
+.analysis-table td.neutral-value,
+.analysis-table td.text-center {
+    color: var(--text-primary);
+}
+
+.table-container {
+    overflow: auto;
+    max-height: 70vh;
+    background-color: var(--bg-card);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.stock-symbol {
+    font-weight: bold;
+    color: var(--accent-primary);
+}
+
+.metric-category {
+    background-color: var(--bg-tertiary);
+    font-weight: 600;
+    color: var(--text-heading);
+}
+
+#stocksTable th,
+#stocksTable td {
+    padding: 8px 12px;
+    text-align: center;
+    background-color: inherit;
+}
+
+#stocksTable th:first-child,
+#stocksTable td:first-child {
+    text-align: left;
+    position: sticky;
+    left: 0;
+    background-color: var(--bg-tertiary);
+    z-index: 15;
+}
+
+#stocksTable thead th:first-child {
+    z-index: 30;
+    background-color: var(--bg-tertiary);
+}
+
+.btn-remove {
+    background-color: var(--accent-danger);
+    color: var(--text-heading);
+    border: none;
+    padding: 3px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.75rem;
+}
+
+.btn-remove:hover {
+    background-color: #c82333;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-secondary);
+}
+
+.empty-state i {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    color: var(--border-light);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .hero-section h1 {
+        font-size: 2rem;
+    }
+    
+    .hero-section p {
+        font-size: 1rem;
+    }
+    
+    .cta-button {
+        padding: 10px 30px;
+        font-size: 1rem;
+    }
+    
+    .feature-icon {
+        font-size: 2rem;
+    }
+}

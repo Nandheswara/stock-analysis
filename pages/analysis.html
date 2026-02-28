@@ -9,7 +9,9 @@
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://stock-analysis-51b9a-default-rtdb.firebaseio.com" crossorigin>
     <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="dns-prefetch" href="https://www.gstatic.com">
+    <link rel="dns-prefetch" href="https://code.jquery.com">
     <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js">
     <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js">
     <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js">
@@ -36,19 +38,19 @@
     <meta name="twitter:description" content="Analyze Indian stocks with 13 fundamental metrics. Cloud-based with real-time sync.">
     <meta name="twitter:image" content="https://nandheswara.github.io/stock-analysis/images/twitter-stock-analysis.jpg">
     
-    <!-- External CSS -->
+    <!-- Critical CSS for fast first paint -->
+    <link rel="stylesheet" href="../css/critical.css">
+    <!-- External CSS (CDN) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
-    
-    <!-- Global CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <!-- CSS Files -->
+    <link rel="stylesheet" href="../css/critical.css">
+    <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/global.css">
-    
-    <!-- Page-specific CSS -->
     <link rel="stylesheet" href="../css/analysis.css">
-    <link rel="stylesheet" href="../css/firebase-auth.css">
-
-    <!-- Stock specific Metrics CSS -->
     <link rel="stylesheet" href="../css/metrics.css">
+    <link rel="stylesheet" href="../css/firebase-auth.css">
 </head>
 <body>
     <!-- Loading Overlay -->
@@ -107,8 +109,7 @@
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end">
                                 <li><a class="dropdown-item" href="profile.html" id="profileBtn"><i class="bi bi-person-gear"></i> Profile</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#" id="migrateDataBtn"><i class="bi bi-cloud-upload"></i> Migrate Local Data</a></li>
+                                <li><a class="dropdown-item" href="admin.html" id="adminPanelLink" style="display: none;"><i class="bi bi-shield-check"></i> Admin Panel</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="#" id="logoutBtn"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
                             </ul>
@@ -145,19 +146,28 @@
             <div class="card-body">
                 <form id="addStockForm" class="add-stock-form">
                     <div class="row g-3">
-                        <div class="col-md-4">
-                            <label for="stockSymbol" class="form-label">Stock Symbol *</label>
-                            <input type="text" class="form-control" id="stockSymbol" 
-                                   placeholder="e.g., TCS, RELIANCE, HDFC" 
-                                   required autocomplete="off">
+                        <div class="col-md-3">
+                            <label for="stockSymbol" class="form-label">Select Stock *</label>
+                            <select class="form-select" id="stockSymbol" required>
+                                <option value="">Search or select a stock...</option>
+                            </select>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label for="stockName" class="form-label">Company Name *</label>
                             <input type="text" class="form-control" id="stockName" 
-                                   placeholder="e.g., Tata Consultancy Services" 
+                                   placeholder="Auto-filled or enter manually" 
                                    required>
                         </div>
-                        <div class="col-md-4 d-flex align-items-end">
+                        <!-- Manual Stock Symbol Input (shown only for manual entry) -->
+                        <div class="col-md-3 d-none" id="manualSymbolGroup">
+                            <label for="manualStockSymbol" class="form-label">NSE/BSE Symbol</label>
+                            <input type="text" class="form-control" id="manualStockSymbol" 
+                                   placeholder="e.g., TCS, RELIANCE"
+                                   maxlength="20"
+                                   style="text-transform: uppercase;">
+                            <small class="text-muted">Optional - for reference</small>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
                             <button class="btn btn-primary w-100" type="submit" id="addBtn">
                                 <span class="loading-spinner spinner-border spinner-border-sm me-1"></span>
                                 <i class="bi bi-plus"></i> Add Stock
@@ -165,7 +175,7 @@
                         </div>
                     </div>
                     <small class="text-muted mt-2 d-block">
-                        <i class="bi bi-info-circle"></i> After adding, click "Edit" to enter stock details and prices manually.
+                        <i class="bi bi-info-circle"></i> Select a stock from the list or choose "Add Stock Manually" to enter a stock not in the list. After adding, click "Edit" to enter stock details.
                     </small>
                 </form>
             </div>
@@ -179,6 +189,9 @@
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-table"></i> Stock Fundamental Analysis</h5>
                 <div>
+                    <button class="btn btn-sm btn-outline-success me-2" id="fetchAllBtn" style="display: none;" title="Fetch data for all stocks from Groww">
+                        <i class="bi bi-cloud-download"></i> Fetch All
+                    </button>
                     <button class="btn btn-sm btn-outline-primary me-2" id="filterBtn" style="display: none;">
                         <i class="bi bi-funnel"></i> Filter <span id="filterCount" class="badge bg-primary ms-1" style="display: none;">0</span>
                     </button>
@@ -192,25 +205,24 @@
                     <table class="table table-hover table-bordered analysis-table mb-0" id="stocksTable">
                         <thead class="table-dark">
                             <tr>
-                                <th style="width: 60px;">S.No</th>
-                                <th style="min-width: 150px;">Stock Name</th>
-                                <th>Liquidity</th>
-                                <th>Quick Ratio</th>
-                                <th>Debt/Equity</th>
-                                <th>ROE (%)</th>
-                                <th>Investor Growth</th>
-                                <th>ROA (%)</th>
-                                <th>EBITDA Latest</th>
-                                <th>EBITDA Previous</th>
-                                <th>Div Yield (%)</th>
-                                <th>Stock PE</th>
-                                <th>Industry PE</th>
-                                <th>P/B</th>
-                                <th>P/S YoY</th>
-                                <th>BETA</th>
-                                <th>Promoter %</th>
-                                <th>Overall Performance</th>
-                                <th style="width: 150px;">Action</th>
+                                <th scope="col" style="width: 60px;">S.No</th>
+                                <th scope="col" style="min-width: 150px;">Stock Name</th>
+                                <th scope="col">Liquidity</th>
+                                <th scope="col">Quick Ratio</th>
+                                <th scope="col">Leverage Debt/Equity</th>
+                                <th scope="col">ROE (%)</th>
+                                <th scope="col">ROA (%)</th>
+                                <th scope="col">EBITDA Latest</th>
+                                <th scope="col">EBITDA Previous</th>
+                                <th scope="col">Div Yield (%)</th>
+                                <th scope="col">Stock PE</th>
+                                <th scope="col">Industry PE</th>
+                                <th scope="col">P/B</th>
+                                <th scope="col">P/S YoY</th>
+                                <th scope="col">BETA</th>
+                                <th scope="col">Promoter %</th>
+                                <th scope="col">Overall Performance</th>
+                                <th scope="col" style="width: 150px;">Action</th>
                             </tr>
                         </thead>
                         <tbody id="metricsBody">
@@ -319,13 +331,6 @@
                         <div class="col-md-4">
                             <label class="form-label">ROE (%)</label>
                             <select class="form-select form-select-sm filter-select-modal" id="filterROE" data-field="roe">
-                                <option value="">All</option>
-                            </select>
-                        </div>
-                        
-                        <div class="col-md-4">
-                            <label class="form-label">Investor Growth Ratio</label>
-                            <select class="form-select form-select-sm filter-select-modal" id="filterInvestorGrowth" data-field="investor_growth_ratio">
                                 <option value="">All</option>
                             </select>
                         </div>
@@ -456,10 +461,6 @@
                             <div class="col-md-6">
                                 <label for="modalROE" class="form-label">4. ROE (%)</label>
                                 <input type="number" step="0.01" class="form-control" id="modalROE" placeholder="e.g., 15.5">
-                            </div>
-                            <div class="col-md-6">
-                                <label for="modalInvestorGrowth" class="form-label">5. Investor's Money Growth Ratio (%)</label>
-                                <input type="number" step="0.01" class="form-control" id="modalInvestorGrowth" placeholder="e.g., 12.0">
                             </div>
                             <div class="col-md-6">
                                 <label for="modalROA" class="form-label">6. Return on Asset (%)</label>
@@ -718,7 +719,9 @@
     <!-- External JavaScript -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js" defer></script>
+    <!-- Loading Optimizations - lazy loading, performance monitoring -->
+    <script src="../js/loading-optimizations.js" defer></script>
     <!-- Instant Cache Load - Runs before modules to show data immediately -->
     <script>
         (function() {
@@ -752,18 +755,19 @@
                         if (userEmail) userEmail.textContent = auth.displayName || auth.email;
                     }
                 }
-            } catch(e) {}
+            } catch(e) {
+                // Silent fail - will fallback to Firebase auth
+                console.debug('Cache preload skipped:', e.message);
+            }
         })();
     </script>
-    
-    <!-- Global JavaScript -->
+    <!-- JavaScript -->
     <script src="../js/global.js"></script>
-    
-    <!-- Page-specific JavaScript -->
+    <!-- Debug script disabled for production -->
+    <!-- <script src="../js/analysis-debug.js" defer></script> -->
+    <script src="../js/groww-crawler.js" defer></script>
     <script type="module" src="../js/analysis.js"></script>
-
-     <!-- Stock specific Metrics JavaScript -->
-    <script src="../js/metrics.js"></script>
+    <script src="../js/metrics.js" defer></script>
+    <script src="../js/groww-storage.js" defer></script>
 </body>
 </html>
-

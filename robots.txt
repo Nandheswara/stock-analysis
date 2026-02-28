@@ -16,6 +16,11 @@ Disallow: /js/firebase-config.js
 Disallow: /.git/
 Disallow: /.github/
 
+# Disallow crawling of admin panel
+Disallow: /pages/admin.html
+Disallow: /js/admin.js
+Disallow: /css/admin.css
+
 # Allow crawling of main pages
 Allow: /index.html
 Allow: /pages/

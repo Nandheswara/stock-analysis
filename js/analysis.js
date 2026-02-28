@@ -13,6 +13,13 @@
  * 
  * Dependencies: jQuery, Bootstrap 5, Firebase
  * Data Storage: Firebase Realtime Database with sessionStorage backup
+ * 
+ * Performance Optimizations:
+ * - Debounced rendering to prevent excessive DOM updates
+ * - Request caching to avoid duplicate API calls
+ * - Optimistic UI updates for faster perceived performance
+ * - Event delegation for better memory usage
+ * - DocumentFragment for efficient DOM insertion
  */
 
 import { 
@@ -36,6 +43,17 @@ import {
     deleteAllStocks,
     migrateSessionStorageToFirebase 
 } from './firebase-database-service.js';
+import { loadStockSymbols, slugToDisplayName, getStockSymbol } from './stock-dropdown.js';
+import { makeFetchStockData, growwCrawler } from './fetch.js';
+import { 
+    debounce, 
+    throttle, 
+    setupGlobalErrorHandler, 
+    logError, 
+    escapeAttribute,
+    perfMonitor,
+    batchDOMUpdate
+} from './utils.js';
 
 /* ========================================
    Global Variables
@@ -49,6 +67,11 @@ let activeFilters = {};
 
 // Firebase listener unsubscribe function
 let unsubscribeStocksListener = null;
+
+// Render state tracking to prevent excessive renders
+let renderPending = false;
+let lastRenderTimestamp = 0;
+const MIN_RENDER_INTERVAL = 50; // Minimum ms between renders
 
 /* ========================================
    Loading State Management
@@ -139,6 +162,9 @@ window.addEventListener('pageshow', function(event) {
 });
 
 $(document).ready(function() {
+    // Setup global error handler for better error management
+    setupGlobalErrorHandler(false); // Don't auto-show errors, we handle manually
+    
     // Reset state in case page is restored from bfcache (back-forward cache)
     // This prevents duplicate data when using browser back/forward buttons
     stocksData = [];
@@ -174,6 +200,14 @@ $(document).ready(function() {
     });
     
     setupAuthHandlers();
+    // Load stock symbols for the dropdown (implemented in stock-dropdown.js)
+    loadStockSymbols();
+    
+    // Setup auto-fill for company name when stock is selected from dropdown
+    setupStockDropdownHandlers();
+    
+    // Setup event delegation for table actions (more efficient than individual listeners)
+    setupTableEventDelegation();
     
     $('#addStockForm').on('submit', function(e) {
         e.preventDefault();
@@ -184,6 +218,10 @@ $(document).ready(function() {
         if (confirm('Remove all stocks from the analysis? This will delete them from Firebase.')) {
             clearAllStocks();
         }
+    });
+    
+    $('#fetchAllBtn').on('click', function() {
+        fetchAllStocks();
     });
     
     $('#saveDataBtn').on('click', function() {
@@ -203,6 +241,8 @@ $(document).ready(function() {
         bootstrap.Modal.getInstance(document.getElementById('filterModal')).hide();
     });
 });
+
+
 
 /* ========================================
    Authentication Functions
@@ -334,22 +374,6 @@ function setupAuthHandlers() {
                     unsubscribeStocksListener = null;
                 }
                 showAlert('info', 'Logged out successfully');
-            }
-        }
-    });
-    
-    $(document).on('click', '#migrateDataBtn', async function(e) {
-        e.preventDefault();
-        if (confirm('Migrate your local data to Firebase? This will upload all stocks from your browser storage.')) {
-            showLoading('Migrating data to Firebase...');
-            
-            const result = await migrateSessionStorageToFirebase();
-            
-            hideLoading();
-            if (result.success) {
-                showAlert('success', result.message);
-            } else {
-                showAlert('danger', result.error);
             }
         }
     });
@@ -546,20 +570,61 @@ function loadStocksFromFirebase(showLoadingIndicator = true) {
             return;
         }
         
-        // Only update if data actually changed (compare by stock_id and count)
-        const newStockIds = stocks.map(s => s.stock_id).sort().join(',');
-        const oldStockIds = stocksData.map(s => s.stock_id).sort().join(',');
+        // Check if data actually changed using comprehensive comparison
+        const hasDataChanged = checkStocksDataChanged(stocks, stocksData);
         
-        // Also check if any stock data has actually changed (not just IDs)
-        const newDataHash = JSON.stringify(stocks.map(s => ({ id: s.stock_id, symbol: s.symbol, name: s.name })).sort((a, b) => a.id.localeCompare(b.id)));
-        const oldDataHash = JSON.stringify(stocksData.map(s => ({ id: s.stock_id, symbol: s.symbol, name: s.name })).sort((a, b) => a.id.localeCompare(b.id)));
-        
-        if (newStockIds !== oldStockIds || newDataHash !== oldDataHash) {
+        if (hasDataChanged) {
             stocksData = stocks;
             renderTable();
         }
         hideLoading();
     });
+}
+
+/**
+ * Check if stocks data has changed (IDs, count, or any field content)
+ * @param {Array} newStocks - New stocks from Firebase
+ * @param {Array} oldStocks - Current stocks in memory
+ * @returns {boolean} True if data has changed
+ */
+function checkStocksDataChanged(newStocks, oldStocks) {
+    // Check count
+    if (newStocks.length !== oldStocks.length) {
+        return true;
+    }
+    
+    // Check if IDs changed
+    const newStockIds = newStocks.map(s => s.stock_id).sort().join(',');
+    const oldStockIds = oldStocks.map(s => s.stock_id).sort().join(',');
+    
+    if (newStockIds !== oldStockIds) {
+        return true;
+    }
+    
+    // Check if any stock content changed (all editable fields)
+    for (const newStock of newStocks) {
+        const oldStock = oldStocks.find(s => s.stock_id === newStock.stock_id);
+        
+        if (!oldStock) {
+            return true;
+        }
+        
+        // Compare all fields that can be updated
+        const fieldsToCompare = [
+            'name', 'symbol', 'liquidity', 'quick_ratio', 'debt_to_equity',
+            'roe', 'roa', 'ebitda_current', 
+            'ebitda_previous', 'dividend_yield', 'pe_ratio', 'industry_pe',
+            'price_to_book', 'price_to_sales', 'beta', 'promoter_holdings'
+        ];
+        
+        for (const field of fieldsToCompare) {
+            if (newStock[field] !== oldStock[field]) {
+                return true;
+            }
+        }
+    }
+    
+    return false;
 }
 
 /**
@@ -608,12 +673,44 @@ async function addStock() {
     
     const input = $('#stockSymbol');
     const nameInput = $('#stockName');
-    const symbol = input.val().trim().toUpperCase();
-    const name = nameInput.val().trim();
+    const manualSymbolInput = $('#manualStockSymbol');
     const addBtn = $('#addBtn');
     
+    // Get the slug from dropdown (value) and selected option data
+    const dropdownValue = input.val() ? input.val().trim() : '';
+    const isManualEntry = dropdownValue === '__manual__';
+    const selectedOption = input.find('option:selected');
+    const displayName = selectedOption.attr('data-display-name') || selectedOption.text() || '';
+    const stockSymbol = selectedOption.attr('data-symbol') || '';
+    const manualName = nameInput.val().trim();
+    const manualSymbol = manualSymbolInput.length ? manualSymbolInput.val().trim() : '';
+    
+    // Handle manual entry vs dropdown selection
+    let symbol, name, nseSymbol;
+    
+    if (isManualEntry) {
+        // Manual entry mode
+        if (!manualName) {
+            showAlert('danger', 'Please enter the company name');
+            return;
+        }
+        // For manual entry, generate a slug from company name
+        symbol = manualName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '').replace(/^-+/, '');
+        name = manualName;
+        nseSymbol = manualSymbol.toUpperCase() || '';
+    } else if (dropdownValue) {
+        // Selected from dropdown
+        symbol = dropdownValue;
+        name = manualName || displayName || dropdownValue;
+        nseSymbol = stockSymbol;
+    } else {
+        // Neither manual nor dropdown selection
+        showAlert('danger', 'Please select a stock from dropdown or choose "Add Stock Manually"');
+        return;
+    }
+    
     if (!symbol && !name) {
-        showAlert('danger', 'Please enter either stock symbol or company name');
+        showAlert('danger', 'Please select a stock from dropdown or enter company name');
         return;
     }
     
@@ -638,12 +735,23 @@ async function addStock() {
     addBtn.prop('disabled', true);
     
     // Clear inputs immediately for better UX
-    input.val('');
+    if (window.jQuery && input.hasClass('select2-hidden-accessible')) {
+        input.val(null).trigger('change'); // Reset Select2
+    } else {
+        input.val('');
+    }
     nameInput.val('');
+    nameInput.prop('readonly', false);
+    if (manualSymbolInput.length) {
+        manualSymbolInput.val('');
+        $('#manualSymbolGroup').addClass('d-none');
+    }
     
     const stockData = {
-        symbol: symbol || 'N/A',
-        name: name || 'N/A',
+        symbol: symbol, // Store slug for Groww URL
+        name: name,
+        stock_symbol: nseSymbol, // Store NSE/BSE symbol if available
+        is_manual_entry: isManualEntry, // Track if this was manually added
         data_available: true,
         // Initialize all metrics with placeholder
         current_price: 'Enter Data',
@@ -654,7 +762,6 @@ async function addStock() {
         quick_ratio: 'Enter Data',
         debt_to_equity: 'Enter Data',
         roe: 'Enter Data',
-        investor_growth_ratio: 'Enter Data',
         roa: 'Enter Data',
         ebitda_current: 'Enter Data',
         ebitda_previous: 'Enter Data',
@@ -748,90 +855,253 @@ window.removeStock = async function(stockId) {
    ======================================== */
 
 /**
+ * Debounced render function to prevent excessive DOM updates
+ * Uses requestAnimationFrame for smoother rendering
+ */
+const debouncedRender = debounce(() => {
+    renderTableInternal();
+}, 16); // ~60fps
+
+/**
  * Render the comparison table with all stocks
+ * Uses debouncing to prevent excessive renders
  */
 function renderTable() {
-    const tbody = $('#metricsBody');
-    const emptyState = $('#emptyState');
-    const clearAllBtn = $('#clearAllBtn');
-    const filterBtn = $('#filterBtn');
-    const stockCount = $('#stockCount');
+    const now = performance.now();
     
-    if (stocksData.length === 0) {
-        emptyState.show();
-        $('.table-container').hide();
-        clearAllBtn.hide();
-        filterBtn.hide();
-        stockCount.text(0);
+    // Prevent rapid successive renders
+    if (now - lastRenderTimestamp < MIN_RENDER_INTERVAL) {
+        if (!renderPending) {
+            renderPending = true;
+            debouncedRender();
+        }
         return;
     }
     
-    emptyState.hide();
-    $('.table-container').show();
-    clearAllBtn.show();
-    filterBtn.show();
+    lastRenderTimestamp = now;
+    renderPending = false;
+    renderTableInternal();
+}
+
+/**
+ * Internal render function - actual DOM manipulation
+ * Optimized with DocumentFragment and batch updates
+ */
+function renderTableInternal() {
+    perfMonitor.start('renderTable');
+    
+    const tbody = document.getElementById('metricsBody');
+    const emptyState = document.getElementById('emptyState');
+    const clearAllBtn = document.getElementById('clearAllBtn');
+    const filterBtn = document.getElementById('filterBtn');
+    const fetchAllBtn = document.getElementById('fetchAllBtn');
+    const stockCount = document.getElementById('stockCount');
+    const tableContainer = document.querySelector('.table-container');
+    
+    if (stocksData.length === 0) {
+        emptyState.style.display = 'block';
+        tableContainer.style.display = 'none';
+        clearAllBtn.style.display = 'none';
+        filterBtn.style.display = 'none';
+        fetchAllBtn.style.display = 'none';
+        stockCount.textContent = '0';
+        perfMonitor.end('renderTable');
+        return;
+    }
+    
+    emptyState.style.display = 'none';
+    tableContainer.style.display = 'block';
+    clearAllBtn.style.display = 'inline-block';
+    filterBtn.style.display = 'inline-block';
+    fetchAllBtn.style.display = 'inline-block';
     
     updateFilterBadge();
     
     const filteredData = getFilteredData();
     
     if (Object.keys(activeFilters).length > 0) {
-        stockCount.html(`${filteredData.length} of ${stocksData.length}`);
+        stockCount.innerHTML = `${filteredData.length} of ${stocksData.length}`;
     } else {
-        stockCount.text(stocksData.length);
+        stockCount.textContent = stocksData.length;
     }
     
-    let bodyHTML = '';
+    // Use DocumentFragment for efficient DOM insertion
+    const fragment = document.createDocumentFragment();
     
     if (filteredData.length === 0) {
-        bodyHTML = `
-            <tr>
-                <td colspan="19" class="text-center py-4">
-                    <i class="bi bi-funnel text-muted" style="font-size: 2rem;"></i>
-                    <p class="text-muted mt-2 mb-0">No stocks match your filter criteria</p>
-                    <button class="btn btn-sm btn-outline-primary mt-2" onclick="clearAllFilters()">Clear Filters</button>
-                </td>
-            </tr>
+        const emptyRow = document.createElement('tr');
+        emptyRow.innerHTML = `
+            <td colspan="18" class="text-center py-4">
+                <i class="bi bi-funnel text-muted" style="font-size: 2rem;"></i>
+                <p class="text-muted mt-2 mb-0">No stocks match your filter criteria</p>
+                <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="clearAllFilters()">Clear Filters</button>
+            </td>
         `;
+        fragment.appendChild(emptyRow);
     } else {
+        // Build rows using DocumentFragment for better performance
         filteredData.forEach((stock, index) => {
-            bodyHTML += `
-                <tr>
-                    <td class="text-center"><strong>${index + 1}</strong></td>
-                    <td class="text-muted"><strong>${stock.name}</strong><br><small >${stock.symbol}</small></td>
-                    <td class="text-center">${formatValue('liquidity', stock.liquidity)}</td>
-                    <td class="text-center">${formatValue('quick_ratio', stock.quick_ratio)}</td>
-                    <td class="text-center">${formatValue('debt_to_equity', stock.debt_to_equity)}</td>
-                    <td class="text-center">${formatValue('roe', stock.roe)}</td>
-                    <td class="text-center">${formatValue('investor_growth_ratio', stock.investor_growth_ratio)}</td>
-                    <td class="text-center">${formatValue('roa', stock.roa)}</td>
-                    <td class="text-center">${formatValue('ebitda_current', stock.ebitda_current)}</td>
-                    <td class="text-center">${formatValue('ebitda_previous', stock.ebitda_previous)}</td>
-                    <td class="text-center">${formatValue('dividend_yield', stock.dividend_yield)}</td>
-                    <td class="text-center">${formatValue('pe_ratio', stock.pe_ratio)}</td>
-                    <td class="text-center">${formatValue('industry_pe', stock.industry_pe)}</td>
-                    <td class="text-center">${formatValue('price_to_book', stock.price_to_book)}</td>
-                    <td class="text-center">${formatValue('price_to_sales', stock.price_to_sales)}</td>
-                    <td class="text-center">${formatValue('beta', stock.beta)}</td>
-                    <td class="text-center">${formatValue('promoter_holdings', stock.promoter_holdings)}</td>
-                    <td class="text-center performance-cell"></td>
-                    <td class="text-center">
-                        <button class="btn btn-sm btn-success me-1" onclick="fetchStockData('${stock.symbol}', '${stock.stock_id}')" title="Fetch Data">
-                            <i class="bi bi-cloud-download"></i> Fetch
-                        </button>
-                        <button class="btn btn-sm btn-primary me-1" onclick="openManualDataModal('${stock.symbol}', '${escapeSingleQuotes(stock.name)}', '${stock.stock_id}')" title="Edit">
-                            <i class="bi bi-pencil"></i> Edit
-                        </button>
-                        <button class="btn btn-sm btn-danger" onclick="removeStock('${stock.stock_id}')" title="Delete">
-                            <i class="bi bi-trash"></i> Delete
-                        </button>
-                    </td>
-                </tr>
+            const row = document.createElement('tr');
+            const displaySymbol = stock.stock_symbol || stock.symbol;
+            const escapedName = escapeAttribute(stock.name || '');
+            const escapedSymbol = escapeAttribute(stock.symbol || '');
+            
+            row.innerHTML = `
+                <td class="text-center"><strong>${index + 1}</strong></td>
+                <td class="text-muted"><strong>${escapeAttribute(stock.name)}</strong><br><small class="text-primary">${escapeAttribute(displaySymbol)}</small></td>
+                <td class="text-center">${formatValue('liquidity', stock.liquidity)}</td>
+                <td class="text-center">${formatValue('quick_ratio', stock.quick_ratio)}</td>
+                <td class="text-center">${formatValue('debt_to_equity', stock.debt_to_equity)}</td>
+                <td class="text-center">${formatValue('roe', stock.roe)}</td>
+                <td class="text-center">${formatValue('roa', stock.roa)}</td>
+                <td class="text-center">${formatValue('ebitda_current', stock.ebitda_current)}</td>
+                <td class="text-center">${formatValue('ebitda_previous', stock.ebitda_previous)}</td>
+                <td class="text-center">${formatValue('dividend_yield', stock.dividend_yield)}</td>
+                <td class="text-center">${formatValue('pe_ratio', stock.pe_ratio)}</td>
+                <td class="text-center">${formatValue('industry_pe', stock.industry_pe)}</td>
+                <td class="text-center">${formatValue('price_to_book', stock.price_to_book)}</td>
+                <td class="text-center">${formatValue('price_to_sales', stock.price_to_sales)}</td>
+                <td class="text-center">${formatValue('beta', stock.beta)}</td>
+                <td class="text-center">${formatValue('promoter_holdings', stock.promoter_holdings)}</td>
+                <td class="text-center performance-cell"></td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-success me-1" data-action="fetch" data-symbol="${escapedSymbol}" data-id="${stock.stock_id}" title="Fetch Data from Groww">
+                        <i class="bi bi-cloud-download"></i> Fetch
+                    </button>
+                    <button type="button" class="btn btn-sm btn-primary me-1" data-action="edit" data-symbol="${escapedSymbol}" data-name="${escapedName}" data-id="${stock.stock_id}" title="Edit">
+                        <i class="bi bi-pencil"></i> Edit
+                    </button>
+                    <button type="button" class="btn btn-sm btn-danger" data-action="delete" data-id="${stock.stock_id}" title="Delete">
+                        <i class="bi bi-trash"></i> Delete
+                    </button>
+                </td>
             `;
+            fragment.appendChild(row);
         });
     }
     
-    tbody.html(bodyHTML);
+    // Batch DOM update - clear and append in one operation
+    batchDOMUpdate(() => {
+        tbody.innerHTML = '';
+        tbody.appendChild(fragment);
+    });
+    
+    perfMonitor.end('renderTable');
+}
+
+/**
+ * Setup event handlers for stock symbol dropdown
+ * Handles auto-fill of company name and manual entry mode
+ */
+function setupStockDropdownHandlers() {
+    const stockSymbolSelect = $('#stockSymbol');
+    const stockNameInput = $('#stockName');
+    const manualSymbolGroup = $('#manualSymbolGroup');
+    const manualSymbolInput = $('#manualStockSymbol');
+    
+    // Handle stock selection change (works with Select2)
+    stockSymbolSelect.on('select2:select change', function(e) {
+        const selectedValue = $(this).val();
+        const selectedOption = $(this).find('option:selected');
+        
+        if (selectedValue === '__manual__') {
+            // Manual entry mode - show manual symbol input, enable name input
+            stockNameInput.prop('readonly', false);
+            stockNameInput.val('');
+            stockNameInput.attr('placeholder', 'Enter company name manually');
+            
+            // Show manual symbol input if it exists
+            if (manualSymbolGroup.length) {
+                manualSymbolGroup.removeClass('d-none');
+                manualSymbolInput.prop('required', true);
+            }
+            
+            // Focus on name input for manual entry
+            stockNameInput.focus();
+        } else if (selectedValue) {
+            // Stock selected from list - auto-fill company name
+            const displayName = selectedOption.attr('data-display-name') || selectedOption.text();
+            const symbol = selectedOption.attr('data-symbol');
+            
+            // Auto-fill company name
+            stockNameInput.val(displayName);
+            stockNameInput.prop('readonly', true);
+            
+            // Hide manual symbol input
+            if (manualSymbolGroup.length) {
+                manualSymbolGroup.addClass('d-none');
+                manualSymbolInput.prop('required', false);
+                manualSymbolInput.val('');
+            }
+        } else {
+            // No selection - reset form
+            stockNameInput.val('');
+            stockNameInput.prop('readonly', false);
+            stockNameInput.attr('placeholder', 'e.g., Tata Consultancy Services');
+            
+            // Hide manual symbol input
+            if (manualSymbolGroup.length) {
+                manualSymbolGroup.addClass('d-none');
+                manualSymbolInput.prop('required', false);
+                manualSymbolInput.val('');
+            }
+        }
+    });
+    
+    // Handle Select2 clear
+    stockSymbolSelect.on('select2:clear', function() {
+        stockNameInput.val('');
+        stockNameInput.prop('readonly', false);
+        stockNameInput.attr('placeholder', 'e.g., Tata Consultancy Services');
+        
+        if (manualSymbolGroup.length) {
+            manualSymbolGroup.addClass('d-none');
+            manualSymbolInput.prop('required', false);
+            manualSymbolInput.val('');
+        }
+    });
+}
+
+/**
+ * Setup event delegation for table action buttons
+ * Uses single event listener on parent instead of individual listeners per button
+ * This improves memory usage and performance for large tables
+ */
+function setupTableEventDelegation() {
+    const metricsBody = document.getElementById('metricsBody');
+    if (!metricsBody) return;
+    
+    // Use single click handler with event delegation
+    metricsBody.addEventListener('click', async function(e) {
+        // Find the button that was clicked (handle clicks on icon inside button)
+        const button = e.target.closest('button[data-action]');
+        if (!button) return;
+        
+        const action = button.dataset.action;
+        const stockId = button.dataset.id;
+        const symbol = button.dataset.symbol;
+        const name = button.dataset.name;
+        
+        switch (action) {
+            case 'fetch':
+                if (symbol && stockId) {
+                    fetchStockData(symbol, stockId);
+                }
+                break;
+            case 'edit':
+                if (symbol && name && stockId) {
+                    openManualDataModal(symbol, name, stockId);
+                }
+                break;
+            case 'delete':
+                if (stockId) {
+                    removeStock(stockId);
+                }
+                break;
+            default:
+                logError('Unknown table action', new Error(`Unknown action: ${action}`));
+        }
+    });
 }
 
 /**
@@ -911,7 +1181,6 @@ window.openManualDataModal = function(symbol, name, stockId) {
         $('#modalQuickRatio').val((stock.quick_ratio && stock.quick_ratio !== 'Enter Data') ? stock.quick_ratio : '');
         $('#modalDebtEquity').val((stock.debt_to_equity && stock.debt_to_equity !== 'Enter Data') ? stock.debt_to_equity : '');
         $('#modalROE').val((stock.roe && stock.roe !== 'Enter Data') ? stock.roe : '');
-        $('#modalInvestorGrowth').val((stock.investor_growth_ratio && stock.investor_growth_ratio !== 'Enter Data') ? stock.investor_growth_ratio : '');
         $('#modalROA').val((stock.roa && stock.roa !== 'Enter Data') ? stock.roa : '');
         $('#modalEBITDACurrent').val((stock.ebitda_current && stock.ebitda_current !== 'Enter Data') ? stock.ebitda_current : '');
         $('#modalEBITDAPrevious').val((stock.ebitda_previous && stock.ebitda_previous !== 'Enter Data') ? stock.ebitda_previous : '');
@@ -923,7 +1192,7 @@ window.openManualDataModal = function(symbol, name, stockId) {
         $('#modalBeta').val((stock.beta && stock.beta !== 'Enter Data') ? stock.beta : '');
         $('#modalPromoterHoldings').val((stock.promoter_holdings && stock.promoter_holdings !== 'Enter Data') ? stock.promoter_holdings : '');
     } else {
-        $('#modalLiquidity, #modalQuickRatio, #modalDebtEquity, #modalROE, #modalInvestorGrowth, #modalROA, #modalEBITDACurrent, #modalEBITDAPrevious, #modalDividendYield, #modalPE, #modalIndustryPE, #modalPriceToBook, #modalPriceToSales, #modalBeta, #modalPromoterHoldings').val('');
+        $('#modalLiquidity, #modalQuickRatio, #modalDebtEquity, #modalROE, #modalROA, #modalEBITDACurrent, #modalEBITDAPrevious, #modalDividendYield, #modalPE, #modalIndustryPE, #modalPriceToBook, #modalPriceToSales, #modalBeta, #modalPromoterHoldings').val('');
     }
     
     $('#modalDate').val(new Date().toISOString().split('T')[0]);
@@ -958,7 +1227,6 @@ async function submitManualData() {
         quick_ratio: $('#modalQuickRatio').val() || 'Enter Data',
         debt_to_equity: $('#modalDebtEquity').val() || 'Enter Data',
         roe: $('#modalROE').val() || 'Enter Data',
-        investor_growth_ratio: $('#modalInvestorGrowth').val() || 'Enter Data',
         roa: $('#modalROA').val() || 'Enter Data',
         ebitda_current: $('#modalEBITDACurrent').val() || 'Enter Data',
         ebitda_previous: $('#modalEBITDAPrevious').val() || 'Enter Data',
@@ -1022,7 +1290,6 @@ function openFilterModal() {
         'filterQuickRatio': 'quick_ratio',
         'filterDebtEquity': 'debt_to_equity',
         'filterROE': 'roe',
-        'filterInvestorGrowth': 'investor_growth_ratio',
         'filterROA': 'roa',
         'filterEBITDACurrent': 'ebitda_current',
         'filterEBITDAPrevious': 'ebitda_previous',
@@ -1128,11 +1395,79 @@ window.clearAllFilters = function() {
    Data Fetching Functions
    ======================================== */
 
+// Data fetching moved to `js/fetch.js`. Create a fetchStockData bound to this module's
+// data and UI helpers using the provided factory, then expose it globally for
+// the inline onclick handlers in the table HTML.
+const fetchStockData = makeFetchStockData({
+    getStocksData: () => stocksData,
+    renderTable,
+    showAlert,
+    updateStockInFirebase
+});
+window.fetchStockData = fetchStockData;
+// Backwards compatibility: expose crawler object on window
+window.growwCrawler = growwCrawler;
+
 /**
- * Fetch stock data from external API (Future Implementation)
- * @param {string} symbol - Stock symbol
- * @param {string} stockId - Stock ID
+ * Fetch data for all stocks in the portfolio sequentially
+ * Adds a delay between requests to avoid rate limiting
  */
-window.fetchStockData = function(symbol, stockId) {
-    showAlert('info', `Fetch functionality for ${symbol} will be implemented soon. Use Edit button to enter data manually.`);
-};
+async function fetchAllStocks() {
+    if (stocksData.length === 0) {
+        showAlert('warning', 'No stocks to fetch data for. Add some stocks first.');
+        return;
+    }
+    
+    const totalStocks = stocksData.length;
+    const $fetchAllBtn = $('#fetchAllBtn');
+    const originalBtnHtml = $fetchAllBtn.html();
+    
+    // Disable the button during fetch
+    $fetchAllBtn.prop('disabled', true);
+    
+    showAlert('info', `Starting to fetch data for ${totalStocks} stocks. This may take a while...`);
+    
+    let successCount = 0;
+    let failCount = 0;
+    const delayBetweenRequests = 2000; // 2 seconds delay between requests to avoid rate limiting
+    
+    for (let i = 0; i < stocksData.length; i++) {
+        const stock = stocksData[i];
+        const progress = i + 1;
+        
+        // Update button text to show progress
+        $fetchAllBtn.html(`<i class="bi bi-hourglass-split"></i> ${progress}/${totalStocks}`);
+        
+        try {
+            // Skip if no symbol available
+            if (!stock.symbol) {
+                console.warn(`Skipping stock ${stock.name || stock.stock_id}: No symbol available`);
+                failCount++;
+                continue;
+            }
+            
+            await fetchStockData(stock.symbol, stock.stock_id);
+            successCount++;
+            
+        } catch (error) {
+            console.error(`Error fetching data for ${stock.symbol}:`, error);
+            failCount++;
+        }
+        
+        // Add delay before next request (except for the last one)
+        if (i < stocksData.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, delayBetweenRequests));
+        }
+    }
+    
+    // Restore button
+    $fetchAllBtn.prop('disabled', false);
+    $fetchAllBtn.html(originalBtnHtml);
+    
+    // Show summary
+    if (failCount === 0) {
+        showAlert('success', `Successfully fetched data for all ${successCount} stocks!`);
+    } else {
+        showAlert('warning', `Fetch complete: ${successCount} succeeded, ${failCount} failed. Check console for details.`);
+    }
+}

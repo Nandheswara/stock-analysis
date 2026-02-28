@@ -152,6 +152,23 @@
     max-width: 100%;
 }
 
+/* Manual entry mode styling */
+#manualSymbolGroup input {
+    text-transform: uppercase;
+}
+
+/* Readonly state for auto-filled company name */
+#stockName[readonly] {
+    background-color: var(--bs-gray-100);
+    cursor: not-allowed;
+}
+
+/* Dark theme readonly state */
+body:not(.light-theme) #stockName[readonly] {
+    background-color: var(--bs-gray-800);
+    color: var(--bs-gray-400);
+}
+
 .loading-spinner {
     display: none;
 }
