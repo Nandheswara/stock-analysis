@@ -1,5 +1,5 @@
 /**
- * Global JavaScript for Stock Analysis Dashboard
+ * Global JavaScript for Equity Labs
  * 
  * This file contains shared functionality across all pages including:
  * - Theme management (dark/light mode switching)

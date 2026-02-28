@@ -1,4 +1,4 @@
-# Stock Analysis Dashboard
+# Equity Labs
 
 A modern web application for analyzing Indian stocks with fundamental metrics. Now with **Firebase integration** for cloud storage, real-time sync, and multi-device access!
 

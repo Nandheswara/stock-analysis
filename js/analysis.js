@@ -1,5 +1,5 @@
 /**
- * Analysis Page JavaScript for Stock Analysis Dashboard (Firebase Integrated)
+ * Analysis Page JavaScript for Equity Labs (Firebase Integrated)
  * 
  * This file handles all functionality specific to the fundamental analysis page:
  * - Stock management (add, remove, clear all) using Firebase

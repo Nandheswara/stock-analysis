@@ -1,5 +1,5 @@
 /**
- * Utility Module for Stock Analysis Dashboard
+ * Utility Module for Equity Labs
  * 
  * Contains shared utility functions for:
  * - Performance optimization (debounce, throttle, memoization)
