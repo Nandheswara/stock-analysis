@@ -182,8 +182,393 @@ body.light-theme .feature-card p {
 }
 
 /* ========================================
+   Market Movers Section
+   ======================================== */
+
+.market-movers-section {
+    background-color: #14151b;
+    border-radius: 10px;
+    padding: 25px;
+    border: 1px solid #1f2229;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Loader Styles */
+.movers-loader {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    width: 100%;
+}
+
+.movers-loader .loader-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.movers-loader .loader-spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid rgba(77, 171, 247, 0.2);
+    border-top-color: #4dabf7;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 16px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.movers-loader .loader-text {
+    color: #adb5bd;
+    font-size: 1rem;
+    margin: 0;
+    font-weight: 500;
+}
+
+/* Light theme loader */
+body.light-theme .movers-loader .loader-spinner {
+    border-color: rgba(13, 110, 253, 0.2);
+    border-top-color: #0d6efd;
+}
+
+body.light-theme .movers-loader .loader-text {
+    color: #6c757d;
+}
+
+.market-movers-section .section-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #2a2d35;
+}
+
+.market-movers-section .section-title h4 {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.movers-section {
+    background-color: #1a1b22;
+    border-radius: 8px;
+    padding: 15px;
+    border: 1px solid #2a2d35;
+    height: 100%;
+}
+
+.movers-section .section-header h5 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+/* Table Styles */
+.movers-table {
+    margin: 0;
+    color: #e9ecef;
+}
+
+.movers-table thead th {
+    background-color: #22242d;
+    color: #adb5bd;
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 10px 12px;
+    border-bottom: 2px solid #2a2d35;
+    white-space: nowrap;
+}
+
+.movers-table tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.movers-table tbody tr:hover {
+    background-color: rgba(114, 137, 255, 0.1);
+}
+
+.movers-table tbody td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #2a2d35;
+    vertical-align: middle;
+}
+
+.movers-table .rank-cell {
+    width: 40px;
+    font-weight: 600;
+    color: #6c757d;
+}
+
+.movers-table .symbol-cell .stock-symbol {
+    font-weight: 600;
+    color: #ffffff;
+    font-size: 0.9rem;
+}
+
+.movers-table .symbol-cell .stock-name {
+    font-size: 0.75rem;
+    max-width: 180px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.movers-table .price-cell {
+    font-weight: 500;
+    white-space: nowrap;
+    color: #ffffff;
+}
+
+.movers-table .change-cell {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.movers-table .change-cell.positive {
+    color: #00c853;
+}
+
+.movers-table .change-cell.negative {
+    color: #ff5252;
+}
+
+.movers-table .change-cell i {
+    margin-right: 3px;
+}
+
+/* Gainer/Loser Row Highlights */
+.movers-table tr.gainer-row:hover {
+    background-color: rgba(61, 220, 132, 0.08);
+}
+
+.movers-table tr.loser-row:hover {
+    background-color: rgba(255, 107, 107, 0.08);
+}
+
+/* Pagination Styles */
+.pagination-wrapper {
+    padding-top: 10px;
+    border-top: 1px solid #2a2d35;
+}
+
+.pagination-controls {
+    flex-wrap: wrap;
+}
+
+.btn-pagination {
+    min-width: 36px;
+    height: 36px;
+    padding: 0 10px;
+    border: 1px solid #3a3d45;
+    background-color: #22242d;
+    color: #adb5bd;
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
+}
+
+.btn-pagination:hover:not(:disabled) {
+    background-color: #7289ff;
+    border-color: #7289ff;
+    color: #fff;
+}
+
+.btn-pagination:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-pagination.active {
+    background-color: #7289ff;
+    border-color: #7289ff;
+    color: #fff;
+}
+
+.pagination-ellipsis {
+    padding: 0 8px;
+    color: #6c757d;
+}
+
+.pagination-info {
+    font-size: 0.8rem;
+}
+
+/* Refresh Button */
+#refreshMarketMovers {
+    min-width: 110px;
+}
+
+/* Summary Stats */
+.movers-summary {
+    padding: 10px 0;
+    border-bottom: 1px solid #2a2d35;
+}
+
+.summary-stats .badge {
+    font-size: 0.85rem;
+    padding: 6px 12px;
+}
+
+.data-info {
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+/* Section Headers */
+.movers-section .section-header h5 {
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.movers-section .section-header .badge {
+    font-size: 0.75rem;
+}
+
+/* No Data Message */
+.no-data,
+.error-message {
+    text-align: center;
+    padding: 30px;
+    color: #6c757d;
+}
+
+.error-message {
+    color: #ff6b6b;
+}
+
+/* Symbol Cell Layout */
+.movers-table .symbol-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.movers-table .symbol-cell .stock-name {
+    color: #6c757d;
+    display: block;
+}
+
+/* ========================================
+   Market Movers - Light Theme
+   ======================================== */
+
+body.light-theme .market-movers-section {
+    background-color: #ffffff;
+    border: 1px solid #e3e6ea;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+body.light-theme .market-movers-section .section-title {
+    border-bottom: 1px solid #e3e6ea;
+}
+
+body.light-theme .movers-section {
+    background-color: #f8f9fa;
+    border: 1px solid #e3e6ea;
+}
+
+body.light-theme .movers-table {
+    color: #212529;
+}
+
+body.light-theme .movers-table thead th {
+    background-color: #e9ecef;
+    color: #495057;
+    border-bottom: 2px solid #dee2e6;
+}
+
+body.light-theme .movers-table tbody td {
+    border-bottom: 1px solid #dee2e6;
+}
+
+body.light-theme .movers-table tbody tr:hover {
+    background-color: rgba(78, 115, 223, 0.08);
+}
+
+body.light-theme .movers-table tr.gainer-row:hover {
+    background-color: rgba(25, 135, 84, 0.08);
+}
+
+body.light-theme .movers-table tr.loser-row:hover {
+    background-color: rgba(220, 53, 69, 0.08);
+}
+
+body.light-theme .movers-table .symbol-cell .stock-symbol {
+    color: #212529;
+}
+
+body.light-theme .movers-table .price-cell {
+    color: #212529;
+}
+
+body.light-theme .movers-table .change-cell.positive {
+    color: #198754;
+}
+
+body.light-theme .movers-table .change-cell.negative {
+    color: #dc3545;
+}
+
+body.light-theme .movers-table .rank-cell {
+    color: #6c757d;
+}
+
+body.light-theme .pagination-wrapper {
+    border-top: 1px solid #dee2e6;
+}
+
+body.light-theme .btn-pagination {
+    border: 1px solid #dee2e6;
+    background-color: #fff;
+    color: #495057;
+}
+
+body.light-theme .btn-pagination:hover:not(:disabled) {
+    background-color: #4e73df;
+    border-color: #4e73df;
+    color: #fff;
+}
+
+body.light-theme .btn-pagination.active {
+    background-color: #4e73df;
+    border-color: #4e73df;
+    color: #fff;
+}
+
+/* Summary - Light Theme */
+body.light-theme .movers-summary {
+    border-bottom-color: #dee2e6;
+}
+
+body.light-theme .data-info {
+    color: #6c757d;
+}
+
+body.light-theme .movers-table .symbol-cell .stock-name {
+    color: #6c757d;
+}
+
+/* ========================================
    Responsive Design - Home Page
    ======================================== */
+
+@media (max-width: 991px) {
+    .market-movers-section .row > div:first-child {
+        margin-bottom: 20px;
+    }
+}
 
 @media (max-width: 768px) {
     .hero-section h1 {
@@ -201,5 +586,60 @@ body.light-theme .feature-card p {
     
     .feature-icon {
         font-size: 2rem;
+    }
+    
+    .market-movers-section {
+        padding: 15px;
+    }
+    
+    .market-movers-section .section-title {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+    
+    .market-movers-section .section-title h4 {
+        justify-content: center;
+    }
+    
+    .movers-section {
+        padding: 12px;
+    }
+    
+    .movers-table .symbol-cell .stock-name {
+        max-width: 100px;
+    }
+    
+    .movers-table thead th,
+    .movers-table tbody td {
+        padding: 8px;
+        font-size: 0.85rem;
+    }
+    
+    .btn-pagination {
+        min-width: 32px;
+        height: 32px;
+        padding: 0 8px;
+        font-size: 0.8rem;
+    }
+    
+    .pagination-controls {
+        gap: 3px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .movers-table .symbol-cell .stock-name {
+        display: none;
+    }
+    
+    .movers-table .rank-cell {
+        width: 30px;
+    }
+    
+    .movers-table thead th,
+    .movers-table tbody td {
+        padding: 6px;
+        font-size: 0.8rem;
     }
 }

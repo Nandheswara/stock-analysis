@@ -129,6 +129,28 @@
                 </div>
             </div>
 
+            <!-- Market Movers Section - Top Gainers & Losers (TOP OF PAGE) -->
+            <section class="market-movers-section mb-4" aria-label="Market Movers - Top Gainers and Losers">
+                <div class="section-title">
+                    <h4>
+                        <i class="bi bi-bar-chart-line-fill text-primary"></i>
+                        Today's Market Movers
+                    </h4>
+                    <button class="btn btn-outline-primary btn-sm" id="refreshMarketMovers" title="Refresh market data" aria-label="Refresh market movers data">
+                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                    </button>
+                </div>
+                <div id="marketMoversContainer">
+                    <!-- Dynamic content will be loaded here -->
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary mb-3" role="status">
+                            <span class="visually-hidden">Loading market data...</span>
+                        </div>
+                        <p class="text-muted">Loading market data...</p>
+                    </div>
+                </div>
+            </section>
+
             <!-- Features Section -->
             <div class="row mb-5">
                 <div class="col-md-4 mb-4">
@@ -392,5 +414,6 @@
     <script src="js/loading-optimizations.js" defer></script>
     <script src="js/global.js"></script>
     <script type="module" src="js/home.js"></script>
+    <script type="module" src="js/market-movers.js"></script>
 </body>
 </html>
