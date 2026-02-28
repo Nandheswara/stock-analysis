@@ -72,6 +72,7 @@ let impersonatedUserId = null;
  */
 document.addEventListener('DOMContentLoaded', () => {
     initAuthListener();
+    initAdminLoginForm();
 });
 
 /**
@@ -82,7 +83,7 @@ function initAuthListener() {
         hideLoading();
         
         if (!user) {
-            showAccessDenied();
+            showLoginModal();
             return;
         }
         
@@ -96,10 +97,139 @@ function initAuthListener() {
             return;
         }
         
+        // Hide login modal if open
+        hideLoginModal();
+        
         // User is admin, show admin panel
         showAdminPanel();
         initializeAdminPanel();
     });
+}
+
+/**
+ * Initialize admin login form handlers
+ */
+function initAdminLoginForm() {
+    const loginForm = document.getElementById('adminLoginForm');
+    const googleSignInBtn = document.getElementById('adminGoogleSignInBtn');
+    
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('adminLoginEmail').value.trim();
+            const password = document.getElementById('adminLoginPassword').value;
+            const alertContainer = document.getElementById('adminAuthAlertContainer');
+            
+            // Clear previous errors
+            if (alertContainer) {
+                alertContainer.innerHTML = '';
+            }
+            
+            try {
+                const { signInWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js');
+                await signInWithEmailAndPassword(auth, email, password);
+                // Auth state listener will handle the rest
+            } catch (error) {
+                console.error('Login error:', error);
+                showAdminAuthError(getAuthErrorMessage(error.code));
+            }
+        });
+    }
+    
+    if (googleSignInBtn) {
+        googleSignInBtn.addEventListener('click', async () => {
+            const alertContainer = document.getElementById('adminAuthAlertContainer');
+            
+            // Clear previous errors
+            if (alertContainer) {
+                alertContainer.innerHTML = '';
+            }
+            
+            try {
+                const { signInWithPopup, GoogleAuthProvider } = await import('https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js');
+                const provider = new GoogleAuthProvider();
+                await signInWithPopup(auth, provider);
+                // Auth state listener will handle the rest
+            } catch (error) {
+                console.error('Google login error:', error);
+                showAdminAuthError(getAuthErrorMessage(error.code));
+            }
+        });
+    }
+}
+
+/**
+ * Get user-friendly error message for auth errors
+ * @param {string} errorCode - Firebase error code
+ * @returns {string} User-friendly error message
+ */
+function getAuthErrorMessage(errorCode) {
+    const errorMessages = {
+        'auth/invalid-email': 'Invalid email address.',
+        'auth/user-disabled': 'This account has been disabled.',
+        'auth/user-not-found': 'No account found with this email.',
+        'auth/wrong-password': 'Incorrect password.',
+        'auth/invalid-credential': 'Invalid email or password.',
+        'auth/too-many-requests': 'Too many failed attempts. Please try again later.',
+        'auth/popup-closed-by-user': 'Sign-in popup was closed.',
+        'auth/cancelled-popup-request': 'Sign-in was cancelled.',
+        'auth/network-request-failed': 'Network error. Please check your connection.'
+    };
+    return errorMessages[errorCode] || 'An error occurred. Please try again.';
+}
+
+/**
+ * Show error message in admin auth modal
+ * @param {string} message - Error message to display
+ */
+function showAdminAuthError(message) {
+    const alertContainer = document.getElementById('adminAuthAlertContainer');
+    if (alertContainer) {
+        alertContainer.innerHTML = `
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle"></i> ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        `;
+    }
+}
+
+/**
+ * Show login modal
+ */
+function showLoginModal() {
+    const modal = document.getElementById('adminAuthModal');
+    const footer = document.getElementById('adminFooter');
+    const content = document.getElementById('adminContent');
+    const accessDenied = document.getElementById('accessDeniedOverlay');
+    
+    if (content) {
+        content.style.display = 'none';
+    }
+    if (accessDenied) {
+        accessDenied.style.display = 'none';
+    }
+    if (footer) {
+        footer.style.display = 'block';
+    }
+    if (modal) {
+        const bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
+    }
+}
+
+/**
+ * Hide login modal
+ */
+function hideLoginModal() {
+    const modal = document.getElementById('adminAuthModal');
+    if (modal) {
+        const bsModal = bootstrap.Modal.getInstance(modal);
+        if (bsModal) {
+            bsModal.hide();
+        }
+    }
 }
 
 /**
@@ -204,12 +334,16 @@ function showAdminPanel() {
     const overlay = document.getElementById('accessDeniedOverlay');
     const content = document.getElementById('adminContent');
     const userProfile = document.getElementById('userProfile');
+    const footer = document.getElementById('adminFooter');
     
     if (overlay) {
         overlay.style.display = 'none';
     }
     if (content) {
         content.style.display = 'block';
+    }
+    if (footer) {
+        footer.style.display = 'block';
     }
     
     // Ensure user profile is visible in navbar
@@ -237,7 +371,8 @@ async function initializeAdminPanel() {
     await Promise.all([
         loadUsers(),
         loadAdminUsers(),
-        loadAuditLogs()
+        loadAuditLogs(),
+        loadActiveAnnouncements()
     ]);
     
     loadStats();
@@ -859,56 +994,130 @@ function updateToggleStatusButton(status) {
 
 /**
  * Add new user
+ * Creates user in Firebase Auth and database
+ * Note: This uses client-side approach which temporarily signs out admin
+ * For production, use Firebase Admin SDK via Cloud Functions
  * @param {Event} event - Form submit event
  */
 async function addUser(event) {
     event.preventDefault();
     
-    const email = document.getElementById('newUserEmail').value.trim();
+    const email = document.getElementById('newUserEmail').value.trim().toLowerCase();
     const password = document.getElementById('newUserPassword').value;
     const displayName = document.getElementById('newUserDisplayName').value.trim();
     const role = document.getElementById('newUserRole').value;
     const sendWelcome = document.getElementById('sendWelcomeEmail').checked;
     
+    if (!email || !password) {
+        showToast('Please fill in all required fields', 'warning');
+        return;
+    }
+    
+    if (password.length < 6) {
+        showToast('Password must be at least 6 characters', 'warning');
+        return;
+    }
+    
     try {
-        showToast('Creating user...', 'info');
+        showToast('Creating user... Please wait, you will be briefly signed out.', 'info');
         
-        // Store current user credentials temporarily
-        const currentUserEmail = currentUser.email;
+        // Store current admin credentials
+        const adminEmail = currentUser.email;
+        const adminUid = currentUser.uid;
         
-        // Create user in Firebase Auth (this will sign out current user)
-        // For production, use Firebase Admin SDK via Cloud Functions
-        // This is a simplified client-side approach
+        // Create new user in Firebase Auth
+        // This will sign out the current admin temporarily
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const newUser = userCredential.user;
         
-        // Create user data in database
-        const newUserRef = push(ref(database, 'users'));
-        await set(newUserRef, {
+        // Create user data in database using the actual Firebase Auth UID
+        const userRef = ref(database, `users/${newUser.uid}`);
+        await set(userRef, {
             email: email,
             displayName: displayName || null,
             role: role,
             status: 'active',
             createdAt: Date.now(),
-            createdBy: currentUser.uid,
-            requirePasswordChange: true
+            createdBy: adminUid,
+            lastActive: Date.now(),
+            requirePasswordChange: true,
+            metadata: {
+                createdAt: Date.now(),
+                lastLogin: null
+            }
         });
         
-        // Log action
-        await logAuditAction('user_created', newUserRef.key, `Created user: ${email}`);
+        // If role is admin, add to adminUsers list as well
+        if (role === 'admin') {
+            const adminRef = push(ref(database, 'adminUsers'));
+            await set(adminRef, {
+                email: email,
+                addedBy: adminUid,
+                addedByEmail: adminEmail,
+                addedAt: Date.now(),
+                notes: 'Added during user creation',
+                active: true
+            });
+        }
+        
+        // Log action (using stored admin info since we're now signed in as new user)
+        const logRef = push(ref(database, 'adminLogs'));
+        await set(logRef, {
+            timestamp: Date.now(),
+            adminId: adminUid,
+            adminEmail: adminEmail,
+            action: 'user_created',
+            targetUserId: newUser.uid,
+            details: `Created user: ${email}${role === 'admin' ? ' (with admin access)' : ''}`
+        });
+        
+        // Queue welcome email if requested
+        if (sendWelcome) {
+            const emailRef = push(ref(database, 'emailQueue'));
+            await set(emailRef, {
+                recipients: 'single',
+                recipientEmails: [email],
+                recipientCount: 1,
+                subject: 'Welcome to Stock Analysis Dashboard',
+                body: `Hello${displayName ? ' ' + displayName : ''},\n\nYour account has been created.\n\nEmail: ${email}\nTemporary Password: ${password}\n\nPlease login and change your password.\n\nBest regards,\nStock Analysis Dashboard`,
+                createdAt: Date.now(),
+                createdBy: adminUid,
+                createdByEmail: adminEmail,
+                status: 'pending',
+                type: 'welcome'
+            });
+        }
+        
+        // Sign out the newly created user
+        await auth.signOut();
         
         // Close modal
-        bootstrap.Modal.getInstance(document.getElementById('addUserModal')).hide();
-        
-        // Refresh users
-        await loadUsers();
-        
-        showToast(`User ${email} created successfully`, 'success');
+        bootstrap.Modal.getInstance(document.getElementById('addUserModal'))?.hide();
         
         // Reset form
         document.getElementById('addUserForm').reset();
         
+        // Show success message with instructions to re-login
+        showToast(`User ${email} created successfully! Please login again as admin.`, 'success');
+        
+        // Redirect to login after a delay
+        setTimeout(() => {
+            window.location.reload();
+        }, 2000);
+        
     } catch (error) {
         console.error('Error creating user:', error);
-        showToast(`Error creating user: ${error.message}`, 'danger');
+        let errorMessage = error.message;
+        
+        if (error.code === 'auth/email-already-in-use') {
+            errorMessage = 'This email is already registered. Use a different email.';
+        } else if (error.code === 'auth/invalid-email') {
+            errorMessage = 'Invalid email address format.';
+        } else if (error.code === 'auth/weak-password') {
+            errorMessage = 'Password is too weak. Use at least 6 characters.';
+        }
+        
+        showToast(`Error creating user: ${errorMessage}`, 'danger');
     }
 }
 
@@ -1440,6 +1649,103 @@ async function loadRecentActivity() {
    ======================================== */
 
 /**
+ * Load active announcements
+ */
+async function loadActiveAnnouncements() {
+    const container = document.getElementById('activeAnnouncementsList');
+    if (!container) return;
+    
+    try {
+        const announcementsRef = ref(database, 'announcements');
+        const snapshot = await get(announcementsRef);
+        
+        if (!snapshot.exists()) {
+            container.innerHTML = '<p class="text-muted text-center mb-0">No active announcements</p>';
+            return;
+        }
+        
+        const announcements = [];
+        const now = Date.now();
+        
+        snapshot.forEach((child) => {
+            const data = child.val();
+            // Only show active and non-expired announcements
+            if (data.active !== false && (!data.expiresAt || data.expiresAt > now)) {
+                announcements.push({
+                    id: child.key,
+                    ...data
+                });
+            }
+        });
+        
+        if (announcements.length === 0) {
+            container.innerHTML = '<p class="text-muted text-center mb-0">No active announcements</p>';
+            return;
+        }
+        
+        // Sort by createdAt descending
+        announcements.sort((a, b) => b.createdAt - a.createdAt);
+        
+        const typeIcons = {
+            info: 'bi-info-circle',
+            warning: 'bi-exclamation-triangle',
+            success: 'bi-check-circle',
+            danger: 'bi-x-octagon'
+        };
+        
+        const typeColors = {
+            info: '#0dcaf0',
+            warning: '#ffc107',
+            success: '#198754',
+            danger: '#dc3545'
+        };
+        
+        container.innerHTML = announcements.map(ann => `
+            <div class="announcement-item d-flex justify-content-between align-items-start mb-2 p-2" style="background: rgba(255,255,255,0.05); border-radius: 8px; border-left: 3px solid ${typeColors[ann.type] || typeColors.info};">
+                <div class="flex-grow-1">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <i class="bi ${typeIcons[ann.type] || typeIcons.info}" style="color: ${typeColors[ann.type] || typeColors.info}"></i>
+                        <strong style="font-size: 0.9rem;">${escapeHtml(ann.title)}</strong>
+                    </div>
+                    <p class="mb-1 text-muted" style="font-size: 0.8rem;">${escapeHtml(ann.message).substring(0, 100)}${ann.message.length > 100 ? '...' : ''}</p>
+                    <small class="text-muted">${formatDate(ann.createdAt)}${ann.expiresAt ? ` · Expires ${formatDate(ann.expiresAt)}` : ''}</small>
+                </div>
+                <button class="btn btn-sm btn-outline-danger ms-2" onclick="deleteAnnouncement('${ann.id}')" title="Delete">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        `).join('');
+        
+    } catch (error) {
+        console.error('Error loading announcements:', error);
+        container.innerHTML = '<p class="text-danger text-center mb-0">Error loading announcements</p>';
+    }
+}
+
+/**
+ * Delete an announcement
+ * @param {string} announcementId - The announcement ID to delete
+ */
+async function deleteAnnouncement(announcementId) {
+    if (!confirm('Are you sure you want to delete this announcement?')) {
+        return;
+    }
+    
+    try {
+        await remove(ref(database, `announcements/${announcementId}`));
+        await logAuditAction('announcement_deleted', null, `Deleted announcement: ${announcementId}`);
+        showToast('Announcement deleted successfully', 'success');
+        loadActiveAnnouncements(); // Refresh the list
+    } catch (error) {
+        console.error('Error deleting announcement:', error);
+        showToast(`Error: ${error.message}`, 'danger');
+    }
+}
+
+// Make deleteAnnouncement available globally for onclick
+window.deleteAnnouncement = deleteAnnouncement;
+
+/**
  * Create announcement
  * @param {Event} event - Form submit event
  */
@@ -1469,6 +1775,7 @@ async function createAnnouncement(event) {
         document.getElementById('announcementForm').reset();
         
         showToast('Announcement published successfully', 'success');
+        loadActiveAnnouncements(); // Refresh the list
         
     } catch (error) {
         console.error('Error creating announcement:', error);
@@ -1691,6 +1998,178 @@ function bindEventListeners() {
     
     // Audit log filter
     document.getElementById('auditLogFilter')?.addEventListener('change', filterAuditLogs);
+    
+    // Clear logs button
+    document.getElementById('clearLogsBtn')?.addEventListener('click', clearOldLogs);
+    
+    // Bulk email form
+    document.getElementById('bulkEmailForm')?.addEventListener('submit', sendBulkEmail);
+    
+    // Load settings when modals are shown
+    document.getElementById('systemSettingsModal')?.addEventListener('show.bs.modal', loadSystemSettings);
+    document.getElementById('maintenanceModal')?.addEventListener('show.bs.modal', loadMaintenanceSettings);
+}
+
+/**
+ * Clear old audit logs (older than 30 days)
+ */
+async function clearOldLogs() {
+    const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+    
+    if (!confirm('Are you sure you want to delete audit logs older than 30 days? This action cannot be undone.')) {
+        return;
+    }
+    
+    try {
+        showToast('Clearing old logs...', 'info');
+        
+        const logsRef = ref(database, 'adminLogs');
+        const snapshot = await get(logsRef);
+        
+        if (snapshot.exists()) {
+            const logs = snapshot.val();
+            const deletePromises = [];
+            let deletedCount = 0;
+            
+            Object.entries(logs).forEach(([logId, log]) => {
+                if (log.timestamp && log.timestamp < thirtyDaysAgo) {
+                    deletePromises.push(remove(ref(database, `adminLogs/${logId}`)));
+                    deletedCount++;
+                }
+            });
+            
+            if (deletePromises.length > 0) {
+                await Promise.all(deletePromises);
+                await logAuditAction('logs_cleared', null, `Cleared ${deletedCount} logs older than 30 days`);
+                showToast(`Successfully deleted ${deletedCount} old logs`, 'success');
+            } else {
+                showToast('No logs older than 30 days found', 'info');
+            }
+        } else {
+            showToast('No audit logs found', 'info');
+        }
+    } catch (error) {
+        console.error('Error clearing logs:', error);
+        showToast(`Error: ${error.message}`, 'danger');
+    }
+}
+
+/**
+ * Send bulk email to users
+ * Note: Requires backend email service (Firebase Functions with SendGrid/Mailgun)
+ * This implementation prepares the data and logs the action
+ * @param {Event} event - Form submit event
+ */
+async function sendBulkEmail(event) {
+    event.preventDefault();
+    
+    const recipients = document.getElementById('emailRecipients').value;
+    const subject = document.getElementById('emailSubject').value.trim();
+    const body = document.getElementById('emailBody').value.trim();
+    
+    if (!subject || !body) {
+        showToast('Please fill in all required fields', 'warning');
+        return;
+    }
+    
+    // Filter users based on recipient selection
+    let targetUsers = [];
+    switch (recipients) {
+        case 'all':
+            targetUsers = allUsers.filter(u => u.email);
+            break;
+        case 'active':
+            targetUsers = allUsers.filter(u => u.email && u.status !== 'disabled');
+            break;
+        case 'admins':
+            targetUsers = allUsers.filter(u => u.email && u.role === 'admin');
+            break;
+    }
+    
+    if (targetUsers.length === 0) {
+        showToast('No users found matching the selected criteria', 'warning');
+        return;
+    }
+    
+    try {
+        showToast(`Preparing to send email to ${targetUsers.length} users...`, 'info');
+        
+        // Store email request in database for Cloud Function processing
+        // In a production environment, a Cloud Function would listen to this
+        // and send emails via SendGrid, Mailgun, or similar service
+        const emailRequestRef = push(ref(database, 'emailQueue'));
+        await set(emailRequestRef, {
+            recipients: recipients,
+            recipientEmails: targetUsers.map(u => u.email),
+            recipientCount: targetUsers.length,
+            subject: subject,
+            body: body,
+            createdAt: Date.now(),
+            createdBy: currentUser.uid,
+            createdByEmail: currentUser.email,
+            status: 'pending'
+        });
+        
+        await logAuditAction('bulk_email_queued', null, `Queued bulk email to ${targetUsers.length} ${recipients} users: ${subject}`);
+        
+        // Close modal and reset form
+        bootstrap.Modal.getInstance(document.getElementById('bulkEmailModal')).hide();
+        document.getElementById('bulkEmailForm').reset();
+        
+        showToast(`Email queued for ${targetUsers.length} users. Note: Actual sending requires a configured email service (Cloud Functions).`, 'success');
+        
+    } catch (error) {
+        console.error('Error queueing bulk email:', error);
+        showToast(`Error: ${error.message}`, 'danger');
+    }
+}
+
+/**
+ * Load system settings into modal
+ */
+async function loadSystemSettings() {
+    try {
+        const settingsRef = ref(database, 'systemSettings');
+        const snapshot = await get(settingsRef);
+        
+        if (snapshot.exists()) {
+            const settings = snapshot.val();
+            
+            document.getElementById('allowRegistration').checked = settings.allowRegistration !== false;
+            document.getElementById('requireEmailVerification').checked = settings.requireEmailVerification === true;
+            document.getElementById('enableAnalysis').checked = settings.enableAnalysis !== false;
+            document.getElementById('enableStockManager').checked = settings.enableStockManager !== false;
+            document.getElementById('maxStocksPerUser').value = settings.maxStocksPerUser || 100;
+            document.getElementById('maxPortfolioItems').value = settings.maxPortfolioItems || 200;
+        }
+    } catch (error) {
+        console.error('Error loading system settings:', error);
+    }
+}
+
+/**
+ * Load maintenance settings into modal
+ */
+async function loadMaintenanceSettings() {
+    try {
+        const maintenanceRef = ref(database, 'maintenanceMode');
+        const snapshot = await get(maintenanceRef);
+        
+        if (snapshot.exists()) {
+            const settings = snapshot.val();
+            
+            document.getElementById('enableMaintenanceMode').checked = settings.enabled === true;
+            document.getElementById('maintenanceMessage').value = settings.message || '';
+            
+            if (settings.estimatedEndTime) {
+                const date = new Date(settings.estimatedEndTime);
+                const localDateTime = date.toISOString().slice(0, 16);
+                document.getElementById('estimatedEndTime').value = localDateTime;
+            }
+        }
+    } catch (error) {
+        console.error('Error loading maintenance settings:', error);
+    }
 }
 
 /**
