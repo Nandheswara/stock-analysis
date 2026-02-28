@@ -8,9 +8,22 @@
  * - Market sentiment display
  * - Trending topics
  * - Quick market stats
+ * - User authentication UI
  * 
  * Uses RSS feeds and news APIs for Indian stock market news
  */
+
+/* ========================================
+   Firebase Auth Imports
+   ======================================== */
+
+import { 
+    initAuthListener,
+    signInUser,
+    signUpUser,
+    signOutUser,
+    signInWithGoogle
+} from './firebase-auth-service.js';
 
 /* ========================================
    Configuration
@@ -164,6 +177,12 @@ async function initializeNewsPage() {
     console.log('Initializing News Page...');
     
     try {
+        // Initialize Firebase auth listener (handles login/logout UI)
+        initAuthListener();
+        
+        // Setup auth button handlers
+        setupAuthHandlers();
+        
         // Initialize UI components
         initializeEventListeners();
         
@@ -1624,6 +1643,188 @@ function escapeHtml(text) {
 function capitalizeFirst(str) {
     if (!str) return '';
     return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+/* ========================================
+   Authentication Handlers
+   ======================================== */
+
+/**
+ * Setup authentication UI handlers for the news page
+ */
+function setupAuthHandlers() {
+    // Login button handler
+    const loginBtn = document.getElementById('loginBtn');
+    if (loginBtn) {
+        loginBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            showAuthModal('login');
+        });
+    }
+    
+    // Signup button handler
+    const signupBtn = document.getElementById('signupBtn');
+    if (signupBtn) {
+        signupBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            showAuthModal('signup');
+        });
+    }
+    
+    // Logout button handler
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            if (confirm('Are you sure you want to logout?')) {
+                const result = await signOutUser();
+                if (result.success) {
+                    console.log('Logged out successfully');
+                }
+            }
+        });
+    }
+    
+    // Auth form submission
+    const authForm = document.getElementById('authForm');
+    if (authForm) {
+        authForm.addEventListener('submit', handleAuthFormSubmit);
+    }
+    
+    // Auth switch link (toggle between login/signup)
+    const authSwitchLink = document.getElementById('authSwitchLink');
+    if (authSwitchLink) {
+        authSwitchLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            toggleAuthMode();
+        });
+    }
+}
+
+/**
+ * Current auth mode state
+ */
+let currentAuthMode = 'login';
+
+/**
+ * Show authentication modal
+ * @param {string} mode - 'login' or 'signup'
+ */
+function showAuthModal(mode) {
+    currentAuthMode = mode;
+    const authModal = document.getElementById('authModal');
+    const authModalTitle = document.getElementById('authModalLabel');
+    const authSubmitBtn = document.getElementById('authSubmitBtn');
+    const authSwitchText = document.getElementById('authSwitchText');
+    const authError = document.getElementById('authError');
+    
+    if (authModalTitle) {
+        authModalTitle.textContent = mode === 'login' ? 'Login' : 'Create Account';
+    }
+    
+    if (authSubmitBtn) {
+        authSubmitBtn.textContent = mode === 'login' ? 'Login' : 'Sign Up';
+    }
+    
+    if (authSwitchText) {
+        authSwitchText.innerHTML = mode === 'login' 
+            ? "Don't have an account? <a href=\"#\" id=\"authSwitchLink\">Sign up</a>"
+            : "Already have an account? <a href=\"#\" id=\"authSwitchLink\">Login</a>";
+        
+        // Re-attach event listener to the new link
+        const newSwitchLink = document.getElementById('authSwitchLink');
+        if (newSwitchLink) {
+            newSwitchLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                toggleAuthMode();
+            });
+        }
+    }
+    
+    // Clear any previous errors
+    if (authError) {
+        authError.classList.add('d-none');
+        authError.textContent = '';
+    }
+    
+    // Clear form fields
+    const authEmail = document.getElementById('authEmail');
+    const authPassword = document.getElementById('authPassword');
+    if (authEmail) authEmail.value = '';
+    if (authPassword) authPassword.value = '';
+    
+    // Show the modal
+    if (authModal) {
+        const modal = new bootstrap.Modal(authModal);
+        modal.show();
+    }
+}
+
+/**
+ * Toggle between login and signup modes
+ */
+function toggleAuthMode() {
+    showAuthModal(currentAuthMode === 'login' ? 'signup' : 'login');
+}
+
+/**
+ * Handle auth form submission
+ * @param {Event} e - Form submit event
+ */
+async function handleAuthFormSubmit(e) {
+    e.preventDefault();
+    
+    const email = document.getElementById('authEmail')?.value?.trim();
+    const password = document.getElementById('authPassword')?.value;
+    const authError = document.getElementById('authError');
+    const authSubmitBtn = document.getElementById('authSubmitBtn');
+    
+    if (!email || !password) {
+        showAuthError('Please enter email and password');
+        return;
+    }
+    
+    // Disable button and show loading state
+    if (authSubmitBtn) {
+        authSubmitBtn.disabled = true;
+        authSubmitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
+    }
+    
+    let result;
+    if (currentAuthMode === 'login') {
+        result = await signInUser(email, password);
+    } else {
+        result = await signUpUser(email, password);
+    }
+    
+    // Re-enable button
+    if (authSubmitBtn) {
+        authSubmitBtn.disabled = false;
+        authSubmitBtn.textContent = currentAuthMode === 'login' ? 'Login' : 'Sign Up';
+    }
+    
+    if (result.success) {
+        // Close the modal on success
+        const authModal = document.getElementById('authModal');
+        if (authModal) {
+            const modal = bootstrap.Modal.getInstance(authModal);
+            if (modal) modal.hide();
+        }
+    } else {
+        showAuthError(result.error || 'Authentication failed. Please try again.');
+    }
+}
+
+/**
+ * Show authentication error message
+ * @param {string} message - Error message to display
+ */
+function showAuthError(message) {
+    const authError = document.getElementById('authError');
+    if (authError) {
+        authError.textContent = message;
+        authError.classList.remove('d-none');
+    }
 }
 
 /* ========================================
