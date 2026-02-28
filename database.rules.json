@@ -14,7 +14,15 @@
       ".read": "auth != null",
       ".write": "auth != null"
     },
+    "maintenanceMode": {
+      ".read": true,
+      ".write": "auth != null"
+    },
     "announcements": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "emailQueue": {
       ".read": "auth != null",
       ".write": "auth != null"
     },

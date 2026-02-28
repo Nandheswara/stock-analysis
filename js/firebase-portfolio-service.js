@@ -6,6 +6,7 @@
  * - Real-time sync with Firebase
  * - Offline support with localStorage caching for instant loading
  * - User-specific data management
+ * - Impersonation support for admins
  * 
  * @module firebase-portfolio-service
  */
@@ -37,6 +38,23 @@ const CACHE_DURATION = 60 * 60 * 1000;
 
 let portfolioListener = null;
 let isCacheWarmed = false;
+
+/**
+ * Get effective user ID (handles impersonation)
+ * If admin is impersonating a user, returns the impersonated user's ID
+ * @returns {string|null} Effective user ID
+ */
+function getEffectiveUserId() {
+    // Check for impersonation
+    const impersonatedUserId = sessionStorage.getItem('impersonatedUserId');
+    if (impersonatedUserId) {
+        return impersonatedUserId;
+    }
+    
+    // Return actual user ID
+    const user = getCurrentUser();
+    return user ? user.uid : null;
+}
 
 /**
  * Save portfolio to localStorage cache
@@ -76,20 +94,37 @@ function loadFromLocalCache(userId) {
     return null;
 }
 
+/**
+ * Get user-specific portfolio database reference
+ * Uses effective user ID to support impersonation
+ * @returns {Object|null} Firebase database reference
+ */
 function getUserPortfolioRef() {
     const user = getCurrentUser();
     if (!user) {
         return null;
     }
-    return ref(database, `users/${user.uid}/portfolio`);
+    
+    // Use effective user ID (handles impersonation)
+    const effectiveUserId = getEffectiveUserId();
+    return ref(database, `users/${effectiveUserId}/portfolio`);
 }
 
+/**
+ * Get reference to a specific portfolio stock
+ * Uses effective user ID to support impersonation
+ * @param {string} stockId - Stock ID
+ * @returns {Object|null} Firebase database reference
+ */
 function getPortfolioStockRef(stockId) {
     const user = getCurrentUser();
     if (!user) {
         return null;
     }
-    return ref(database, `users/${user.uid}/portfolio/${stockId}`);
+    
+    // Use effective user ID (handles impersonation)
+    const effectiveUserId = getEffectiveUserId();
+    return ref(database, `users/${effectiveUserId}/portfolio/${stockId}`);
 }
 
 /**

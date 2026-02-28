@@ -288,6 +288,21 @@
                         </div>
                     </div>
 
+                    <!-- Active Announcements -->
+                    <div class="admin-card mb-4">
+                        <div class="admin-card-header">
+                            <h2><i class="bi bi-megaphone"></i> Active Announcements</h2>
+                        </div>
+                        <div class="admin-card-body">
+                            <div id="activeAnnouncementsList">
+                                <div class="text-center py-3">
+                                    <div class="spinner-border spinner-border-sm" role="status"></div>
+                                    <p class="mt-2 mb-0 text-muted">Loading announcements...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Recent Activity -->
                     <div class="admin-card">
                         <div class="admin-card-header">
@@ -883,6 +898,62 @@
 
     <!-- Toast Container -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer"></div>
+
+    <!-- Authentication Modal for Admin Login -->
+    <div class="modal fade" id="adminAuthModal" tabindex="-1" aria-labelledby="adminAuthModalTitle" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="adminAuthModalTitle">
+                        <i class="bi bi-shield-lock"></i> Admin Login
+                    </h5>
+                </div>
+                <div class="modal-body">
+                    <!-- Alert Container for Auth Errors -->
+                    <div id="adminAuthAlertContainer"></div>
+                    
+                    <!-- Login Form -->
+                    <form id="adminLoginForm">
+                        <div class="mb-3">
+                            <label for="adminLoginEmail" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="adminLoginEmail" placeholder="admin@example.com" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="adminLoginPassword" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="adminLoginPassword" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 mb-2">
+                            <i class="bi bi-box-arrow-in-right"></i> Sign In
+                        </button>
+                        <button type="button" class="btn btn-outline-primary w-100" id="adminGoogleSignInBtn">
+                            <i class="bi bi-google"></i> Sign in with Google
+                        </button>
+                    </form>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <small class="text-muted">Only administrators can access this panel</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white text-center py-4 mt-5" id="adminFooter" style="display: none;">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    <p class="mb-2"><i class="bi bi-graph-up"></i> <strong>Stock Analysis Dashboard</strong></p>
+                    <p class="mb-2">Professional stock analysis tool for Indian equities</p>
+                    <div class="footer-links mb-3">
+                        <a href="../index.html" class="text-white-50 me-3 text-decoration-none">Home</a>
+                        <a href="analysis.html" class="text-white-50 me-3 text-decoration-none">Fundamental Analysis</a>
+                        <a href="stock-manager.html" class="text-white-50 text-decoration-none">Stock Manager</a>
+                    </div>
+                    <p class="mb-0 text-white-50">&copy; 2025 Stock Analysis Dashboard. All rights reserved.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
 
     <!-- External Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

@@ -282,6 +282,7 @@ export function getCurrentUser() {
 
 /**
  * Sign up a new user with email and password
+ * Checks system settings for registration restrictions
  * @param {string} email - User email
  * @param {string} password - User password
  * @param {string} displayName - User display name
@@ -289,6 +290,17 @@ export function getCurrentUser() {
  */
 export async function signUpUser(email, password, displayName) {
     try {
+        // Check if registration is allowed
+        const settingsRef = dbRef(database, 'systemSettings/allowRegistration');
+        const settingsSnapshot = await get(settingsRef);
+        
+        if (settingsSnapshot.exists() && settingsSnapshot.val() === false) {
+            return { 
+                success: false, 
+                error: 'New registrations are currently disabled. Please contact an administrator.' 
+            };
+        }
+        
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         
         if (displayName) {
@@ -320,7 +332,7 @@ export async function signUpUser(email, password, displayName) {
         return { success: true, user: userCredential.user };
     } catch (error) {
         console.error('Sign up failed:', error.code);
-        throw new Error(getAuthErrorMessage(error.code));
+        return { success: false, error: getAuthErrorMessage(error.code) };
     }
 }
 
@@ -366,18 +378,25 @@ export async function signInUser(email, password) {
         const userCredential = await signInWithEmailAndPassword(auth, trimmedEmail, password);
         const user = userCredential.user;
         
-        // Cache auth state immediately for faster subsequent page loads
-        cacheAuthState(user);
-        
-        // Update current user reference
-        currentUser = user;
-        authStateResolved = true;
-        
-        // Update last active timestamp in database
+        // Check if user is disabled in database BEFORE allowing login
         try {
             const userRef = dbRef(database, `users/${user.uid}`);
             const snapshot = await get(userRef);
+            
             if (snapshot.exists()) {
+                const userData = snapshot.val();
+                
+                // Check if user account is disabled
+                if (userData.status === 'disabled') {
+                    // Sign out the user immediately
+                    await signOut(auth);
+                    isLoginInProgress = false;
+                    return { 
+                        success: false, 
+                        error: 'Your account has been disabled. Please contact an administrator for assistance.' 
+                    };
+                }
+                
                 // Update existing user's lastActive and sync data from Auth
                 const updates = {
                     lastActive: Date.now(),
@@ -407,9 +426,16 @@ export async function signInUser(email, password) {
                 });
             }
         } catch (dbError) {
-            console.error('Error updating user activity:', dbError);
-            // Don't fail login if database write fails
+            console.error('Error checking user status:', dbError);
+            // Don't fail login if database check fails
         }
+        
+        // Cache auth state immediately for faster subsequent page loads
+        cacheAuthState(user);
+        
+        // Update current user reference
+        currentUser = user;
+        authStateResolved = true;
         
         return { success: true, user };
     } catch (error) {
@@ -444,18 +470,25 @@ export async function signInWithGoogle() {
         const userCredential = await signInWithPopup(auth, provider);
         const user = userCredential.user;
         
-        // Cache auth state immediately
-        cacheAuthState(user);
-        
-        // Update current user reference
-        currentUser = user;
-        authStateResolved = true;
-        
-        // Save/update user data in database
+        // Check if user is disabled in database BEFORE allowing login
         try {
             const userRef = dbRef(database, `users/${user.uid}`);
             const snapshot = await get(userRef);
+            
             if (snapshot.exists()) {
+                const userData = snapshot.val();
+                
+                // Check if user account is disabled
+                if (userData.status === 'disabled') {
+                    // Sign out the user immediately
+                    await signOut(auth);
+                    isLoginInProgress = false;
+                    return { 
+                        success: false, 
+                        error: 'Your account has been disabled. Please contact an administrator for assistance.' 
+                    };
+                }
+                
                 // Update existing user's lastActive and sync data from Auth
                 const updates = {
                     lastActive: Date.now(),
@@ -485,9 +518,16 @@ export async function signInWithGoogle() {
                 });
             }
         } catch (dbError) {
-            console.error('Error saving Google user to database:', dbError);
-            // Don't fail login if database write fails
+            console.error('Error checking Google user status:', dbError);
+            // Don't fail login if database check fails
         }
+        
+        // Cache auth state immediately
+        cacheAuthState(user);
+        
+        // Update current user reference
+        currentUser = user;
+        authStateResolved = true;
         
         return { success: true, user };
     } catch (error) {
