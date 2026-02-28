@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Market News | Latest Indian Stock News & Updates</title>
+    
+    <!-- Preload Firebase SDKs for faster loading -->
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://stock-analysis-51b9a-default-rtdb.firebaseio.com" crossorigin>
+    <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="dns-prefetch" href="https://www.gstatic.com">
+    <link rel="dns-prefetch" href="https://code.jquery.com">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js">
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Stay updated with the latest Indian stock market news, breaking financial updates, and market insights. Real-time news flow for informed investment decisions.">
+    <meta name="keywords" content="stock news, Indian stock market news, financial news, market updates, stock market India, NSE news, BSE news, investment news">
+    <meta name="author" content="Stock Analysis Dashboard">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://nandheswara.github.io/stock-analysis/pages/news.html">
+    <link rel="sitemap" type="application/xml" href="../sitemap.xml">
+    
+    <!-- Open Graph Meta Tags for Social Sharing -->
+    <meta property="og:title" content="Stock Market News - Latest Indian Financial Updates">
+    <meta property="og:description" content="Stay updated with real-time Indian stock market news and breaking financial updates.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://nandheswara.github.io/stock-analysis/pages/news.html">
+    <meta property="og:image" content="https://nandheswara.github.io/stock-analysis/images/og-stock-news.jpg">
+    <meta property="og:site_name" content="Stock Analysis Dashboard">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Stock Market News - Latest Indian Financial Updates">
+    <meta name="twitter:description" content="Stay updated with real-time Indian stock market news and breaking financial updates.">
+    <meta name="twitter:image" content="https://nandheswara.github.io/stock-analysis/images/twitter-stock-news.jpg">
+    
+    <!-- Structured Data for News -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "name": "Stock Market News",
+        "description": "Latest Indian stock market news and financial updates",
+        "url": "https://nandheswara.github.io/stock-analysis/pages/news.html",
+        "isPartOf": {
+            "@type": "WebSite",
+            "name": "Stock Analysis Dashboard",
+            "url": "https://nandheswara.github.io/stock-analysis/"
+        }
+    }
+    </script>
+    
+    <!-- Critical CSS for fast first paint -->
+    <link rel="stylesheet" href="../css/critical.css">
+    <!-- External CSS (CDN) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <!-- CSS Files -->
+    <link rel="stylesheet" href="../css/critical.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/news.css">
+    <link rel="stylesheet" href="../css/firebase-auth.css">
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="text-center">
+            <div class="spinner-border text-light" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <div class="loading-overlay-text" id="loadingText">Loading...</div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="../index.html">
+                <i class="bi bi-graph-up"></i> Stock Dashboard
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="../index.html">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="analysis.html">
+                            <i class="bi bi-bar-chart-line"></i> Fundamental Analysis
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="stock-manager.html">
+                            <i class="bi bi-wallet2"></i> Stock Manager
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="news.html">
+                            <i class="bi bi-newspaper"></i> News
+                        </a>
+                    </li>
+                    <li class="nav-item d-flex align-items-center ms-2">
+                        <button class="btn btn-sm btn-outline-light" id="themeToggle" title="Toggle theme" aria-label="Toggle dark/light theme">
+                            <i class="bi bi-moon-fill" id="themeIcon"></i>
+                        </button>
+                    </li>
+                    <!-- Auth Buttons (shown when not logged in) -->
+                    <li class="nav-item d-flex align-items-center ms-2" id="authButtons">
+                        <button type="button" class="btn btn-sm btn-outline-light me-2" id="loginBtn">
+                            <i class="bi bi-box-arrow-in-right"></i> Login
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-light" id="signupBtn">
+                            <i class="bi bi-person-plus"></i> Sign Up
+                        </button>
+                    </li>
+                    <!-- User Profile (shown when logged in) -->
+                    <li class="nav-item d-flex align-items-center ms-2" id="userProfile" style="display: none !important;">
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-person-circle"></i> <span id="userEmail">User</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="profile.html" id="profileBtn"><i class="bi bi-person-gear"></i> Profile</a></li>
+                                <li><a class="dropdown-item" href="admin.html" id="adminPanelLink" style="display: none;"><i class="bi bi-shield-check"></i> Admin Panel</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#" id="logoutBtn"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+                            </ul>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container-fluid py-4">
+        <div class="container">
+            <!-- Header Section -->
+            <div class="news-header-section">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h1 class="mb-2">
+                            <i class="bi bi-newspaper"></i> Stock Market News
+                        </h1>
+                        <p class="mb-0">Stay updated with the latest Indian stock market news and financial updates.</p>
+                    </div>
+                    <div class="col-md-4 text-md-end">
+                        <button class="btn btn-news-refresh" id="refreshNewsBtn" aria-label="Refresh news feed">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh
+                        </button>
+                        <button class="btn btn-news-pause" id="pauseNewsBtn" aria-label="Pause news ticker">
+                            <i class="bi bi-pause-fill" id="pauseIcon"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Breaking News Ticker -->
+            <section class="news-ticker-section" aria-label="Breaking News Ticker">
+                <div class="news-ticker-wrapper">
+                    <div class="news-ticker-label">
+                        <i class="bi bi-lightning-fill"></i> BREAKING
+                    </div>
+                    <div class="news-ticker-container">
+                        <div class="news-ticker" id="newsTicker">
+                            <span class="ticker-placeholder">Loading latest market news...</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- News Categories Filter -->
+            <section class="news-filter-section" aria-label="News Categories">
+                <div class="news-filter-wrapper">
+                    <button class="news-filter-btn active" data-category="all">
+                        <i class="bi bi-grid-fill"></i> All News
+                    </button>
+                    <button class="news-filter-btn" data-category="markets">
+                        <i class="bi bi-graph-up"></i> Markets
+                    </button>
+                    <button class="news-filter-btn" data-category="stocks">
+                        <i class="bi bi-bar-chart-line"></i> Stocks
+                    </button>
+                    <button class="news-filter-btn" data-category="economy">
+                        <i class="bi bi-bank"></i> Economy
+                    </button>
+                    <button class="news-filter-btn" data-category="ipo">
+                        <i class="bi bi-rocket-takeoff"></i> IPO
+                    </button>
+                    <button class="news-filter-btn" data-category="crypto">
+                        <i class="bi bi-currency-bitcoin"></i> Crypto
+                    </button>
+                </div>
+            </section>
+
+            <!-- Live News Flow Section -->
+            <section class="news-flow-section" aria-label="Live News Feed">
+                <div class="row">
+                    <!-- Main News Flow -->
+                    <div class="col-lg-8">
+                        <div class="news-flow-container">
+                            <div class="news-flow-header">
+                                <h2>
+                                    <i class="bi bi-broadcast"></i> Live News Feed
+                                    <span class="live-indicator">
+                                        <span class="live-dot"></span> LIVE
+                                    </span>
+                                </h2>
+                            </div>
+                            <div class="news-flow-content" id="newsFlowContent">
+                                <!-- News items will be dynamically inserted here -->
+                                <div class="news-loading">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading news...</span>
+                                    </div>
+                                    <p>Fetching latest news...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sidebar - Trending & Quick Stats -->
+                    <div class="col-lg-4">
+                        <!-- Market Sentiment Widget -->
+                        <div class="news-widget market-sentiment-widget">
+                            <div class="widget-header">
+                                <h3><i class="bi bi-speedometer2"></i> Market Sentiment</h3>
+                            </div>
+                            <div class="widget-body" id="marketSentiment">
+                                <div class="sentiment-meter">
+                                    <div class="sentiment-bar">
+                                        <div class="sentiment-fill" id="sentimentFill" style="width: 50%;"></div>
+                                    </div>
+                                    <div class="sentiment-labels">
+                                        <span class="bearish">Bearish</span>
+                                        <span class="neutral">Neutral</span>
+                                        <span class="bullish">Bullish</span>
+                                    </div>
+                                </div>
+                                <div class="sentiment-value" id="sentimentValue">
+                                    <span class="value">50</span>
+                                    <span class="label">Market Mood Index</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Trending Topics Widget -->
+                        <div class="news-widget trending-widget">
+                            <div class="widget-header">
+                                <h3><i class="bi bi-fire"></i> Trending Topics</h3>
+                            </div>
+                            <div class="widget-body" id="trendingTopics">
+                                <div class="trending-loading">
+                                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Market Stats -->
+                        <div class="news-widget market-stats-widget">
+                            <div class="widget-header">
+                                <h3><i class="bi bi-bar-chart-fill"></i> Quick Stats</h3>
+                            </div>
+                            <div class="widget-body" id="quickStats">
+                                <div class="stat-item">
+                                    <span class="stat-label">NIFTY 50</span>
+                                    <span class="stat-value" id="niftyValue">--</span>
+                                    <span class="stat-change positive" id="niftyChange">--</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">SENSEX</span>
+                                    <span class="stat-value" id="sensexValue">--</span>
+                                    <span class="stat-change positive" id="sensexChange">--</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">BANK NIFTY</span>
+                                    <span class="stat-value" id="bankNiftyValue">--</span>
+                                    <span class="stat-change positive" id="bankNiftyChange">--</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white text-center py-4 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    <p class="mb-2"><i class="bi bi-graph-up"></i> <strong>Stock Analysis Dashboard</strong></p>
+                    <p class="mb-2">Professional stock analysis tool for Indian equities</p>
+                    <div class="footer-links mb-3">
+                        <a href="../index.html" class="text-white-50 me-3 text-decoration-none">Home</a>
+                        <a href="analysis.html" class="text-white-50 me-3 text-decoration-none">Fundamental Analysis</a>
+                        <a href="stock-manager.html" class="text-white-50 me-3 text-decoration-none">Stock Manager</a>
+                        <a href="news.html" class="text-white-50 text-decoration-none">News</a>
+                    </div>
+                    <p class="mb-0 text-white-50">&copy; 2025 Stock Analysis Dashboard. All rights reserved.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Auth Modal -->
+    <div class="modal fade" id="authModal" tabindex="-1" aria-labelledby="authModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="authModalLabel">Login</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="authForm">
+                        <div class="mb-3">
+                            <label for="authEmail" class="form-label">Email address</label>
+                            <input type="email" class="form-control" id="authEmail" placeholder="Enter email" required autocomplete="email">
+                        </div>
+                        <div class="mb-3">
+                            <label for="authPassword" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="authPassword" placeholder="Password" required autocomplete="current-password">
+                        </div>
+                        <div id="authError" class="alert alert-danger d-none" role="alert"></div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary" id="authSubmitBtn">Login</button>
+                        </div>
+                    </form>
+                    <div class="text-center mt-3">
+                        <p class="mb-0" id="authSwitchText">
+                            Don't have an account? <a href="#" id="authSwitchLink">Sign up</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Firebase SDK -->
+    <script type="module" src="../js/firebase-config.js"></script>
+    <script type="module" src="../js/firebase-auth-service.js"></script>
+    
+    <!-- Global Scripts -->
+    <script src="../js/global.js"></script>
+    
+    <!-- Page Specific Script -->
+    <script type="module" src="../js/news.js"></script>
+</body>
+</html>
