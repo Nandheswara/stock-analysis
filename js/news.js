@@ -99,12 +99,20 @@ let newsState = {
    Initialization
    ======================================== */
 
-const TRENDING_TOPICS = [
-    { text: "Sensex Rally", count: "15.2K" },
-    { text: "RBI Policy", count: "12.8K" },
-    { text: "IT Stocks", count: "9.5K" },
-    { text: "Bank Nifty", count: "8.7K" },
-    { text: "FII Buying", count: "7.3K" }
+// Keywords to extract from news for trending topics
+const TRENDING_KEYWORDS = [
+    // Market indices
+    'sensex', 'nifty', 'bank nifty', 'nifty 50', 'bse', 'nse',
+    // Sectors
+    'it stocks', 'banking', 'pharma', 'auto', 'fmcg', 'metal', 'realty', 'energy',
+    // Market terms
+    'rally', 'crash', 'bull', 'bear', 'ipo', 'fii', 'dii', 'buyback',
+    // Institutions
+    'rbi', 'sebi', 'fed', 'government',
+    // Actions
+    'investment', 'trading', 'dividend', 'earnings', 'results', 'quarterly',
+    // Companies (major)
+    'reliance', 'tcs', 'infosys', 'hdfc', 'icici', 'sbi', 'airtel', 'adani', 'tata'
 ];
 
 /* ========================================
@@ -155,24 +163,30 @@ document.addEventListener('DOMContentLoaded', () => {
 async function initializeNewsPage() {
     console.log('Initializing News Page...');
     
-    // Initialize UI components
-    initializeEventListeners();
-    
-    // Load initial data
-    await loadNewsData();
-    
-    // Initialize widgets
-    initializeTrendingTopics();
-    
-    // Fetch dynamic market data
-    await fetchMarketStats();
-    initializeMarketSentiment();
-    
-    // Start auto-refresh for news and market data
-    startAutoRefresh();
-    startMarketStatsRefresh();
-    
-    console.log('News Page initialized successfully');
+    try {
+        // Initialize UI components
+        initializeEventListeners();
+        
+        // Initialize trending topics immediately (doesn't depend on news data)
+        initializeTrendingTopics();
+        
+        // Load initial data
+        await loadNewsData();
+        
+        // Fetch dynamic market data
+        await fetchMarketStats();
+        initializeMarketSentiment();
+        
+        // Start auto-refresh for news and market data
+        startAutoRefresh();
+        startMarketStatsRefresh();
+        
+        console.log('News Page initialized successfully');
+    } catch (error) {
+        console.error('Error initializing news page:', error);
+        // Ensure trending topics are rendered even on error
+        initializeTrendingTopics();
+    }
 }
 
 /**
@@ -237,11 +251,15 @@ async function loadNewsData() {
         // Update ticker
         updateNewsTicker();
         
+        // Update trending topics based on loaded news
+        updateTrendingTopics();
+        
     } catch (error) {
         console.error('Error loading news:', error);
         newsState.allNews = [];
         filterNews(newsState.currentCategory);
         updateNewsTicker();
+        updateTrendingTopics();
     } finally {
         newsState.isLoading = false;
     }
@@ -898,21 +916,93 @@ function getSentimentColor(sentiment) {
 }
 
 /**
- * Initialize trending topics widget
+ * Initialize trending topics widget with placeholder
  */
 function initializeTrendingTopics() {
     const container = document.getElementById('trendingTopics');
     if (!container) return;
     
-    const trendingHTML = TRENDING_TOPICS.map((topic, index) => `
-        <div class="trending-item" onclick="searchTopic('${topic.text}')">
+    // Show loading state initially
+    container.innerHTML = `
+        <div class="trending-loading">
+            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <span class="ms-2">Analyzing news trends...</span>
+        </div>
+    `;
+}
+
+/**
+ * Update trending topics based on actual news content
+ */
+function updateTrendingTopics() {
+    const container = document.getElementById('trendingTopics');
+    if (!container) return;
+    
+    // If no news loaded, show message
+    if (!newsState.allNews || newsState.allNews.length === 0) {
+        container.innerHTML = `
+            <div class="trending-empty">
+                <i class="bi bi-info-circle"></i>
+                <span>Trends will appear once news loads</span>
+            </div>
+        `;
+        return;
+    }
+    
+    // Extract trending topics from actual news
+    const trendingTopics = extractTrendingTopics(newsState.allNews);
+    
+    if (trendingTopics.length === 0) {
+        container.innerHTML = `
+            <div class="trending-empty">
+                <i class="bi bi-bar-chart"></i>
+                <span>No trending topics found</span>
+            </div>
+        `;
+        return;
+    }
+    
+    const trendingHTML = trendingTopics.slice(0, 5).map((topic, index) => `
+        <div class="trending-item" onclick="searchTopic('${escapeHtml(topic.keyword)}')">
             <span class="trending-rank">${index + 1}</span>
-            <span class="trending-text">${escapeHtml(topic.text)}</span>
-            <span class="trending-count">${topic.count}</span>
+            <span class="trending-text">${escapeHtml(capitalizeFirst(topic.keyword))}</span>
+            <span class="trending-count">${topic.count} news</span>
         </div>
     `).join('');
     
     container.innerHTML = trendingHTML;
+}
+
+/**
+ * Extract trending topics from news articles
+ * @param {Array} newsArticles - Array of news items
+ * @returns {Array} Sorted array of trending topics with counts
+ */
+function extractTrendingTopics(newsArticles) {
+    const keywordCounts = {};
+    
+    // Count occurrences of each keyword in news
+    newsArticles.forEach(news => {
+        const text = (news.title + ' ' + news.description).toLowerCase();
+        
+        TRENDING_KEYWORDS.forEach(keyword => {
+            if (text.includes(keyword.toLowerCase())) {
+                if (!keywordCounts[keyword]) {
+                    keywordCounts[keyword] = { keyword: keyword, count: 0 };
+                }
+                keywordCounts[keyword].count++;
+            }
+        });
+    });
+    
+    // Convert to array and sort by count (descending)
+    const sortedTopics = Object.values(keywordCounts)
+        .filter(topic => topic.count > 0)
+        .sort((a, b) => b.count - a.count);
+    
+    return sortedTopics;
 }
 
 /**
@@ -1241,6 +1331,12 @@ function openNewsUrl(url) {
  * @param {string} topic - Topic to search
  */
 function searchTopic(topic) {
+    // Check if news has been loaded
+    if (!newsState.allNews || newsState.allNews.length === 0) {
+        showSearchMessage(topic, 'loading');
+        return;
+    }
+    
     // Filter news containing the topic
     const searchTerm = topic.toLowerCase();
     newsState.filteredNews = newsState.allNews.filter(news => 
@@ -1256,10 +1352,50 @@ function searchTopic(topic) {
     newsState.currentCategory = 'all';
     newsState.currentPage = 1;
     
+    // Show appropriate message if no results
+    if (newsState.filteredNews.length === 0) {
+        showSearchMessage(topic, 'no-results');
+        return;
+    }
+    
     // Set displayed news
     newsState.displayedNews = newsState.filteredNews.slice(0, NEWS_CONFIG.ITEMS_PER_PAGE);
     
     renderNewsItems();
+}
+
+/**
+ * Show search-related messages
+ * @param {string} topic - Topic that was searched
+ * @param {string} type - Message type ('loading' or 'no-results')
+ */
+function showSearchMessage(topic, type) {
+    const container = document.getElementById('newsFlowContent');
+    if (!container) return;
+    
+    if (type === 'loading') {
+        container.innerHTML = `
+            <div class="no-news">
+                <i class="bi bi-hourglass-split"></i>
+                <h4>News Still Loading</h4>
+                <p>Please wait while we fetch the latest news, then try searching for "${escapeHtml(topic)}" again.</p>
+                <button class="btn btn-primary mt-3" onclick="handleRefresh()">
+                    <i class="bi bi-arrow-clockwise"></i> Refresh News
+                </button>
+            </div>
+        `;
+    } else {
+        container.innerHTML = `
+            <div class="no-news">
+                <i class="bi bi-search"></i>
+                <h4>No Results for "${escapeHtml(topic)}"</h4>
+                <p>We couldn't find any news matching this topic. Try a different topic or browse all news.</p>
+                <button class="btn btn-primary mt-3" onclick="filterNews('all'); document.querySelector('[data-category=all]')?.click();">
+                    <i class="bi bi-newspaper"></i> Show All News
+                </button>
+            </div>
+        `;
+    }
 }
 
 /**
@@ -1510,7 +1646,10 @@ document.head.appendChild(style);
 // Export for global access
 window.openNewsUrl = openNewsUrl;
 window.searchTopic = searchTopic;
+window.showSearchMessage = showSearchMessage;
 window.loadMoreNews = loadMoreNews;
 window.fetchMarketStats = fetchMarketStats;
 window.initializeMarketSentiment = initializeMarketSentiment;
 window.handleRefresh = handleRefresh;
+window.filterNews = filterNews;
+window.updateTrendingTopics = updateTrendingTopics;

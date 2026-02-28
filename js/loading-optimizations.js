@@ -1,5 +1,5 @@
 /**
- * Critical Loading Optimizations for Stock Analysis Dashboard
+ * Critical Loading Optimizations for Equity Labs
  * 
  * This script handles:
  * - Preloading critical resources

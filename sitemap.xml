@@ -4,7 +4,7 @@
         xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
         http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
     
-    <!-- Homepage - Stock Analysis Dashboard -->
+    <!-- Homepage - Equity Labs -->
     <url>
         <loc>https://nandheswara.github.io/stock-analysis/</loc>
         <lastmod>2024-12-30</lastmod>

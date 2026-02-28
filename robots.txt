@@ -1,4 +1,4 @@
-# robots.txt for Stock Analysis Dashboard
+# robots.txt for Equity Labs
 # https://nandheswara.github.io/stock-analysis/
 
 # Allow all search engines to crawl all content
