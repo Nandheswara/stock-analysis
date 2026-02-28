@@ -30,18 +30,6 @@ jobs:
         with:
           ref: ${{ github.event.inputs.branch || github.ref }}
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20.x'
-
-      - name: Install minification tools
-        run: |
-          npm install --no-save esbuild cssnano-cli
-
-      - name: Minify JS and CSS
-        run: node scripts/minify.js
-
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
