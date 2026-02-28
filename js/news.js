@@ -108,14 +108,38 @@ const TRENDING_TOPICS = [
 ];
 
 /* ========================================
-   Market Stats Data (Sample)
+   Market Stats Configuration
    ======================================== */
 
-const MARKET_STATS = {
-    nifty: { value: "22,523.65", change: "+156.35", changePercent: "+0.70%", isPositive: true },
-    sensex: { value: "74,119.39", change: "+456.78", changePercent: "+0.62%", isPositive: true },
-    bankNifty: { value: "47,892.15", change: "-123.45", changePercent: "-0.26%", isPositive: false }
+const MARKET_API_CONFIG = {
+    // Yahoo Finance symbols for Indian indices
+    symbols: {
+        nifty: '^NSEI',
+        sensex: '^BSESN',
+        bankNifty: '^NSEBANK'
+    },
+    // API endpoints for market data
+    apis: [
+        {
+            name: 'YahooFinance',
+            // Using a CORS proxy with Yahoo Finance
+            getUrl: (symbol) => `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`
+        }
+    ],
+    // Fallback to NSE India API
+    nseApi: 'https://www.nseindia.com/api/equity-stockIndices?index=',
+    // Update interval (1 minute)
+    UPDATE_INTERVAL: 60000
 };
+
+// Dynamic market stats state
+let marketStats = {
+    nifty: { value: '--', change: '--', changePercent: '--', isPositive: true, loading: true },
+    sensex: { value: '--', change: '--', changePercent: '--', isPositive: true, loading: true },
+    bankNifty: { value: '--', change: '--', changePercent: '--', isPositive: true, loading: true }
+};
+
+let marketStatsTimer = null;
 
 /* ========================================
    Initialization
@@ -138,12 +162,15 @@ async function initializeNewsPage() {
     await loadNewsData();
     
     // Initialize widgets
-    initializeMarketSentiment();
     initializeTrendingTopics();
-    initializeMarketStats();
     
-    // Start auto-refresh
+    // Fetch dynamic market data
+    await fetchMarketStats();
+    initializeMarketSentiment();
+    
+    // Start auto-refresh for news and market data
     startAutoRefresh();
+    startMarketStatsRefresh();
     
     console.log('News Page initialized successfully');
 }
@@ -720,14 +747,16 @@ function updateNewsTicker() {
  * Initialize market sentiment widget
  */
 function initializeMarketSentiment() {
-    // Calculate sentiment based on sample data (in real app, this would come from API)
+    // Calculate sentiment based on market data and news
     const sentiment = calculateMarketSentiment();
     
     const sentimentFill = document.getElementById('sentimentFill');
     const sentimentValue = document.getElementById('sentimentValue');
+    const sentimentLabel = document.getElementById('sentimentLabel');
     
     if (sentimentFill) {
         sentimentFill.style.width = `${sentiment}%`;
+        sentimentFill.style.background = getSentimentGradient(sentiment);
     }
     
     if (sentimentValue) {
@@ -737,35 +766,124 @@ function initializeMarketSentiment() {
             valueEl.style.color = getSentimentColor(sentiment);
         }
     }
+    
+    if (sentimentLabel) {
+        sentimentLabel.textContent = getSentimentLabel(sentiment);
+        sentimentLabel.style.color = getSentimentColor(sentiment);
+    }
 }
 
 /**
- * Calculate market sentiment (0-100)
+ * Calculate market sentiment (0-100) based on:
+ * 1. Market index performance (40% weight)
+ * 2. News sentiment analysis (40% weight)
+ * 3. Market breadth approximation (20% weight)
  * @returns {number} Sentiment score
  */
 function calculateMarketSentiment() {
-    // This is a placeholder calculation
-    // In a real app, this would analyze news sentiment or use market data
-    const positiveKeywords = ['surge', 'rally', 'gain', 'high', 'bullish', 'rise', 'up'];
-    const negativeKeywords = ['fall', 'drop', 'loss', 'low', 'bearish', 'decline', 'down'];
+    let marketScore = 50; // Default neutral
+    let newsScore = 50;
+    let breadthScore = 50;
     
-    let positive = 0;
-    let negative = 0;
+    // 1. Calculate market performance score (based on index changes)
+    const indexScores = [];
+    
+    Object.values(marketStats).forEach(stat => {
+        if (!stat.loading && stat.changePercent !== '--') {
+            const percent = parseFloat(stat.changePercent.replace('%', '').replace('+', ''));
+            if (!isNaN(percent)) {
+                // Map percentage change to 0-100 scale
+                // -3% or worse = 0, +3% or better = 100
+                const score = Math.min(100, Math.max(0, ((percent + 3) / 6) * 100));
+                indexScores.push(score);
+            }
+        }
+    });
+    
+    if (indexScores.length > 0) {
+        marketScore = Math.round(indexScores.reduce((a, b) => a + b, 0) / indexScores.length);
+    }
+    
+    // 2. Calculate news sentiment score
+    const positiveKeywords = [
+        'surge', 'rally', 'gain', 'high', 'bullish', 'rise', 'up', 'soar',
+        'jump', 'climb', 'advance', 'positive', 'growth', 'profit', 'boom',
+        'record', 'strong', 'optimistic', 'recovery', 'breakthrough'
+    ];
+    const negativeKeywords = [
+        'fall', 'drop', 'loss', 'low', 'bearish', 'decline', 'down', 'crash',
+        'plunge', 'sink', 'slump', 'negative', 'weak', 'fear', 'crisis',
+        'concern', 'worry', 'risk', 'volatile', 'correction'
+    ];
+    
+    let positiveCount = 0;
+    let negativeCount = 0;
     
     newsState.allNews.forEach(news => {
         const text = (news.title + ' ' + news.description).toLowerCase();
         positiveKeywords.forEach(kw => {
-            if (text.includes(kw)) positive++;
+            const regex = new RegExp(`\\b${kw}\\b`, 'gi');
+            const matches = text.match(regex);
+            if (matches) positiveCount += matches.length;
         });
         negativeKeywords.forEach(kw => {
-            if (text.includes(kw)) negative++;
+            const regex = new RegExp(`\\b${kw}\\b`, 'gi');
+            const matches = text.match(regex);
+            if (matches) negativeCount += matches.length;
         });
     });
     
-    const total = positive + negative;
-    if (total === 0) return 50;
+    const totalKeywords = positiveCount + negativeCount;
+    if (totalKeywords > 0) {
+        newsScore = Math.round((positiveCount / totalKeywords) * 100);
+    }
     
-    return Math.round((positive / total) * 100);
+    // 3. Estimate market breadth from index behavior
+    // If multiple indices are positive, breadth is likely positive
+    const positiveIndices = Object.values(marketStats).filter(s => s.isPositive).length;
+    const totalIndices = Object.keys(marketStats).length;
+    breadthScore = Math.round((positiveIndices / totalIndices) * 100);
+    
+    // Weighted average: Market 40%, News 40%, Breadth 20%
+    const finalScore = Math.round(
+        (marketScore * 0.4) + 
+        (newsScore * 0.4) + 
+        (breadthScore * 0.2)
+    );
+    
+    console.log(`Sentiment - Market: ${marketScore}, News: ${newsScore}, Breadth: ${breadthScore}, Final: ${finalScore}`);
+    
+    return Math.min(100, Math.max(0, finalScore));
+}
+
+/**
+ * Get sentiment label based on score
+ * @param {number} sentiment - Sentiment score
+ * @returns {string} Label text
+ */
+function getSentimentLabel(sentiment) {
+    if (sentiment >= 80) return 'Extremely Bullish';
+    if (sentiment >= 65) return 'Bullish';
+    if (sentiment >= 55) return 'Slightly Bullish';
+    if (sentiment >= 45) return 'Neutral';
+    if (sentiment >= 35) return 'Slightly Bearish';
+    if (sentiment >= 20) return 'Bearish';
+    return 'Extremely Bearish';
+}
+
+/**
+ * Get gradient for sentiment bar
+ * @param {number} sentiment - Sentiment score
+ * @returns {string} CSS gradient
+ */
+function getSentimentGradient(sentiment) {
+    if (sentiment >= 65) {
+        return 'linear-gradient(90deg, #28a745, #20c997)';
+    } else if (sentiment >= 35) {
+        return 'linear-gradient(90deg, #ffc107, #fd7e14)';
+    } else {
+        return 'linear-gradient(90deg, #dc3545, #c82333)';
+    }
 }
 
 /**
@@ -798,17 +916,226 @@ function initializeTrendingTopics() {
 }
 
 /**
- * Initialize market stats widget
+ * Fetch real-time market stats from APIs
  */
-function initializeMarketStats() {
-    updateStatElement('niftyValue', MARKET_STATS.nifty.value);
-    updateStatElement('niftyChange', MARKET_STATS.nifty.changePercent, MARKET_STATS.nifty.isPositive);
+async function fetchMarketStats() {
+    console.log('Fetching market stats...');
     
-    updateStatElement('sensexValue', MARKET_STATS.sensex.value);
-    updateStatElement('sensexChange', MARKET_STATS.sensex.changePercent, MARKET_STATS.sensex.isPositive);
+    // Show loading state
+    Object.keys(marketStats).forEach(key => {
+        marketStats[key].loading = true;
+    });
+    renderMarketStats();
     
-    updateStatElement('bankNiftyValue', MARKET_STATS.bankNifty.value);
-    updateStatElement('bankNiftyChange', MARKET_STATS.bankNifty.changePercent, MARKET_STATS.bankNifty.isPositive);
+    // Try fetching from Yahoo Finance via CORS proxy
+    const fetchPromises = Object.entries(MARKET_API_CONFIG.symbols).map(async ([key, symbol]) => {
+        try {
+            const data = await fetchYahooFinanceData(symbol);
+            if (data) {
+                marketStats[key] = {
+                    value: formatNumber(data.price),
+                    change: formatChange(data.change),
+                    changePercent: formatPercent(data.changePercent),
+                    isPositive: data.change >= 0,
+                    loading: false
+                };
+                return true;
+            }
+        } catch (error) {
+            console.warn(`Failed to fetch ${key}:`, error.message);
+        }
+        return false;
+    });
+    
+    const results = await Promise.all(fetchPromises);
+    
+    // If all failed, try alternative API
+    if (results.every(r => !r)) {
+        console.log('Yahoo Finance failed, trying alternative sources...');
+        await fetchFromAlternativeAPI();
+    }
+    
+    renderMarketStats();
+}
+
+/**
+ * Fetch data from Yahoo Finance
+ * @param {string} symbol - Stock symbol
+ * @returns {Object|null} Price data
+ */
+async function fetchYahooFinanceData(symbol) {
+    // Try multiple CORS proxies
+    for (const proxy of NEWS_CONFIG.CORS_PROXIES) {
+        try {
+            const apiUrl = MARKET_API_CONFIG.apis[0].getUrl(symbol);
+            const proxyUrl = proxy + encodeURIComponent(apiUrl);
+            
+            const response = await fetch(proxyUrl, {
+                signal: AbortSignal.timeout(10000),
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+            
+            if (!response.ok) continue;
+            
+            const data = await response.json();
+            
+            if (data.chart && data.chart.result && data.chart.result[0]) {
+                const result = data.chart.result[0];
+                const meta = result.meta;
+                const quote = result.indicators?.quote?.[0];
+                
+                if (meta) {
+                    const currentPrice = meta.regularMarketPrice || meta.previousClose;
+                    const previousClose = meta.chartPreviousClose || meta.previousClose;
+                    const change = currentPrice - previousClose;
+                    const changePercent = (change / previousClose) * 100;
+                    
+                    return {
+                        price: currentPrice,
+                        change: change,
+                        changePercent: changePercent
+                    };
+                }
+            }
+        } catch (error) {
+            console.warn(`Proxy failed for ${symbol}:`, error.message);
+        }
+    }
+    
+    return null;
+}
+
+/**
+ * Fetch from alternative free API sources
+ */
+async function fetchFromAlternativeAPI() {
+    // Try fetching from a free stock API
+    const fallbackData = {
+        nifty: { symbol: 'NIFTY_50', name: 'Nifty 50' },
+        sensex: { symbol: 'SENSEX', name: 'Sensex' },
+        bankNifty: { symbol: 'NIFTY_BANK', name: 'Bank Nifty' }
+    };
+    
+    // Try Google Finance scraping via proxy (as last resort)
+    for (const [key, info] of Object.entries(fallbackData)) {
+        try {
+            // Use a financial data aggregator
+            const googleUrl = `https://www.google.com/finance/quote/${info.symbol}:INDEXNSE`;
+            
+            for (const proxy of NEWS_CONFIG.CORS_PROXIES) {
+                try {
+                    const response = await fetch(proxy + encodeURIComponent(googleUrl), {
+                        signal: AbortSignal.timeout(8000)
+                    });
+                    
+                    if (!response.ok) continue;
+                    
+                    const html = await response.text();
+                    
+                    // Extract price from Google Finance HTML
+                    const priceMatch = html.match(/data-last-price="([\d.]+)"/i);
+                    const changeMatch = html.match(/data-change="([\d.-]+)"/i);
+                    const changePercentMatch = html.match(/data-change-percent="([\d.-]+)"/i);
+                    
+                    if (priceMatch) {
+                        const price = parseFloat(priceMatch[1]);
+                        const change = changeMatch ? parseFloat(changeMatch[1]) : 0;
+                        const changePercent = changePercentMatch ? parseFloat(changePercentMatch[1]) : 0;
+                        
+                        marketStats[key] = {
+                            value: formatNumber(price),
+                            change: formatChange(change),
+                            changePercent: formatPercent(changePercent),
+                            isPositive: change >= 0,
+                            loading: false
+                        };
+                        break;
+                    }
+                } catch (e) {
+                    continue;
+                }
+            }
+        } catch (error) {
+            console.warn(`Alternative API failed for ${key}:`, error.message);
+        }
+    }
+}
+
+/**
+ * Format number with Indian number system
+ * @param {number} num - Number to format
+ * @returns {string} Formatted number
+ */
+function formatNumber(num) {
+    if (num === null || num === undefined || isNaN(num)) return '--';
+    return num.toLocaleString('en-IN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+/**
+ * Format change value
+ * @param {number} change - Change value
+ * @returns {string} Formatted change
+ */
+function formatChange(change) {
+    if (change === null || change === undefined || isNaN(change)) return '--';
+    const prefix = change >= 0 ? '+' : '';
+    return prefix + change.toFixed(2);
+}
+
+/**
+ * Format percentage
+ * @param {number} percent - Percentage value
+ * @returns {string} Formatted percentage
+ */
+function formatPercent(percent) {
+    if (percent === null || percent === undefined || isNaN(percent)) return '--';
+    const prefix = percent >= 0 ? '+' : '';
+    return prefix + percent.toFixed(2) + '%';
+}
+
+/**
+ * Render market stats to DOM
+ */
+function renderMarketStats() {
+    // Nifty
+    updateStatElement('niftyValue', marketStats.nifty.value);
+    updateStatElement('niftyChange', marketStats.nifty.changePercent, marketStats.nifty.isPositive);
+    
+    // Sensex
+    updateStatElement('sensexValue', marketStats.sensex.value);
+    updateStatElement('sensexChange', marketStats.sensex.changePercent, marketStats.sensex.isPositive);
+    
+    // Bank Nifty
+    updateStatElement('bankNiftyValue', marketStats.bankNifty.value);
+    updateStatElement('bankNiftyChange', marketStats.bankNifty.changePercent, marketStats.bankNifty.isPositive);
+    
+    // Update timestamp
+    const timeEl = document.getElementById('statsUpdateTime');
+    if (timeEl) {
+        const now = new Date();
+        timeEl.textContent = `Last updated: ${now.toLocaleTimeString('en-IN', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        })}`;
+    }
+}
+
+/**
+ * Start auto-refresh for market stats
+ */
+function startMarketStatsRefresh() {
+    if (marketStatsTimer) {
+        clearInterval(marketStatsTimer);
+    }
+    
+    marketStatsTimer = setInterval(() => {
+        fetchMarketStats();
+    }, MARKET_API_CONFIG.UPDATE_INTERVAL);
 }
 
 /**
@@ -1184,3 +1511,6 @@ document.head.appendChild(style);
 window.openNewsUrl = openNewsUrl;
 window.searchTopic = searchTopic;
 window.loadMoreNews = loadMoreNews;
+window.fetchMarketStats = fetchMarketStats;
+window.initializeMarketSentiment = initializeMarketSentiment;
+window.handleRefresh = handleRefresh;
