@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Control Panel | Stock Analysis Dashboard</title>
+    
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://stock-analysis-51b9a-default-rtdb.firebaseio.com" crossorigin>
+    <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+    <link rel="dns-prefetch" href="https://www.gstatic.com">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js">
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Admin control panel for Stock Analysis Dashboard. Manage users, system settings, and monitor platform activity.">
+    <meta name="robots" content="noindex, nofollow">
+    
+    <!-- Critical CSS for fast first paint -->
+    <link rel="stylesheet" href="../css/critical.css">
+    
+    <!-- External CSS (CDN) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/admin.css">
+    <link rel="stylesheet" href="../css/firebase-auth.css">
+</head>
+<body>
+    <!-- Access Denied Overlay (shown to non-admins) -->
+    <div id="accessDeniedOverlay" class="access-denied-overlay" style="display: none;">
+        <div class="access-denied-content">
+            <i class="bi bi-shield-lock-fill"></i>
+            <h2>Access Denied</h2>
+            <p>You don't have permission to access this page.</p>
+            <a href="../index.html" class="btn btn-primary">
+                <i class="bi bi-house"></i> Return to Home
+            </a>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-3">Verifying admin access...</p>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="../index.html">
+                <i class="bi bi-graph-up"></i> Stock Dashboard
+            </a>
+            <span class="navbar-text admin-badge ms-2">
+                <i class="bi bi-shield-check"></i> Admin Panel
+            </span>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="../index.html">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="analysis.html">
+                            <i class="bi bi-bar-chart-line"></i> Analysis
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="stock-manager.html">
+                            <i class="bi bi-wallet2"></i> Stock Manager
+                        </a>
+                    </li>
+                    <li class="nav-item d-flex align-items-center ms-2">
+                        <button class="btn btn-sm btn-outline-light" id="themeToggle" title="Toggle theme" aria-label="Toggle dark/light theme">
+                            <i class="bi bi-moon-fill" id="themeIcon"></i>
+                        </button>
+                    </li>
+                    <li class="nav-item d-flex align-items-center ms-2" id="userProfile">
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-person-circle"></i> <span id="userEmail">Admin</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                <li><a class="dropdown-item" href="profile.html" id="profileBtn"><i class="bi bi-person-gear"></i> Profile</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#" id="logoutBtn"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+                            </ul>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Impersonation Banner (shown when impersonating) -->
+    <div id="impersonationBanner" class="impersonation-banner" style="display: none;">
+        <div class="container-fluid">
+            <i class="bi bi-person-badge"></i>
+            <span>You are currently impersonating: <strong id="impersonatedUser"></strong></span>
+            <button class="btn btn-sm btn-warning ms-3" id="stopImpersonationBtn">
+                <i class="bi bi-x-circle"></i> Stop Impersonating
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="admin-main" id="adminContent" style="display: none;">
+        <div class="container-fluid py-4">
+            <!-- Admin Header -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="admin-header">
+                        <h1><i class="bi bi-gear-wide-connected"></i> Admin Control Panel</h1>
+                        <p class="text-muted">Manage users, monitor system activity, and configure platform settings</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="stats-card stats-card-primary">
+                        <div class="stats-icon">
+                            <i class="bi bi-people-fill"></i>
+                        </div>
+                        <div class="stats-info">
+                            <h3 id="totalUsersCount">0</h3>
+                            <p>Total Users</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="stats-card stats-card-success">
+                        <div class="stats-icon">
+                            <i class="bi bi-person-check-fill"></i>
+                        </div>
+                        <div class="stats-info">
+                            <h3 id="activeUsersCount">0</h3>
+                            <p>Active Users (7d)</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="stats-card stats-card-warning">
+                        <div class="stats-icon">
+                            <i class="bi bi-shield-fill-check"></i>
+                        </div>
+                        <div class="stats-info">
+                            <h3 id="adminUsersCount">0</h3>
+                            <p>Admin Users</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="stats-card stats-card-danger">
+                        <div class="stats-icon">
+                            <i class="bi bi-person-slash"></i>
+                        </div>
+                        <div class="stats-info">
+                            <h3 id="disabledUsersCount">0</h3>
+                            <p>Disabled Users</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Admin Sections -->
+            <div class="row">
+                <!-- User Management Section -->
+                <div class="col-lg-8 mb-4">
+                    <div class="admin-card">
+                        <div class="admin-card-header">
+                            <h2><i class="bi bi-people"></i> User Management</h2>
+                            <div class="header-actions">
+                                <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                                    <i class="bi bi-person-plus"></i> Add User
+                                </button>
+                                <button class="btn btn-sm btn-outline-primary" id="refreshUsersBtn">
+                                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+                        <div class="admin-card-body">
+                            <!-- Search and Filter -->
+                            <div class="search-filter-bar mb-3">
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                            <input type="text" class="form-control" id="userSearchInput" placeholder="Search users by email..." list="userSuggestions" autocomplete="off">
+                                            <datalist id="userSuggestions"></datalist>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <select class="form-select" id="userRoleFilter">
+                                            <option value="all">All Roles</option>
+                                            <option value="admin">Admins Only</option>
+                                            <option value="user">Users Only</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <select class="form-select" id="userStatusFilter">
+                                            <option value="all">All Status</option>
+                                            <option value="active">Active</option>
+                                            <option value="disabled">Disabled</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Users Table -->
+                            <div class="table-responsive">
+                                <table class="table table-dark table-hover" id="usersTable">
+                                    <thead>
+                                        <tr>
+                                            <th>User</th>
+                                            <th>Role</th>
+                                            <th>Status</th>
+                                            <th>Last Active</th>
+                                            <th>Created</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="usersTableBody">
+                                        <tr>
+                                            <td colspan="6" class="text-center py-4">
+                                                <div class="spinner-border spinner-border-sm" role="status"></div>
+                                                Loading users...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Pagination -->
+                            <nav aria-label="Users pagination" class="mt-3">
+                                <ul class="pagination pagination-sm justify-content-center" id="usersPagination">
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions & Activity -->
+                <div class="col-lg-4 mb-4">
+                    <!-- Quick Actions -->
+                    <div class="admin-card mb-4">
+                        <div class="admin-card-header">
+                            <h2><i class="bi bi-lightning-charge"></i> Quick Actions</h2>
+                        </div>
+                        <div class="admin-card-body">
+                            <div class="quick-actions-grid">
+                                <button class="quick-action-btn" data-bs-toggle="modal" data-bs-target="#bulkEmailModal">
+                                    <i class="bi bi-envelope-paper"></i>
+                                    <span>Bulk Email</span>
+                                </button>
+                                <button class="quick-action-btn" data-bs-toggle="modal" data-bs-target="#announcementModal">
+                                    <i class="bi bi-megaphone"></i>
+                                    <span>Announcement</span>
+                                </button>
+                                <button class="quick-action-btn" id="exportUsersBtn">
+                                    <i class="bi bi-download"></i>
+                                    <span>Export Users</span>
+                                </button>
+                                <button class="quick-action-btn" data-bs-toggle="modal" data-bs-target="#systemSettingsModal">
+                                    <i class="bi bi-sliders"></i>
+                                    <span>Settings</span>
+                                </button>
+                                <button class="quick-action-btn" id="backupDataBtn">
+                                    <i class="bi bi-cloud-arrow-up"></i>
+                                    <span>Backup Data</span>
+                                </button>
+                                <button class="quick-action-btn" data-bs-toggle="modal" data-bs-target="#maintenanceModal">
+                                    <i class="bi bi-tools"></i>
+                                    <span>Maintenance</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity -->
+                    <div class="admin-card">
+                        <div class="admin-card-header">
+                            <h2><i class="bi bi-activity"></i> Recent Activity</h2>
+                        </div>
+                        <div class="admin-card-body">
+                            <div class="activity-feed" id="activityFeed">
+                                <div class="text-center py-3">
+                                    <div class="spinner-border spinner-border-sm" role="status"></div>
+                                    <p class="mt-2 mb-0 text-muted">Loading activity...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Management Section -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="admin-card">
+                        <div class="admin-card-header">
+                            <h2><i class="bi bi-shield-lock"></i> Admin Access Management</h2>
+                            <div class="header-actions">
+                                <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#addAdminModal">
+                                    <i class="bi bi-person-plus-fill"></i> Add Admin
+                                </button>
+                            </div>
+                        </div>
+                        <div class="admin-card-body">
+                            <div class="alert alert-info mb-3">
+                                <i class="bi bi-info-circle"></i>
+                                <strong>Primary Admin:</strong> <span id="primaryAdminEmail">nandheswara21@gmail.com</span> 
+                                <span class="badge bg-warning text-dark ms-2">Cannot be removed</span>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-dark table-hover" id="adminsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Email</th>
+                                            <th>Added By</th>
+                                            <th>Added On</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="adminsTableBody">
+                                        <tr>
+                                            <td colspan="5" class="text-center py-3">
+                                                <div class="spinner-border spinner-border-sm" role="status"></div>
+                                                Loading admins...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Audit Logs Section -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="admin-card">
+                        <div class="admin-card-header">
+                            <h2><i class="bi bi-journal-text"></i> Audit Logs</h2>
+                            <div class="header-actions">
+                                <select class="form-select form-select-sm" id="auditLogFilter" style="width: auto;">
+                                    <option value="all">All Actions</option>
+                                    <option value="user_created">User Created</option>
+                                    <option value="user_deleted">User Deleted</option>
+                                    <option value="role_changed">Role Changed</option>
+                                    <option value="password_reset">Password Reset</option>
+                                    <option value="impersonation">Impersonation</option>
+                                    <option value="admin_added">Admin Added</option>
+                                    <option value="admin_removed">Admin Removed</option>
+                                </select>
+                                <button class="btn btn-sm btn-outline-secondary" id="clearLogsBtn">
+                                    <i class="bi bi-trash"></i> Clear Old Logs
+                                </button>
+                            </div>
+                        </div>
+                        <div class="admin-card-body">
+                            <div class="table-responsive">
+                                <table class="table table-dark table-sm" id="auditLogsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Timestamp</th>
+                                            <th>Admin</th>
+                                            <th>Action</th>
+                                            <th>Target User</th>
+                                            <th>Details</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="auditLogsBody">
+                                        <tr>
+                                            <td colspan="5" class="text-center py-3">
+                                                <div class="spinner-border spinner-border-sm" role="status"></div>
+                                                Loading logs...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add User Modal -->
+    <div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addUserModalLabel">
+                        <i class="bi bi-person-plus"></i> Add New User
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="addUserForm">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="newUserEmail" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="newUserEmail" required placeholder="user@example.com">
+                        </div>
+                        <div class="mb-3">
+                            <label for="newUserPassword" class="form-label">Temporary Password</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="newUserPassword" required minlength="6">
+                                <button class="btn btn-outline-secondary" type="button" id="generatePasswordBtn">
+                                    <i class="bi bi-shuffle"></i> Generate
+                                </button>
+                            </div>
+                            <div class="form-text">Minimum 6 characters. User will be prompted to change on first login.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newUserDisplayName" class="form-label">Display Name (Optional)</label>
+                            <input type="text" class="form-control" id="newUserDisplayName" placeholder="John Doe">
+                        </div>
+                        <div class="mb-3">
+                            <label for="newUserRole" class="form-label">Role</label>
+                            <select class="form-select" id="newUserRole">
+                                <option value="user">User</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="sendWelcomeEmail" checked>
+                            <label class="form-check-label" for="sendWelcomeEmail">
+                                Send welcome email with credentials
+                            </label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-person-plus"></i> Create User
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Admin Modal -->
+    <div class="modal fade" id="addAdminModal" tabindex="-1" aria-labelledby="addAdminModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addAdminModalLabel">
+                        <i class="bi bi-shield-plus"></i> Add Admin Access
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="addAdminForm">
+                    <div class="modal-body">
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            <strong>Warning:</strong> Admin users have full access to manage all users and system settings.
+                        </div>
+                        <div class="mb-3">
+                            <label for="newAdminEmail" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="newAdminEmail" required placeholder="admin@example.com" list="adminEmailSuggestions" autocomplete="off">
+                            <datalist id="adminEmailSuggestions"></datalist>
+                            <div class="form-text">Enter the email of an existing user or a new admin email.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="adminNotes" class="form-label">Notes (Optional)</label>
+                            <textarea class="form-control" id="adminNotes" rows="2" placeholder="Reason for granting admin access..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="bi bi-shield-plus"></i> Grant Admin Access
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editUserModalLabel">
+                        <i class="bi bi-person-gear"></i> Edit User
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="editUserForm">
+                    <input type="hidden" id="editUserId">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="editUserEmail" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="editUserEmail" readonly>
+                            <div class="form-text">Email cannot be changed</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editUserDisplayName" class="form-label">Display Name</label>
+                            <input type="text" class="form-control" id="editUserDisplayName" placeholder="John Doe">
+                        </div>
+                        <div class="mb-3">
+                            <label for="editUserRole" class="form-label">Role</label>
+                            <select class="form-select" id="editUserRole">
+                                <option value="user">User</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editUserStatus" class="form-label">Account Status</label>
+                            <select class="form-select" id="editUserStatus">
+                                <option value="active">Active</option>
+                                <option value="disabled">Disabled</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Notes</label>
+                            <textarea class="form-control" id="editUserNotes" rows="2" placeholder="Admin notes about this user..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Actions Modal -->
+    <div class="modal fade" id="userActionsModal" tabindex="-1" aria-labelledby="userActionsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content bg-dark">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="userActionsModalLabel">
+                        <i class="bi bi-person-badge"></i> User Details & Actions
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- User Info -->
+                    <div class="user-detail-card mb-4">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Email:</strong> <span id="detailUserEmail"></span></p>
+                                <p><strong>Display Name:</strong> <span id="detailUserName"></span></p>
+                                <p><strong>Role:</strong> <span id="detailUserRole" class="badge"></span></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Status:</strong> <span id="detailUserStatus" class="badge"></span></p>
+                                <p><strong>Created:</strong> <span id="detailUserCreated"></span></p>
+                                <p><strong>Last Active:</strong> <span id="detailUserLastActive"></span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <h6 class="mb-3">Available Actions</h6>
+                    <div class="user-actions-grid">
+                        <button class="action-btn action-btn-info" id="impersonateUserBtn">
+                            <i class="bi bi-person-badge"></i>
+                            <span>Impersonate User</span>
+                            <small>View as this user</small>
+                        </button>
+                        <button class="action-btn action-btn-warning" id="resetPasswordBtn">
+                            <i class="bi bi-key"></i>
+                            <span>Reset Password</span>
+                            <small>Send reset link</small>
+                        </button>
+                        <button class="action-btn" id="toggleUserStatusBtn">
+                            <i class="bi bi-toggle-on" id="toggleStatusIcon"></i>
+                            <span id="toggleStatusText">Disable Account</span>
+                            <small id="toggleStatusSubtext">Prevent user login</small>
+                        </button>
+                        <button class="action-btn action-btn-secondary" id="viewUserDataBtn">
+                            <i class="bi bi-database"></i>
+                            <span>View User Data</span>
+                            <small>Stocks & portfolio</small>
+                        </button>
+                        <button class="action-btn action-btn-danger" id="deleteUserBtn">
+                            <i class="bi bi-person-x"></i>
+                            <span>Delete User</span>
+                            <small>Permanently remove</small>
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View User Data Modal -->
+    <div class="modal fade" id="viewUserDataModal" tabindex="-1" aria-labelledby="viewUserDataModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content bg-dark">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="viewUserDataModalLabel">
+                        <i class="bi bi-database"></i> User Data - <span id="dataUserEmail"></span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <ul class="nav nav-tabs" id="userDataTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="stocks-tab" data-bs-toggle="tab" data-bs-target="#stocksData" type="button" role="tab">
+                                <i class="bi bi-graph-up"></i> Analysis Stocks
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="portfolio-tab" data-bs-toggle="tab" data-bs-target="#portfolioData" type="button" role="tab">
+                                <i class="bi bi-wallet2"></i> Portfolio
+                            </button>
+                        </li>
+                    </ul>
+                    <div class="tab-content p-3" id="userDataTabContent">
+                        <div class="tab-pane fade show active" id="stocksData" role="tabpanel">
+                            <div id="userStocksContent">
+                                <div class="text-center py-4">
+                                    <div class="spinner-border" role="status"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="portfolioData" role="tabpanel">
+                            <div id="userPortfolioContent">
+                                <div class="text-center py-4">
+                                    <div class="spinner-border" role="status"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-danger" id="deleteUserDataBtn">
+                        <i class="bi bi-trash"></i> Delete All User Data
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Announcement Modal -->
+    <div class="modal fade" id="announcementModal" tabindex="-1" aria-labelledby="announcementModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="announcementModalLabel">
+                        <i class="bi bi-megaphone"></i> Create Announcement
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="announcementForm">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="announcementTitle" class="form-label">Title</label>
+                            <input type="text" class="form-control" id="announcementTitle" required placeholder="Important Update">
+                        </div>
+                        <div class="mb-3">
+                            <label for="announcementMessage" class="form-label">Message</label>
+                            <textarea class="form-control" id="announcementMessage" rows="4" required placeholder="Enter your announcement message..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="announcementType" class="form-label">Type</label>
+                            <select class="form-select" id="announcementType">
+                                <option value="info">Info</option>
+                                <option value="warning">Warning</option>
+                                <option value="success">Success</option>
+                                <option value="danger">Critical</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="announcementExpiry" class="form-label">Expires After</label>
+                            <select class="form-select" id="announcementExpiry">
+                                <option value="1">1 Day</option>
+                                <option value="3">3 Days</option>
+                                <option value="7" selected>1 Week</option>
+                                <option value="30">1 Month</option>
+                                <option value="0">Never</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-send"></i> Publish Announcement
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Settings Modal -->
+    <div class="modal fade" id="systemSettingsModal" tabindex="-1" aria-labelledby="systemSettingsModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="systemSettingsModalLabel">
+                        <i class="bi bi-sliders"></i> System Settings
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="systemSettingsForm">
+                    <div class="modal-body">
+                        <h6 class="mb-3">Registration Settings</h6>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="allowRegistration" checked>
+                            <label class="form-check-label" for="allowRegistration">Allow New Registrations</label>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="requireEmailVerification">
+                            <label class="form-check-label" for="requireEmailVerification">Require Email Verification</label>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <h6 class="mb-3">Feature Toggles</h6>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="enableAnalysis" checked>
+                            <label class="form-check-label" for="enableAnalysis">Enable Analysis Page</label>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="enableStockManager" checked>
+                            <label class="form-check-label" for="enableStockManager">Enable Stock Manager</label>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <h6 class="mb-3">Data Limits</h6>
+                        <div class="mb-3">
+                            <label for="maxStocksPerUser" class="form-label">Max Stocks per User</label>
+                            <input type="number" class="form-control" id="maxStocksPerUser" value="100" min="10" max="1000">
+                        </div>
+                        <div class="mb-3">
+                            <label for="maxPortfolioItems" class="form-label">Max Portfolio Items</label>
+                            <input type="number" class="form-control" id="maxPortfolioItems" value="200" min="10" max="2000">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg"></i> Save Settings
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Maintenance Mode Modal -->
+    <div class="modal fade" id="maintenanceModal" tabindex="-1" aria-labelledby="maintenanceModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="maintenanceModalLabel">
+                        <i class="bi bi-tools"></i> Maintenance Mode
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="maintenanceForm">
+                    <div class="modal-body">
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            <strong>Warning:</strong> Enabling maintenance mode will prevent all non-admin users from accessing the platform.
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="enableMaintenanceMode">
+                            <label class="form-check-label" for="enableMaintenanceMode">Enable Maintenance Mode</label>
+                        </div>
+                        <div class="mb-3">
+                            <label for="maintenanceMessage" class="form-label">Maintenance Message</label>
+                            <textarea class="form-control" id="maintenanceMessage" rows="3" placeholder="We're currently performing scheduled maintenance. Please check back soon."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="estimatedEndTime" class="form-label">Estimated End Time</label>
+                            <input type="datetime-local" class="form-control" id="estimatedEndTime">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="bi bi-check-lg"></i> Apply Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Email Modal -->
+    <div class="modal fade" id="bulkEmailModal" tabindex="-1" aria-labelledby="bulkEmailModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content bg-dark">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="bulkEmailModalLabel">
+                        <i class="bi bi-envelope-paper"></i> Send Bulk Email
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="bulkEmailForm">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="emailRecipients" class="form-label">Recipients</label>
+                            <select class="form-select" id="emailRecipients">
+                                <option value="all">All Users</option>
+                                <option value="active">Active Users Only</option>
+                                <option value="admins">Admins Only</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="emailSubject" class="form-label">Subject</label>
+                            <input type="text" class="form-control" id="emailSubject" required placeholder="Email subject...">
+                        </div>
+                        <div class="mb-3">
+                            <label for="emailBody" class="form-label">Message Body</label>
+                            <textarea class="form-control" id="emailBody" rows="8" required placeholder="Enter your email message..."></textarea>
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i>
+                            <strong>Note:</strong> Bulk emails are sent via Firebase and may take a few minutes to deliver to all recipients.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-send"></i> Send Email
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark">
+                <div class="modal-header bg-danger">
+                    <h5 class="modal-title" id="deleteConfirmModalLabel">
+                        <i class="bi bi-exclamation-triangle"></i> Confirm Deletion
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="deleteConfirmMessage">Are you sure you want to delete this user?</p>
+                    <div class="alert alert-danger">
+                        <strong>Warning:</strong> This action cannot be undone. All user data will be permanently deleted.
+                    </div>
+                    <div class="mb-3">
+                        <label for="deleteConfirmInput" class="form-label">Type <strong>DELETE</strong> to confirm:</label>
+                        <input type="text" class="form-control" id="deleteConfirmInput" placeholder="DELETE">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn" disabled>
+                        <i class="bi bi-trash"></i> Delete Permanently
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer"></div>
+
+    <!-- External Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Application Scripts -->
+    <script src="../js/global.js"></script>
+    <script type="module" src="../js/admin.js"></script>
+</body>
+</html>

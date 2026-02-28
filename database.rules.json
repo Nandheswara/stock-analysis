@@ -1,31 +1,80 @@
 {
   "rules": {
+    "adminUsers": {
+      ".read": "auth != null",
+      ".write": "auth != null",
+      ".indexOn": ["email", "active"]
+    },
+    "adminLogs": {
+      ".read": "auth != null",
+      ".write": "auth != null",
+      ".indexOn": ["timestamp", "action", "adminId"]
+    },
+    "systemSettings": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "announcements": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
     "users": {
+      ".read": "auth != null",
+      ".write": "auth != null",
       "$uid": {
-        ".read": "$uid === auth.uid",
-        ".write": "$uid === auth.uid",
-        
+        ".read": "auth != null",
+        ".write": "auth != null",
         "stocks": {
           "$stockId": {
             ".validate": "newData.hasChildren(['symbol', 'name']) && newData.child('symbol').isString() && newData.child('name').isString()",
             ".indexOn": ["symbol", "name", "createdAt", "sector"]
           }
         },
-        
         "portfolio": {
           "$stockId": {
             ".validate": "newData.hasChildren(['name', 'quantity', 'buyPrice', 'totalCost', 'dateAdded']) && newData.child('name').isString() && newData.child('quantity').isNumber() && newData.child('quantity').val() > 0 && newData.child('buyPrice').isNumber() && newData.child('buyPrice').val() >= 0 && newData.child('totalCost').isNumber()",
             ".indexOn": ["name", "dateAdded", "lastModified", "profitLoss"]
           }
         },
-        
         "profile": {
           ".validate": "newData.hasChild('email')"
         },
-        
         "phoneNumber": {
           ".validate": "newData.isString() && newData.val().length <= 20"
+        },
+        "role": {
+          ".validate": "newData.isString()"
+        },
+        "status": {
+          ".validate": "newData.isString()"
+        },
+        "email": {
+          ".validate": "newData.isString()"
+        },
+        "displayName": {
+          ".validate": "newData.isString()"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "lastActive": {
+          ".validate": "newData.isNumber()"
+        },
+        "metadata": {
+          ".validate": true
         }
+      }
+    },
+    "stocks": {
+      "$userId": {
+        ".read": "$userId === auth.uid",
+        ".write": "$userId === auth.uid"
+      }
+    },
+    "portfolio": {
+      "$userId": {
+        ".read": "$userId === auth.uid",
+        ".write": "$userId === auth.uid"
       }
     }
   }

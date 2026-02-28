@@ -156,8 +156,21 @@ footer .footer-links a:hover {
     border: 1px solid var(--border-color);
 }
 
+.modal-header {
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-footer {
+    border-top: 1px solid var(--border-color);
+}
+
 .modal-header.bg-primary {
     background: var(--header-gradient);
+}
+
+/* Close button for dark theme modals */
+.modal-content .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
 }
 
 /* ========================================
@@ -255,6 +268,84 @@ label.form-label {
     opacity: 1;
 }
 
+/* Form Select */
+.form-select {
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-light);
+    color: var(--text-heading);
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23adb5bd' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+}
+
+.form-select:focus {
+    background-color: var(--bg-tertiary);
+    color: var(--text-heading);
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 0.2rem rgba(114,137,255,0.25);
+}
+
+.form-select option {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+/* ========================================
+   Table Components
+   ======================================== */
+
+.table {
+    --bs-table-bg: var(--bg-card);
+    --bs-table-border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+.table thead th {
+    background-color: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border-color: var(--border-color);
+    font-weight: 600;
+}
+
+.table tbody td {
+    border-color: var(--border-color);
+    vertical-align: middle;
+}
+
+.table-hover tbody tr:hover {
+    background-color: var(--bg-tertiary);
+}
+
+.table-responsive {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* ========================================
+   Form Check (Checkbox/Radio)
+   ======================================== */
+
+.form-check-input {
+    background-color: var(--bg-tertiary);
+    border-color: var(--border-light);
+}
+
+.form-check-input:checked {
+    background-color: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+.form-check-input:focus {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 0.2rem rgba(114, 137, 255, 0.25);
+}
+
+.form-check-label {
+    color: var(--text-primary);
+}
+
+.form-text {
+    color: var(--text-muted);
+}
+
 /* Cross-browser placeholder styles */
 ::-webkit-input-placeholder {
     color: var(--text-muted);
@@ -272,6 +363,13 @@ label.form-label {
 
 :-ms-input-placeholder {
     color: var(--text-muted);
+}
+
+/* Input Group */
+.input-group-text {
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-light);
+    color: var(--text-secondary);
 }
 
 /* ========================================
@@ -308,6 +406,104 @@ label.form-label {
 /* Theme toggle button */
 #themeToggle {
     min-width: 40px;
+}
+
+/* ========================================
+   Dropdown Menu Components
+   ======================================== */
+
+.dropdown-menu {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-md);
+}
+
+.dropdown-menu .dropdown-item {
+    color: var(--text-primary);
+}
+
+.dropdown-menu .dropdown-item:hover,
+.dropdown-menu .dropdown-item:focus {
+    background-color: var(--bg-tertiary);
+    color: var(--text-heading);
+}
+
+.dropdown-menu .dropdown-item i {
+    margin-right: 0.5rem;
+    color: var(--text-secondary);
+}
+
+.dropdown-menu .dropdown-divider {
+    border-color: var(--border-color);
+}
+
+/* Badge Styles */
+.badge {
+    font-weight: 500;
+}
+
+.badge.bg-success {
+    background-color: var(--accent-success) !important;
+}
+
+.badge.bg-danger {
+    background-color: var(--accent-danger) !important;
+}
+
+.badge.bg-warning {
+    background-color: var(--accent-warning) !important;
+    color: var(--bg-primary) !important;
+}
+
+.badge.bg-secondary {
+    background-color: var(--text-muted) !important;
+}
+
+/* Alert Components */
+.alert {
+    border: 1px solid transparent;
+    border-radius: 8px;
+}
+
+.alert-danger {
+    background-color: rgba(255, 107, 107, 0.15);
+    border-color: rgba(255, 107, 107, 0.3);
+    color: var(--accent-danger);
+}
+
+.alert-warning {
+    background-color: rgba(255, 180, 84, 0.15);
+    border-color: rgba(255, 180, 84, 0.3);
+    color: var(--accent-warning);
+}
+
+.alert-success {
+    background-color: rgba(61, 220, 132, 0.15);
+    border-color: rgba(61, 220, 132, 0.3);
+    color: var(--accent-success);
+}
+
+.alert-info {
+    background-color: rgba(114, 137, 255, 0.15);
+    border-color: rgba(114, 137, 255, 0.3);
+    color: var(--accent-primary);
+}
+
+/* Toast Notifications */
+.toast {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.toast-header {
+    background-color: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-heading);
+}
+
+.toast-body {
+    color: var(--text-primary);
 }
 
 /* ========================================
@@ -419,6 +615,11 @@ body.light-theme .modal-header .btn-close-white {
     filter: brightness(0) invert(1);
 }
 
+/* Reset close button filter for light theme */
+body.light-theme .modal-content .btn-close {
+    filter: none;
+}
+
 /* Page Header Section - Light Theme */
 body.light-theme .header-section {
     background: linear-gradient(135deg, #4e73df 0%, #7c5cbf 100%);
@@ -480,6 +681,119 @@ body.light-theme .form-control::placeholder {
     color: #9ca3af;
 }
 
+/* Form Check - Light Theme */
+body.light-theme .form-check-input {
+    background-color: #ffffff;
+    border-color: #ced4da;
+}
+
+body.light-theme .form-check-input:checked {
+    background-color: #4e73df;
+    border-color: #4e73df;
+}
+
+body.light-theme .form-check-input:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.2rem rgba(13,110,253,0.15);
+}
+
+body.light-theme .form-check-label {
+    color: #212529;
+}
+
+body.light-theme .form-text {
+    color: #6c757d;
+}
+
+/* Form Select - Light Theme */
+body.light-theme .form-select {
+    background-color: #ffffff;
+    border: 1px solid #ced4da;
+    color: #212529;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23495057' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+}
+
+body.light-theme .form-select:focus {
+    background-color: #ffffff;
+    color: #212529;
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.2rem rgba(13,110,253,0.15);
+}
+
+body.light-theme .form-select option {
+    background-color: #ffffff;
+    color: #212529;
+}
+
+/* Table - Light Theme */
+body.light-theme .table {
+    --bs-table-bg: #ffffff;
+    --bs-table-border-color: #e9ecef;
+    color: #212529;
+}
+
+body.light-theme .table thead th {
+    background-color: #f8f9fa;
+    color: #495057;
+    border-color: #e9ecef;
+}
+
+body.light-theme .table tbody td {
+    border-color: #e9ecef;
+}
+
+body.light-theme .table-hover tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+/* Input Group - Light Theme */
+body.light-theme .input-group-text {
+    background-color: #f8f9fa;
+    border: 1px solid #ced4da;
+    color: #495057;
+}
+
+/* Dropdown - Light Theme */
+body.light-theme .dropdown-menu {
+    background-color: #ffffff;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+body.light-theme .dropdown-menu .dropdown-item {
+    color: #212529;
+}
+
+body.light-theme .dropdown-menu .dropdown-item:hover,
+body.light-theme .dropdown-menu .dropdown-item:focus {
+    background-color: #f8f9fa;
+    color: #212529;
+}
+
+body.light-theme .dropdown-menu .dropdown-item i {
+    color: #6c757d;
+}
+
+body.light-theme .dropdown-menu .dropdown-divider {
+    border-color: #e9ecef;
+}
+
+/* Override dropdown-menu-dark in light theme */
+body.light-theme .dropdown-menu-dark {
+    background-color: #ffffff !important;
+    border: 1px solid #e9ecef;
+}
+
+body.light-theme .dropdown-menu-dark .dropdown-item {
+    color: #212529 !important;
+}
+
+body.light-theme .dropdown-menu-dark .dropdown-item:hover,
+body.light-theme .dropdown-menu-dark .dropdown-item:focus {
+    background-color: #f8f9fa !important;
+    color: #212529 !important;
+}
+
 /* Buttons - Light Theme */
 body.light-theme .btn-primary {
     background-color: #4e73df;
@@ -524,6 +838,43 @@ body.light-theme #themeToggle {
 /* Alert - Light Theme */
 body.light-theme .alert {
     border-width: 1px;
+}
+
+body.light-theme .alert-danger {
+    background-color: rgba(220, 53, 69, 0.1);
+    border-color: rgba(220, 53, 69, 0.3);
+    color: #dc3545;
+}
+
+body.light-theme .alert-warning {
+    background-color: rgba(255, 193, 7, 0.1);
+    border-color: rgba(255, 193, 7, 0.3);
+    color: #856404;
+}
+
+body.light-theme .alert-success {
+    background-color: rgba(25, 135, 84, 0.1);
+    border-color: rgba(25, 135, 84, 0.3);
+    color: #198754;
+}
+
+body.light-theme .alert-info {
+    background-color: rgba(13, 110, 253, 0.1);
+    border-color: rgba(13, 110, 253, 0.3);
+    color: #0d6efd;
+}
+
+/* Toast - Light Theme */
+body.light-theme .toast {
+    background-color: #ffffff;
+    border: 1px solid #e9ecef;
+    color: #212529;
+}
+
+body.light-theme .toast-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+    color: #212529;
 }
 
 /* ========================================

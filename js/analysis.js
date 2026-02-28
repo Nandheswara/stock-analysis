@@ -378,22 +378,6 @@ function setupAuthHandlers() {
         }
     });
     
-    $(document).on('click', '#migrateDataBtn', async function(e) {
-        e.preventDefault();
-        if (confirm('Migrate your local data to Firebase? This will upload all stocks from your browser storage.')) {
-            showLoading('Migrating data to Firebase...');
-            
-            const result = await migrateSessionStorageToFirebase();
-            
-            hideLoading();
-            if (result.success) {
-                showAlert('success', result.message);
-            } else {
-                showAlert('danger', result.error);
-            }
-        }
-    });
-    
     $(document).on('click', '#forgotPasswordLink', function(e) {
         e.preventDefault();
         showForgotPasswordModal();
