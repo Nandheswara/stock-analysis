@@ -17,18 +17,63 @@
    ======================================== */
 
 const NEWS_CONFIG = {
-    // RSS feed URLs for Indian stock news
+    /**
+     * News API endpoints configuration
+     * 
+     * To use these APIs, you need to get your own API keys:
+     * - GNews: Sign up at https://gnews.io/ (Free tier: 100 requests/day)
+     * - NewsData: Sign up at https://newsdata.io/ (Free tier: 200 requests/day)
+     * 
+     * Replace 'YOUR_API_KEY_HERE' with your actual API key
+     */
+    NEWS_APIS: [
+        {
+            name: 'GNews',
+            url: 'https://gnews.io/api/v4/search',
+            enabled: false, // Set to true after adding your API key
+            params: {
+                q: 'indian stock market OR sensex OR nifty OR BSE OR NSE',
+                lang: 'en',
+                country: 'in',
+                max: 10,
+                apikey: 'YOUR_API_KEY_HERE' // Get free key from gnews.io
+            }
+        },
+        {
+            name: 'NewsData',
+            url: 'https://newsdata.io/api/1/news',
+            enabled: false, // Set to true after adding your API key
+            params: {
+                q: 'stock market india',
+                country: 'in',
+                language: 'en',
+                category: 'business',
+                apikey: 'YOUR_API_KEY_HERE' // Get free key from newsdata.io
+            }
+        }
+    ],
+    // RSS feed URLs for Indian stock news (Primary source - no API key needed)
     RSS_FEEDS: [
         'https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms',
+        'https://economictimes.indiatimes.com/markets/stocks/rssfeeds/2146842.cms',
         'https://www.moneycontrol.com/rss/latestnews.xml',
-        'https://www.livemint.com/rss/markets'
+        'https://www.moneycontrol.com/rss/marketreports.xml',
+        'https://www.livemint.com/rss/markets',
+        'https://www.livemint.com/rss/money',
+        'https://feeds.feedburner.com/ndtvprofit-latest'
     ],
+    // CORS Proxy options (try multiple in case one fails)
+    CORS_PROXIES: [
+        'https://api.allorigins.win/raw?url=',
+        'https://corsproxy.io/?',
+        'https://api.codetabs.com/v1/proxy?quest='
+    ],
+    // Current proxy index
+    currentProxyIndex: 0,
     // Refresh interval in milliseconds (5 minutes)
     REFRESH_INTERVAL: 300000,
-    // Maximum news items to display
-    MAX_NEWS_ITEMS: 20,
-    // Ticker scroll speed in seconds
-    TICKER_SPEED: 60,
+    // Items per page for load more
+    ITEMS_PER_PAGE: 6,
     // News categories
     CATEGORIES: ['all', 'markets', 'stocks', 'economy', 'ipo', 'crypto']
 };
@@ -40,142 +85,18 @@ const NEWS_CONFIG = {
 let newsState = {
     allNews: [],
     filteredNews: [],
+    displayedNews: [],
     currentCategory: 'all',
     isTickerPaused: false,
     refreshTimer: null,
-    isLoading: false
+    isLoading: false,
+    currentPage: 1,
+    nextPageToken: null,
+    apiIndex: 0
 };
 
 /* ========================================
-   Sample News Data (Fallback)
-   ======================================== */
-
-const SAMPLE_NEWS = [
-    {
-        id: 1,
-        title: "Sensex surges 500 points as IT stocks rally; Nifty crosses 22,500",
-        description: "Indian benchmark indices rallied on Tuesday with the Sensex gaining over 500 points, driven by strong buying in IT and banking stocks.",
-        category: "markets",
-        source: "Economic Times",
-        time: new Date(Date.now() - 1800000).toISOString(),
-        image: null,
-        url: "#"
-    },
-    {
-        id: 2,
-        title: "RBI keeps repo rate unchanged at 6.5% for eighth consecutive time",
-        description: "The Reserve Bank of India's Monetary Policy Committee voted to keep the benchmark lending rate unchanged, citing inflation concerns.",
-        category: "economy",
-        source: "Mint",
-        time: new Date(Date.now() - 3600000).toISOString(),
-        image: null,
-        url: "#"
-    },
-    {
-        id: 3,
-        title: "Reliance Industries hits all-time high; market cap crosses ₹20 lakh crore",
-        description: "Shares of Reliance Industries Ltd touched a new all-time high, making it the most valuable company in India by market capitalization.",
-        category: "stocks",
-        source: "MoneyControl",
-        time: new Date(Date.now() - 5400000).toISOString(),
-        image: null,
-        url: "#",
-        featured: true
-    },
-    {
-        id: 4,
-        title: "Upcoming IPO: Tech startup eyes ₹2,000 crore public offering",
-        description: "A leading Indian technology startup is planning to launch its initial public offering next month, aiming to raise ₹2,000 crore.",
-        category: "ipo",
-        source: "Business Standard",
-        time: new Date(Date.now() - 7200000).toISOString(),
-        image: null,
-        url: "#"
-    },
-    {
-        id: 5,
-        title: "Bank Nifty witnesses profit booking; falls 200 points from day's high",
-        description: "The Bank Nifty index saw profit booking in the second half of the trading session, falling 200 points from its intraday high.",
-        category: "markets",
-        source: "CNBC TV18",
-        time: new Date(Date.now() - 9000000).toISOString(),
-        image: null,
-        url: "#"
-    },
-    {
-        id: 6,
-        title: "Bitcoin crosses $60,000; crypto market cap hits $2.5 trillion",
-        description: "Bitcoin surged past $60,000 for the first time in two years, pushing the total cryptocurrency market capitalization above $2.5 trillion.",
-        category: "crypto",
-        source: "CoinDesk",
-        time: new Date(Date.now() - 10800000).toISOString(),
-        image: null,
-        url: "#"
-    },
-    {
-        id: 7,
-        title: "FIIs turn net buyers; pump in ₹3,500 crore in Indian equities",
-        description: "Foreign institutional investors turned net buyers in Indian equities, investing over ₹3,500 crore in the cash segment.",
-        category: "markets",
-        source: "Economic Times",
-        time: new Date(Date.now() - 12600000).toISOString(),
-        image: null,
-        url: "#"
-    },
-    {
-        id: 8,
-        title: "Infosys announces ₹9,300 crore share buyback program",
-        description: "IT major Infosys announced a share buyback program worth ₹9,300 crore at a premium of 25% to the current market price.",
-        category: "stocks",
-        source: "Mint",
-        time: new Date(Date.now() - 14400000).toISOString(),
-        image: null,
-        url: "#"
-    },
-    {
-        id: 9,
-        title: "Government announces PLI scheme for semiconductor manufacturing",
-        description: "The government unveiled a new Production Linked Incentive scheme worth ₹76,000 crore to boost domestic semiconductor manufacturing.",
-        category: "economy",
-        source: "Business Standard",
-        time: new Date(Date.now() - 16200000).toISOString(),
-        image: null,
-        url: "#"
-    },
-    {
-        id: 10,
-        title: "Auto stocks in focus as February sales data shows strong growth",
-        description: "Automobile stocks are in focus today as monthly sales data for February shows double-digit growth across major manufacturers.",
-        category: "stocks",
-        source: "MoneyControl",
-        time: new Date(Date.now() - 18000000).toISOString(),
-        image: null,
-        url: "#"
-    },
-    {
-        id: 11,
-        title: "Nifty Pharma index outperforms; Sun Pharma, Dr Reddy's lead gains",
-        description: "The Nifty Pharma index outperformed broader markets with a 2% gain, led by strong buying in Sun Pharma and Dr Reddy's Laboratories.",
-        category: "markets",
-        source: "CNBC TV18",
-        time: new Date(Date.now() - 21600000).toISOString(),
-        image: null,
-        url: "#"
-    },
-    {
-        id: 12,
-        title: "New IPO listing: Shares debut at 45% premium to issue price",
-        description: "The newly listed company's shares debuted at a significant premium of 45% over the IPO issue price, rewarding early investors.",
-        category: "ipo",
-        source: "Economic Times",
-        time: new Date(Date.now() - 25200000).toISOString(),
-        image: null,
-        url: "#"
-    }
-];
-
-/* ========================================
-   Trending Topics Data
+   Initialization
    ======================================== */
 
 const TRENDING_TOPICS = [
@@ -255,21 +176,32 @@ function initializeEventListeners() {
    ======================================== */
 
 /**
- * Load news data from RSS feeds or use sample data
+ * Load news data from APIs and RSS feeds
  */
 async function loadNewsData() {
     newsState.isLoading = true;
+    newsState.currentPage = 1;
     showLoadingState();
     
     try {
-        // Try to fetch real news from RSS feeds
-        const news = await fetchNewsFromRSS();
+        // Try multiple sources in order of preference
+        let news = [];
+        
+        // 1. Try News APIs first
+        news = await fetchNewsFromAPIs();
+        
+        // 2. If APIs fail, try RSS feeds
+        if (!news || news.length === 0) {
+            console.log('APIs failed, trying RSS feeds...');
+            news = await fetchNewsFromRSS();
+        }
         
         if (news && news.length > 0) {
             newsState.allNews = news;
+            console.log(`Loaded ${news.length} news articles`);
         } else {
-            // Use sample data as fallback
-            newsState.allNews = SAMPLE_NEWS;
+            console.warn('No news fetched from any source');
+            newsState.allNews = [];
         }
         
         // Apply current filter
@@ -280,8 +212,7 @@ async function loadNewsData() {
         
     } catch (error) {
         console.error('Error loading news:', error);
-        // Use sample data on error
-        newsState.allNews = SAMPLE_NEWS;
+        newsState.allNews = [];
         filterNews(newsState.currentCategory);
         updateNewsTicker();
     } finally {
@@ -290,57 +221,248 @@ async function loadNewsData() {
 }
 
 /**
- * Fetch news from RSS feeds using a CORS proxy
+ * Fetch news from News APIs
+ * @returns {Array} Array of news items
  */
-async function fetchNewsFromRSS() {
-    const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
+async function fetchNewsFromAPIs() {
     const allNews = [];
     
-    for (const feedUrl of NEWS_CONFIG.RSS_FEEDS) {
+    // Try each enabled API
+    for (const api of NEWS_CONFIG.NEWS_APIS) {
+        // Skip disabled APIs or APIs without proper keys
+        if (!api.enabled || api.params.apikey === 'YOUR_API_KEY_HERE') {
+            console.log(`Skipping ${api.name} - not configured`);
+            continue;
+        }
+        
         try {
-            const response = await fetch(CORS_PROXY + encodeURIComponent(feedUrl), {
-                signal: AbortSignal.timeout(10000)
-            });
-            
-            if (!response.ok) continue;
-            
-            const xmlText = await response.text();
-            const parser = new DOMParser();
-            const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
-            
-            const items = xmlDoc.querySelectorAll('item');
-            items.forEach((item, index) => {
-                if (allNews.length >= NEWS_CONFIG.MAX_NEWS_ITEMS) return;
-                
-                const title = item.querySelector('title')?.textContent || '';
-                const description = item.querySelector('description')?.textContent || '';
-                const pubDate = item.querySelector('pubDate')?.textContent || '';
-                const link = item.querySelector('link')?.textContent || '#';
-                
-                // Extract category from title/description
-                const category = detectCategory(title + ' ' + description);
-                
-                allNews.push({
-                    id: Date.now() + index,
-                    title: cleanText(title),
-                    description: cleanText(description),
-                    category: category,
-                    source: extractSourceFromUrl(feedUrl),
-                    time: pubDate ? new Date(pubDate).toISOString() : new Date().toISOString(),
-                    image: null,
-                    url: link
-                });
-            });
-            
+            const news = await fetchFromNewsAPI(api);
+            if (news && news.length > 0) {
+                allNews.push(...news);
+            }
         } catch (error) {
-            console.warn(`Failed to fetch from ${feedUrl}:`, error.message);
+            console.warn(`Failed to fetch from ${api.name}:`, error.message);
         }
     }
     
-    // Sort by time (newest first)
-    allNews.sort((a, b) => new Date(b.time) - new Date(a.time));
+    // Remove duplicates based on title similarity
+    const uniqueNews = removeDuplicates(allNews);
     
-    return allNews;
+    // Sort by time (newest first)
+    uniqueNews.sort((a, b) => new Date(b.time) - new Date(a.time));
+    
+    return uniqueNews;
+}
+
+/**
+ * Fetch news from a specific News API
+ * @param {Object} api - API configuration
+ * @returns {Array} Array of news items
+ */
+async function fetchFromNewsAPI(api) {
+    const params = new URLSearchParams(api.params);
+    const url = `${api.url}?${params.toString()}`;
+    
+    const response = await fetch(url, {
+        signal: AbortSignal.timeout(15000),
+        headers: {
+            'Accept': 'application/json'
+        }
+    });
+    
+    if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    // Parse based on API type
+    if (api.name === 'GNews') {
+        return parseGNewsResponse(data);
+    } else if (api.name === 'NewsData') {
+        return parseNewsDataResponse(data);
+    }
+    
+    return [];
+}
+
+/**
+ * Parse GNews API response
+ * @param {Object} data - API response
+ * @returns {Array} Normalized news items
+ */
+function parseGNewsResponse(data) {
+    if (!data.articles || !Array.isArray(data.articles)) {
+        return [];
+    }
+    
+    return data.articles.map((article, index) => ({
+        id: `gnews-${Date.now()}-${index}`,
+        title: article.title || '',
+        description: article.description || article.content || '',
+        category: detectCategory(article.title + ' ' + (article.description || '')),
+        source: article.source?.name || 'GNews',
+        time: article.publishedAt || new Date().toISOString(),
+        image: article.image || null,
+        url: article.url || '#'
+    }));
+}
+
+/**
+ * Parse NewsData API response
+ * @param {Object} data - API response
+ * @returns {Array} Normalized news items
+ */
+function parseNewsDataResponse(data) {
+    if (!data.results || !Array.isArray(data.results)) {
+        return [];
+    }
+    
+    // Store next page token for pagination
+    newsState.nextPageToken = data.nextPage || null;
+    
+    return data.results.map((article, index) => ({
+        id: `newsdata-${Date.now()}-${index}`,
+        title: article.title || '',
+        description: article.description || article.content || '',
+        category: detectCategory(article.title + ' ' + (article.description || '')),
+        source: article.source_id || 'NewsData',
+        time: article.pubDate || new Date().toISOString(),
+        image: article.image_url || null,
+        url: article.link || '#'
+    }));
+}
+
+/**
+ * Remove duplicate news based on title similarity
+ * @param {Array} news - Array of news items
+ * @returns {Array} Deduplicated news
+ */
+function removeDuplicates(news) {
+    const seen = new Set();
+    return news.filter(item => {
+        // Create a normalized key from the title
+        const key = item.title.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 50);
+        if (seen.has(key)) {
+            return false;
+        }
+        seen.add(key);
+        return true;
+    });
+}
+
+/**
+ * Fetch news from RSS feeds using CORS proxies
+ * Tries multiple proxies if one fails
+ */
+async function fetchNewsFromRSS() {
+    const allNews = [];
+    let successfulProxy = null;
+    
+    for (const feedUrl of NEWS_CONFIG.RSS_FEEDS) {
+        let fetched = false;
+        
+        // Try each proxy until one works
+        for (let i = 0; i < NEWS_CONFIG.CORS_PROXIES.length && !fetched; i++) {
+            const proxyIndex = (NEWS_CONFIG.currentProxyIndex + i) % NEWS_CONFIG.CORS_PROXIES.length;
+            const proxy = NEWS_CONFIG.CORS_PROXIES[proxyIndex];
+            
+            try {
+                const proxyUrl = proxy + encodeURIComponent(feedUrl);
+                const response = await fetch(proxyUrl, {
+                    signal: AbortSignal.timeout(8000)
+                });
+                
+                if (!response.ok) continue;
+                
+                const xmlText = await response.text();
+                
+                // Validate it's actually XML
+                if (!xmlText.includes('<?xml') && !xmlText.includes('<rss') && !xmlText.includes('<feed')) {
+                    continue;
+                }
+                
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+                
+                // Check for parse errors
+                if (xmlDoc.querySelector('parsererror')) {
+                    continue;
+                }
+                
+                const items = xmlDoc.querySelectorAll('item');
+                if (items.length === 0) {
+                    // Try Atom format
+                    const entries = xmlDoc.querySelectorAll('entry');
+                    entries.forEach((entry, index) => {
+                        const title = entry.querySelector('title')?.textContent || '';
+                        const summary = entry.querySelector('summary, content')?.textContent || '';
+                        const updated = entry.querySelector('updated, published')?.textContent || '';
+                        const linkEl = entry.querySelector('link');
+                        const link = linkEl?.getAttribute('href') || linkEl?.textContent || '#';
+                        
+                        allNews.push({
+                            id: `atom-${Date.now()}-${allNews.length}-${index}`,
+                            title: cleanText(title),
+                            description: cleanText(summary),
+                            category: detectCategory(title + ' ' + summary),
+                            source: extractSourceFromUrl(feedUrl),
+                            time: updated ? new Date(updated).toISOString() : new Date().toISOString(),
+                            image: null,
+                            url: link
+                        });
+                    });
+                } else {
+                    items.forEach((item, index) => {
+                        const title = item.querySelector('title')?.textContent || '';
+                        const description = item.querySelector('description')?.textContent || '';
+                        const pubDate = item.querySelector('pubDate')?.textContent || '';
+                        const link = item.querySelector('link')?.textContent || '#';
+                        const enclosure = item.querySelector('enclosure');
+                        const imageUrl = enclosure?.getAttribute('url') || null;
+                        
+                        // Extract image from description if not in enclosure
+                        let finalImage = imageUrl;
+                        if (!finalImage && description) {
+                            const imgMatch = description.match(/<img[^>]+src=["']([^"']+)["']/i);
+                            if (imgMatch) {
+                                finalImage = imgMatch[1];
+                            }
+                        }
+                        
+                        allNews.push({
+                            id: `rss-${Date.now()}-${allNews.length}-${index}`,
+                            title: cleanText(title),
+                            description: cleanText(description),
+                            category: detectCategory(title + ' ' + description),
+                            source: extractSourceFromUrl(feedUrl),
+                            time: pubDate ? new Date(pubDate).toISOString() : new Date().toISOString(),
+                            image: finalImage,
+                            url: link
+                        });
+                    });
+                }
+                
+                fetched = true;
+                successfulProxy = proxyIndex;
+                
+            } catch (error) {
+                console.warn(`Proxy ${proxyIndex} failed for ${feedUrl}:`, error.message);
+            }
+        }
+    }
+    
+    // Remember which proxy worked for future requests
+    if (successfulProxy !== null) {
+        NEWS_CONFIG.currentProxyIndex = successfulProxy;
+    }
+    
+    // Sort by time (newest first) and remove duplicates
+    const uniqueNews = removeDuplicates(allNews);
+    uniqueNews.sort((a, b) => new Date(b.time) - new Date(a.time));
+    
+    console.log(`Fetched ${uniqueNews.length} unique articles from RSS feeds`);
+    return uniqueNews;
 }
 
 /**
@@ -408,6 +530,7 @@ function cleanText(text) {
  */
 function filterNews(category) {
     newsState.currentCategory = category;
+    newsState.currentPage = 1;
     
     if (category === 'all') {
         newsState.filteredNews = [...newsState.allNews];
@@ -416,6 +539,9 @@ function filterNews(category) {
             news => news.category === category
         );
     }
+    
+    // Get items for current page
+    newsState.displayedNews = newsState.filteredNews.slice(0, NEWS_CONFIG.ITEMS_PER_PAGE);
     
     renderNewsItems();
 }
@@ -427,24 +553,27 @@ function renderNewsItems() {
     const container = document.getElementById('newsFlowContent');
     if (!container) return;
     
-    if (newsState.filteredNews.length === 0) {
+    if (newsState.displayedNews.length === 0 && !newsState.isLoading) {
         container.innerHTML = `
             <div class="no-news">
                 <i class="bi bi-newspaper"></i>
                 <h4>No News Found</h4>
-                <p>No news articles found for this category. Try selecting a different category.</p>
+                <p>Unable to fetch news at the moment. Please try refreshing the page.</p>
+                <button class="btn btn-primary mt-3" onclick="handleRefresh()">
+                    <i class="bi bi-arrow-clockwise"></i> Retry
+                </button>
             </div>
         `;
         return;
     }
     
-    const newsHTML = newsState.filteredNews.map((news, index) => 
+    const newsHTML = newsState.displayedNews.map((news, index) => 
         createNewsItemHTML(news, index === 0)
     ).join('');
     
     container.innerHTML = newsHTML + `
         <div class="load-more-container">
-            <button class="btn-load-more" onclick="loadMoreNews()">
+            <button class="btn-load-more" onclick="loadMoreNews()" id="loadMoreBtn">
                 <i class="bi bi-plus-circle"></i> Load More News
             </button>
         </div>
@@ -792,22 +921,211 @@ function searchTopic(topic) {
         news.description.toLowerCase().includes(searchTerm)
     );
     
-    // Reset category filter
+    // Reset category filter and pagination
     document.querySelectorAll('.news-filter-btn').forEach(b => {
         b.classList.remove('active');
     });
     document.querySelector('[data-category="all"]')?.classList.add('active');
     newsState.currentCategory = 'all';
+    newsState.currentPage = 1;
+    
+    // Set displayed news
+    newsState.displayedNews = newsState.filteredNews.slice(0, NEWS_CONFIG.ITEMS_PER_PAGE);
     
     renderNewsItems();
 }
 
 /**
- * Load more news items (placeholder)
+ * Fetch more news from APIs for pagination
+ * @param {string} category - Optional category filter
+ * @returns {Promise<Array>} Array of news items
  */
-function loadMoreNews() {
-    // In a real app, this would fetch more news from API
-    alert('In a production environment, this would load more news from the API.');
+async function fetchMoreNewsFromAPI(category = null) {
+    const allNews = [];
+    
+    // Build search query based on category
+    let searchQuery = 'indian stock market OR sensex OR nifty';
+    if (category && category !== 'all') {
+        const categoryKeywords = {
+            'markets': 'indian stock market sensex nifty BSE NSE',
+            'stocks': 'indian stocks shares equity trading',
+            'economy': 'indian economy RBI GDP inflation',
+            'ipo': 'IPO initial public offering india',
+            'crypto': 'cryptocurrency bitcoin india crypto'
+        };
+        searchQuery = categoryKeywords[category] || searchQuery;
+    }
+    
+    // Try fetching from enabled APIs with pagination
+    for (const api of NEWS_CONFIG.NEWS_APIS) {
+        // Skip disabled APIs or APIs without proper keys
+        if (!api.enabled || api.params.apikey === 'YOUR_API_KEY_HERE') {
+            continue;
+        }
+        
+        try {
+            const params = new URLSearchParams({
+                ...api.params,
+                q: searchQuery
+            });
+            
+            // Add pagination for NewsData API
+            if (api.name === 'NewsData' && newsState.nextPageToken) {
+                params.set('page', newsState.nextPageToken);
+            }
+            
+            const url = `${api.url}?${params.toString()}`;
+            
+            const response = await fetch(url, {
+                signal: AbortSignal.timeout(15000),
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+            
+            if (!response.ok) continue;
+            
+            const data = await response.json();
+            
+            // Parse based on API type
+            let news = [];
+            if (api.name === 'GNews') {
+                news = parseGNewsResponse(data);
+            } else if (api.name === 'NewsData') {
+                news = parseNewsDataResponse(data);
+            }
+            
+            if (news.length > 0) {
+                allNews.push(...news);
+            }
+        } catch (error) {
+            console.warn(`Failed to fetch more from ${api.name}:`, error.message);
+        }
+    }
+    
+    // Always try RSS feeds (primary source when APIs are not configured)
+    try {
+        const rssNews = await fetchNewsFromRSS();
+        if (rssNews.length > 0) {
+            // Filter out already displayed news
+            const existingTitles = new Set(
+                newsState.allNews.map(n => n.title.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 50))
+            );
+            const newRssNews = rssNews.filter(n => {
+                const key = n.title.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 50);
+                return !existingTitles.has(key);
+            });
+            allNews.push(...newRssNews);
+        }
+    } catch (error) {
+        console.warn('RSS fetch failed:', error.message);
+    }
+    
+    return removeDuplicates(allNews);
+}
+
+/**
+ * Load more news items from APIs
+ */
+async function loadMoreNews() {
+    const loadMoreBtn = document.getElementById('loadMoreBtn');
+    if (loadMoreBtn) {
+        loadMoreBtn.disabled = true;
+        loadMoreBtn.innerHTML = '<i class="bi bi-hourglass-split spin"></i> Loading...';
+    }
+    
+    try {
+        // First, show any remaining filtered news not yet displayed
+        const currentDisplayed = newsState.displayedNews.length;
+        const totalFiltered = newsState.filteredNews.length;
+        
+        if (currentDisplayed < totalFiltered) {
+            // Show more from already fetched news
+            newsState.currentPage++;
+            const endIndex = newsState.currentPage * NEWS_CONFIG.ITEMS_PER_PAGE;
+            newsState.displayedNews = newsState.filteredNews.slice(0, endIndex);
+            renderNewsItems();
+        } else {
+            // Fetch more news from APIs
+            const newNews = await fetchMoreNewsFromAPI(newsState.currentCategory);
+            
+            if (newNews.length > 0) {
+                // Filter out duplicates with existing news
+                const existingTitles = new Set(newsState.allNews.map(n => 
+                    n.title.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 50)
+                ));
+                
+                const uniqueNewNews = newNews.filter(n => {
+                    const key = n.title.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 50);
+                    return !existingTitles.has(key);
+                });
+                
+                if (uniqueNewNews.length > 0) {
+                    // Add new news to allNews
+                    newsState.allNews = [...newsState.allNews, ...uniqueNewNews];
+                    
+                    // Re-apply category filter
+                    if (newsState.currentCategory === 'all') {
+                        newsState.filteredNews = [...newsState.allNews];
+                    } else {
+                        newsState.filteredNews = newsState.allNews.filter(
+                            news => news.category === newsState.currentCategory
+                        );
+                    }
+                    
+                    // Update displayed news
+                    newsState.currentPage++;
+                    const endIndex = newsState.currentPage * NEWS_CONFIG.ITEMS_PER_PAGE;
+                    newsState.displayedNews = newsState.filteredNews.slice(0, endIndex);
+                    
+                    renderNewsItems();
+                    
+                    console.log(`Loaded ${uniqueNewNews.length} new articles`);
+                } else {
+                    showNoMoreNewsMessage();
+                }
+            } else {
+                showNoMoreNewsMessage();
+            }
+        }
+        
+        // Scroll to newly loaded items smoothly
+        const newsItems = document.querySelectorAll('.news-item');
+        if (newsItems.length > NEWS_CONFIG.ITEMS_PER_PAGE) {
+            const targetItem = newsItems[newsItems.length - NEWS_CONFIG.ITEMS_PER_PAGE];
+            if (targetItem) {
+                setTimeout(() => {
+                    targetItem.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+            }
+        }
+    } catch (error) {
+        console.error('Error loading more news:', error);
+        showNoMoreNewsMessage();
+    } finally {
+        // Re-enable button
+        if (loadMoreBtn) {
+            loadMoreBtn.disabled = false;
+            loadMoreBtn.innerHTML = '<i class="bi bi-arrow-down-circle me-2"></i>Load More News';
+        }
+    }
+}
+
+/**
+ * Show message when no more news is available
+ */
+function showNoMoreNewsMessage() {
+    const loadMoreBtn = document.getElementById('loadMoreBtn');
+    if (loadMoreBtn) {
+        loadMoreBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>All Caught Up!';
+        loadMoreBtn.disabled = true;
+        
+        // Re-enable after some time to allow retry
+        setTimeout(() => {
+            loadMoreBtn.innerHTML = '<i class="bi bi-arrow-clockwise me-2"></i>Retry Loading';
+            loadMoreBtn.disabled = false;
+        }, 5000);
+    }
 }
 
 /**
