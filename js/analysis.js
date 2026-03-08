@@ -570,15 +570,43 @@ function loadStocksFromFirebase(showLoadingIndicator = true) {
             return;
         }
         
+        // FIX: Deduplicate stocks as a safeguard against any duplicate data
+        const dedupedStocks = deduplicateStocks(stocks);
+        
         // Check if data actually changed using comprehensive comparison
-        const hasDataChanged = checkStocksDataChanged(stocks, stocksData);
+        const hasDataChanged = checkStocksDataChanged(dedupedStocks, stocksData);
         
         if (hasDataChanged) {
-            stocksData = stocks;
+            stocksData = dedupedStocks;
             renderTable();
         }
         hideLoading();
     });
+}
+
+/**
+ * Deduplicate stocks array by stock_id
+ * FIX: Safeguard against any duplicate stocks that might come through Firebase listener
+ * @param {Array} stocks - Array of stocks that may contain duplicates
+ * @returns {Array} Deduplicated array of stocks
+ */
+function deduplicateStocks(stocks) {
+    if (!Array.isArray(stocks) || stocks.length === 0) {
+        return stocks;
+    }
+    
+    // Use a Map to track unique stocks by ID, keeping the latest version
+    const uniqueStocksMap = new Map();
+    
+    for (const stock of stocks) {
+        if (stock && stock.stock_id) {
+            // Always keep the most recent version (last occurrence wins)
+            uniqueStocksMap.set(stock.stock_id, stock);
+        }
+    }
+    
+    // Convert back to array
+    return Array.from(uniqueStocksMap.values());
 }
 
 /**
