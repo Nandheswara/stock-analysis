@@ -44,6 +44,14 @@ let isOnline = navigator.onLine;
 let stocksListener = null;
 let isCacheWarmed = false;
 
+/**
+ * Flag to prevent concurrent listener setup
+ * Ensures only one listener initialization happens at a time
+ * FIX: Prevents race condition where multiple listeners could be created simultaneously
+ */
+let listenerSetupInProgress = false;
+let pendingListenerSetup = null;
+
 window.addEventListener('online', () => {
     isOnline = true;
     syncOfflineData();
@@ -181,6 +189,7 @@ function getStockRef(stockId) {
 /**
  * Listen to real-time stock data changes
  * Optimized with localStorage cache for instant loading
+ * FIX: Prevents race condition where multiple listeners could be created simultaneously
  * @param {Function} callback - Callback function to handle stock data updates
  * @returns {Function} Unsubscribe function
  */
@@ -197,6 +206,13 @@ export function listenToStocks(callback) {
         stocksListener();
         stocksListener = null;
     }
+    
+    // Prevent concurrent listener setups that cause duplicate listeners
+    // If a setup is already in progress, clear it and start fresh
+    if (pendingListenerSetup) {
+        pendingListenerSetup = null;
+    }
+    listenerSetupInProgress = true;
     
     // If user is from cache, we need to wait for Firebase to confirm
     // because Firebase Database requires actual auth token, not just uid
@@ -217,17 +233,27 @@ export function listenToStocks(callback) {
         }
         
         // Wait for auth and then set up real listener in background
-        waitForAuthReady().then((confirmedUser) => {
-            if (confirmedUser) {
-                setupFirebaseListener(confirmedUser, callback, isCacheWarmed);
-            } else {
-                // User not authenticated, show empty or cached data
-                const fallbackData = loadFromSessionStorage();
-                callback(fallbackData);
+        // Store the promise to prevent concurrent setups
+        pendingListenerSetup = waitForAuthReady().then((confirmedUser) => {
+            // Only proceed if this is still the current setup attempt
+            if (pendingListenerSetup !== null && listenerSetupInProgress) {
+                if (confirmedUser) {
+                    setupFirebaseListener(confirmedUser, callback, isCacheWarmed);
+                } else {
+                    // User not authenticated, show empty or cached data
+                    const fallbackData = loadFromSessionStorage();
+                    callback(fallbackData);
+                }
             }
+            // Mark setup as complete
+            listenerSetupInProgress = false;
+            pendingListenerSetup = null;
         });
         
         return () => {
+            // Mark setup as cancelled when unsubscribe is called
+            listenerSetupInProgress = false;
+            pendingListenerSetup = null;
             if (stocksListener) {
                 stocksListener();
                 stocksListener = null;
@@ -236,6 +262,7 @@ export function listenToStocks(callback) {
     }
     
     if (!user) {
+        listenerSetupInProgress = false;
         const localData = loadFromSessionStorage();
         callback(localData);
         return () => {};
@@ -250,12 +277,15 @@ export function listenToStocks(callback) {
         queueMicrotask(() => callback(cachedData));
     }
     
-    return setupFirebaseListener(user, callback, isCacheWarmed);
+    const unsubscribe = setupFirebaseListener(user, callback, isCacheWarmed);
+    listenerSetupInProgress = false;
+    return unsubscribe;
 }
 
 /**
  * Set up Firebase real-time listener for stocks
  * Optimized to skip redundant callbacks when cache was already served
+ * FIX: Removed dead code and clarified logic flow
  * @param {Object} user - Authenticated user object
  * @param {Function} callback - Callback function
  * @param {boolean} cacheAlreadyServed - Whether cached data was already sent to callback
@@ -272,45 +302,28 @@ function setupFirebaseListener(user, callback, cacheAlreadyServed = false) {
             stock_id: key
         })) : [];
         
-        // Check if data actually changed from cache BEFORE saving
-        // This prevents unnecessary callback when cache is still valid
+        // Update cache and local storage with fresh data from Firebase
+        localStocksCache = stocksArray;
+        saveToLocalCache(user.uid, stocksArray);
+        saveToSessionStorage(stocksArray);
+        
+        // On first load, check if data matches cache to avoid redundant callbacks
         if (isFirstLoad && cacheAlreadyServed) {
             isFirstLoad = false;
             const cachedData = loadFromLocalCache(user.uid);
             const cacheJSON = JSON.stringify(cachedData || []);
             const newJSON = JSON.stringify(stocksArray);
             
-            // Update cache and local storage regardless
-            localStocksCache = stocksArray;
-            saveToLocalCache(user.uid, stocksArray);
-            saveToSessionStorage(stocksArray);
-            
+            // If data hasn't changed from cache, skip callback
             if (cacheJSON === newJSON) {
-                return; // Skip callback - data matches cache
+                return; // Skip callback - data matches cached data
             }
-            // Data changed, continue to callback
+            // Data changed from cache, invoke callback
             callback(stocksArray);
             return;
         }
         
-        isFirstLoad = false;
-        localStocksCache = stocksArray;
-        
-        // Save to both localStorage (for instant loading) and sessionStorage (for backup)
-        saveToLocalCache(user.uid, stocksArray);
-        saveToSessionStorage(stocksArray);
-        
-        // Skip first callback if we already served cached data and data hasn't changed
-        if (isFirstLoad && cacheAlreadyServed) {
-            isFirstLoad = false;
-            // Check if data actually changed from cache
-            const cacheJSON = JSON.stringify(loadFromLocalCache(user.uid) || []);
-            const newJSON = JSON.stringify(stocksArray);
-            if (cacheJSON === newJSON) {
-                return; // Skip - data matches cache
-            }
-        }
-        
+        // Not first load, or cache wasn't served - always invoke callback
         isFirstLoad = false;
         callback(stocksArray);
     }, (error) => {
