@@ -70,6 +70,53 @@
         },
         "metadata": {
           ".validate": true
+        },
+        "bankConsents": {
+          "$consentHandle": {
+            ".read":  "auth != null && $uid === auth.uid",
+            ".write": "auth != null && $uid === auth.uid",
+            ".validate": "newData.hasChildren(['status', 'createdAt', 'userConsentGiven'])",
+            "consentHandle":       { ".validate": "newData.isString()" },
+            "status":              { ".validate": "newData.isString() && (newData.val() === 'PENDING' || newData.val() === 'ACTIVE' || newData.val() === 'PAUSED' || newData.val() === 'REVOKED' || newData.val() === 'EXPIRED' || newData.val() === 'REJECTED')" },
+            "customerMobile":      { ".validate": "newData.isString() && newData.val().length <= 20" },
+            "bankName":            { ".validate": "newData.isString()" },
+            "accountMasked":       { ".validate": "newData.isString()" },
+            "accountType":         { ".validate": "newData.isString()" },
+            "purposeText":         { ".validate": "newData.isString()" },
+            "dataRangeFrom":       { ".validate": "newData.isString()" },
+            "dataRangeTo":         { ".validate": "newData.isString()" },
+            "expiresAt":           { ".validate": "newData.isString()" },
+            "createdAt":           { ".validate": "newData.isNumber()" },
+            "updatedAt":           { ".validate": "newData.isNumber()" },
+            "userConsentGiven":    { ".validate": "newData.isBoolean()" },
+            "userConsentTimestamp":{ ".validate": "newData.isNumber()" },
+            "consentId":           { ".validate": "newData.isString()" },
+            "isDemoMode":          { ".validate": "newData.isBoolean()" },
+            "consentTypes":        { ".validate": true },
+            "fiTypes":             { ".validate": true },
+            "fiuToken":            { ".validate": "newData.isString()" },
+            "sessionId":           { ".validate": "newData.isString()" },
+            "$other":              { ".validate": false }
+          }
+        },
+        "bankTransactions": {
+          ".read":  "auth != null && $uid === auth.uid",
+          ".write": "auth != null && $uid === auth.uid",
+          ".indexOn": ["date", "type", "category", "fetchedAt"],
+          "$txnId": {
+            ".validate": "newData.hasChildren(['amount', 'type', 'date', 'narration'])",
+            "txnId":     { ".validate": "newData.isString()" },
+            "amount":    { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "type":      { ".validate": "newData.isString() && (newData.val() === 'CREDIT' || newData.val() === 'DEBIT')" },
+            "date":      { ".validate": "newData.isString()" },
+            "narration": { ".validate": "newData.isString()" },
+            "balance":   { ".validate": "newData.isNumber()" },
+            "mode":      { ".validate": "newData.isString()" },
+            "reference": { ".validate": "newData.isString()" },
+            "category":  { ".validate": "newData.isString()" },
+            "fetchedAt": { ".validate": "newData.isNumber()" },
+            "$other":    { ".validate": false }
+          }
         }
       }
     },

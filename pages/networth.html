@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equity Labs | Net Worth Tracker – Bank Account Insights</title>
+
+    <!-- Preload connections -->
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://stock-analysis-51b9a-default-rtdb.firebaseio.com" crossorigin>
+    <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+    <link rel="dns-prefetch" href="https://www.gstatic.com">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js">
+
+    <meta name="description" content="Track your net worth by linking your bank account via Finvu Account Aggregator. View income and expense analysis, spending breakdowns, financial health score, and personalised savings suggestions.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://nandheswara.github.io/stock-analysis/pages/networth.html">
+    <link rel="sitemap" type="application/xml" href="../sitemap.xml">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Equity Labs | Net Worth Tracker">
+    <meta property="og:description" content="Link your bank account and get a 360° view of your finances – income, spending, health score and personalised suggestions.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://nandheswara.github.io/stock-analysis/pages/networth.html">
+    <meta property="og:image" content="https://nandheswara.github.io/stock-analysis/images/og-networth.jpg">
+    <meta property="og:site_name" content="Equity Labs">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Equity Labs | Net Worth Tracker">
+    <meta name="twitter:description" content="Link your bank account and get a 360° view of your finances.">
+    <meta name="twitter:image" content="https://nandheswara.github.io/stock-analysis/images/twitter-networth.jpg">
+
+    <!-- External CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+
+    <!-- App CSS -->
+    <link rel="stylesheet" href="../css/critical.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/networth.css">
+    <link rel="stylesheet" href="../css/firebase-auth.css">
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Equity Labs – Net Worth Tracker",
+        "description": "Bank account linked financial analysis with spending breakdown, income tracking and savings suggestions",
+        "url": "https://nandheswara.github.io/stock-analysis/pages/networth.html",
+        "applicationCategory": "FinanceApplication",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+    }
+    </script>
+</head>
+<body>
+
+    <!-- =====================================================================
+         Navigation
+         ===================================================================== -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="../index.html">
+                <i class="bi bi-flask"></i> Equity Labs
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#navbarNav" aria-controls="navbarNav"
+                    aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="../index.html">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="analysis.html">
+                            <i class="bi bi-bar-chart-line"></i> Fundamental Analysis
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="stock-manager.html">
+                            <i class="bi bi-wallet2"></i> Stock Manager
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="networth.html" aria-current="page">
+                            <i class="bi bi-bank2"></i> Net Worth
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="news.html">
+                            <i class="bi bi-newspaper"></i> News
+                        </a>
+                    </li>
+                    <li class="nav-item d-flex align-items-center ms-2">
+                        <button class="btn btn-sm btn-outline-light" id="themeToggle"
+                                title="Toggle theme" aria-label="Toggle dark/light theme">
+                            <i class="bi bi-moon-fill" id="themeIcon"></i>
+                        </button>
+                    </li>
+                    <!-- Auth Buttons -->
+                    <li class="nav-item d-flex align-items-center ms-2" id="authButtons">
+                        <button type="button" class="btn btn-sm btn-outline-light me-2" id="loginBtn">
+                            <i class="bi bi-box-arrow-in-right"></i> Login
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-light" id="signupBtn">
+                            <i class="bi bi-person-plus"></i> Sign Up
+                        </button>
+                    </li>
+                    <!-- User Profile -->
+                    <li class="nav-item d-flex align-items-center ms-2"
+                        id="userProfile" style="display:none !important;">
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-light dropdown-toggle"
+                                    type="button" id="userDropdown"
+                                    data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-person-circle"></i>
+                                <span id="userEmail">User</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="profile.html">
+                                    <i class="bi bi-person-gear"></i> Profile</a></li>
+                                <li><a class="dropdown-item" href="admin.html"
+                                       id="adminPanelLink" style="display:none;">
+                                    <i class="bi bi-shield-check"></i> Admin Panel</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#" id="logoutBtn">
+                                    <i class="bi bi-box-arrow-right"></i> Logout</a></li>
+                            </ul>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- =====================================================================
+         Auth Required (not signed in)
+         ===================================================================== -->
+    <div id="authRequiredMessage" class="container py-5" style="display:none;">
+        <div class="row justify-content-center">
+            <div class="col-md-6 text-center">
+                <div class="auth-required-icon mb-4">
+                    <i class="bi bi-lock-fill" style="font-size:3rem;color:var(--accent-primary);"></i>
+                </div>
+                <h2>Sign In to View Your Net Worth</h2>
+                <p class="text-muted mb-4">
+                    Link your bank account via Finvu Account Aggregator to track income, expenses,
+                    and get personalised financial insights — all in one place.
+                </p>
+                <div class="d-flex gap-3 justify-content-center" id="authPromptBtns">
+                    <button class="btn btn-primary btn-lg" id="authPromptLoginBtn">
+                        <i class="bi bi-box-arrow-in-right"></i> Sign In
+                    </button>
+                    <button class="btn btn-outline-primary btn-lg" id="authPromptSignupBtn">
+                        <i class="bi bi-person-plus"></i> Create Account
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- =====================================================================
+         Loading State (inline, compact)
+         ===================================================================== -->
+    <div id="loadingState" class="text-center py-3" style="display:none;">
+        <div class="spinner-border spinner-border-sm text-primary" role="status">
+            <span class="visually-hidden">Loading…</span>
+        </div>
+        <small class="text-muted ms-2">Loading your financial data…</small>
+    </div>
+
+    <!-- =====================================================================
+         Main Content (authenticated)
+         ===================================================================== -->
+    <main id="mainContent" class="container-fluid py-4 px-3 px-md-4" style="display:none;">
+
+        <!-- Page Header -->
+        <div class="networth-header mb-4">
+            <div class="d-flex align-items-start justify-content-between flex-wrap gap-3">
+                <div>
+                    <h1 class="h3 mb-1">
+                        <i class="bi bi-bank2 me-2"></i> Net Worth Tracker
+                    </h1>
+                    <p class="mb-0">
+                        Link your bank account via
+                        <strong>Finvu Account Aggregator</strong> to analyse income,
+                        spending patterns, and get personalised financial suggestions.
+                    </p>
+                </div>
+                <div class="d-flex gap-2">
+                    <span class="demo-badge" style="display:none;">
+                        <i class="bi bi-flask-fill"></i> Demo Mode
+                    </span>
+                    <button class="btn btn-sm btn-outline-light d-none" id="linkBankBtnTop"
+                            aria-label="Link a bank account">
+                        <i class="bi bi-plus-circle"></i> Link Bank
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Consent Banner (shown when no bank linked) ────────────────── -->
+        <section id="consentBanner" class="consent-banner" style="display:none;"
+                 aria-label="Bank account linking section">
+            <div class="consent-banner-icon" aria-hidden="true">
+                <i class="bi bi-bank2"></i>
+            </div>
+            <h2>Connect Your Bank Account</h2>
+            <p>
+                Securely link your bank account using the
+                <strong>RBI-licensed Finvu Account Aggregator</strong> framework.
+                Your data is encrypted end-to-end and only you control access.
+            </p>
+
+            <div class="consent-features" role="list">
+                <div class="consent-feature-item" role="listitem">
+                    <i class="bi bi-shield-lock-fill" aria-hidden="true"></i>
+                    <span>End-to-end encrypted</span>
+                </div>
+                <div class="consent-feature-item" role="listitem">
+                    <i class="bi bi-toggles" aria-hidden="true"></i>
+                    <span>You control your data</span>
+                </div>
+                <div class="consent-feature-item" role="listitem">
+                    <i class="bi bi-patch-check-fill" aria-hidden="true"></i>
+                    <span>RBI licensed AA</span>
+                </div>
+                <div class="consent-feature-item" role="listitem">
+                    <i class="bi bi-x-circle-fill" aria-hidden="true"></i>
+                    <span>Revoke anytime</span>
+                </div>
+            </div>
+
+            <div id="consentBannerBtns">
+                <button class="btn btn-primary btn-lg" id="linkBankBtn"
+                        aria-label="Start the bank account linking process">
+                    <i class="bi bi-bank2"></i> Link Bank Account
+                </button>
+                <p class="mt-3 mb-0" style="font-size:0.82rem;color:#6c757d;">
+                    Powered by
+                    <strong style="color:#adb5bd;">Finvu</strong> — a SEBI &amp; RBI
+                    licensed Account Aggregator. No passwords are ever shared.
+                </p>
+            </div>
+        </section>
+
+        <!-- ── Dashboard (shown when bank is linked) ─────────────────────── -->
+        <div id="dashboardContent" style="display:none;">
+
+            <!-- Consent Status Bar -->
+            <div id="consentStatusBar" class="mb-3" aria-live="polite"></div>
+
+            <!-- Summary Cards Row -->
+            <div class="nw-cards-grid mb-4" role="region" aria-label="Financial summary">
+                <!-- Net Cash Flow -->
+                <div class="nw-card networth">
+                    <div class="nw-card-icon" style="background:rgba(114,137,255,0.15);color:#7289ff;">
+                        <i class="bi bi-wallet2" aria-hidden="true"></i>
+                    </div>
+                    <div class="nw-card-body">
+                        <div class="nw-card-label">Net Cash Flow</div>
+                        <div class="nw-card-value" id="cardNetWorth">—</div>
+                        <div class="nw-card-sub" id="cardNetWorthSub">Loading…</div>
+                        <span class="demo-badge" style="display:none;" aria-label="Demo data">
+                            <i class="bi bi-flask-fill"></i> Demo
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Monthly Income -->
+                <div class="nw-card income">
+                    <div class="nw-card-icon" style="background:rgba(61,220,132,0.15);color:#3ddc84;">
+                        <i class="bi bi-arrow-down-circle-fill" aria-hidden="true"></i>
+                    </div>
+                    <div class="nw-card-body">
+                        <div class="nw-card-label">This Month – Income</div>
+                        <div class="nw-card-value" id="cardIncome">—</div>
+                        <div class="nw-card-sub positive" id="cardIncomeSub">Loading…</div>
+                        <span class="demo-badge" style="display:none;" aria-label="Demo data">
+                            <i class="bi bi-flask-fill"></i> Demo
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Monthly Expenses -->
+                <div class="nw-card expense">
+                    <div class="nw-card-icon" style="background:rgba(255,107,107,0.15);color:#ff6b6b;">
+                        <i class="bi bi-arrow-up-circle-fill" aria-hidden="true"></i>
+                    </div>
+                    <div class="nw-card-body">
+                        <div class="nw-card-label">This Month – Expenses</div>
+                        <div class="nw-card-value" id="cardExpense">—</div>
+                        <div class="nw-card-sub" id="cardExpenseSub">Loading…</div>
+                        <span class="demo-badge" style="display:none;" aria-label="Demo data">
+                            <i class="bi bi-flask-fill"></i> Demo
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Savings -->
+                <div class="nw-card savings">
+                    <div class="nw-card-icon" style="background:rgba(255,180,84,0.15);color:#ffb454;">
+                        <i class="bi bi-piggy-bank-fill" aria-hidden="true"></i>
+                    </div>
+                    <div class="nw-card-body">
+                        <div class="nw-card-label">This Month – Savings</div>
+                        <div class="nw-card-value" id="cardSavings">—</div>
+                        <div class="nw-card-sub" id="cardSavingsSub">Loading…</div>
+                        <span class="demo-badge" style="display:none;" aria-label="Demo data">
+                            <i class="bi bi-flask-fill"></i> Demo
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts + Linked Accounts Row -->
+            <div class="nw-charts-row mb-4">
+                <!-- Left: Bar chart + period tabs -->
+                <div class="nw-chart-card">
+                    <div class="nw-chart-header">
+                        <h5 class="nw-chart-title">
+                            <i class="bi bi-bar-chart-line me-2" aria-hidden="true"></i>
+                            Income vs Expenses
+                        </h5>
+                        <div class="period-tabs" role="tablist" aria-label="Chart time period">
+                            <button class="period-tab" data-months="1" role="tab" aria-selected="false">1M</button>
+                            <button class="period-tab" data-months="3" role="tab" aria-selected="false">3M</button>
+                            <button class="period-tab active" data-months="6" role="tab" aria-selected="true">6M</button>
+                        </div>
+                    </div>
+                    <div class="nw-chart-wrapper" role="img"
+                         aria-label="Bar chart comparing monthly income and expenses">
+                        <canvas id="incomeExpenseChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Right: Donut chart -->
+                <div class="nw-chart-card">
+                    <div class="nw-chart-header">
+                        <h5 class="nw-chart-title">
+                            <i class="bi bi-pie-chart-fill me-2" aria-hidden="true"></i>
+                            Spending by Category
+                        </h5>
+                    </div>
+                    <div class="nw-chart-wrapper donut-wrapper" role="img"
+                         aria-label="Donut chart of spending broken down by category">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Linked Accounts -->
+            <section class="nw-section mb-4" aria-labelledby="linkedAccountsHeading">
+                <h5 class="nw-section-title" id="linkedAccountsHeading">
+                    <i class="bi bi-credit-card-2-front me-2" aria-hidden="true"></i>
+                    Linked Accounts
+                </h5>
+                <div id="linkedAccountsContainer">
+                    <!-- Populated by networth.js -->
+                </div>
+            </section>
+
+            <!-- Transaction Table -->
+            <section class="nw-section mb-4" aria-labelledby="txnTableHeading">
+                <div class="txn-table-header">
+                    <h5 class="nw-section-title mb-0" id="txnTableHeading">
+                        <i class="bi bi-list-ul me-2" aria-hidden="true"></i>
+                        Transactions
+                    </h5>
+                    <div class="txn-controls">
+                        <!-- Type filter buttons -->
+                        <div class="txn-filter-group" role="group" aria-label="Filter by transaction type">
+                            <button class="txn-filter-btn active" data-filter="ALL"
+                                    aria-pressed="true">All</button>
+                            <button class="txn-filter-btn" data-filter="CREDIT"
+                                    aria-pressed="false">Credit</button>
+                            <button class="txn-filter-btn" data-filter="DEBIT"
+                                    aria-pressed="false">Debit</button>
+                        </div>
+                        <!-- Search input -->
+                        <div class="txn-search-wrapper">
+                            <i class="bi bi-search txn-search-icon" aria-hidden="true"></i>
+                            <input type="search" id="txnSearch" class="form-control form-control-sm"
+                                   placeholder="Search transactions…"
+                                   aria-label="Search transactions">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table txn-table" aria-label="Bank transactions">
+                        <thead>
+                            <tr>
+                                <th scope="col" style="width:40px;"></th>
+                                <th scope="col">Date</th>
+                                <th scope="col">Description</th>
+                                <th scope="col">Category</th>
+                                <th scope="col">Amount</th>
+                                <th scope="col">Mode</th>
+                                <th scope="col">Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody id="txnTableBody">
+                            <!-- Populated by networth.js -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Empty state -->
+                <div id="txnEmpty" class="text-center py-5" style="display:none;">
+                    <i class="bi bi-receipt" style="font-size:2.5rem;color:#6c757d;" aria-hidden="true"></i>
+                    <p class="text-muted mt-2">No transactions match your filter.</p>
+                </div>
+            </section>
+
+            <!-- Health Score + Suggestions Row -->
+            <div class="health-suggestions-row mb-4">
+
+                <!-- Health Score -->
+                <section class="nw-section health-section"
+                         aria-labelledby="healthScoreHeading">
+                    <h5 class="nw-section-title" id="healthScoreHeading">
+                        <i class="bi bi-activity me-2" aria-hidden="true"></i>
+                        Financial Health Score
+                    </h5>
+                    <div class="health-ring-wrapper">
+                        <div id="healthScoreRing" aria-hidden="true"></div>
+                        <div class="health-center-text">
+                            <div class="health-score-num" id="healthScoreNumber">—</div>
+                            <div class="health-score-lbl" id="healthScoreLabel">–</div>
+                        </div>
+                    </div>
+
+                    <div class="health-components mt-3">
+                        <!-- Savings component -->
+                        <div class="health-comp-row">
+                            <span class="health-comp-label">Savings Rate</span>
+                            <div class="health-comp-bar-bg">
+                                <div class="health-comp-bar-fill" id="barSavings"></div>
+                            </div>
+                            <span class="health-comp-val" id="valSavings">–</span>
+                        </div>
+                        <!-- Investment component -->
+                        <div class="health-comp-row">
+                            <span class="health-comp-label">Investments</span>
+                            <div class="health-comp-bar-bg">
+                                <div class="health-comp-bar-fill" id="barInvestment"></div>
+                            </div>
+                            <span class="health-comp-val" id="valInvestment">–</span>
+                        </div>
+                        <!-- Consistency component -->
+                        <div class="health-comp-row">
+                            <span class="health-comp-label">Consistency</span>
+                            <div class="health-comp-bar-bg">
+                                <div class="health-comp-bar-fill" id="barConsistency"></div>
+                            </div>
+                            <span class="health-comp-val" id="valConsistency">–</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Suggestions -->
+                <section class="nw-section suggestions-section"
+                         aria-labelledby="suggestionsHeading">
+                    <h5 class="nw-section-title" id="suggestionsHeading">
+                        <i class="bi bi-lightbulb-fill me-2" aria-hidden="true"></i>
+                        Personalised Suggestions
+                    </h5>
+                    <div id="suggestionsContainer">
+                        <!-- Populated by networth.js -->
+                    </div>
+                </section>
+            </div>
+
+        </div><!-- /dashboardContent -->
+    </main>
+
+    <!-- =============================================================
+         Consent Modal
+         ============================================================= -->
+    <div class="modal fade" id="consentModal" tabindex="-1"
+         aria-labelledby="consentModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="consentModalTitle">
+                        <i class="bi bi-shield-fill-check text-success me-2" aria-hidden="true"></i>
+                        Consent for Financial Data Sharing
+                    </h5>
+                    <button type="button" class="btn-close"
+                            data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="consentModalAlert"></div>
+
+                    <!-- AA Info Banner -->
+                    <div class="consent-info-box mb-4">
+                        <div class="consent-info-row">
+                            <i class="bi bi-patch-check-fill text-success"></i>
+                            <div>
+                                <strong>Finvu Account Aggregator</strong>
+                                <p class="mb-0 text-muted" style="font-size:0.85rem;">
+                                    An RBI-licensed Account Aggregator that enables secure,
+                                    user-consented data sharing. Your bank credentials are
+                                    <strong>never shared</strong> with Equity Labs.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Data being requested -->
+                    <h6 class="mb-3">Data you are consenting to share:</h6>
+                    <div class="consent-data-types mb-4" role="list">
+                        <div class="consent-data-item" role="listitem">
+                            <i class="bi bi-list-check text-primary" aria-hidden="true"></i>
+                            <div>
+                                <strong>Transaction History</strong>
+                                <p>Debit and credit transactions for the last 6 months</p>
+                            </div>
+                        </div>
+                        <div class="consent-data-item" role="listitem">
+                            <i class="bi bi-person-vcard text-primary" aria-hidden="true"></i>
+                            <div>
+                                <strong>Account Profile</strong>
+                                <p>Account holder name, account type, and masked account number</p>
+                            </div>
+                        </div>
+                        <div class="consent-data-item" role="listitem">
+                            <i class="bi bi-bank text-primary" aria-hidden="true"></i>
+                            <div>
+                                <strong>Account Summary</strong>
+                                <p>Current balance and linked bank details</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Consent metadata -->
+                    <div class="consent-meta-grid mb-4">
+                        <div class="consent-meta-item">
+                            <span class="label">Purpose</span>
+                            <span class="value">Wealth management &amp; personal finance analysis</span>
+                        </div>
+                        <div class="consent-meta-item">
+                            <span class="label">Data Range</span>
+                            <span class="value">Last 6 months</span>
+                        </div>
+                        <div class="consent-meta-item">
+                            <span class="label">Consent Validity</span>
+                            <span class="value">1 year (revocable at any time)</span>
+                        </div>
+                        <div class="consent-meta-item">
+                            <span class="label">Frequency</span>
+                            <span class="value">On demand (when you press Sync)</span>
+                        </div>
+                    </div>
+
+                    <!-- Mobile number -->
+                    <div class="mb-3">
+                        <label for="consentMobile" class="form-label fw-semibold">
+                            Mobile Number Linked to Your Bank Account
+                            <span class="text-danger" aria-hidden="true">*</span>
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text" aria-hidden="true">+91</span>
+                            <input type="tel" class="form-control" id="consentMobile"
+                                   placeholder="Enter 10-digit mobile number"
+                                   maxlength="10" pattern="[6-9][0-9]{9}"
+                                   inputmode="numeric"
+                                   aria-describedby="mobileHelp"
+                                   autocomplete="tel-national" required>
+                        </div>
+                        <div id="mobileHelp" class="form-text">
+                            Used to identify your account at the bank — not stored beyond the consent request.
+                        </div>
+                    </div>
+
+                    <!-- Agree checkbox -->
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox"
+                               id="consentAgreeCheckbox" required aria-required="true">
+                        <label class="form-check-label" for="consentAgreeCheckbox">
+                            I have read and agree to share the above-mentioned financial data
+                            with <strong>Equity Labs</strong> through Finvu Account Aggregator
+                            for personal finance analysis purposes only.
+                        </label>
+                    </div>
+
+                    <p class="text-muted mb-0" style="font-size:0.8rem;">
+                        <i class="bi bi-info-circle me-1" aria-hidden="true"></i>
+                        You can revoke this consent at any time from the Net Worth Tracker page or
+                        directly from the Finvu AA portal.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary"
+                            data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="consentSubmitBtn">
+                        <i class="bi bi-shield-check me-1" aria-hidden="true"></i>
+                        Agree &amp; Proceed
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- =============================================================
+         Authentication Modal
+         ============================================================= -->
+    <div class="modal fade" id="authModal" tabindex="-1"
+         aria-labelledby="authModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="authModalTitle">Sign In</h5>
+                    <button type="button" class="btn-close"
+                            data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="authAlertContainer"></div>
+
+                    <!-- Login Form -->
+                    <form id="loginForm" style="display:block;" novalidate>
+                        <div class="mb-3">
+                            <label for="loginEmail" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="loginEmail"
+                                   placeholder="your-email@example.com"
+                                   autocomplete="email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="loginPassword" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="loginPassword"
+                                   autocomplete="current-password" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 mb-2">
+                            <i class="bi bi-box-arrow-in-right"></i> Sign In
+                        </button>
+                        <button type="button" class="btn btn-outline-primary w-100" id="googleSignInBtn">
+                            <i class="bi bi-google"></i> Sign in with Google
+                        </button>
+                        <div class="text-center mt-3">
+                            <small>Don't have an account?
+                                <a href="#" id="showSignupForm">Sign up here</a></small>
+                        </div>
+                        <div class="text-center mt-2">
+                            <small><a href="#" id="forgotPasswordLink">Forgot password?</a></small>
+                        </div>
+                    </form>
+
+                    <!-- Signup Form -->
+                    <form id="signupForm" style="display:none;" novalidate>
+                        <div class="mb-3">
+                            <label for="signupName" class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="signupName"
+                                   placeholder="John Doe" autocomplete="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="signupEmail" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="signupEmail"
+                                   placeholder="your-email@example.com"
+                                   autocomplete="email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="signupPassword" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="signupPassword"
+                                   autocomplete="new-password" required minlength="6">
+                            <small class="text-muted">Minimum 6 characters</small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="signupConfirmPassword" class="form-label">
+                                Confirm Password</label>
+                            <input type="password" class="form-control"
+                                   id="signupConfirmPassword"
+                                   autocomplete="new-password" required minlength="6">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 mb-2">
+                            <i class="bi bi-person-plus"></i> Create Account
+                        </button>
+                        <button type="button" class="btn btn-outline-primary w-100"
+                                id="googleSignUpBtn">
+                            <i class="bi bi-google"></i> Sign up with Google
+                        </button>
+                        <div class="text-center mt-3">
+                            <small>Already have an account?
+                                <a href="#" id="showLoginForm">Sign in here</a></small>
+                        </div>
+                    </form>
+
+                    <!-- Forgot Password Form -->
+                    <form id="forgotPasswordForm" style="display:none;">
+                        <p class="text-muted">
+                            Enter your email and we'll send you a password reset link.
+                        </p>
+                        <div class="mb-3">
+                            <label for="resetEmail" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="resetEmail"
+                                   placeholder="your-email@example.com"
+                                   autocomplete="email" required>
+                        </div>
+                        <button type="button" class="btn btn-primary w-100 mb-2"
+                                id="sendResetEmailBtn">
+                            <i class="bi bi-envelope"></i> Send Reset Link
+                        </button>
+                        <div class="text-center mt-3">
+                            <small><a href="#" id="backToLoginBtn">Back to login</a></small>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- =============================================================
+         Scripts
+         ============================================================= -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"
+            integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
+            crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Chart.js for financial charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <!-- Fast auth-state cache restore (avoids auth flash) -->
+    <script>
+        (function () {
+            'use strict';
+            try {
+                var cache = sessionStorage.getItem('authStateCache');
+                if (cache) {
+                    var auth = JSON.parse(cache);
+                    if (auth && auth.uid) {
+                        var ab = document.getElementById('authButtons');
+                        var up = document.getElementById('userProfile');
+                        var ue = document.getElementById('userEmail');
+                        if (ab) ab.style.setProperty('display', 'none', 'important');
+                        if (up) up.style.setProperty('display', 'flex', 'important');
+                        if (ue) ue.textContent = auth.displayName || auth.email || 'User';
+                    }
+                }
+            } catch (e) { /* ignore */ }
+        }());
+    </script>
+
+    <script src="../js/global.js"></script>
+    <script type="module" src="../js/firebase-config.js"></script>
+    <script type="module" src="../js/firebase-auth-service.js"></script>
+    <script type="module" src="../js/networth.js"></script>
+
+</body>
+</html>
