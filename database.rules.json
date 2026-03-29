@@ -70,6 +70,38 @@
         },
         "metadata": {
           ".validate": true
+        },
+        "finance": {
+          "categories": {
+            "$categoryId": {
+              ".validate": "newData.hasChild('name') && newData.child('name').isString()",
+              "items": {
+                "$itemId": {
+                  ".validate": "newData.hasChildren(['name', 'amount', 'month']) && newData.child('name').isString() && newData.child('amount').isNumber() && newData.child('month').isString()"
+                }
+              }
+            }
+          },
+          "banks": {
+            "$bankId": {
+              ".validate": "newData.hasChildren(['name', 'balance']) && newData.child('name').isString() && newData.child('balance').isNumber()"
+            }
+          },
+          "creditCards": {
+            "$cardId": {
+              ".validate": "newData.hasChildren(['name', 'outstandingBalance']) && newData.child('name').isString() && newData.child('outstandingBalance').isNumber()"
+            }
+          },
+          "income": {
+            "$month": {
+              ".validate": "newData.hasChildren(['salary', 'totalIncome']) && newData.child('salary').isNumber() && newData.child('totalIncome').isNumber()"
+            }
+          },
+          "monthlySnapshots": {
+            "$month": {
+              ".validate": "newData.hasChild('timestamp') && newData.child('timestamp').isNumber()"
+            }
+          }
         }
       }
     },
