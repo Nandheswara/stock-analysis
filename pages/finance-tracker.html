@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equity Labs | Finance Tracker & Net Worth Dashboard</title>
+    
+    <!-- Preload Firebase SDKs -->
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://stock-analysis-51b9a-default-rtdb.firebaseio.com" crossorigin>
+    <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+    <link rel="dns-prefetch" href="https://www.gstatic.com">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js">
+    
+    <!-- SEO -->
+    <meta name="description" content="Track your investments, bank accounts, credit card liabilities, and net worth with Equity Labs Finance Tracker. Month-on-month analytics with Excel export.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://nandheswara.github.io/stock-analysis/pages/finance-tracker.html">
+    <link rel="sitemap" type="application/xml" href="../sitemap.xml">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="Equity Labs | Finance Tracker">
+    <meta property="og:description" content="Track investments, bank accounts, credit cards and net worth with analytics">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://nandheswara.github.io/stock-analysis/pages/finance-tracker.html">
+    <meta property="og:site_name" content="Equity Labs">
+    
+    <!-- External CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <!-- CSS Files -->
+    <link rel="stylesheet" href="../css/critical.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/finance-tracker.css">
+    <link rel="stylesheet" href="../css/firebase-auth.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="../index.html">
+                <i class="bi bi-flask"></i> Equity Labs
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="../index.html">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="analysis.html">
+                            <i class="bi bi-bar-chart-line"></i> Fundamental Analysis
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="stock-manager.html">
+                            <i class="bi bi-wallet2"></i> Stock Manager
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="news.html">
+                            <i class="bi bi-newspaper"></i> News
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="finance-tracker.html">
+                            <i class="bi bi-piggy-bank"></i> Finance Tracker
+                        </a>
+                    </li>
+                    <li class="nav-item d-flex align-items-center ms-2">
+                        <button class="btn btn-sm btn-outline-light" id="themeToggle" title="Toggle theme" aria-label="Toggle dark/light theme">
+                            <i class="bi bi-moon-fill" id="themeIcon"></i>
+                        </button>
+                    </li>
+                    <!-- Auth Buttons -->
+                    <li class="nav-item d-flex align-items-center ms-2" id="authButtons">
+                        <button type="button" class="btn btn-sm btn-outline-light me-2" id="loginBtn">
+                            <i class="bi bi-box-arrow-in-right"></i> Login
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-light" id="signupBtn">
+                            <i class="bi bi-person-plus"></i> Sign Up
+                        </button>
+                    </li>
+                    <!-- User Profile -->
+                    <li class="nav-item d-flex align-items-center ms-2" id="userProfile" style="display: none !important;">
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-person-circle"></i> <span id="userEmail">User</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="profile.html" id="profileBtn"><i class="bi bi-person-gear"></i> Profile</a></li>
+                                <li><a class="dropdown-item" href="admin.html" id="adminPanelLink" style="display: none;"><i class="bi bi-shield-check"></i> Admin Panel</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#" id="logoutBtn"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+                            </ul>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Auth Modal -->
+    <div class="modal fade" id="authModal" tabindex="-1" aria-labelledby="authModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="authModalTitle">Sign In</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="authAlertContainer"></div>
+                    <!-- Login Form -->
+                    <form id="loginForm" style="display: block;">
+                        <div class="mb-3">
+                            <label for="loginEmail" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="loginEmail" placeholder="your-email@example.com" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="loginPassword" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="loginPassword" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 mb-2">
+                            <i class="bi bi-box-arrow-in-right"></i> Sign In
+                        </button>
+                        <button type="button" class="btn btn-outline-primary w-100" id="googleSignInBtn">
+                            <i class="bi bi-google"></i> Sign in with Google
+                        </button>
+                        <div class="text-center mt-3">
+                            <small>Don't have an account? <a href="#" id="showSignupForm">Sign up here</a></small>
+                        </div>
+                        <div class="text-center mt-2">
+                            <small><a href="#" id="forgotPasswordLink">Forgot password?</a></small>
+                        </div>
+                    </form>
+                    <!-- Signup Form -->
+                    <form id="signupForm" style="display: none;">
+                        <div class="mb-3">
+                            <label for="signupName" class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="signupName" placeholder="John Doe" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="signupEmail" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="signupEmail" placeholder="your-email@example.com" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="signupPassword" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="signupPassword" required minlength="6">
+                            <small class="text-muted">Minimum 6 characters</small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="signupConfirmPassword" class="form-label">Confirm Password</label>
+                            <input type="password" class="form-control" id="signupConfirmPassword" required minlength="6">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 mb-2">
+                            <i class="bi bi-person-plus"></i> Create Account
+                        </button>
+                        <button type="button" class="btn btn-outline-primary w-100" id="googleSignUpBtn">
+                            <i class="bi bi-google"></i> Sign up with Google
+                        </button>
+                        <div class="text-center mt-3">
+                            <small>Already have an account? <a href="#" id="showLoginForm">Sign in here</a></small>
+                        </div>
+                    </form>
+                    <!-- Forgot Password -->
+                    <form id="forgotPasswordForm" style="display: none;">
+                        <p class="text-muted">Enter your email address and we'll send you a reset link.</p>
+                        <div class="mb-3">
+                            <label for="resetEmail" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="resetEmail" placeholder="your-email@example.com" required>
+                        </div>
+                        <button type="button" class="btn btn-primary w-100 mb-2" id="sendResetEmailBtn">
+                            <i class="bi bi-envelope"></i> Send Reset Link
+                        </button>
+                        <div class="text-center mt-3">
+                            <small><a href="#" id="backToLoginBtn">Back to login</a></small>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div class="modal fade" id="profileModal" tabindex="-1" aria-labelledby="profileModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="profileModalTitle"><i class="bi bi-person-circle"></i> User Profile</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="profileAlertContainer"></div>
+                    <div class="user-info-section mb-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="profile-avatar me-3">
+                                <i class="bi bi-person-circle" style="font-size: 3rem; color: var(--bs-primary);"></i>
+                            </div>
+                            <div class="profile-details">
+                                <h6 class="mb-1" id="profileDisplayName">User Name</h6>
+                                <small class="text-muted" id="profileEmail">user@example.com</small>
+                            </div>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="change-password-section">
+                        <h6 class="mb-3"><i class="bi bi-key"></i> Change Password</h6>
+                        <form id="changePasswordForm">
+                            <div class="mb-3">
+                                <label for="currentPassword" class="form-label">Current Password</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="currentPassword" required>
+                                    <button class="btn btn-outline-secondary toggle-password" type="button" data-target="currentPassword" aria-label="Toggle password visibility">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="newPassword" class="form-label">New Password</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="newPassword" required minlength="6">
+                                    <button class="btn btn-outline-secondary toggle-password" type="button" data-target="newPassword" aria-label="Toggle password visibility">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                                <small class="text-muted">Minimum 6 characters</small>
+                            </div>
+                            <div class="mb-3">
+                                <label for="confirmNewPassword" class="form-label">Confirm New Password</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="confirmNewPassword" required minlength="6">
+                                    <button class="btn btn-outline-secondary toggle-password" type="button" data-target="confirmNewPassword" aria-label="Toggle password visibility">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100" id="changePasswordBtn">
+                                <i class="bi bi-shield-lock"></i> Update Password
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="container py-4">
+        <!-- Header -->
+        <div class="header-section">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-2"><i class="bi bi-piggy-bank"></i> Finance Tracker</h1>
+                    <p class="mb-0">Track investments, bank accounts, credit cards & net worth with monthly analytics</p>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <span class="badge bg-success savings-badge" id="savingsRateValue" style="font-size:1rem;padding:10px 18px;display:none;border-radius:10px;">
+                        <i class="bi bi-piggy-bank"></i> Savings Rate
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Login Prompt (shown when not logged in) -->
+        <div id="loginPrompt" class="text-center py-5">
+            <i class="bi bi-lock" style="font-size: 4rem; color: var(--text-muted); display:block; margin-bottom: 16px;"></i>
+            <h3 style="color: var(--text-heading);">Sign in to access Finance Tracker</h3>
+            <p style="color: var(--text-secondary);">Your financial data is securely stored in the cloud and synced across devices.</p>
+            <button class="btn btn-primary btn-lg mt-3" id="loginPromptBtn" onclick="document.getElementById('loginBtn').click()">
+                <i class="bi bi-box-arrow-in-right"></i> Sign In
+            </button>
+        </div>
+
+        <!-- Finance Content (shown when logged in) -->
+        <div id="financeMainContent" style="display:none;">
+
+            <!-- Month Navigator -->
+            <div class="month-navigator">
+                <button class="month-btn" id="monthPrevBtn" title="Previous month">
+                    <i class="bi bi-chevron-left"></i>
+                </button>
+                <div class="month-display" id="monthDisplay">March 2025</div>
+                <button class="month-btn" id="monthNextBtn" title="Next month">
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+                <button class="month-current-btn" id="monthCurrentBtn">● Current</button>
+                <button class="copy-prev-month-btn" onclick="copyFromPreviousMonth()" title="Copy bank, credit card and income data from previous month">
+                    <i class="bi bi-clipboard-plus"></i> Copy from Previous Month
+                </button>
+            </div>
+
+            <!-- Income Entry -->
+            <div class="income-section">
+                <h3><i class="bi bi-cash-coin"></i> Monthly Income</h3>
+                <form class="income-form" id="incomeForm">
+                    <div class="form-group">
+                        <label for="incomeSalary">Salary / Primary Income</label>
+                        <input type="number" id="incomeSalary" placeholder="₹0" min="0" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="incomeOther">Other Income</label>
+                        <input type="number" id="incomeOther" placeholder="₹0" min="0" step="0.01">
+                    </div>
+                    <button type="submit" class="income-save-btn">
+                        <i class="bi bi-check-lg"></i> Save
+                    </button>
+                </form>
+            </div>
+
+            <!-- Financial Summary Bar: Income | Expenditure | Invested -->
+            <div class="financial-summary-bar">
+                <div class="summary-metric income-metric">
+                    <i class="bi bi-cash-stack metric-icon"></i>
+                    <div class="metric-label">Income</div>
+                    <div class="metric-value" id="summaryIncome">₹0</div>
+                    <div class="metric-sub" id="summaryIncomeSub">No income recorded</div>
+                </div>
+                <div class="summary-metric expenditure-metric">
+                    <i class="bi bi-cart-dash metric-icon"></i>
+                    <div class="metric-label">Expenditure</div>
+                    <div class="metric-value" id="summaryExpenditure">₹0</div>
+                    <div class="metric-sub" id="summaryExpenditureSub">Bank + Card spending</div>
+                </div>
+                <div class="summary-metric invested-metric">
+                    <i class="bi bi-graph-up-arrow metric-icon"></i>
+                    <div class="metric-label">Invested</div>
+                    <div class="metric-value" id="summaryInvested">₹0</div>
+                    <div class="metric-sub" id="summaryInvestedSub">vs last month</div>
+                </div>
+            </div>
+
+            <!-- Net Worth Cards -->
+            <div class="networth-cards">
+                <div class="networth-card assets-card">
+                    <i class="bi bi-bank nw-icon"></i>
+                    <div class="nw-label">Total Assets</div>
+                    <div class="nw-value" id="totalAssetsValue">₹0</div>
+                </div>
+                <div class="networth-card liabilities-card">
+                    <i class="bi bi-credit-card-2-back nw-icon"></i>
+                    <div class="nw-label">Total Liabilities</div>
+                    <div class="nw-value" id="totalLiabilitiesValue">₹0</div>
+                </div>
+                <div class="networth-card networth-total-card">
+                    <i class="bi bi-trophy nw-icon"></i>
+                    <div class="nw-label">Net Worth</div>
+                    <div class="nw-value" id="netWorthValue">₹0</div>
+                </div>
+            </div>
+
+            <!-- Investment Categories -->
+            <div class="finance-section">
+                <div class="finance-section-header">
+                    <h2 class="finance-section-title">
+                        <i class="bi bi-collection" style="color:var(--accent-primary);"></i> Investment Categories
+                    </h2>
+                    <div class="finance-section-actions">
+                        <button class="btn-finance btn-finance-primary" onclick="openAddCategoryModal()">
+                            <i class="bi bi-plus-lg"></i> Add Category
+                        </button>
+                    </div>
+                </div>
+                <div class="categories-grid" id="categoriesGrid">
+                    <!-- Dynamic content -->
+                </div>
+            </div>
+
+            <!-- Bank Accounts -->
+            <div class="finance-section">
+                <div class="finance-section-header">
+                    <h2 class="finance-section-title">
+                        <i class="bi bi-bank" style="color:var(--accent-success);"></i> Bank Accounts
+                    </h2>
+                    <div class="finance-section-actions">
+                        <button class="btn-finance btn-finance-success" onclick="openAddBankModal()">
+                            <i class="bi bi-plus-lg"></i> Add Bank
+                        </button>
+                    </div>
+                </div>
+                <div class="finance-table-wrapper">
+                    <table class="finance-table">
+                        <thead>
+                            <tr>
+                                <th>Account Name</th>
+                                <th>Bank</th>
+                                <th>Type</th>
+                                <th>Balance</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="banksTableBody">
+                            <!-- Dynamic content -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Credit Cards -->
+            <div class="finance-section">
+                <div class="finance-section-header">
+                    <h2 class="finance-section-title">
+                        <i class="bi bi-credit-card" style="color:var(--accent-danger);"></i> Credit Cards (Liabilities)
+                    </h2>
+                    <div class="finance-section-actions">
+                        <button class="btn-finance btn-finance-danger" onclick="openAddCreditCardModal()">
+                            <i class="bi bi-plus-lg"></i> Add Card
+                        </button>
+                    </div>
+                </div>
+                <div class="finance-table-wrapper">
+                    <table class="finance-table">
+                        <thead>
+                            <tr>
+                                <th>Card Name</th>
+                                <th>Issuer</th>
+                                <th>Outstanding</th>
+                                <th>Credit Limit</th>
+                                <th>Utilization</th>
+                                <th>Due Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="creditCardsTableBody">
+                            <!-- Dynamic content -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="finance-section">
+                <div class="finance-section-header">
+                    <h2 class="finance-section-title">
+                        <i class="bi bi-bar-chart-line" style="color:var(--accent-primary);"></i> Analytics
+                    </h2>
+                </div>
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <div class="chart-card-title">
+                            <i class="bi bi-pie-chart"></i> Investment Breakdown
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="spendingBreakdownChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-card-title">
+                            <i class="bi bi-graph-up"></i> Net Worth Trend
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="netWorthChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-card-title">
+                            <i class="bi bi-bar-chart"></i> Income vs Expenditure vs Invested
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="incomeExpenseChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-card-title">
+                            <i class="bi bi-activity"></i> Category Trends
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="categoryTrendChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Export Section -->
+            <div class="finance-section">
+                <div class="finance-section-header">
+                    <h2 class="finance-section-title">
+                        <i class="bi bi-download" style="color:var(--accent-success);"></i> Export Data
+                    </h2>
+                </div>
+                <div class="export-section">
+                    <button class="export-btn" onclick="exportFinanceData()">
+                        <i class="bi bi-file-earmark-excel"></i> Download Excel Report
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- ===== MODALS ===== -->
+
+    <!-- Add Category Modal -->
+    <div class="finance-modal-overlay" id="addCategoryModal">
+        <div class="finance-modal">
+            <div class="finance-modal-header">
+                <h3><i class="bi bi-folder-plus"></i> Add Category</h3>
+                <button class="finance-modal-close" onclick="closeFinanceModal('addCategoryModal')">&times;</button>
+            </div>
+            <div class="finance-modal-body">
+                <form id="addCategoryForm">
+                    <div class="form-group">
+                        <label for="categoryNameInput">Category Name *</label>
+                        <input type="text" id="categoryNameInput" placeholder="e.g., Mutual Funds" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Icon</label>
+                        <div class="icon-selector">
+                            <div class="icon-option selected" data-icon="bi-folder"><i class="bi bi-folder"></i></div>
+                            <div class="icon-option" data-icon="bi-graph-up-arrow"><i class="bi bi-graph-up-arrow"></i></div>
+                            <div class="icon-option" data-icon="bi-gem"><i class="bi bi-gem"></i></div>
+                            <div class="icon-option" data-icon="bi-safe"><i class="bi bi-safe"></i></div>
+                            <div class="icon-option" data-icon="bi-shield-check"><i class="bi bi-shield-check"></i></div>
+                            <div class="icon-option" data-icon="bi-house-door"><i class="bi bi-house-door"></i></div>
+                            <div class="icon-option" data-icon="bi-piggy-bank"><i class="bi bi-piggy-bank"></i></div>
+                            <div class="icon-option" data-icon="bi-cash-coin"><i class="bi bi-cash-coin"></i></div>
+                            <div class="icon-option" data-icon="bi-currency-rupee"><i class="bi bi-currency-rupee"></i></div>
+                            <div class="icon-option" data-icon="bi-bank"><i class="bi bi-bank"></i></div>
+                            <div class="icon-option" data-icon="bi-car-front"><i class="bi bi-car-front"></i></div>
+                            <div class="icon-option" data-icon="bi-heart-pulse"><i class="bi bi-heart-pulse"></i></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Color</label>
+                        <div class="color-selector">
+                            <div class="color-option selected" data-color="#7289ff" style="background:#7289ff;"></div>
+                            <div class="color-option" data-color="#3ddc84" style="background:#3ddc84;"></div>
+                            <div class="color-option" data-color="#ffb454" style="background:#ffb454;"></div>
+                            <div class="color-option" data-color="#ff6b6b" style="background:#ff6b6b;"></div>
+                            <div class="color-option" data-color="#e066ff" style="background:#e066ff;"></div>
+                            <div class="color-option" data-color="#00bcd4" style="background:#00bcd4;"></div>
+                            <div class="color-option" data-color="#ff9800" style="background:#ff9800;"></div>
+                            <div class="color-option" data-color="#4caf50" style="background:#4caf50;"></div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="finance-modal-footer">
+                <button class="btn-finance btn-finance-outline" onclick="closeFinanceModal('addCategoryModal')">Cancel</button>
+                <button class="btn-finance btn-finance-primary" onclick="submitAddCategory()">
+                    <i class="bi bi-plus-lg"></i> Add Category
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Bank Modal -->
+    <div class="finance-modal-overlay" id="addBankModal">
+        <div class="finance-modal">
+            <div class="finance-modal-header">
+                <h3 id="addBankModalTitle"><i class="bi bi-bank"></i> Add Bank Account</h3>
+                <button class="finance-modal-close" onclick="closeFinanceModal('addBankModal')">&times;</button>
+            </div>
+            <div class="finance-modal-body">
+                <form id="addBankForm">
+                    <input type="hidden" id="editBankId">
+                    <div class="form-group">
+                        <label for="bankAccountName">Account Name *</label>
+                        <input type="text" id="bankAccountName" placeholder="e.g., HDFC Savings" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="bankBankName">Bank Name</label>
+                        <input type="text" id="bankBankName" placeholder="e.g., HDFC Bank">
+                    </div>
+                    <div class="form-group">
+                        <label for="bankAccountType">Account Type</label>
+                        <select id="bankAccountType">
+                            <option value="savings">Savings</option>
+                            <option value="current">Current</option>
+                            <option value="salary">Salary</option>
+                            <option value="fd">Fixed Deposit</option>
+                            <option value="rd">Recurring Deposit</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="bankBalance">Available Balance (₹) *</label>
+                        <input type="number" id="bankBalance" placeholder="0" min="0" step="0.01" required>
+                    </div>
+                </form>
+            </div>
+            <div class="finance-modal-footer">
+                <button class="btn-finance btn-finance-outline" onclick="closeFinanceModal('addBankModal')">Cancel</button>
+                <button class="btn-finance btn-finance-success" onclick="submitAddBank()">
+                    <i class="bi bi-check-lg"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Credit Card Modal -->
+    <div class="finance-modal-overlay" id="addCreditCardModal">
+        <div class="finance-modal">
+            <div class="finance-modal-header">
+                <h3 id="addCreditCardModalTitle"><i class="bi bi-credit-card"></i> Add Credit Card</h3>
+                <button class="finance-modal-close" onclick="closeFinanceModal('addCreditCardModal')">&times;</button>
+            </div>
+            <div class="finance-modal-body">
+                <form id="addCreditCardForm">
+                    <input type="hidden" id="editCardId">
+                    <div class="form-group">
+                        <label for="cardName">Card Name *</label>
+                        <input type="text" id="cardName" placeholder="e.g., HDFC Regalia" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="cardIssuer">Issuer / Bank</label>
+                        <input type="text" id="cardIssuer" placeholder="e.g., HDFC Bank">
+                    </div>
+                    <div class="form-group">
+                        <label for="cardOutstanding">Outstanding Balance (₹)</label>
+                        <input type="number" id="cardOutstanding" placeholder="0" min="0" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="cardLimit">Credit Limit (₹)</label>
+                        <input type="number" id="cardLimit" placeholder="0" min="0" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="cardDueDate">Due Date</label>
+                        <input type="date" id="cardDueDate">
+                    </div>
+                </form>
+            </div>
+            <div class="finance-modal-footer">
+                <button class="btn-finance btn-finance-outline" onclick="closeFinanceModal('addCreditCardModal')">Cancel</button>
+                <button class="btn-finance btn-finance-danger" onclick="submitAddCreditCard()">
+                    <i class="bi bi-check-lg"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div class="finance-modal-overlay" id="confirmModal">
+        <div class="finance-modal" style="max-width:420px;">
+            <div class="finance-modal-header">
+                <h3><i class="bi bi-exclamation-triangle" style="color:var(--accent-warning);"></i> <span id="confirmModalTitle">Confirm</span></h3>
+                <button class="finance-modal-close" onclick="closeFinanceModal('confirmModal')">&times;</button>
+            </div>
+            <div class="finance-modal-body">
+                <p id="confirmModalMessage" style="margin:0;color:var(--text-primary);font-size:0.95rem;"></p>
+            </div>
+            <div class="finance-modal-footer">
+                <button class="btn-finance btn-finance-outline" id="confirmModalCancel" onclick="closeFinanceModal('confirmModal')">Cancel</button>
+                <button class="btn-finance btn-finance-danger" id="confirmModalOk">
+                    <i class="bi bi-trash"></i> Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Item Modal -->
+    <div class="finance-modal-overlay" id="editItemModal">
+        <div class="finance-modal" style="max-width:420px;">
+            <div class="finance-modal-header">
+                <h3><i class="bi bi-pencil-square" style="color:var(--accent-primary);"></i> Edit Item</h3>
+                <button class="finance-modal-close" onclick="closeFinanceModal('editItemModal')">&times;</button>
+            </div>
+            <div class="finance-modal-body">
+                <div class="form-group">
+                    <label id="editItemLabel">Amount</label>
+                    <input type="number" id="editItemAmountInput" placeholder="Enter new amount" min="0" step="0.01">
+                </div>
+            </div>
+            <div class="finance-modal-footer">
+                <button class="btn-finance btn-finance-outline" onclick="closeFinanceModal('editItemModal')">Cancel</button>
+                <button class="btn-finance btn-finance-primary" id="editItemModalSave">
+                    <i class="bi bi-check-lg"></i> Update
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white text-center py-4 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    <p class="mb-2"><i class="bi bi-flask"></i> <strong>Equity Labs</strong></p>
+                    <p class="mb-2">Professional stock analysis tool for Indian equities</p>
+                    <div class="footer-links mb-3">
+                        <a href="../index.html" class="text-white-50 me-3 text-decoration-none">Home</a>
+                        <a href="analysis.html" class="text-white-50 me-3 text-decoration-none">Fundamental Analysis</a>
+                        <a href="stock-manager.html" class="text-white-50 me-3 text-decoration-none">Stock Manager</a>
+                        <a href="finance-tracker.html" class="text-white-50 text-decoration-none">Finance Tracker</a>
+                    </div>
+                    <p class="mb-0 text-white-50">&copy; 2025 Equity Labs. All rights reserved.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Finance Tracker",
+        "description": "Track investments, bank accounts, credit card liabilities and net worth with monthly analytics",
+        "applicationCategory": "FinanceApplication",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        }
+    }
+    </script>
+
+    <!-- External JavaScript -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <!-- JavaScript -->
+    <script src="../js/global.js"></script>
+    <script type="module" src="../js/finance-tracker.js"></script>
+</body>
+</html>
