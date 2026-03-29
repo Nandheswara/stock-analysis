@@ -91,6 +91,45 @@
     background: var(--accent-success);
 }
 
+/* Copy Previous Month Button */
+.copy-prev-month-btn {
+    background: linear-gradient(135deg, #7289ff 0%, #5a72e0 100%);
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+    white-space: nowrap;
+}
+
+.copy-prev-month-btn:hover {
+    opacity: 0.85;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(114, 137, 255, 0.35);
+}
+
+/* Savings Badge */
+.savings-badge {
+    font-size: 1rem !important;
+    padding: 10px 18px !important;
+    border-radius: 10px !important;
+    cursor: help;
+    transition: all 0.25s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.savings-badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
 /* ========================================
    Income Entry Section
    ======================================== */
@@ -526,6 +565,7 @@
 
 .category-card-body {
     padding: 16px 20px;
+    overflow: hidden;
 }
 
 .category-items-list {
@@ -603,10 +643,12 @@
     padding-top: 12px;
     border-top: 1px solid var(--border-color);
     margin-top: 8px;
+    flex-wrap: wrap;
 }
 
 .add-item-form input {
     flex: 1;
+    min-width: 0;
     padding: 8px 12px;
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
@@ -631,10 +673,31 @@
     font-size: 0.85rem;
     transition: all 0.2s ease;
     white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .add-item-form button:hover {
     opacity: 0.85;
+}
+
+/* Info Note */
+.finance-info-note {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    margin-top: 12px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.finance-info-note i {
+    color: var(--accent-primary);
+    font-size: 0.95rem;
+    flex-shrink: 0;
 }
 
 /* ========================================
@@ -961,6 +1024,51 @@
     justify-content: flex-end;
     padding: 16px 24px;
     border-top: 1px solid var(--border-color);
+}
+
+/* Modal Buttons */
+.btn-finance {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: none;
+}
+
+.btn-finance-primary {
+    background: var(--accent-primary);
+    color: #fff;
+}
+
+.btn-finance-primary:hover {
+    opacity: 0.85;
+    transform: translateY(-1px);
+}
+
+.btn-finance-danger {
+    background: linear-gradient(135deg, #ff6b6b 0%, #e84545 100%);
+    color: #fff;
+}
+
+.btn-finance-danger:hover {
+    opacity: 0.85;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+}
+
+.btn-finance-outline {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-finance-outline:hover {
+    background: var(--border-color);
 }
 
 /* Icon Selector */

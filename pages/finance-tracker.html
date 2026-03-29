@@ -259,8 +259,8 @@
                     <p class="mb-0">Track investments, bank accounts, credit cards & net worth with monthly analytics</p>
                 </div>
                 <div class="col-md-4 text-md-end">
-                    <span class="badge bg-success" id="savingsRateValue" style="font-size:1rem;padding:8px 16px;display:none;">
-                        <i class="bi bi-graph-up"></i> Savings Rate
+                    <span class="badge bg-success savings-badge" id="savingsRateValue" style="font-size:1rem;padding:10px 18px;display:none;border-radius:10px;">
+                        <i class="bi bi-piggy-bank"></i> Savings Rate
                     </span>
                 </div>
             </div>
@@ -289,6 +289,9 @@
                     <i class="bi bi-chevron-right"></i>
                 </button>
                 <button class="month-current-btn" id="monthCurrentBtn">● Current</button>
+                <button class="copy-prev-month-btn" onclick="copyFromPreviousMonth()" title="Copy bank, credit card and income data from previous month">
+                    <i class="bi bi-clipboard-plus"></i> Copy from Previous Month
+                </button>
             </div>
 
             <!-- Income Entry -->
@@ -428,8 +431,6 @@
                     </table>
                 </div>
             </div>
-
-            <!-- Analytics Charts -->
             <div class="finance-section">
                 <div class="finance-section-header">
                     <h2 class="finance-section-title">
@@ -624,6 +625,47 @@
                 <button class="btn-finance btn-finance-outline" onclick="closeFinanceModal('addCreditCardModal')">Cancel</button>
                 <button class="btn-finance btn-finance-danger" onclick="submitAddCreditCard()">
                     <i class="bi bi-check-lg"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div class="finance-modal-overlay" id="confirmModal">
+        <div class="finance-modal" style="max-width:420px;">
+            <div class="finance-modal-header">
+                <h3><i class="bi bi-exclamation-triangle" style="color:var(--accent-warning);"></i> <span id="confirmModalTitle">Confirm</span></h3>
+                <button class="finance-modal-close" onclick="closeFinanceModal('confirmModal')">&times;</button>
+            </div>
+            <div class="finance-modal-body">
+                <p id="confirmModalMessage" style="margin:0;color:var(--text-primary);font-size:0.95rem;"></p>
+            </div>
+            <div class="finance-modal-footer">
+                <button class="btn-finance btn-finance-outline" id="confirmModalCancel" onclick="closeFinanceModal('confirmModal')">Cancel</button>
+                <button class="btn-finance btn-finance-danger" id="confirmModalOk">
+                    <i class="bi bi-trash"></i> Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Item Modal -->
+    <div class="finance-modal-overlay" id="editItemModal">
+        <div class="finance-modal" style="max-width:420px;">
+            <div class="finance-modal-header">
+                <h3><i class="bi bi-pencil-square" style="color:var(--accent-primary);"></i> Edit Item</h3>
+                <button class="finance-modal-close" onclick="closeFinanceModal('editItemModal')">&times;</button>
+            </div>
+            <div class="finance-modal-body">
+                <div class="form-group">
+                    <label id="editItemLabel">Amount</label>
+                    <input type="number" id="editItemAmountInput" placeholder="Enter new amount" min="0" step="0.01">
+                </div>
+            </div>
+            <div class="finance-modal-footer">
+                <button class="btn-finance btn-finance-outline" onclick="closeFinanceModal('editItemModal')">Cancel</button>
+                <button class="btn-finance btn-finance-primary" id="editItemModalSave">
+                    <i class="bi bi-check-lg"></i> Update
                 </button>
             </div>
         </div>

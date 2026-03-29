@@ -47,7 +47,8 @@ import {
     saveMonthlySnapshot,
     listenToFinanceData,
     createDefaultCategories,
-    computeFinancialSummary
+    computeFinancialSummary,
+    copyPreviousMonthData
 } from '../js/firebase-finance-service.js';
 
 // ========================================
@@ -67,6 +68,9 @@ let unsubscribeFinance = null;
 let renderDebounceTimer = null;
 let snapshotSaveTimer = null;
 let isRendering = false;
+let lastRenderedDataJSON = ''; // Track if data actually changed
+let isInitialLoad = true;      // Prevent snapshot save on first render
+let chartRenderRAF = null;     // requestAnimationFrame handle for chart rendering
 
 // ========================================
 // Month Helpers
@@ -202,13 +206,16 @@ function renderFinancialSummary() {
         ? `Salary: ${formatCurrency(monthIncome.salary)} + Other: ${formatCurrency(monthIncome.otherIncome)}`
         : 'No income recorded';
 
-    // Expenditure (Income - Invested - remaining indicates spending)
-    const creditCardSpending = summary.totalCreditCardOutstanding;
-    const bankSpend = Math.max(0, (monthIncome.totalIncome || 0) - summary.investedThisMonth - creditCardSpending);
-    const totalExpenditure = creditCardSpending + bankSpend;
-    document.getElementById('summaryExpenditure').textContent = formatCurrency(totalExpenditure);
-    document.getElementById('summaryExpenditureSub').textContent = 
-        `Bank: ${formatCurrency(bankSpend)} | Cards: ${formatCurrency(creditCardSpending)}`;
+    // Expenditure — new formula: prevMonth CC bills + bank spends
+    document.getElementById('summaryExpenditure').textContent = formatCurrency(summary.expenditure);
+    if (summary.expenditure > 0) {
+        const parts = [];
+        if (summary.prevMonthCCOutstanding > 0) parts.push(`CC Bills: ${formatCurrency(summary.prevMonthCCOutstanding)}`);
+        if (summary.bankSpends > 0) parts.push(`Bank Spends: ${formatCurrency(summary.bankSpends)}`);
+        document.getElementById('summaryExpenditureSub').textContent = parts.join(' + ') || 'Tracked spending';
+    } else {
+        document.getElementById('summaryExpenditureSub').textContent = 'No expenditure tracked';
+    }
 
     // Invested
     document.getElementById('summaryInvested').textContent = formatCurrency(summary.investedThisMonth);
@@ -223,25 +230,44 @@ function renderFinancialSummary() {
     document.getElementById('totalLiabilitiesValue').textContent = formatCurrency(summary.totalLiabilities);
     document.getElementById('netWorthValue').textContent = formatCurrencyWithSign(summary.netWorth);
 
-    // Savings rate
+    // Header savings rate badge — meaningful breakdown
+    const badge = document.getElementById('savingsRateValue');
     if (monthIncome.totalIncome > 0) {
-        const savingsRate = ((summary.investedThisMonth / monthIncome.totalIncome) * 100).toFixed(1);
-        document.getElementById('savingsRateValue').textContent = `${savingsRate}%`;
-        document.getElementById('savingsRateValue').style.display = '';
+        const rate = summary.savingsRate.toFixed(1);
+        let badgeClass = 'bg-success'; // > 30%
+        if (summary.savingsRate < 10) badgeClass = 'bg-danger';
+        else if (summary.savingsRate < 30) badgeClass = 'bg-warning text-dark';
+
+        let comparisonText = '';
+        if (summary.prevSavingsRate !== null) {
+            const diff = summary.savingsRate - summary.prevSavingsRate;
+            if (diff >= 0) comparisonText = ` ↑${Math.abs(diff).toFixed(1)}%`;
+            else comparisonText = ` ↓${Math.abs(diff).toFixed(1)}%`;
+        }
+
+        badge.className = `badge ${badgeClass}`;
+        badge.innerHTML = `<i class="bi bi-piggy-bank"></i> Savings: ${rate}%${comparisonText}`;
+        badge.title = `Savings = Income (${formatCurrency(monthIncome.totalIncome)}) - Expenditure (${formatCurrency(summary.expenditure)}) = ${formatCurrency(summary.savings)}`;
+        badge.style.display = '';
     } else {
-        document.getElementById('savingsRateValue').style.display = 'none';
+        badge.style.display = 'none';
     }
 
-    // Debounced snapshot save — fires 2s after last render to avoid write storms
-    debouncedSnapshotSave(currentMonth, {
-        totalExpenses: totalExpenditure,
-        totalAssets: summary.totalAssets,
-        totalLiabilities: summary.totalLiabilities,
-        netWorth: summary.netWorth,
-        invested: summary.investedThisMonth,
-        income: monthIncome.totalIncome || 0,
-        categoryBreakdown: summary.categoryBreakdown
-    });
+    // Only save snapshot after initial load to avoid write storms on page load
+    if (!isInitialLoad) {
+        debouncedSnapshotSave(currentMonth, {
+            totalExpenses: summary.expenditure,
+            totalAssets: summary.totalAssets,
+            totalLiabilities: summary.totalLiabilities,
+            netWorth: summary.netWorth,
+            invested: summary.investedThisMonth,
+            income: monthIncome.totalIncome || 0,
+            bankSpends: summary.bankSpends,
+            prevCCBills: summary.prevMonthCCOutstanding,
+            savingsRate: summary.savingsRate,
+            categoryBreakdown: summary.categoryBreakdown
+        });
+    }
 }
 
 /**
@@ -251,7 +277,7 @@ function debouncedSnapshotSave(month, data) {
     if (snapshotSaveTimer) clearTimeout(snapshotSaveTimer);
     snapshotSaveTimer = setTimeout(() => {
         saveMonthlySnapshot(month, data).catch(() => {});
-    }, 2000);
+    }, 3000);
 }
 
 // ========================================
@@ -350,7 +376,14 @@ function renderBanks() {
         return;
     }
 
-    container.innerHTML = Object.entries(banks).map(([bankId, bank]) => `
+    container.innerHTML = Object.entries(banks).map(([bankId, bank]) => {
+        // New format: show month-specific balance, or 0 if not entered yet
+        // Old format (no balances obj): use global balance
+        const balance = bank.balances
+            ? (bank.balances[currentMonth] || 0)
+            : (bank.balance || 0);
+
+        return `
         <tr>
             <td>
                 <div style="display:flex;align-items:center;gap:8px;">
@@ -360,7 +393,7 @@ function renderBanks() {
             </td>
             <td>${escapeHtml(bank.bankName || '-')}</td>
             <td><span class="badge bg-secondary" style="text-transform:capitalize;">${bank.accountType || 'savings'}</span></td>
-            <td class="amount-cell amount-positive">${formatCurrency(bank.balance)}</td>
+            <td class="amount-cell amount-positive">${formatCurrency(balance)}</td>
             <td>
                 <div class="table-actions">
                     <button onclick="editFinanceBank('${bankId}')" title="Edit"><i class="bi bi-pencil"></i></button>
@@ -368,7 +401,8 @@ function renderBanks() {
                 </div>
             </td>
         </tr>
-    `).join('');
+        `;
+    }).join('');
 }
 
 // ========================================
@@ -382,7 +416,7 @@ function renderCreditCards() {
     if (!cards || Object.keys(cards).length === 0) {
         container.innerHTML = `
             <tr>
-                <td colspan="6" style="text-align:center;padding:30px;">
+                <td colspan="7" style="text-align:center;padding:30px;">
                     <i class="bi bi-credit-card" style="font-size:2rem;display:block;margin-bottom:8px;opacity:0.4;"></i>
                     <span style="color:var(--text-muted);">No credit cards added yet</span>
                 </td>
@@ -393,7 +427,13 @@ function renderCreditCards() {
     const today = new Date();
 
     container.innerHTML = Object.entries(cards).map(([cardId, card]) => {
-        const utilization = card.creditLimit > 0 ? ((card.outstandingBalance / card.creditLimit) * 100).toFixed(1) : 0;
+        // New format: show month-specific outstanding, or 0 if not entered yet
+        // Old format (no balances obj): use global outstandingBalance
+        const outstanding = card.balances
+            ? (card.balances[currentMonth] || 0)
+            : (card.outstandingBalance || 0);
+
+        const utilization = card.creditLimit > 0 ? ((outstanding / card.creditLimit) * 100).toFixed(1) : 0;
         const utilClass = utilization <= 30 ? 'low' : utilization <= 70 ? 'medium' : 'high';
         
         // Due date warning
@@ -419,7 +459,7 @@ function renderCreditCards() {
                 </div>
             </td>
             <td>${escapeHtml(card.issuer || '-')}</td>
-            <td class="amount-cell amount-negative">${formatCurrency(card.outstandingBalance)}</td>
+            <td class="amount-cell amount-negative">${formatCurrency(outstanding)}</td>
             <td class="amount-cell">${formatCurrency(card.creditLimit)}</td>
             <td>
                 <div class="utilization-bar-wrapper">
@@ -541,8 +581,8 @@ function renderNetWorthChart() {
     charts.netWorth = new Chart(ctx, {
         type: 'line',
         data: {
-            labels,
-            datasets: [
+            labels: labels.length > 0 ? labels : ['No Data'],
+            datasets: labels.length > 0 ? [
                 {
                     label: 'Net Worth',
                     data: netWorthData,
@@ -574,7 +614,7 @@ function renderNetWorthChart() {
                     pointRadius: 3,
                     pointBackgroundColor: '#ff6b6b'
                 }
-            ]
+            ] : [{ label: 'No Data', data: [0], borderColor: '#444', borderWidth: 1 }]
         },
         options: {
             responsive: true,
@@ -622,8 +662,8 @@ function renderIncomeExpenseChart() {
     charts.incomeExpense = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels,
-            datasets: [
+            labels: labels.length > 0 ? labels : ['No Data'],
+            datasets: labels.length > 0 ? [
                 {
                     label: 'Income',
                     data: incomeArr,
@@ -645,7 +685,7 @@ function renderIncomeExpenseChart() {
                     borderRadius: 6,
                     barPercentage: 0.7
                 }
-            ]
+            ] : [{ label: 'No Data', data: [0], backgroundColor: '#333' }]
         },
         options: {
             responsive: true,
@@ -746,7 +786,15 @@ function renderAll() {
         renderCategories();
         renderBanks();
         renderCreditCards();
-        renderCharts();
+        // Defer chart rendering to next animation frame to avoid blocking UI
+        if (chartRenderRAF) cancelAnimationFrame(chartRenderRAF);
+        chartRenderRAF = requestAnimationFrame(() => {
+            renderCharts();
+            // Mark initial load as complete after first full render cycle
+            if (isInitialLoad) {
+                isInitialLoad = false;
+            }
+        });
     } finally {
         isRendering = false;
     }
@@ -754,7 +802,13 @@ function renderAll() {
 
 function debouncedRenderAll() {
     if (renderDebounceTimer) clearTimeout(renderDebounceTimer);
-    renderDebounceTimer = setTimeout(() => renderAll(), 150);
+    renderDebounceTimer = setTimeout(() => {
+        // Skip render if data hasn't changed (prevent redundant re-renders)
+        const dataJSON = JSON.stringify(financeData);
+        if (dataJSON === lastRenderedDataJSON) return;
+        lastRenderedDataJSON = dataJSON;
+        renderAll();
+    }, 250);
 }
 
 // ========================================
@@ -806,7 +860,11 @@ window.submitAddCategory = async function() {
 
 window.deleteFinanceCategory = async function(catId) {
     const catName = financeData.categories[catId]?.name || 'this category';
-    if (!confirm(`Delete "${catName}" and all its items? This cannot be undone.`)) return;
+    const confirmed = await showConfirmModal(
+        'Delete Category',
+        `Delete "${catName}" and all its items? This cannot be undone.`
+    );
+    if (!confirmed) return;
     const result = await deleteCategory(catId);
     if (result.success) showToast(`Category deleted`, 'success');
     else showToast('Failed to delete. ' + (result.error || ''), 'error');
@@ -840,8 +898,8 @@ window.addFinanceCategoryItem = async function(event, catId) {
     }
 };
 
-window.editFinanceCategoryItem = function(catId, itemId, name, amount) {
-    const newAmount = prompt(`Update amount for "${name}":`, amount);
+window.editFinanceCategoryItem = async function(catId, itemId, name, amount) {
+    const newAmount = await showEditItemModal(`Update amount for "${name}":`, amount);
     if (newAmount === null) return;
     const parsed = parseFloat(newAmount);
     if (isNaN(parsed)) { showToast('Invalid amount', 'warning'); return; }
@@ -850,7 +908,8 @@ window.editFinanceCategoryItem = function(catId, itemId, name, amount) {
 };
 
 window.deleteFinanceCategoryItem = async function(catId, itemId) {
-    if (!confirm('Delete this item?')) return;
+    const confirmed = await showConfirmModal('Delete Item', 'Are you sure you want to delete this item?');
+    if (!confirmed) return;
     const result = await deleteCategoryItem(catId, itemId);
     if (result.success) showToast('Item removed', 'success');
     else showToast('Failed to delete', 'error');
@@ -877,9 +936,9 @@ window.submitAddBank = async function() {
 
     let result;
     if (editId) {
-        result = await updateBank(editId, data);
+        result = await updateBank(editId, data, currentMonth);
     } else {
-        result = await addBank(data);
+        result = await addBank(data, currentMonth);
     }
 
     if (result.success) {
@@ -893,17 +952,22 @@ window.submitAddBank = async function() {
 window.editFinanceBank = function(bankId) {
     const bank = financeData.banks[bankId];
     if (!bank) return;
+    // New format: show month-specific balance, or 0 if not entered
+    const balance = bank.balances
+        ? (bank.balances[currentMonth] || 0)
+        : (bank.balance || 0);
     document.getElementById('editBankId').value = bankId;
     document.getElementById('bankAccountName').value = bank.name || '';
     document.getElementById('bankBankName').value = bank.bankName || '';
     document.getElementById('bankAccountType').value = bank.accountType || 'savings';
-    document.getElementById('bankBalance').value = bank.balance || '';
+    document.getElementById('bankBalance').value = balance || '';
     document.getElementById('addBankModalTitle').textContent = 'Edit Bank Account';
     openModal('addBankModal');
 };
 
 window.deleteFinanceBank = async function(bankId) {
-    if (!confirm('Delete this bank account?')) return;
+    const confirmed = await showConfirmModal('Delete Bank Account', 'Are you sure you want to delete this bank account?');
+    if (!confirmed) return;
     const result = await deleteBank(bankId);
     if (result.success) showToast('Bank deleted', 'success');
     else showToast('Failed', 'error');
@@ -931,9 +995,9 @@ window.submitAddCreditCard = async function() {
 
     let result;
     if (editId) {
-        result = await updateCreditCard(editId, data);
+        result = await updateCreditCard(editId, data, currentMonth);
     } else {
-        result = await addCreditCard(data);
+        result = await addCreditCard(data, currentMonth);
     }
 
     if (result.success) {
@@ -947,10 +1011,14 @@ window.submitAddCreditCard = async function() {
 window.editFinanceCreditCard = function(cardId) {
     const card = financeData.creditCards[cardId];
     if (!card) return;
+    // New format: show month-specific outstanding, or 0 if not entered
+    const outstanding = card.balances
+        ? (card.balances[currentMonth] || 0)
+        : (card.outstandingBalance || 0);
     document.getElementById('editCardId').value = cardId;
     document.getElementById('cardName').value = card.name || '';
     document.getElementById('cardIssuer').value = card.issuer || '';
-    document.getElementById('cardOutstanding').value = card.outstandingBalance || '';
+    document.getElementById('cardOutstanding').value = outstanding || '';
     document.getElementById('cardLimit').value = card.creditLimit || '';
     document.getElementById('cardDueDate').value = card.dueDate || '';
     document.getElementById('addCreditCardModalTitle').textContent = 'Edit Credit Card';
@@ -958,10 +1026,29 @@ window.editFinanceCreditCard = function(cardId) {
 };
 
 window.deleteFinanceCreditCard = async function(cardId) {
-    if (!confirm('Delete this credit card?')) return;
+    const confirmed = await showConfirmModal('Delete Credit Card', 'Are you sure you want to delete this credit card?');
+    if (!confirmed) return;
     const result = await deleteCreditCard(cardId);
     if (result.success) showToast('Card deleted', 'success');
     else showToast('Failed', 'error');
+};
+
+// --- Copy Previous Month ---
+window.copyFromPreviousMonth = async function() {
+    const confirmed = await showConfirmModal(
+        'Copy Previous Month',
+        `This will copy bank balances, credit card outstanding amounts, and income from the previous month to ${getMonthDisplay(currentMonth)}. Existing entries for this month will NOT be overwritten. Continue?`
+    );
+    if (!confirmed) return;
+
+    showToast('Copying data from previous month...', 'info');
+    const result = await copyPreviousMonthData(currentMonth);
+    if (result.success) {
+        const msg = `Copied ${result.banksCopied} bank(s) and ${result.cardsCopied} card(s) from ${getMonthDisplay(result.prevMonth)}`;
+        showToast(msg, 'success');
+    } else {
+        showToast('Failed to copy. ' + (result.error || ''), 'error');
+    }
 };
 
 // --- Excel Export ---
@@ -982,48 +1069,124 @@ window.exportFinanceData = async function() {
 
         const wb = XLSX.utils.book_new();
 
-        // Categories sheet
-        const catRows = [['Category', 'Item', 'Amount', 'Month', 'Date', 'Notes']];
+        // --- Sheet 1: Financial Overview (current month snapshot) ---
+        const summary = computeFinancialSummary(financeData, currentMonth);
+        const overviewRows = [
+            ['Financial Overview - ' + getMonthDisplay(currentMonth)],
+            [],
+            ['Metric', 'Amount (₹)'],
+            ['Total Income', summary.monthIncome.totalIncome || 0],
+            ['  Salary', summary.monthIncome.salary || 0],
+            ['  Other Income', summary.monthIncome.otherIncome || 0],
+            [],
+            ['Total Invested (This Month)', summary.investedThisMonth],
+            ['Expenditure', summary.expenditure],
+            ['  CC Bills (prev month)', summary.prevMonthCCOutstanding],
+            ['  Bank Spends', summary.bankSpends],
+            [],
+            ['Total Assets', summary.totalAssets],
+            ['  Bank Balances', summary.totalBankBalance],
+            ['  Cumulative Investments', summary.cumulativeCategoryTotal],
+            ['Total Liabilities', summary.totalLiabilities],
+            ['Net Worth', summary.netWorth],
+            [],
+            ['Savings', summary.savings],
+            ['Savings Rate', summary.savingsRate > 0 ? summary.savingsRate.toFixed(1) + '%' : 'N/A']
+        ];
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(overviewRows), 'Overview');
+
+        // --- Sheet 2: Investment Categories ---
+        const catRows = [['Category', 'Icon', 'Color', 'Item Name', 'Amount (₹)', 'Month', 'Date', 'Notes']];
         Object.values(financeData.categories).forEach(cat => {
-            if (cat.items) {
+            if (cat.items && Object.keys(cat.items).length > 0) {
                 Object.values(cat.items).forEach(item => {
-                    catRows.push([cat.name, item.name, item.amount, item.month, item.date, item.notes || '']);
+                    catRows.push([cat.name, cat.icon, cat.color, item.name, item.amount, item.month, item.date, item.notes || '']);
                 });
-            }
-            if (!cat.items || Object.keys(cat.items).length === 0) {
-                catRows.push([cat.name, '', '', '', '', '']);
+            } else {
+                catRows.push([cat.name, cat.icon, cat.color, '', '', '', '', '']);
             }
         });
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(catRows), 'Investments');
 
-        // Banks sheet
-        const bankRows = [['Account Name', 'Bank', 'Type', 'Balance']];
-        Object.values(financeData.banks).forEach(bank => {
-            bankRows.push([bank.name, bank.bankName, bank.accountType, bank.balance]);
+        // --- Sheet 3: Category by Month Pivot ---
+        const catNames = Object.values(financeData.categories).map(c => c.name);
+        const allMonths = new Set();
+        Object.values(financeData.categories).forEach(cat => {
+            if (cat.items) Object.values(cat.items).forEach(item => allMonths.add(item.month));
         });
+        const sortedMonths = Array.from(allMonths).sort();
+        const pivotHeader = ['Category', ...sortedMonths.map(m => getMonthDisplay(m)), 'Total'];
+        const pivotRows = [pivotHeader];
+        Object.values(financeData.categories).forEach(cat => {
+            const row = [cat.name];
+            let catTotal = 0;
+            sortedMonths.forEach(month => {
+                let monthTotal = 0;
+                if (cat.items) {
+                    Object.values(cat.items).forEach(item => {
+                        if (item.month === month) monthTotal += (item.amount || 0);
+                    });
+                }
+                row.push(monthTotal);
+                catTotal += monthTotal;
+            });
+            row.push(catTotal);
+            pivotRows.push(row);
+        });
+        // Add totals row
+        const totalsRow = ['TOTAL'];
+        let grandTotal = 0;
+        sortedMonths.forEach((month, i) => {
+            const monthSum = pivotRows.slice(1).reduce((sum, row) => sum + (row[i + 1] || 0), 0);
+            totalsRow.push(monthSum);
+            grandTotal += monthSum;
+        });
+        totalsRow.push(grandTotal);
+        pivotRows.push(totalsRow);
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(pivotRows), 'Category by Month');
+
+        // --- Sheet 4: Bank Accounts (current month) ---
+        const bankRows = [['Account Name', 'Bank', 'Type', `Balance - ${getMonthDisplay(currentMonth)} (₹)`, 'Color']];
+        let totalBankBal = 0;
+        Object.values(financeData.banks).forEach(bank => {
+            const bal = bank.balances
+                ? (bank.balances[currentMonth] || 0)
+                : (bank.balance || 0);
+            bankRows.push([bank.name, bank.bankName, bank.accountType, bal, bank.color || '']);
+            totalBankBal += bal;
+        });
+        bankRows.push([]);
+        bankRows.push(['Total Bank Balance', '', '', totalBankBal]);
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(bankRows), 'Bank Accounts');
 
-        // Credit Cards sheet
-        const cardRows = [['Card Name', 'Issuer', 'Outstanding', 'Credit Limit', 'Utilization %', 'Due Date']];
+        // --- Sheet 5: Credit Cards (current month) ---
+        const cardRows = [['Card Name', 'Issuer', `Outstanding - ${getMonthDisplay(currentMonth)} (₹)`, 'Credit Limit (₹)', 'Utilization %', 'Due Date', 'Color']];
+        let totalCC = 0;
         Object.values(financeData.creditCards).forEach(card => {
-            const util = card.creditLimit > 0 ? ((card.outstandingBalance / card.creditLimit) * 100).toFixed(1) : 0;
-            cardRows.push([card.name, card.issuer, card.outstandingBalance, card.creditLimit, util + '%', card.dueDate || '']);
+            const outstanding = card.balances
+                ? (card.balances[currentMonth] || 0)
+                : (card.outstandingBalance || 0);
+            const util = card.creditLimit > 0 ? ((outstanding / card.creditLimit) * 100).toFixed(1) : 0;
+            cardRows.push([card.name, card.issuer, outstanding, card.creditLimit, util + '%', card.dueDate || '', card.color || '']);
+            totalCC += outstanding;
         });
+        cardRows.push([]);
+        cardRows.push(['Total Outstanding', '', totalCC]);
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(cardRows), 'Credit Cards');
 
-        // Income sheet
-        const incRows = [['Month', 'Salary', 'Other Income', 'Total Income']];
+        // --- Sheet 6: Income History ---
+        const incRows = [['Month', 'Salary (₹)', 'Other Income (₹)', 'Total Income (₹)']];
         Object.entries(financeData.income).sort().forEach(([month, inc]) => {
-            incRows.push([month, inc.salary, inc.otherIncome, inc.totalIncome]);
+            incRows.push([getMonthDisplay(month), inc.salary, inc.otherIncome, inc.totalIncome]);
         });
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(incRows), 'Income');
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(incRows), 'Income History');
 
-        // Monthly Summary sheet
-        const sumRows = [['Month', 'Income', 'Invested', 'Expenses', 'Assets', 'Liabilities', 'Net Worth']];
+        // --- Sheet 7: Monthly Summary / Net Worth History ---
+        const sumRows = [['Month', 'Income (₹)', 'Invested (₹)', 'Expenses (₹)', 'Assets (₹)', 'Liabilities (₹)', 'Net Worth (₹)']];
         Object.entries(financeData.snapshots).sort().forEach(([month, snap]) => {
-            sumRows.push([month, snap.income || 0, snap.invested || 0, snap.totalExpenses || 0, snap.totalAssets || 0, snap.totalLiabilities || 0, snap.netWorth || 0]);
+            sumRows.push([getMonthDisplay(month), snap.income || 0, snap.invested || 0, snap.totalExpenses || 0, snap.totalAssets || 0, snap.totalLiabilities || 0, snap.netWorth || 0]);
         });
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sumRows), 'Monthly Summary');
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sumRows), 'Net Worth History');
 
         XLSX.writeFile(wb, `Finance_Tracker_${currentMonth}.xlsx`);
         showToast('Excel exported successfully!', 'success');
@@ -1037,6 +1200,81 @@ window.exportFinanceData = async function() {
 window.closeFinanceModal = function(modalId) {
     closeModal(modalId);
 };
+
+// ========================================
+// Confirmation & Edit Modal Helpers
+// ========================================
+
+/**
+ * Show a custom confirmation modal (replaces browser confirm())
+ * @returns {Promise<boolean>} true if confirmed, false if cancelled
+ */
+function showConfirmModal(title, message) {
+    return new Promise((resolve) => {
+        document.getElementById('confirmModalTitle').textContent = title;
+        document.getElementById('confirmModalMessage').textContent = message;
+        openModal('confirmModal');
+
+        const okBtn = document.getElementById('confirmModalOk');
+        const cancelBtn = document.getElementById('confirmModalCancel');
+
+        function cleanup() {
+            okBtn.removeEventListener('click', onOk);
+            cancelBtn.removeEventListener('click', onCancel);
+            closeModal('confirmModal');
+        }
+
+        function onOk() {
+            cleanup();
+            resolve(true);
+        }
+
+        function onCancel() {
+            cleanup();
+            resolve(false);
+        }
+
+        okBtn.addEventListener('click', onOk);
+        cancelBtn.addEventListener('click', onCancel);
+    });
+}
+
+/**
+ * Show a custom edit-item modal (replaces browser prompt())
+ * @returns {Promise<string|null>} entered value or null if cancelled
+ */
+function showEditItemModal(label, currentValue) {
+    return new Promise((resolve) => {
+        document.getElementById('editItemLabel').textContent = label;
+        const input = document.getElementById('editItemAmountInput');
+        input.value = currentValue;
+        openModal('editItemModal');
+        setTimeout(() => input.focus(), 100);
+
+        const saveBtn = document.getElementById('editItemModalSave');
+        const overlay = document.getElementById('editItemModal');
+
+        function cleanup() {
+            saveBtn.removeEventListener('click', onSave);
+            input.removeEventListener('keydown', onKeydown);
+            closeModal('editItemModal');
+        }
+
+        function onSave() {
+            const val = input.value;
+            cleanup();
+            resolve(val);
+        }
+
+        function onKeydown(e) {
+            if (e.key === 'Enter') { e.preventDefault(); onSave(); }
+            if (e.key === 'Escape') { cleanup(); resolve(null); }
+        }
+
+        saveBtn.addEventListener('click', onSave);
+        input.addEventListener('keydown', onKeydown);
+    });
+}
 
 // ========================================
 // Escape HTML
@@ -1099,6 +1337,10 @@ function setupAuth() {
             if (mainContent) mainContent.style.display = '';
             if (loginPrompt) loginPrompt.style.display = 'none';
 
+            // Reset state for new user session
+            isInitialLoad = true;
+            lastRenderedDataJSON = '';
+
             // Setup finance data listener
             if (unsubscribeFinance) unsubscribeFinance();
             unsubscribeFinance = listenToFinanceData((data) => {
@@ -1106,14 +1348,17 @@ function setupAuth() {
                 debouncedRenderAll();
             });
 
-            // Create default categories for new users
-            createDefaultCategories();
+            // Create default categories for new users (delayed to avoid racing with listeners)
+            setTimeout(() => createDefaultCategories(), 1500);
         } else {
             if (authButtons) authButtons.style.setProperty('display', 'flex', 'important');
             if (userProfile) userProfile.style.setProperty('display', 'none', 'important');
             if (mainContent) mainContent.style.display = 'none';
             if (loginPrompt) loginPrompt.style.display = '';
             if (unsubscribeFinance) { unsubscribeFinance(); unsubscribeFinance = null; }
+            // Reset state on logout
+            isInitialLoad = true;
+            lastRenderedDataJSON = '';
         }
     });
 
