@@ -15,6 +15,7 @@ import {
     onAuthStateChanged,
     GoogleAuthProvider,
     signInWithPopup,
+    getAdditionalUserInfo,
     updateProfile,
     sendPasswordResetEmail,
     sendEmailVerification,
@@ -470,6 +471,10 @@ export async function signInWithGoogle() {
         const userCredential = await signInWithPopup(auth, provider);
         const user = userCredential.user;
         
+        // Detect if this is a brand-new Google sign-up
+        const additionalInfo = getAdditionalUserInfo(userCredential);
+        const isNewUser = additionalInfo?.isNewUser === true;
+        
         // Check if user is disabled in database BEFORE allowing login
         try {
             const userRef = dbRef(database, `users/${user.uid}`);
@@ -507,6 +512,7 @@ export async function signInWithGoogle() {
                 await set(userRef, {
                     email: user.email,
                     displayName: user.displayName || null,
+                    authProvider: 'google',
                     createdAt: Date.now(),
                     lastActive: Date.now(),
                     role: 'user',
@@ -522,6 +528,19 @@ export async function signInWithGoogle() {
             // Don't fail login if database check fails
         }
         
+        // For new Google sign-ups, send a password setup email
+        // This allows the user to also log in with email + password
+        let passwordSetupEmailSent = false;
+        if (isNewUser && user.email) {
+            try {
+                await sendPasswordResetEmail(auth, user.email);
+                passwordSetupEmailSent = true;
+            } catch (emailError) {
+                console.error('Failed to send password setup email:', emailError.code);
+                // Non-blocking: user can still use Google sign-in
+            }
+        }
+        
         // Cache auth state immediately
         cacheAuthState(user);
         
@@ -529,7 +548,7 @@ export async function signInWithGoogle() {
         currentUser = user;
         authStateResolved = true;
         
-        return { success: true, user };
+        return { success: true, user, isNewUser, passwordSetupEmailSent };
     } catch (error) {
         console.error('Google sign-in failed:', error.code);
         return { success: false, error: getAuthErrorMessage(error.code) };

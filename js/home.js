@@ -159,8 +159,17 @@ class AuthModalManager {
         const handleGoogleAuth = async () => {
             const result = await signInWithGoogle();
             if (result.success) {
-                this.showAlert('Signed in successfully!', 'success');
-                this.modal.hide();
+                if (result.isNewUser && result.passwordSetupEmailSent) {
+                    this.showAlert(
+                        'Account created successfully! A password setup email has been sent to your inbox so you can also sign in with email and password.',
+                        'success'
+                    );
+                    // Keep the modal open longer so user reads the message
+                    setTimeout(() => this.modal.hide(), 5000);
+                } else {
+                    this.showAlert('Signed in successfully!', 'success');
+                    this.modal.hide();
+                }
             } else {
                 this.showAlert(result.error, 'danger');
             }

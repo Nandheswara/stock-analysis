@@ -853,6 +853,7 @@ async function handleSignup() {
 
 /**
  * Handle Google authentication
+ * Detects new sign-ups and notifies user about password setup email
  */
 async function handleGoogleAuth() {
     const alertContainer = document.getElementById('authAlertContainer');
@@ -861,10 +862,22 @@ async function handleGoogleAuth() {
         const result = await signInWithGoogle();
 
         if (result.success) {
-            showAlert(alertContainer, 'Signed in successfully!', 'success');
-            setTimeout(() => {
-                if (authModal) authModal.hide();
-            }, 1000);
+            if (result.isNewUser && result.passwordSetupEmailSent) {
+                showAlert(
+                    alertContainer,
+                    'Account created successfully! A password setup email has been sent to your inbox so you can also sign in with email and password.',
+                    'success'
+                );
+                // Keep modal open longer so user reads the message
+                setTimeout(() => {
+                    if (authModal) authModal.hide();
+                }, 5000);
+            } else {
+                showAlert(alertContainer, 'Signed in successfully!', 'success');
+                setTimeout(() => {
+                    if (authModal) authModal.hide();
+                }, 1000);
+            }
         } else {
             showAlert(alertContainer, result.error, 'danger');
         }
