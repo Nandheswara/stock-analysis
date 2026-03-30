@@ -38,6 +38,7 @@ const CACHE_DURATION = 60 * 60 * 1000;
 
 let portfolioListener = null;
 let isCacheWarmed = false;
+let pendingPortfolioSetup = null;
 
 /**
  * Get effective user ID (handles impersonation)
@@ -341,6 +342,20 @@ export function listenToPortfolio(callback) {
     // Get userId from either confirmed user or cached user
     const userId = user?.uid;
     
+    // Reset cache state for new listener setup
+    isCacheWarmed = false;
+    
+    // Unsubscribe any existing listener to prevent duplicates
+    if (portfolioListener) {
+        portfolioListener();
+        portfolioListener = null;
+    }
+    
+    // Cancel any pending auth-based setup
+    if (pendingPortfolioSetup) {
+        pendingPortfolioSetup = null;
+    }
+    
     // ALWAYS try to serve cached data first for instant display
     if (userId) {
         const cachedData = loadFromLocalCache(userId);
@@ -353,12 +368,22 @@ export function listenToPortfolio(callback) {
     
     // If user is from cache, wait for Firebase auth in background
     if (user && user._fromCache) {
+        const setupToken = {};
+        pendingPortfolioSetup = setupToken;
+        
         waitForAuthReady().then((confirmedUser) => {
+            // Only proceed if this setup hasn't been cancelled
+            if (pendingPortfolioSetup !== setupToken) {
+                return;
+            }
+            pendingPortfolioSetup = null;
+            
             if (confirmedUser) {
                 setupPortfolioListener(confirmedUser, callback, isCacheWarmed);
             }
         });
         return () => {
+            pendingPortfolioSetup = null;
             if (portfolioListener) {
                 portfolioListener();
                 portfolioListener = null;
@@ -381,6 +406,12 @@ export function listenToPortfolio(callback) {
  * @returns {Function} Unsubscribe function
  */
 function setupPortfolioListener(user, callback, cacheAlreadyServed = false) {
+    // Unsubscribe existing listener to prevent duplicates
+    if (portfolioListener) {
+        portfolioListener();
+        portfolioListener = null;
+    }
+    
     const portfolioRef = ref(database, `users/${user.uid}/portfolio`);
     let isFirstLoad = true;
     
@@ -391,17 +422,25 @@ function setupPortfolioListener(user, callback, cacheAlreadyServed = false) {
             id: key
         })) : [];
         
-        // Save to cache
-        saveToLocalCache(user.uid, stocksArray);
-        
         // Skip first callback if cache was already served and data matches
+        // Compare BEFORE saving to cache to get accurate comparison
         if (isFirstLoad && cacheAlreadyServed) {
             isFirstLoad = false;
             const cachedData = loadFromLocalCache(user.uid);
+            
+            // Save to cache now (after comparison)
+            saveToLocalCache(user.uid, stocksArray);
+            
             if (cachedData && JSON.stringify(cachedData) === JSON.stringify(stocksArray)) {
                 return; // Data unchanged from cache
             }
+            // Data changed from cache, fall through to callback
+            callback(stocksArray);
+            return;
         }
+        
+        // Save to cache
+        saveToLocalCache(user.uid, stocksArray);
         
         isFirstLoad = false;
         callback(stocksArray);

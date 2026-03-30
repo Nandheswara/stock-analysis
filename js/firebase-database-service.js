@@ -233,21 +233,25 @@ export function listenToStocks(callback) {
         }
         
         // Wait for auth and then set up real listener in background
-        // Store the promise to prevent concurrent setups
-        pendingListenerSetup = waitForAuthReady().then((confirmedUser) => {
-            // Only proceed if this is still the current setup attempt
-            if (pendingListenerSetup !== null && listenerSetupInProgress) {
-                if (confirmedUser) {
-                    setupFirebaseListener(confirmedUser, callback, isCacheWarmed);
-                } else {
-                    // User not authenticated, show empty or cached data
-                    const fallbackData = loadFromSessionStorage();
-                    callback(fallbackData);
-                }
+        // Use a unique token to detect if this setup was cancelled
+        const setupToken = {};
+        pendingListenerSetup = setupToken;
+        
+        waitForAuthReady().then((confirmedUser) => {
+            // Only proceed if this setup hasn't been cancelled by a newer call
+            if (pendingListenerSetup !== setupToken) {
+                return;
             }
-            // Mark setup as complete
-            listenerSetupInProgress = false;
             pendingListenerSetup = null;
+            listenerSetupInProgress = false;
+            
+            if (confirmedUser) {
+                setupFirebaseListener(confirmedUser, callback, isCacheWarmed);
+            } else {
+                // User not authenticated, show empty or cached data
+                const fallbackData = loadFromSessionStorage();
+                callback(fallbackData);
+            }
         });
         
         return () => {
@@ -292,6 +296,12 @@ export function listenToStocks(callback) {
  * @returns {Function} Unsubscribe function
  */
 function setupFirebaseListener(user, callback, cacheAlreadyServed = false) {
+    // Unsubscribe existing listener to prevent duplicates
+    if (stocksListener) {
+        stocksListener();
+        stocksListener = null;
+    }
+    
     const stocksRef = ref(database, `users/${user.uid}/stocks`);
     let isFirstLoad = true;
     
@@ -302,17 +312,17 @@ function setupFirebaseListener(user, callback, cacheAlreadyServed = false) {
             stock_id: key
         })) : [];
         
-        // Update cache and local storage with fresh data from Firebase
-        localStocksCache = stocksArray;
-        saveToLocalCache(user.uid, stocksArray);
-        saveToSessionStorage(stocksArray);
-        
-        // On first load, check if data matches cache to avoid redundant callbacks
+        // On first load, check if data matches cache BEFORE updating cache
         if (isFirstLoad && cacheAlreadyServed) {
             isFirstLoad = false;
             const cachedData = loadFromLocalCache(user.uid);
             const cacheJSON = JSON.stringify(cachedData || []);
             const newJSON = JSON.stringify(stocksArray);
+            
+            // Update cache and local storage with fresh data from Firebase
+            localStocksCache = stocksArray;
+            saveToLocalCache(user.uid, stocksArray);
+            saveToSessionStorage(stocksArray);
             
             // If data hasn't changed from cache, skip callback
             if (cacheJSON === newJSON) {
@@ -322,6 +332,11 @@ function setupFirebaseListener(user, callback, cacheAlreadyServed = false) {
             callback(stocksArray);
             return;
         }
+        
+        // Update cache and local storage with fresh data from Firebase
+        localStocksCache = stocksArray;
+        saveToLocalCache(user.uid, stocksArray);
+        saveToSessionStorage(stocksArray);
         
         // Not first load, or cache wasn't served - always invoke callback
         isFirstLoad = false;
@@ -609,6 +624,7 @@ export async function getStock(stockId) {
 
 /**
  * Sync offline data when connection is restored
+ * Only syncs stocks that were created offline and don't yet exist in Firebase
  */
 async function syncOfflineData() {
     const localData = loadFromSessionStorage();
@@ -617,14 +633,38 @@ async function syncOfflineData() {
         return;
     }
     
-    for (const stock of localData) {
-        try {
-            if (stock.stock_id && stock.stock_id.startsWith('stock_')) {
-                await addStock(stock);
-            }
-        } catch (error) {
-            // Silent fail for individual stock sync errors
+    let user = getCurrentUser();
+    if (!user) {
+        return;
+    }
+    
+    // If user is from cache, wait for Firebase to confirm auth
+    if (user._fromCache) {
+        user = await waitForAuthReady();
+        if (!user) {
+            return;
         }
+    }
+    
+    try {
+        // Fetch current Firebase stocks to check for existing entries
+        const stocksRef = ref(database, `users/${user.uid}/stocks`);
+        const snapshot = await get(stocksRef);
+        const existingIds = snapshot.exists() ? new Set(Object.keys(snapshot.val())) : new Set();
+        
+        for (const stock of localData) {
+            try {
+                // Only sync stocks that don't already exist in Firebase
+                if (stock.stock_id && stock.stock_id.startsWith('stock_') && !existingIds.has(stock.stock_id)) {
+                    const { stock_id, ...stockData } = stock;
+                    await addStock(stockData, stock_id); // Preserve original ID
+                }
+            } catch (error) {
+                // Silent fail for individual stock sync errors
+            }
+        }
+    } catch (error) {
+        // Silent fail - will retry on next online event
     }
 }
 
@@ -662,6 +702,7 @@ function loadFromSessionStorage() {
 
 /**
  * Migrate existing sessionStorage data to Firebase
+ * Only migrates stocks that don't already exist in Firebase
  * @returns {Promise<Object>} Migration result
  */
 export async function migrateSessionStorageToFirebase() {
@@ -686,16 +727,50 @@ export async function migrateSessionStorageToFirebase() {
         };
     }
     
+    // Fetch existing Firebase stocks to avoid duplicates
+    let existingIds = new Set();
+    let existingNames = new Set();
+    try {
+        const stocksRef = ref(database, `users/${user.uid}/stocks`);
+        const snapshot = await get(stocksRef);
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            existingIds = new Set(Object.keys(data));
+            existingNames = new Set(
+                Object.values(data)
+                    .map(s => s.name?.toLowerCase())
+                    .filter(Boolean)
+            );
+        }
+    } catch (error) {
+        // If we can't check existing stocks, abort migration to prevent duplicates
+        return { success: false, error: 'Could not verify existing stocks' };
+    }
+    
     let migrated = 0;
+    let skipped = 0;
     let failed = 0;
     
     for (const stock of localData) {
         try {
             const { stock_id, ...stockData } = stock;
             
-            const result = await addStock(stockData);
+            // Skip if stock with same ID already exists in Firebase
+            if (stock_id && existingIds.has(stock_id)) {
+                skipped++;
+                continue;
+            }
+            
+            // Skip if stock with same name already exists in Firebase
+            if (stockData.name && existingNames.has(stockData.name.toLowerCase())) {
+                skipped++;
+                continue;
+            }
+            
+            const result = await addStock(stockData, stock_id || null);
             if (result.success) {
                 migrated++;
+                existingNames.add(stockData.name?.toLowerCase());
             } else {
                 failed++;
             }
@@ -706,8 +781,9 @@ export async function migrateSessionStorageToFirebase() {
     
     return {
         success: true,
-        message: `Migrated ${migrated} stocks to Firebase`,
+        message: `Migrated ${migrated} stocks to Firebase (${skipped} already existed)`,
         migrated: migrated,
+        skipped: skipped,
         failed: failed
     };
 }
