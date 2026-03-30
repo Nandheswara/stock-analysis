@@ -70,8 +70,8 @@ const TAX_RATES = {
 // Real-time listener unsubscribe function
 let unsubscribePortfolio = null;
 
-// Track if we're currently syncing to avoid loops
-let isSyncing = false;
+// Track if we're currently syncing to avoid loops (counter for concurrent operations)
+let syncingCount = 0;
 
 /**
  * Stock class to represent individual stock transactions
@@ -286,12 +286,15 @@ class PortfolioManager {
             }
             
             unsubscribePortfolio = listenToPortfolio((firebaseStocks) => {
-                if (!isSyncing) {
+                if (syncingCount === 0) {
+                    // Deduplicate stocks by ID as a safeguard
+                    const deduped = this.deduplicateById(firebaseStocks);
+                    
                     // Check if data actually changed (IDs, count, or content)
-                    const hasDataChanged = this.hasPortfolioDataChanged(firebaseStocks);
+                    const hasDataChanged = this.hasPortfolioDataChanged(deduped);
                     
                     if (hasDataChanged) {
-                        this.stocks = firebaseStocks.map(stockData => {
+                        this.stocks = deduped.map(stockData => {
                             const stock = new Stock(
                                 stockData.name,
                                 stockData.quantity,
@@ -320,7 +323,7 @@ class PortfolioManager {
      */
     async loadFromFirebase() {
         try {
-            isSyncing = true;
+            syncingCount++;
             const firebaseStocks = await loadPortfolioStocks();
             
             if (firebaseStocks.length > 0) {
@@ -340,9 +343,9 @@ class PortfolioManager {
                 updateSummaryDisplay();
             }
             
-            isSyncing = false;
+            syncingCount--;
         } catch (error) {
-            isSyncing = false;
+            syncingCount--;
         }
     }
 
@@ -359,12 +362,12 @@ class PortfolioManager {
         this.stocks.push(stock);
         
         try {
-            isSyncing = true;
+            syncingCount++;
             await savePortfolioStock(stock);
-            isSyncing = false;
+            syncingCount--;
         } catch (error) {
             this.stocks = this.stocks.filter(s => s.id !== stock.id);
-            isSyncing = false;
+            syncingCount--;
             throw error;
         }
         
@@ -382,11 +385,11 @@ class PortfolioManager {
         this.stocks = this.stocks.filter(stock => stock.id !== stockId);
         
         try {
-            isSyncing = true;
+            syncingCount++;
             await deletePortfolioStockFirebase(stockId);
-            isSyncing = false;
+            syncingCount--;
         } catch (error) {
-            isSyncing = false;
+            syncingCount--;
             throw error;
         }
     }
@@ -406,7 +409,7 @@ class PortfolioManager {
             stock.calculateCharges();
             
             try {
-                isSyncing = true;
+                syncingCount++;
                 const updateData = {
                     sellPrice: stock.sellPrice,
                     sellBrokerage: stock.sellBrokerage,
@@ -415,9 +418,9 @@ class PortfolioManager {
                     profitLoss: stock.profitLoss
                 };
                 await updatePortfolioStock(stockId, updateData);
-                isSyncing = false;
+                syncingCount--;
             } catch (error) {
-                isSyncing = false;
+                syncingCount--;
                 throw error;
             }
             
@@ -460,6 +463,24 @@ class PortfolioManager {
             totalProfitLoss,
             netWorth
         };
+    }
+
+    /**
+     * Deduplicate stocks array by ID, keeping the latest entry
+     * @param {Array} stocks - Stocks array that may contain duplicates
+     * @returns {Array} Deduplicated stocks array
+     */
+    deduplicateById(stocks) {
+        if (!Array.isArray(stocks) || stocks.length === 0) {
+            return stocks;
+        }
+        const seen = new Map();
+        for (const stock of stocks) {
+            if (stock && stock.id) {
+                seen.set(stock.id, stock);
+            }
+        }
+        return Array.from(seen.values());
     }
 
     /**

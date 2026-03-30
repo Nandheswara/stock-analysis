@@ -842,12 +842,13 @@ async function addStock() {
         showAlert('danger', result.error);
     }
     
-    // Clear the flag after a short delay to ensure Firebase listener doesn't add duplicate
-    // This delay allows time for the Firebase listener callback to fire and be ignored
+    // Clear the flag after the Firebase listener callback has had time to fire
+    // The listener fires almost immediately after the write completes,
+    // but we add buffer for slow connections
     setTimeout(() => {
         isAddingStock = false;
         isSubmitting = false;
-    }, 500);
+    }, 1500);
 }
 
 /**
