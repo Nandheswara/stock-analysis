@@ -1,16 +1,16 @@
 /* Liquidity Score - FORCE COLORS WITH !IMPORTANT */
 .good-value {
-    color: #3ddc84 !important;
+    color: var(--accent-success) !important;
     font-weight: bold !important;
 }
 
 .neutral-value {
-    color: #ffb454 !important;
+    color: var(--accent-warning) !important;
     font-weight: 500 !important;
 }
 
 .bad-value {
-    color: #ff6b6b !important;
+    color: var(--accent-danger) !important;
     font-weight: bold !important;
 }
 
@@ -24,32 +24,32 @@
 }
 
 .metrics-badge.good-value {
-    background-color: #3ddc84 !important;
-    color: #0b0c10 !important;
+    background-color: var(--accent-success) !important;
+    color: #06080d !important;
 }
 
 .metrics-badge.neutral-value {
-    background-color: #ffb454 !important;
-    color: #0b0c10 !important;
+    background-color: var(--accent-warning) !important;
+    color: #06080d !important;
 }
 
 .metrics-badge.bad-value {
-    background-color: #ff6b6b !important;
-    color: #f8f9fa !important;
+    background-color: var(--accent-danger) !important;
+    color: #ffffff !important;
 }
 
 /* Table cell overrides - CRITICAL FOR DARK THEME */
 #stocksTable td.good-value {
-    color: #3ddc84 !important;
+    color: var(--accent-success) !important;
     
 }
 
 #stocksTable td.neutral-value {
-    color: #ffb454 !important;
+    color: var(--accent-warning) !important;
    
 }
 #stocksTable td.bad-value {
-    color: #ff6b6b !important;
+    color: var(--accent-danger) !important;
    
 }
 

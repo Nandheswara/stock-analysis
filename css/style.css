@@ -69,7 +69,7 @@
 }
 
 .cta-button.primary:hover {
-    background-color: #5a72e0;
+    background-color: var(--accent-primary-hover);
 }
 
 /* Metrics Preview - Home Page Specific */
@@ -204,7 +204,7 @@
 }
 
 .btn-remove:hover {
-    background-color: #c82333;
+    background-color: var(--accent-danger-hover);
 }
 
 .empty-state {

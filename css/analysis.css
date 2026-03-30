@@ -16,10 +16,10 @@
    ======================================== */
 
 .stock-count-badge {
-    background-color: #3ddc84;
-    color: #0b0c10;
+    background-color: var(--accent-success);
+    color: #06080d;
     padding: 8px 18px;
-    border-radius: 20px;
+    border-radius: var(--radius-xl);
     font-size: 0.9rem;
     font-weight: 600;
 }
@@ -30,18 +30,18 @@
 
 .analysis-table {
     font-size: 0.85rem;
-    background-color: #111218;
-    color: #e9ecef;
+    background-color: var(--bg-card);
+    color: var(--text-primary);
 }
 
 .analysis-table th {
-    background-color: #1f232b;
-    color: #f8f9fa;
+    background-color: var(--bg-elevated);
+    color: var(--text-heading);
     position: sticky;
     top: 0;
     z-index: 10;
     white-space: nowrap;
-    border-bottom: 1px solid #343a40;
+    border-bottom: 1px solid var(--border-light);
 }
 
 /* Filter Button Badge */
@@ -54,7 +54,7 @@
 
 #filterBtn.btn-primary #filterCount {
     background-color: #ffffff !important;
-    color: #0d6efd !important;
+    color: var(--accent-primary) !important;
 }
 
 /* Filter Modal Styles */
@@ -63,56 +63,56 @@
 }
 
 .filter-select-modal:focus {
-    border-color: #3ddc84;
-    box-shadow: 0 0 0 0.15rem rgba(61, 220, 132, 0.25);
+    border-color: var(--accent-success);
+    box-shadow: 0 0 0 0.15rem var(--accent-success-muted);
 }
 
 .analysis-table td {
     vertical-align: middle;
     white-space: nowrap;
-    border-bottom: 1px solid #1f2229;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .analysis-table td.neutral-value,
 .analysis-table td.text-center {
-    color: #e9ecef;
+    color: var(--text-primary);
 }
 
 .metric-header {
-    background-color: #262b33 !important;
-    color: #f8f9fa;
+    background-color: var(--bg-card-header) !important;
+    color: var(--text-heading);
     font-weight: bold;
 }
 
 .metric-category {
-    background-color: #1f232b;
+    background-color: var(--bg-elevated);
     font-weight: 600;
-    color: #f8f9fa;
+    color: var(--text-heading);
 }
 
 .stock-row:hover {
-    background-color: #191b23;
+    background-color: var(--bg-elevated);
 }
 
 /* Value color coding */
 .good-value {
-    color: #3ddc84;
+    color: var(--accent-success);
     font-weight: bold;
 }
 
 .bad-value {
-    color: #ff6b6b;
+    color: var(--accent-danger);
     font-weight: bold;
 }
 
 .neutral-value {
-    color: #adb5bd;
+    color: var(--text-secondary);
 }
 
 /* Stock symbol styling */
 .stock-symbol {
     font-weight: bold;
-    color: #7289ff;
+    color: var(--accent-primary);
 }
 
 /* Sticky first column */
@@ -128,7 +128,7 @@
     text-align: left;
     position: sticky;
     left: 0;
-    background-color: #1f232b;
+    background-color: var(--bg-elevated);
     z-index: 5;
 }
 
@@ -139,9 +139,9 @@
 .table-container {
     overflow-x: auto;
     max-height: 70vh;
-    background-color: #111218;
-    border-radius: 8px;
-    border: 1px solid #1f2229;
+    background-color: var(--bg-card);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
 }
 
 /* ========================================
@@ -187,8 +187,8 @@ body:not(.light-theme) #stockName[readonly] {
 }
 
 .btn-remove {
-    background-color: #dc3545;
-    color: #f8f9fa;
+    background-color: var(--accent-danger);
+    color: var(--text-heading);
     border: none;
     padding: 3px 8px;
     border-radius: 3px;
@@ -197,7 +197,7 @@ body:not(.light-theme) #stockName[readonly] {
 }
 
 .btn-remove:hover {
-    background-color: #c82333;
+    background-color: var(--accent-danger-hover);
 }
 
 /* ========================================
@@ -207,18 +207,18 @@ body:not(.light-theme) #stockName[readonly] {
 .empty-state {
     text-align: center;
     padding: 60px 20px;
-    color: #adb5bd;
+    color: var(--text-secondary);
 }
 
 .empty-state i {
     font-size: 4rem;
     margin-bottom: 20px;
-    color: #343a40;
+    color: var(--border-light);
 }
 
 /* No results state (when filters don't match) */
 .analysis-table tbody tr td[colspan="18"] {
-    background-color: #14151b;
+    background-color: var(--bg-card);
     padding: 40px 20px;
 }
 
@@ -230,11 +230,11 @@ body:not(.light-theme) #stockName[readonly] {
 
 /* Light theme no results */
 body.light-theme .analysis-table tbody tr td[colspan="18"] {
-    background-color: #f8f9fa;
+    background-color: var(--bg-primary);
 }
 
 body.light-theme .analysis-table tbody tr td[colspan="18"] .text-muted {
-    color: #6c757d !important;
+    color: var(--text-muted) !important;
 }
 
 /* ========================================
@@ -243,114 +243,123 @@ body.light-theme .analysis-table tbody tr td[colspan="18"] .text-muted {
 
 /* Header Section - Light Theme */
 body.light-theme .header-section {
-    background: linear-gradient(135deg, #4e73df 0%, #7c5cbf 100%);
+    background: var(--header-gradient);
     color: #ffffff;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    box-shadow: var(--shadow-md);
 }
 
 /* Stock Count Badge - Light Theme */
 body.light-theme .stock-count-badge {
-    background-color: #0d6efd;
+    background-color: var(--accent-primary);
     color: #ffffff;
 }
 
 /* Analysis Table - Light Theme */
 body.light-theme .analysis-table {
-    background-color: #ffffff;
-    color: #212529;
+    background-color: var(--bg-card);
+    color: var(--text-primary);
 }
 
 body.light-theme .analysis-table th {
-    background-color: #f1f3f5;
-    color: #212529;
-    border-bottom: 1px solid #dee2e6;
+    background-color: var(--bg-tertiary);
+    color: var(--text-heading);
+    border-bottom: 1px solid var(--border-color);
 }
 
 body.light-theme .analysis-table td {
-    background-color: #ffffff;
-    color: #212529;
-    border-bottom: 1px solid #e9ecef;
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-color);
 }
 
 body.light-theme .analysis-table thead {
-    background-color: #f1f3f5;
+    background-color: var(--bg-tertiary);
 }
 
 body.light-theme .analysis-table tbody tr {
-    background-color: #ffffff;
-    color: #212529;
+    background-color: var(--bg-card);
+    color: var(--text-primary);
 }
 
 body.light-theme .analysis-table tbody tr:hover {
-    background-color: #f8f9fa;
+    background-color: var(--bg-tertiary);
 }
 
 body.light-theme .analysis-table td strong,
 body.light-theme .analysis-table td {
-    color: #212529 !important;
+    color: var(--text-primary) !important;
 }
 
 body.light-theme .analysis-table td small.text-muted {
-    color: #6c757d !important;
+    color: var(--text-muted) !important;
 }
 
 body.light-theme .metric-category {
-    background-color: #f1f3f5;
-    color: #212529;
+    background-color: var(--bg-tertiary);
+    color: var(--text-heading);
 }
 
 body.light-theme .stock-row:hover {
-    background-color: #f8f9fa;
+    background-color: var(--bg-tertiary);
 }
 
 /* Value colors - Light Theme (maintain good contrast) */
 body.light-theme .good-value {
-    color: #198754;
+    color: var(--accent-success);
 }
 
 body.light-theme .bad-value {
-    color: #dc3545;
+    color: var(--accent-danger);
 }
 
 body.light-theme .neutral-value {
-    color: #6c757d;
+    color: var(--text-muted);
 }
 
 body.light-theme .stock-symbol {
-    color: #0d6efd;
+    color: var(--accent-primary);
 }
 
 /* Sticky first column - Light Theme */
 body.light-theme #stocksTable th:first-child,
 body.light-theme #stocksTable td:first-child {
-    background-color: #f1f3f5;
-    color: #212529;
+    background-color: var(--bg-tertiary);
+    color: var(--text-heading);
 }
 
 /* Table Container - Light Theme */
 body.light-theme .table-container {
-    background-color: #ffffff;
-    border: 1px solid #e9ecef;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
 }
 
 /* Filter Button & Modal - Light Theme */
 body.light-theme #filterBtn.btn-primary #filterCount {
     background-color: #ffffff !important;
-    color: #0d6efd !important;
+    color: var(--accent-primary) !important;
 }
 
 body.light-theme .filter-select-modal:focus {
-    border-color: #0d6efd;
-    box-shadow: 0 0 0 0.15rem rgba(13, 110, 253, 0.25);
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 0.15rem var(--accent-primary-muted);
 }
 
 /* Empty State - Light Theme */
 body.light-theme .empty-state {
-    color: #6c757d;
+    color: var(--text-muted);
 }
 
 body.light-theme .empty-state i {
-    color: #adb5bd;
+    color: var(--text-secondary);
+}
+
+/* Light theme no results */
+body.light-theme .analysis-table tbody tr td[colspan="18"] {
+    background-color: var(--bg-tertiary);
+}
+
+body.light-theme .analysis-table tbody tr td[colspan="18"] .text-muted {
+    color: var(--text-muted) !important;
 }
 /* ========================================
    Responsive Design - Analysis Page
