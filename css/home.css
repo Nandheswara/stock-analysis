@@ -14,17 +14,17 @@
    ======================================== */
 
 .feature-card {
-    background-color: #14151b;
-    border-radius: 10px;
-    border: 1px solid #1f2229;
+    background-color: var(--bg-card);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
     transition: transform 0.3s, box-shadow 0.3s, background-color 0.3s;
     height: 100%;
 }
 
 .feature-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-    background-color: #191b23;
+    box-shadow: var(--shadow-lg);
+    background-color: var(--bg-elevated);
 }
 
 .feature-icon {
@@ -33,19 +33,19 @@
 }
 
 .feature-icon.blue { 
-    color: #7289ff; 
+    color: var(--accent-primary); 
 }
 
 .feature-icon.green { 
-    color: #3ddc84; 
+    color: var(--accent-success); 
 }
 
 .feature-icon.orange { 
-    color: #ffb454; 
+    color: var(--accent-warning); 
 }
 
 .feature-icon.red { 
-    color: #ff6b6b; 
+    color: var(--accent-danger); 
 }
 
 /* ========================================
@@ -60,13 +60,13 @@
 }
 
 .cta-button.primary {
-    background-color: #7289ff;
-    color: #0b0c10;
+    background-color: var(--accent-primary);
+    color: #ffffff;
     border: none;
 }
 
 .cta-button.primary:hover {
-    background-color: #5a72e0;
+    background-color: var(--accent-primary-hover);
 }
 
 /* ========================================
@@ -74,24 +74,24 @@
    ======================================== */
 
 .metrics-preview {
-    background-color: #14151b;
-    border-radius: 10px;
+    background-color: var(--bg-card);
+    border-radius: var(--radius-md);
     padding: 30px;
     margin-top: 40px;
-    border: 1px solid #1f2229;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
 }
 
 .metric-badge {
     display: inline-block;
     padding: 8px 15px;
     margin: 5px;
-    background-color: #1e2028;
-    border-radius: 20px;
+    background-color: var(--bg-elevated);
+    border-radius: var(--radius-xl);
     font-size: 0.9rem;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.4);
-    color: #e9ecef;
-    border: 1px solid #2a2d35;
+    box-shadow: var(--shadow-sm);
+    color: var(--text-primary);
+    border: 1px solid var(--border-light);
 }
 
 /* ========================================
@@ -100,9 +100,9 @@
 
 /* Hero Section - Light Theme */
 body.light-theme .hero-section {
-    background: linear-gradient(135deg, #4e73df 0%, #7c5cbf 100%);
+    background: var(--header-gradient);
     color: #ffffff;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    box-shadow: var(--shadow-md);
 }
 
 body.light-theme .hero-section h1 {
@@ -110,75 +110,75 @@ body.light-theme .hero-section h1 {
 }
 
 body.light-theme .hero-section p {
-    color: #f0f0f0;
+    color: rgba(255, 255, 255, 0.9);
 }
 
 /* Feature Cards - Light Theme */
 body.light-theme .feature-card {
-    background-color: #ffffff;
-    border: 1px solid #e3e6ea;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
 }
 
 body.light-theme .feature-card:hover {
-    background-color: #f8f9fa;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+    background-color: var(--bg-tertiary);
+    box-shadow: var(--shadow-lg);
     transform: translateY(-5px);
 }
 
 body.light-theme .feature-icon.blue { 
-    color: #4e73df; 
+    color: var(--accent-primary); 
 }
 
 body.light-theme .feature-icon.green { 
-    color: #198754; 
+    color: var(--accent-success); 
 }
 
 body.light-theme .feature-icon.orange { 
-    color: #fd7e14; 
+    color: var(--accent-warning); 
 }
 
 body.light-theme .feature-icon.red { 
-    color: #dc3545; 
+    color: var(--accent-danger); 
 }
 
 /* CTA Button - Light Theme */
 body.light-theme .cta-button.primary {
     background-color: #ffffff;
-    color: #4e73df;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    color: var(--accent-primary);
+    box-shadow: var(--shadow-md);
 }
 
 body.light-theme .cta-button.primary:hover {
-    background-color: #f0f0f0;
-    color: #3a5ec7;
+    background-color: var(--bg-tertiary);
+    color: var(--accent-primary-hover);
 }
 
 /* Metrics Preview - Light Theme */
 body.light-theme .metrics-preview {
-    background-color: #f8f9fa;
-    border: 1px solid #e3e6ea;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
 }
 
 body.light-theme .metrics-preview h4 {
-    color: #212529;
+    color: var(--text-heading);
 }
 
 body.light-theme .metric-badge {
-    background-color: #e7f1ff;
-    color: #004085;
-    border: 1px solid #b8daff;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+    background-color: var(--accent-primary-muted);
+    color: var(--accent-primary);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
 }
 
 /* Feature Card Text - Light Theme */
 body.light-theme .feature-card h5 {
-    color: #212529;
+    color: var(--text-heading);
 }
 
 body.light-theme .feature-card p {
-    color: #6c757d;
+    color: var(--text-secondary);
 }
 
 /* ========================================
@@ -186,11 +186,11 @@ body.light-theme .feature-card p {
    ======================================== */
 
 .market-movers-section {
-    background-color: #14151b;
-    border-radius: 10px;
+    background-color: var(--bg-card);
+    border-radius: var(--radius-md);
     padding: 25px;
-    border: 1px solid #1f2229;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
 }
 
 /* Loader Styles */
@@ -213,8 +213,8 @@ body.light-theme .feature-card p {
 .movers-loader .loader-spinner {
     width: 50px;
     height: 50px;
-    border: 4px solid rgba(77, 171, 247, 0.2);
-    border-top-color: #4dabf7;
+    border: 4px solid var(--accent-primary-muted);
+    border-top-color: var(--accent-primary);
     border-radius: 50%;
     animation: spin 1s linear infinite;
     margin-bottom: 16px;
@@ -227,7 +227,7 @@ body.light-theme .feature-card p {
 }
 
 .movers-loader .loader-text {
-    color: #adb5bd;
+    color: var(--text-secondary);
     font-size: 1rem;
     margin: 0;
     font-weight: 500;
@@ -235,12 +235,12 @@ body.light-theme .feature-card p {
 
 /* Light theme loader */
 body.light-theme .movers-loader .loader-spinner {
-    border-color: rgba(13, 110, 253, 0.2);
-    border-top-color: #0d6efd;
+    border-color: var(--accent-primary-muted);
+    border-top-color: var(--accent-primary);
 }
 
 body.light-theme .movers-loader .loader-text {
-    color: #6c757d;
+    color: var(--text-secondary);
 }
 
 .market-movers-section .section-title {
@@ -249,7 +249,7 @@ body.light-theme .movers-loader .loader-text {
     justify-content: space-between;
     margin-bottom: 20px;
     padding-bottom: 15px;
-    border-bottom: 1px solid #2a2d35;
+    border-bottom: 1px solid var(--border-light);
 }
 
 .market-movers-section .section-title h4 {
@@ -260,10 +260,10 @@ body.light-theme .movers-loader .loader-text {
 }
 
 .movers-section {
-    background-color: #1a1b22;
-    border-radius: 8px;
+    background-color: var(--bg-card-header);
+    border-radius: var(--radius-sm);
     padding: 15px;
-    border: 1px solid #2a2d35;
+    border: 1px solid var(--border-light);
     height: 100%;
 }
 
@@ -275,18 +275,18 @@ body.light-theme .movers-loader .loader-text {
 /* Table Styles */
 .movers-table {
     margin: 0;
-    color: #e9ecef;
+    color: var(--text-primary);
 }
 
 .movers-table thead th {
-    background-color: #22242d;
-    color: #adb5bd;
+    background-color: var(--bg-elevated);
+    color: var(--text-secondary);
     font-weight: 600;
     font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     padding: 10px 12px;
-    border-bottom: 2px solid #2a2d35;
+    border-bottom: 2px solid var(--border-light);
     white-space: nowrap;
 }
 
@@ -295,24 +295,24 @@ body.light-theme .movers-loader .loader-text {
 }
 
 .movers-table tbody tr:hover {
-    background-color: rgba(114, 137, 255, 0.1);
+    background-color: var(--accent-primary-muted);
 }
 
 .movers-table tbody td {
     padding: 10px 12px;
-    border-bottom: 1px solid #2a2d35;
+    border-bottom: 1px solid var(--border-light);
     vertical-align: middle;
 }
 
 .movers-table .rank-cell {
     width: 40px;
     font-weight: 600;
-    color: #6c757d;
+    color: var(--text-muted);
 }
 
 .movers-table .symbol-cell .stock-symbol {
     font-weight: 600;
-    color: #ffffff;
+    color: var(--text-heading);
     font-size: 0.9rem;
 }
 
@@ -327,7 +327,7 @@ body.light-theme .movers-loader .loader-text {
 .movers-table .price-cell {
     font-weight: 500;
     white-space: nowrap;
-    color: #ffffff;
+    color: var(--text-heading);
 }
 
 .movers-table .change-cell {
@@ -336,11 +336,11 @@ body.light-theme .movers-loader .loader-text {
 }
 
 .movers-table .change-cell.positive {
-    color: #00c853;
+    color: var(--accent-success);
 }
 
 .movers-table .change-cell.negative {
-    color: #ff5252;
+    color: var(--accent-danger);
 }
 
 .movers-table .change-cell i {
@@ -349,17 +349,17 @@ body.light-theme .movers-loader .loader-text {
 
 /* Gainer/Loser Row Highlights */
 .movers-table tr.gainer-row:hover {
-    background-color: rgba(61, 220, 132, 0.08);
+    background-color: var(--accent-success-muted);
 }
 
 .movers-table tr.loser-row:hover {
-    background-color: rgba(255, 107, 107, 0.08);
+    background-color: var(--accent-danger-muted);
 }
 
 /* Pagination Styles */
 .pagination-wrapper {
     padding-top: 10px;
-    border-top: 1px solid #2a2d35;
+    border-top: 1px solid var(--border-light);
 }
 
 .pagination-controls {
@@ -370,16 +370,16 @@ body.light-theme .movers-loader .loader-text {
     min-width: 36px;
     height: 36px;
     padding: 0 10px;
-    border: 1px solid #3a3d45;
-    background-color: #22242d;
-    color: #adb5bd;
+    border: 1px solid var(--border-light);
+    background-color: var(--bg-elevated);
+    color: var(--text-secondary);
     font-size: 0.85rem;
     transition: all 0.2s ease;
 }
 
 .btn-pagination:hover:not(:disabled) {
-    background-color: #7289ff;
-    border-color: #7289ff;
+    background-color: var(--accent-primary);
+    border-color: var(--accent-primary);
     color: #fff;
 }
 
@@ -389,14 +389,14 @@ body.light-theme .movers-loader .loader-text {
 }
 
 .btn-pagination.active {
-    background-color: #7289ff;
-    border-color: #7289ff;
+    background-color: var(--accent-primary);
+    border-color: var(--accent-primary);
     color: #fff;
 }
 
 .pagination-ellipsis {
     padding: 0 8px;
-    color: #6c757d;
+    color: var(--text-muted);
 }
 
 .pagination-info {
@@ -411,7 +411,7 @@ body.light-theme .movers-loader .loader-text {
 /* Summary Stats */
 .movers-summary {
     padding: 10px 0;
-    border-bottom: 1px solid #2a2d35;
+    border-bottom: 1px solid var(--border-light);
 }
 
 .summary-stats .badge {
@@ -421,7 +421,7 @@ body.light-theme .movers-loader .loader-text {
 
 .data-info {
     font-size: 0.8rem;
-    color: #6c757d;
+    color: var(--text-muted);
 }
 
 /* Section Headers */
@@ -441,11 +441,11 @@ body.light-theme .movers-loader .loader-text {
 .error-message {
     text-align: center;
     padding: 30px;
-    color: #6c757d;
+    color: var(--text-muted);
 }
 
 .error-message {
-    color: #ff6b6b;
+    color: var(--accent-danger);
 }
 
 /* Symbol Cell Layout */
@@ -456,7 +456,7 @@ body.light-theme .movers-loader .loader-text {
 }
 
 .movers-table .symbol-cell .stock-name {
-    color: #6c757d;
+    color: var(--text-muted);
     display: block;
 }
 
@@ -465,99 +465,99 @@ body.light-theme .movers-loader .loader-text {
    ======================================== */
 
 body.light-theme .market-movers-section {
-    background-color: #ffffff;
-    border: 1px solid #e3e6ea;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
 }
 
 body.light-theme .market-movers-section .section-title {
-    border-bottom: 1px solid #e3e6ea;
+    border-bottom: 1px solid var(--border-color);
 }
 
 body.light-theme .movers-section {
-    background-color: #f8f9fa;
-    border: 1px solid #e3e6ea;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
 }
 
 body.light-theme .movers-table {
-    color: #212529;
+    color: var(--text-primary);
 }
 
 body.light-theme .movers-table thead th {
-    background-color: #e9ecef;
-    color: #495057;
-    border-bottom: 2px solid #dee2e6;
+    background-color: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border-bottom: 2px solid var(--border-light);
 }
 
 body.light-theme .movers-table tbody td {
-    border-bottom: 1px solid #dee2e6;
+    border-bottom: 1px solid var(--border-color);
 }
 
 body.light-theme .movers-table tbody tr:hover {
-    background-color: rgba(78, 115, 223, 0.08);
+    background-color: var(--accent-primary-muted);
 }
 
 body.light-theme .movers-table tr.gainer-row:hover {
-    background-color: rgba(25, 135, 84, 0.08);
+    background-color: var(--accent-success-muted);
 }
 
 body.light-theme .movers-table tr.loser-row:hover {
-    background-color: rgba(220, 53, 69, 0.08);
+    background-color: var(--accent-danger-muted);
 }
 
 body.light-theme .movers-table .symbol-cell .stock-symbol {
-    color: #212529;
+    color: var(--text-heading);
 }
 
 body.light-theme .movers-table .price-cell {
-    color: #212529;
+    color: var(--text-heading);
 }
 
 body.light-theme .movers-table .change-cell.positive {
-    color: #198754;
+    color: var(--accent-success);
 }
 
 body.light-theme .movers-table .change-cell.negative {
-    color: #dc3545;
+    color: var(--accent-danger);
 }
 
 body.light-theme .movers-table .rank-cell {
-    color: #6c757d;
+    color: var(--text-muted);
 }
 
 body.light-theme .pagination-wrapper {
-    border-top: 1px solid #dee2e6;
+    border-top: 1px solid var(--border-color);
 }
 
 body.light-theme .btn-pagination {
-    border: 1px solid #dee2e6;
-    background-color: #fff;
-    color: #495057;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-secondary);
+    color: var(--text-secondary);
 }
 
 body.light-theme .btn-pagination:hover:not(:disabled) {
-    background-color: #4e73df;
-    border-color: #4e73df;
+    background-color: var(--accent-primary);
+    border-color: var(--accent-primary);
     color: #fff;
 }
 
 body.light-theme .btn-pagination.active {
-    background-color: #4e73df;
-    border-color: #4e73df;
+    background-color: var(--accent-primary);
+    border-color: var(--accent-primary);
     color: #fff;
 }
 
 /* Summary - Light Theme */
 body.light-theme .movers-summary {
-    border-bottom-color: #dee2e6;
+    border-bottom-color: var(--border-color);
 }
 
 body.light-theme .data-info {
-    color: #6c757d;
+    color: var(--text-muted);
 }
 
 body.light-theme .movers-table .symbol-cell .stock-name {
-    color: #6c757d;
+    color: var(--text-muted);
 }
 
 /* ========================================

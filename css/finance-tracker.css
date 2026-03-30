@@ -93,7 +93,7 @@
 
 /* Copy Previous Month Button */
 .copy-prev-month-btn {
-    background: linear-gradient(135deg, #7289ff 0%, #5a72e0 100%);
+    background: var(--header-gradient);
     color: #fff;
     border: none;
     padding: 8px 16px;
@@ -1051,14 +1051,14 @@
 }
 
 .btn-finance-danger {
-    background: linear-gradient(135deg, #ff6b6b 0%, #e84545 100%);
+    background: linear-gradient(135deg, var(--accent-danger) 0%, var(--accent-danger-hover) 100%);
     color: #fff;
 }
 
 .btn-finance-danger:hover {
     opacity: 0.85;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+    box-shadow: 0 4px 12px var(--accent-danger-muted);
 }
 
 .btn-finance-outline {
@@ -1096,7 +1096,7 @@
 .icon-option:hover,
 .icon-option.selected {
     border-color: var(--accent-primary);
-    background: rgba(114, 137, 255, 0.15);
+    background: var(--accent-primary-muted);
     color: var(--accent-primary);
 }
 
@@ -1150,10 +1150,10 @@
     min-width: 280px;
 }
 
-.finance-toast.success { background: linear-gradient(135deg, #3ddc84 0%, #2bb862 100%); }
-.finance-toast.error { background: linear-gradient(135deg, #ff6b6b 0%, #e84545 100%); }
-.finance-toast.info { background: linear-gradient(135deg, #7289ff 0%, #5a72e0 100%); }
-.finance-toast.warning { background: linear-gradient(135deg, #ffb454 0%, #f0960e 100%); color: #1a1a1a; }
+.finance-toast.success { background: linear-gradient(135deg, var(--accent-success) 0%, var(--accent-success-hover) 100%); }
+.finance-toast.error { background: linear-gradient(135deg, var(--accent-danger) 0%, var(--accent-danger-hover) 100%); }
+.finance-toast.info { background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-primary-hover) 100%); }
+.finance-toast.warning { background: linear-gradient(135deg, var(--accent-warning) 0%, var(--accent-warning-hover) 100%); color: #1a1a1a; }
 
 /* ========================================
    Export Section

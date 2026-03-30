@@ -3,7 +3,7 @@
  * 
  * This file contains shared functionality across all pages including:
  * - Theme management (dark/light mode switching)
- * - Theme persistence using sessionStorage
+ * - Theme persistence using localStorage
  * - System preference detection
  * - Maintenance mode checking
  * - Announcement display
@@ -37,7 +37,7 @@ function applyTheme(theme) {
     }
     
     try {
-        sessionStorage.setItem('theme', theme);
+        localStorage.setItem('theme', theme);
     } catch (e) {
         // Ignore storage errors (e.g., in private browsing mode)
     }
@@ -47,7 +47,7 @@ function applyTheme(theme) {
  * Toggle between light and dark themes
  */
 function toggleTheme() {
-    const current = (sessionStorage.getItem('theme') === 'light') ? 'light' : 'dark';
+    const current = (localStorage.getItem('theme') === 'light') ? 'light' : 'dark';
     const next = current === 'light' ? 'dark' : 'light';
     applyTheme(next);
 }
@@ -60,7 +60,7 @@ function initTheme() {
     
     // Try to get stored theme preference
     try { 
-        stored = sessionStorage.getItem('theme'); 
+        stored = localStorage.getItem('theme'); 
     } catch (e) { 
         stored = null; 
     }
@@ -71,6 +71,15 @@ function initTheme() {
     // Use stored preference if available, otherwise use system preference
     const theme = stored ? stored : (prefersLight ? 'light' : 'dark');
     applyTheme(theme);
+
+    // Listen for system preference changes when no stored preference
+    if (window.matchMedia) {
+        window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
+            if (!localStorage.getItem('theme')) {
+                applyTheme(e.matches ? 'light' : 'dark');
+            }
+        });
+    }
 }
 
 /* ========================================

@@ -76,7 +76,7 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    background: linear-gradient(135deg, #dc3545 0%, #ff6b6b 100%);
+    background: linear-gradient(135deg, var(--accent-danger) 0%, var(--accent-danger-hover) 100%);
     color: #fff;
     padding: 0.75rem 1.25rem;
     font-weight: 700;
@@ -228,8 +228,8 @@
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    background: rgba(220, 53, 69, 0.15);
-    color: #dc3545;
+    background: var(--accent-danger-muted);
+    color: var(--accent-danger);
     padding: 0.25rem 0.75rem;
     border-radius: 20px;
     font-size: 0.75rem;
@@ -240,7 +240,7 @@
 .live-dot {
     width: 8px;
     height: 8px;
-    background: #dc3545;
+    background: var(--accent-danger);
     border-radius: 50%;
     animation: live-pulse 1.5s infinite;
 }
@@ -454,7 +454,7 @@
 
 .sentiment-bar {
     height: 12px;
-    background: linear-gradient(90deg, #dc3545, #ffc107, #28a745);
+    background: linear-gradient(90deg, var(--accent-danger), var(--accent-warning), var(--accent-success));
     border-radius: 6px;
     overflow: hidden;
     position: relative;
@@ -477,9 +477,9 @@
     font-size: 0.75rem;
 }
 
-.sentiment-labels .bearish { color: #dc3545; }
-.sentiment-labels .neutral { color: #ffc107; }
-.sentiment-labels .bullish { color: #28a745; }
+.sentiment-labels .bearish { color: var(--accent-danger); }
+.sentiment-labels .neutral { color: var(--accent-warning); }
+.sentiment-labels .bullish { color: var(--accent-success); }
 
 .sentiment-value {
     text-align: center;
