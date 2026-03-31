@@ -449,13 +449,17 @@ class AuthModalManager {
             return;
         }
 
-        const result = await signUpUser(email, password, name);
-        if (result.success) {
-            this.showAlert('Account created successfully!', 'success');
-            this.modal.hide();
-            this.forms.signup?.reset();
-        } else {
-            this.showAlert(result.error, 'danger');
+        try {
+            const result = await signUpUser(email, password, name);
+            if (result.success) {
+                this.showAlert('Account created successfully!', 'success');
+                this.modal.hide();
+                this.forms.signup?.reset();
+            } else {
+                this.showAlert(result.error, 'danger');
+            }
+        } catch (error) {
+            this.showAlert(error.message || 'An unexpected error occurred. Please try again.', 'danger');
         }
     }
 

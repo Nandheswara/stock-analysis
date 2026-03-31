@@ -12,7 +12,10 @@
     },
     "systemSettings": {
       ".read": "auth != null",
-      ".write": "auth != null"
+      ".write": "auth != null",
+      "allowRegistration": {
+        ".read": true
+      }
     },
     "maintenanceMode": {
       ".read": true,
