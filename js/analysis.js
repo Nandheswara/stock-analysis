@@ -1461,7 +1461,6 @@ async function fetchAllStocks() {
         try {
             // Skip if no symbol available
             if (!stock.symbol) {
-                console.warn(`Skipping stock ${stock.name || stock.stock_id}: No symbol available`);
                 failCount++;
                 continue;
             }

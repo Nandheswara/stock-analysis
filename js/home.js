@@ -37,7 +37,6 @@ class AuthModalManager {
     init() {
         const modalElement = document.getElementById('authModal');
         if (!modalElement) {
-            console.warn('Auth modal element not found');
             return;
         }
 

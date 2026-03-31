@@ -187,7 +187,6 @@ export function loadStockSymbols() {
  */
 function initSelect2(select) {
     if (!window.jQuery || !$(select).select2) {
-        console.warn('Select2 not available');
         return;
     }
     

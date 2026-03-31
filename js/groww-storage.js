@@ -12,7 +12,6 @@
     // to `resource/grow.json`. To avoid committing scraped data, that
     // behavior is intentionally removed. If you need local persistence,
     // implement a separate trusted service outside this repo.
-    console.warn('growwStorage.saveToLocal called but saving is disabled.', { source, symbol, value, endpoint })
     throw new Error('Saving crawled data to JSON is disabled')
   }
 

@@ -561,8 +561,6 @@ function clearAllLocalStorageCache() {
         
         // Remove all found cache keys
         keysToRemove.forEach(key => localStorage.removeItem(key));
-        
-        console.log(`Cleared ${keysToRemove.length} cached items from localStorage`);
     } catch (error) {
         // Silent fail - localStorage might be disabled
         console.warn('Failed to clear localStorage cache:', error);
@@ -577,7 +575,6 @@ function clearAllSessionStorage() {
     try {
         // Clear all sessionStorage for complete security
         sessionStorage.clear();
-        console.log('Cleared all sessionStorage data');
     } catch (error) {
         // Silent fail - sessionStorage might be disabled
         console.warn('Failed to clear sessionStorage:', error);
@@ -990,25 +987,20 @@ export async function isUserAdmin(user = null) {
     const checkUser = user || currentUser;
     
     if (!checkUser) {
-        console.log('isUserAdmin: No user to check');
         return false;
     }
     
     const userEmail = checkUser.email?.toLowerCase();
-    console.log('isUserAdmin: Checking admin status for:', userEmail);
-    
+
     // Method 1: Check if primary admin
     if (userEmail === PRIMARY_ADMIN_EMAIL.toLowerCase()) {
-        console.log('isUserAdmin: User is PRIMARY admin');
         return true;
     }
     
     // Method 2: Check database admin list
     try {
         const adminEmails = await getAdminEmailsFromDB();
-        console.log('isUserAdmin: Admin emails from DB:', adminEmails);
         if (adminEmails.includes(userEmail)) {
-            console.log('isUserAdmin: User found in admin list');
             return true;
         }
     } catch (error) {
@@ -1020,14 +1012,12 @@ export async function isUserAdmin(user = null) {
         const userRef = dbRef(database, `users/${checkUser.uid}/role`);
         const snapshot = await get(userRef);
         if (snapshot.exists() && snapshot.val() === 'admin') {
-            console.log('isUserAdmin: User has admin role in profile');
             return true;
         }
     } catch (error) {
         console.error('Error checking admin status:', error);
     }
     
-    console.log('isUserAdmin: User is NOT admin');
     return false;
 }
 
@@ -1125,7 +1115,6 @@ async function updateAuthUI(user) {
         // Check and show admin link if user is admin
         if (adminPanelLink) {
             const isAdmin = await isUserAdmin(user);
-            console.log('Admin check result:', isAdmin, 'for user:', user.email);
             adminPanelLink.style.display = isAdmin ? 'block' : 'none';
         }
     } else {

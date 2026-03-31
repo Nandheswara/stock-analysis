@@ -181,8 +181,6 @@ document.addEventListener('DOMContentLoaded', () => {
  * Initialize the news page
  */
 async function initializeNewsPage() {
-    console.log('Initializing News Page...');
-    
     try {
         // Initialize Firebase auth listener (handles login/logout UI)
         initAuthListener();
@@ -207,7 +205,6 @@ async function initializeNewsPage() {
         startAutoRefresh();
         startMarketStatsRefresh();
         
-        console.log('News Page initialized successfully');
     } catch (error) {
         console.error('Error initializing news page:', error);
         // Ensure trending topics are rendered even on error
@@ -259,15 +256,12 @@ async function loadNewsData() {
         
         // 2. If APIs fail, try RSS feeds
         if (!news || news.length === 0) {
-            console.log('APIs failed, trying RSS feeds...');
             news = await fetchNewsFromRSS();
         }
         
         if (news && news.length > 0) {
             newsState.allNews = news;
-            console.log(`Loaded ${news.length} news articles`);
         } else {
-            console.warn('No news fetched from any source');
             newsState.allNews = [];
         }
         
@@ -302,7 +296,6 @@ async function fetchNewsFromAPIs() {
     for (const api of NEWS_CONFIG.NEWS_APIS) {
         // Skip disabled APIs or APIs without proper keys
         if (!api.enabled || api.params.apikey === 'YOUR_API_KEY_HERE') {
-            console.log(`Skipping ${api.name} - not configured`);
             continue;
         }
         
@@ -312,12 +305,8 @@ async function fetchNewsFromAPIs() {
                 allNews.push(...news);
             }
         } catch (error) {
-            console.warn(`Failed to fetch from ${api.name}:`, error.message);
+            // API failed, try next source
         }
-    }
-    
-    // Remove duplicates based on title similarity
-    const uniqueNews = removeDuplicates(allNews);
     
     // Sort by time (newest first)
     uniqueNews.sort((a, b) => new Date(b.time) - new Date(a.time));
@@ -518,12 +507,8 @@ async function fetchNewsFromRSS() {
                 successfulProxy = proxyIndex;
                 
             } catch (error) {
-                console.warn(`Proxy ${proxyIndex} failed for ${feedUrl}:`, error.message);
+                // Proxy failed, try next
             }
-        }
-    }
-    
-    // Remember which proxy worked for future requests
     if (successfulProxy !== null) {
         NEWS_CONFIG.currentProxyIndex = successfulProxy;
     }
@@ -531,8 +516,7 @@ async function fetchNewsFromRSS() {
     // Sort by time (newest first) and remove duplicates
     const uniqueNews = removeDuplicates(allNews);
     uniqueNews.sort((a, b) => new Date(b.time) - new Date(a.time));
-    
-    console.log(`Fetched ${uniqueNews.length} unique articles from RSS feeds`);
+
     return uniqueNews;
 }
 
@@ -898,9 +882,7 @@ function calculateMarketSentiment() {
         (newsScore * 0.4) + 
         (breadthScore * 0.2)
     );
-    
-    console.log(`Sentiment - Market: ${marketScore}, News: ${newsScore}, Breadth: ${breadthScore}, Final: ${finalScore}`);
-    
+
     return Math.min(100, Math.max(0, finalScore));
 }
 
@@ -1039,8 +1021,6 @@ function extractTrendingTopics(newsArticles) {
  * Fetch real-time market stats from APIs
  */
 async function fetchMarketStats() {
-    console.log('Fetching market stats...');
-    
     // Show loading state
     Object.keys(marketStats).forEach(key => {
         marketStats[key].loading = true;
@@ -1062,16 +1042,14 @@ async function fetchMarketStats() {
                 return true;
             }
         } catch (error) {
-            console.warn(`Failed to fetch ${key}:`, error.message);
+            // Fetch failed, will fallback to alternative API
         }
-        return false;
     });
     
     const results = await Promise.all(fetchPromises);
     
     // If all failed, try alternative API
     if (results.every(r => !r)) {
-        console.log('Yahoo Finance failed, trying alternative sources...');
         await fetchFromAlternativeAPI();
     }
     
@@ -1120,10 +1098,10 @@ async function fetchYahooFinanceData(symbol) {
                 }
             }
         } catch (error) {
-            console.warn(`Proxy failed for ${symbol}:`, error.message);
+            // Proxy failed, try next
         }
     }
-    
+
     return null;
 }
 
@@ -1178,7 +1156,7 @@ async function fetchFromAlternativeAPI() {
                 }
             }
         } catch (error) {
-            console.warn(`Alternative API failed for ${key}:`, error.message);
+            // Source failed, try next
         }
     }
 }
@@ -1492,10 +1470,10 @@ async function fetchMoreNewsFromAPI(category = null) {
                 allNews.push(...news);
             }
         } catch (error) {
-            console.warn(`Failed to fetch more from ${api.name}:`, error.message);
+            // API failed, try next source
         }
     }
-    
+
     // Always try RSS feeds (primary source when APIs are not configured)
     try {
         const rssNews = await fetchNewsFromRSS();
@@ -1511,10 +1489,8 @@ async function fetchMoreNewsFromAPI(category = null) {
             allNews.push(...newRssNews);
         }
     } catch (error) {
-        console.warn('RSS fetch failed:', error.message);
+        // RSS fetch is non-critical
     }
-    
-    return removeDuplicates(allNews);
 }
 
 /**
@@ -1572,8 +1548,6 @@ async function loadMoreNews() {
                     newsState.displayedNews = newsState.filteredNews.slice(0, endIndex);
                     
                     renderNewsItems();
-                    
-                    console.log(`Loaded ${uniqueNewNews.length} new articles`);
                 } else {
                     showNoMoreNewsMessage();
                 }
@@ -1676,10 +1650,7 @@ function setupAuthHandlers() {
         logoutBtn.addEventListener('click', async (e) => {
             e.preventDefault();
             if (confirm('Are you sure you want to logout?')) {
-                const result = await signOutUser();
-                if (result.success) {
-                    console.log('Logged out successfully');
-                }
+                await signOutUser();
             }
         });
     }

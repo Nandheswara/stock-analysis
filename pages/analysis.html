@@ -768,14 +768,11 @@
                 }
             } catch(e) {
                 // Silent fail - will fallback to Firebase auth
-                console.debug('Cache preload skipped:', e.message);
             }
         })();
     </script>
     <!-- JavaScript -->
     <script src="../js/global.js" defer></script>
-    <!-- Debug script disabled for production -->
-    <!-- <script src="../js/analysis-debug.js" defer></script> -->
     <script src="../js/groww-crawler.js" defer></script>
     <script type="module" src="../js/analysis.js"></script>
     <script src="../js/metrics.js" defer></script>

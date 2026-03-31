@@ -35,7 +35,6 @@ const server = http.createServer(async (req, res) => {
         // consume body (to avoid hanging clients)
         let body = ''
         for await (const chunk of req) body += chunk
-        console.warn('Received POST /save but saving is disabled. Payload:', body || '<empty>')
         sendJSON(res, 501, { error: 'Saving crawled data to JSON is disabled on this proxy' })
         return
       }
@@ -50,8 +49,6 @@ const server = http.createServer(async (req, res) => {
         sendJSON(res, 400, { error: 'Missing url parameter' })
         return
       }
-
-      console.log(`[CORS Proxy] Fetching: ${target}`)
 
       // Fetch target server-side and stream response back
       const fetchRes = await fetch(target, { 
@@ -73,7 +70,6 @@ const server = http.createServer(async (req, res) => {
       }
       
       const contentType = fetchRes.headers.get('content-type') || 'text/html'
-      console.log(`[CORS Proxy] Success: ${target} (${contentType})`)
 
       res.writeHead(200, {
         'Content-Type': contentType,

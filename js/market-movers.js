@@ -52,13 +52,10 @@ const MarketMovers = (function() {
         // Check cache first
         const cached = getStockNamesFromCache();
         if (cached) {
-            console.log('📦 Using cached stock names');
             stockNamesCache = cached;
             return;
         }
 
-        console.log('🔄 Fetching stock names from NSE...');
-        
         // Try multiple indices to get maximum coverage
         const indices = [
             'NIFTY%20500',
@@ -84,10 +81,9 @@ const MarketMovers = (function() {
                                 .trim();
                         }
                     });
-                    console.log(`✅ Loaded ${Object.keys(stockNamesCache).length} stock names from ${index}`);
                 }
             } catch (error) {
-                console.warn(`⚠️ Failed to fetch from ${index}:`, error.message);
+                // Expected failure for some indices, not an error
             }
         }
 
@@ -124,7 +120,6 @@ const MarketMovers = (function() {
                 names,
                 timestamp: Date.now()
             }));
-            console.log(`💾 Cached ${Object.keys(names).length} stock names`);
         } catch (e) {
             console.warn('Stock names cache write error:', e);
         }
@@ -171,7 +166,7 @@ const MarketMovers = (function() {
                     }
                 }
             } catch (error) {
-                console.warn(`Proxy failed: ${proxy.slice(0, 30)}...`, error.message);
+                // Proxy failure is expected during fallback
             }
         }
         throw new Error('All proxies failed');
@@ -181,8 +176,6 @@ const MarketMovers = (function() {
      * Strategy 1: Fetch from NSE India API
      */
     async function fetchFromNSE() {
-        console.log('📡 Trying NSE India API...');
-        
         const [gainersData, losersData] = await Promise.all([
             fetchWithProxy(API.NSE_GAINERS),
             fetchWithProxy(API.NSE_LOSERS)
@@ -231,8 +224,6 @@ const MarketMovers = (function() {
      * Strategy 2: Fetch from Groww API
      */
     async function fetchFromGroww() {
-        console.log('📡 Trying Groww API...');
-        
         const [gainersData, losersData] = await Promise.all([
             fetchWithProxy(API.GROWW_TOP_GAINERS),
             fetchWithProxy(API.GROWW_TOP_LOSERS)
@@ -283,8 +274,6 @@ const MarketMovers = (function() {
      * Strategy 3: Fetch from Yahoo Finance Screener
      */
     async function fetchFromYahooScreener() {
-        console.log('📡 Trying Yahoo Finance Screener...');
-        
         const gainersUrl = `${API.YAHOO_SCREENER}?scrIds=day_gainers&count=${CONFIG.MAX_STOCKS}`;
         const losersUrl = `${API.YAHOO_SCREENER}?scrIds=day_losers&count=${CONFIG.MAX_STOCKS}`;
         
@@ -339,8 +328,6 @@ const MarketMovers = (function() {
      * Strategy 4: Fetch NIFTY indices data from NSE
      */
     async function fetchFromNSEIndices() {
-        console.log('📡 Trying NSE NIFTY Indices...');
-        
         const url = 'https://www.nseindia.com/api/equity-stockIndices?index=NIFTY%20100';
         const data = await fetchWithProxy(url);
         
@@ -394,13 +381,11 @@ const MarketMovers = (function() {
         
         const cached = getCache();
         if (cached) {
-            console.log('📦 Using cached data from:', cached.source);
             state.dataSource = cached.source;
             showLoading(false);
             return { gainers: cached.gainers, losers: cached.losers };
         }
 
-        console.log('🚀 Fetching fresh market movers...');
         const startTime = Date.now();
         
         const strategies = [
@@ -415,16 +400,12 @@ const MarketMovers = (function() {
                 const result = await strategy.fn();
                 
                 if (result.gainers.length > 0 || result.losers.length > 0) {
-                    const loadTime = ((Date.now() - startTime) / 1000).toFixed(2);
-                    console.log(`✅ Success with ${strategy.name} in ${loadTime}s`);
-                    console.log(`   Gainers: ${result.gainers.length}, Losers: ${result.losers.length}`);
-                    
                     setCache(result.gainers, result.losers, state.dataSource);
                     showLoading(false);
                     return result;
                 }
             } catch (error) {
-                console.warn(`❌ ${strategy.name} failed:`, error.message);
+                // Strategy failure is expected during fallback
             }
         }
         
@@ -837,9 +818,6 @@ const MarketMovers = (function() {
      * Initialize the module
      */
     async function init() {
-        console.log('📈 Initializing Dynamic Market Movers (Side by Side)...');
-        console.log('   No hardcoded stocks - 100% real-time data!');
-        
         // Create HTML structure
         createHTML();
         
