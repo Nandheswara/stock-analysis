@@ -150,7 +150,15 @@ const MARKET_API_CONFIG = {
     ],
     // Fallback to NSE India API
     nseApi: 'https://www.nseindia.com/api/equity-stockIndices?index=',
-    // Update interval (1 minute)
+    // Adaptive update intervals based on market hours
+    UPDATE_INTERVALS: {
+        MARKET_OPEN: 30 * 1000,        // 30 seconds during trading
+        PRE_POST_MARKET: 2 * 60 * 1000,  // 2 minutes pre/post market
+        MARKET_CLOSED: 5 * 60 * 1000     // 5 minutes when closed (for reference display)
+    },
+    // IST offset in minutes (UTC + 5:30)
+    IST_OFFSET: 330,
+    // Legacy fallback (used if getMarketUpdateInterval returns 0)
     UPDATE_INTERVAL: 60000
 };
 
@@ -163,9 +171,70 @@ let marketStats = {
 
 let marketStatsTimer = null;
 
+/* ========================================
+   Market Hours Detection (IST) for News Page
+   ======================================== */
+
+/**
+ * Get current time in IST
+ */
+function getISTTime() {
+    const now = new Date();
+    const utcMs = now.getTime() + (now.getTimezoneOffset() * 60000);
+    return new Date(utcMs + (MARKET_API_CONFIG.IST_OFFSET * 60000));
+}
+
+/**
+ * Determine current market status for news page
+ * @returns {'open'|'pre_post'|'closed'}
+ */
+function getNewsMarketStatus() {
+    const ist = getISTTime();
+    const day = ist.getDay();
+    const timeInMinutes = ist.getHours() * 60 + ist.getMinutes();
+
+    if (day === 0 || day === 6) return 'closed';
+
+    const marketOpen = 9 * 60 + 15;
+    const marketClose = 15 * 60 + 30;
+    const preMarketStart = 8 * 60 + 30;
+    const postMarketEnd = 16 * 60;
+
+    if (timeInMinutes >= marketOpen && timeInMinutes < marketClose) return 'open';
+    if ((timeInMinutes >= preMarketStart && timeInMinutes < marketOpen) ||
+        (timeInMinutes >= marketClose && timeInMinutes < postMarketEnd)) return 'pre_post';
+    return 'closed';
+}
+
+/**
+ * Get adaptive update interval for market stats
+ */
+function getMarketUpdateInterval() {
+    const status = getNewsMarketStatus();
+    switch (status) {
+        case 'open': return MARKET_API_CONFIG.UPDATE_INTERVALS.MARKET_OPEN;
+        case 'pre_post': return MARKET_API_CONFIG.UPDATE_INTERVALS.PRE_POST_MARKET;
+        default: return MARKET_API_CONFIG.UPDATE_INTERVALS.MARKET_CLOSED;
+    }
+}
+
+/**
+ * Get adaptive refresh interval for news
+ * During market hours, news refreshes more frequently
+ */
+function getNewsRefreshInterval() {
+    const status = getNewsMarketStatus();
+    switch (status) {
+        case 'open': return 2 * 60 * 1000;        // 2 minutes during trading
+        case 'pre_post': return 3 * 60 * 1000;    // 3 minutes pre/post
+        default: return NEWS_CONFIG.REFRESH_INTERVAL; // 5 minutes default
+    }
+}
+
 // Cleanup timers on page unload to prevent memory leaks
 window.addEventListener('beforeunload', () => {
     if (marketStatsTimer) clearInterval(marketStatsTimer);
+    if (marketStatusMonitorTimer) clearInterval(marketStatusMonitorTimer);
     if (newsState.refreshTimer) clearInterval(newsState.refreshTimer);
 });
 
@@ -307,10 +376,12 @@ async function fetchNewsFromAPIs() {
         } catch (error) {
             // API failed, try next source
         }
-    
-    // Sort by time (newest first)
+    }
+
+    // Sort by time (newest first) and remove duplicates
+    const uniqueNews = removeDuplicates(allNews);
     uniqueNews.sort((a, b) => new Date(b.time) - new Date(a.time));
-    
+
     return uniqueNews;
 }
 
@@ -509,6 +580,8 @@ async function fetchNewsFromRSS() {
             } catch (error) {
                 // Proxy failed, try next
             }
+        }
+    }
     if (successfulProxy !== null) {
         NEWS_CONFIG.currentProxyIndex = successfulProxy;
     }
@@ -1224,16 +1297,33 @@ function renderMarketStats() {
 }
 
 /**
- * Start auto-refresh for market stats
+ * Start auto-refresh for market stats (market-hours aware)
  */
+let marketStatusMonitorTimer = null;
+
 function startMarketStatsRefresh() {
     if (marketStatsTimer) {
         clearInterval(marketStatsTimer);
     }
-    
+    if (marketStatusMonitorTimer) {
+        clearInterval(marketStatusMonitorTimer);
+    }
+
+    const interval = getMarketUpdateInterval();
+
     marketStatsTimer = setInterval(() => {
+        // Skip refresh when tab is hidden
+        if (document.hidden) return;
         fetchMarketStats();
-    }, MARKET_API_CONFIG.UPDATE_INTERVAL);
+    }, interval);
+
+    // Monitor market status changes to re-adjust interval (stored for cleanup)
+    marketStatusMonitorTimer = setInterval(() => {
+        const newInterval = getMarketUpdateInterval();
+        if (Math.abs(newInterval - interval) > 5000) {
+            startMarketStatsRefresh();
+        }
+    }, 60000);
 }
 
 /**
@@ -1491,6 +1581,8 @@ async function fetchMoreNewsFromAPI(category = null) {
     } catch (error) {
         // RSS fetch is non-critical
     }
+
+    return allNews;
 }
 
 /**
@@ -1596,16 +1688,20 @@ function showNoMoreNewsMessage() {
 }
 
 /**
- * Start auto-refresh timer
+ * Start auto-refresh timer (market-hours aware)
  */
 function startAutoRefresh() {
     if (newsState.refreshTimer) {
         clearInterval(newsState.refreshTimer);
     }
-    
+
+    const interval = getNewsRefreshInterval();
+
     newsState.refreshTimer = setInterval(() => {
+        // Skip refresh when tab is hidden
+        if (document.hidden) return;
         loadNewsData();
-    }, NEWS_CONFIG.REFRESH_INTERVAL);
+    }, interval);
 }
 
 /**
