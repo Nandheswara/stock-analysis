@@ -90,7 +90,7 @@
         throw new Error('Response does not contain HTML')
       } catch (err) {
         const errorMsg = err.name === 'AbortError' ? 'Timeout' : (err && err.message)
-        console.warn('growwCrawler: proxy failed', proxyUrl.substring(0, 50), errorMsg)
+        // proxy failed, try next
         tried.push({ proxy: proxyUrl, error: errorMsg })
       }
     }
@@ -192,7 +192,6 @@
 
   function showResult(elem, text) {
     if (!elem) {
-      console.log('Market Cap:', text)
       return
     }
     const outId = elem.getAttribute('data-output-id')

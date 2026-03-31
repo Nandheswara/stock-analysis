@@ -561,6 +561,170 @@ body.light-theme .movers-table .symbol-cell .stock-name {
 }
 
 /* ========================================
+   Market Live Badge & Auto-Refresh
+   ======================================== */
+
+/* LIVE badge pulse animation */
+.market-live-badge {
+    animation: live-pulse 2s ease-in-out infinite;
+}
+
+.market-live-badge .bi-circle-fill {
+    font-size: 0.6rem;
+    vertical-align: middle;
+    margin-right: 4px;
+    animation: live-dot-blink 1.5s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.85; }
+}
+
+@keyframes live-dot-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+/* Countdown timer */
+.countdown-wrapper {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.countdown-wrapper strong {
+    font-variant-numeric: tabular-nums;
+    min-width: 40px;
+    display: inline-block;
+}
+
+/* ========================================
+   Row Flash Animations (data change)
+   ======================================== */
+
+.movers-table .stock-row.flash-green {
+    animation: flash-gainer 1.5s ease-out;
+}
+
+.movers-table .stock-row.flash-red {
+    animation: flash-loser 1.5s ease-out;
+}
+
+@keyframes flash-gainer {
+    0% { background-color: rgba(40, 167, 69, 0.35); }
+    100% { background-color: transparent; }
+}
+
+@keyframes flash-loser {
+    0% { background-color: rgba(220, 53, 69, 0.35); }
+    100% { background-color: transparent; }
+}
+
+/* Light theme flash animations */
+body.light-theme .movers-table .stock-row.flash-green {
+    animation: flash-gainer-light 1.5s ease-out;
+}
+
+body.light-theme .movers-table .stock-row.flash-red {
+    animation: flash-loser-light 1.5s ease-out;
+}
+
+@keyframes flash-gainer-light {
+    0% { background-color: rgba(40, 167, 69, 0.2); }
+    100% { background-color: transparent; }
+}
+
+@keyframes flash-loser-light {
+    0% { background-color: rgba(220, 53, 69, 0.2); }
+    100% { background-color: transparent; }
+}
+
+/* ========================================
+   Index Selector Chips
+   ======================================== */
+
+.index-selector-wrapper {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.index-selector-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+.index-chip-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.index-group-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-right: 2px;
+    white-space: nowrap;
+}
+
+.index-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border-light);
+    background-color: var(--bg-elevated);
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    line-height: 1.4;
+}
+
+.index-chip:hover {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+    background-color: var(--accent-primary-muted);
+}
+
+.index-chip.active {
+    background-color: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: #fff;
+    font-weight: 600;
+}
+
+/* Light theme overrides */
+body.light-theme .index-selector-wrapper {
+    border-bottom-color: var(--border-color);
+}
+
+body.light-theme .index-chip {
+    background-color: var(--bg-secondary);
+    border-color: var(--border-color);
+    color: var(--text-secondary);
+}
+
+body.light-theme .index-chip:hover {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+    background-color: var(--accent-primary-muted);
+}
+
+body.light-theme .index-chip.active {
+    background-color: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: #fff;
+}
+
+/* ========================================
    Responsive Design - Home Page
    ======================================== */
 
@@ -574,18 +738,31 @@ body.light-theme .movers-table .symbol-cell .stock-name {
     .hero-section h1 {
         font-size: 2rem;
     }
-    
+
     .hero-section p {
         font-size: 1rem;
     }
-    
+
     .cta-button {
         padding: 10px 30px;
         font-size: 1rem;
     }
-    
+
     .feature-icon {
         font-size: 2rem;
+    }
+
+    .index-selector-chips {
+        gap: 8px;
+    }
+
+    .index-chip {
+        padding: 3px 10px;
+        font-size: 0.72rem;
+    }
+
+    .index-group-label {
+        font-size: 0.65rem;
     }
     
     .market-movers-section {

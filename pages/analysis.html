@@ -155,6 +155,16 @@
             <div class="card-body">
                 <form id="addStockForm" class="add-stock-form">
                     <div class="row g-3">
+                        <div class="col-md-2">
+                            <label for="stockSource" class="form-label">Index</label>
+                            <select class="form-select" id="stockSource" aria-label="Select stock index source">
+                                <option value="all" selected>All Stocks</option>
+                                <option value="nifty-50">NIFTY 50</option>
+                                <option value="nifty-100">NIFTY 100</option>
+                                <option value="nifty-200">NIFTY 200</option>
+                                <option value="nifty-500">NIFTY 500</option>
+                            </select>
+                        </div>
                         <div class="col-md-3">
                             <label for="stockSymbol" class="form-label">Select Stock *</label>
                             <select class="form-select" id="stockSymbol" required>
@@ -768,14 +778,11 @@
                 }
             } catch(e) {
                 // Silent fail - will fallback to Firebase auth
-                console.debug('Cache preload skipped:', e.message);
             }
         })();
     </script>
     <!-- JavaScript -->
     <script src="../js/global.js" defer></script>
-    <!-- Debug script disabled for production -->
-    <!-- <script src="../js/analysis-debug.js" defer></script> -->
     <script src="../js/groww-crawler.js" defer></script>
     <script type="module" src="../js/analysis.js"></script>
     <script src="../js/metrics.js" defer></script>

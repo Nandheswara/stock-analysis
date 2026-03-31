@@ -414,7 +414,6 @@ async function ensurePrimaryAdminExists() {
                 active: true,
                 isPrimary: true
             });
-            console.log('Primary admin initialized in database');
         }
     } catch (error) {
         console.error('Error ensuring primary admin exists:', error);

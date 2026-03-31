@@ -43,7 +43,7 @@ import {
     deleteAllStocks,
     migrateSessionStorageToFirebase 
 } from './firebase-database-service.js';
-import { loadStockSymbols, slugToDisplayName, getStockSymbol } from './stock-dropdown.js';
+import { loadStockSymbols, slugToDisplayName, getStockSymbol, initStockSourceSelector } from './stock-dropdown.js';
 import { makeFetchStockData, growwCrawler } from './fetch.js';
 import { 
     debounce, 
@@ -202,6 +202,8 @@ $(document).ready(function() {
     setupAuthHandlers();
     // Load stock symbols for the dropdown (implemented in stock-dropdown.js)
     loadStockSymbols();
+    // Initialize index source selector (NIFTY 50/100/200/All)
+    initStockSourceSelector();
     
     // Setup auto-fill for company name when stock is selected from dropdown
     setupStockDropdownHandlers();
@@ -1461,7 +1463,6 @@ async function fetchAllStocks() {
         try {
             // Skip if no symbol available
             if (!stock.symbol) {
-                console.warn(`Skipping stock ${stock.name || stock.stock_id}: No symbol available`);
                 failCount++;
                 continue;
             }

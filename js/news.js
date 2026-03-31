@@ -150,7 +150,15 @@ const MARKET_API_CONFIG = {
     ],
     // Fallback to NSE India API
     nseApi: 'https://www.nseindia.com/api/equity-stockIndices?index=',
-    // Update interval (1 minute)
+    // Adaptive update intervals based on market hours
+    UPDATE_INTERVALS: {
+        MARKET_OPEN: 30 * 1000,        // 30 seconds during trading
+        PRE_POST_MARKET: 2 * 60 * 1000,  // 2 minutes pre/post market
+        MARKET_CLOSED: 5 * 60 * 1000     // 5 minutes when closed (for reference display)
+    },
+    // IST offset in minutes (UTC + 5:30)
+    IST_OFFSET: 330,
+    // Legacy fallback (used if getMarketUpdateInterval returns 0)
     UPDATE_INTERVAL: 60000
 };
 
@@ -163,9 +171,70 @@ let marketStats = {
 
 let marketStatsTimer = null;
 
+/* ========================================
+   Market Hours Detection (IST) for News Page
+   ======================================== */
+
+/**
+ * Get current time in IST
+ */
+function getISTTime() {
+    const now = new Date();
+    const utcMs = now.getTime() + (now.getTimezoneOffset() * 60000);
+    return new Date(utcMs + (MARKET_API_CONFIG.IST_OFFSET * 60000));
+}
+
+/**
+ * Determine current market status for news page
+ * @returns {'open'|'pre_post'|'closed'}
+ */
+function getNewsMarketStatus() {
+    const ist = getISTTime();
+    const day = ist.getDay();
+    const timeInMinutes = ist.getHours() * 60 + ist.getMinutes();
+
+    if (day === 0 || day === 6) return 'closed';
+
+    const marketOpen = 9 * 60 + 15;
+    const marketClose = 15 * 60 + 30;
+    const preMarketStart = 8 * 60 + 30;
+    const postMarketEnd = 16 * 60;
+
+    if (timeInMinutes >= marketOpen && timeInMinutes < marketClose) return 'open';
+    if ((timeInMinutes >= preMarketStart && timeInMinutes < marketOpen) ||
+        (timeInMinutes >= marketClose && timeInMinutes < postMarketEnd)) return 'pre_post';
+    return 'closed';
+}
+
+/**
+ * Get adaptive update interval for market stats
+ */
+function getMarketUpdateInterval() {
+    const status = getNewsMarketStatus();
+    switch (status) {
+        case 'open': return MARKET_API_CONFIG.UPDATE_INTERVALS.MARKET_OPEN;
+        case 'pre_post': return MARKET_API_CONFIG.UPDATE_INTERVALS.PRE_POST_MARKET;
+        default: return MARKET_API_CONFIG.UPDATE_INTERVALS.MARKET_CLOSED;
+    }
+}
+
+/**
+ * Get adaptive refresh interval for news
+ * During market hours, news refreshes more frequently
+ */
+function getNewsRefreshInterval() {
+    const status = getNewsMarketStatus();
+    switch (status) {
+        case 'open': return 2 * 60 * 1000;        // 2 minutes during trading
+        case 'pre_post': return 3 * 60 * 1000;    // 3 minutes pre/post
+        default: return NEWS_CONFIG.REFRESH_INTERVAL; // 5 minutes default
+    }
+}
+
 // Cleanup timers on page unload to prevent memory leaks
 window.addEventListener('beforeunload', () => {
     if (marketStatsTimer) clearInterval(marketStatsTimer);
+    if (marketStatusMonitorTimer) clearInterval(marketStatusMonitorTimer);
     if (newsState.refreshTimer) clearInterval(newsState.refreshTimer);
 });
 
@@ -181,8 +250,6 @@ document.addEventListener('DOMContentLoaded', () => {
  * Initialize the news page
  */
 async function initializeNewsPage() {
-    console.log('Initializing News Page...');
-    
     try {
         // Initialize Firebase auth listener (handles login/logout UI)
         initAuthListener();
@@ -207,7 +274,6 @@ async function initializeNewsPage() {
         startAutoRefresh();
         startMarketStatsRefresh();
         
-        console.log('News Page initialized successfully');
     } catch (error) {
         console.error('Error initializing news page:', error);
         // Ensure trending topics are rendered even on error
@@ -259,15 +325,12 @@ async function loadNewsData() {
         
         // 2. If APIs fail, try RSS feeds
         if (!news || news.length === 0) {
-            console.log('APIs failed, trying RSS feeds...');
             news = await fetchNewsFromRSS();
         }
         
         if (news && news.length > 0) {
             newsState.allNews = news;
-            console.log(`Loaded ${news.length} news articles`);
         } else {
-            console.warn('No news fetched from any source');
             newsState.allNews = [];
         }
         
@@ -302,7 +365,6 @@ async function fetchNewsFromAPIs() {
     for (const api of NEWS_CONFIG.NEWS_APIS) {
         // Skip disabled APIs or APIs without proper keys
         if (!api.enabled || api.params.apikey === 'YOUR_API_KEY_HERE') {
-            console.log(`Skipping ${api.name} - not configured`);
             continue;
         }
         
@@ -312,16 +374,14 @@ async function fetchNewsFromAPIs() {
                 allNews.push(...news);
             }
         } catch (error) {
-            console.warn(`Failed to fetch from ${api.name}:`, error.message);
+            // API failed, try next source
         }
     }
-    
-    // Remove duplicates based on title similarity
+
+    // Sort by time (newest first) and remove duplicates
     const uniqueNews = removeDuplicates(allNews);
-    
-    // Sort by time (newest first)
     uniqueNews.sort((a, b) => new Date(b.time) - new Date(a.time));
-    
+
     return uniqueNews;
 }
 
@@ -518,12 +578,10 @@ async function fetchNewsFromRSS() {
                 successfulProxy = proxyIndex;
                 
             } catch (error) {
-                console.warn(`Proxy ${proxyIndex} failed for ${feedUrl}:`, error.message);
+                // Proxy failed, try next
             }
         }
     }
-    
-    // Remember which proxy worked for future requests
     if (successfulProxy !== null) {
         NEWS_CONFIG.currentProxyIndex = successfulProxy;
     }
@@ -531,8 +589,7 @@ async function fetchNewsFromRSS() {
     // Sort by time (newest first) and remove duplicates
     const uniqueNews = removeDuplicates(allNews);
     uniqueNews.sort((a, b) => new Date(b.time) - new Date(a.time));
-    
-    console.log(`Fetched ${uniqueNews.length} unique articles from RSS feeds`);
+
     return uniqueNews;
 }
 
@@ -898,9 +955,7 @@ function calculateMarketSentiment() {
         (newsScore * 0.4) + 
         (breadthScore * 0.2)
     );
-    
-    console.log(`Sentiment - Market: ${marketScore}, News: ${newsScore}, Breadth: ${breadthScore}, Final: ${finalScore}`);
-    
+
     return Math.min(100, Math.max(0, finalScore));
 }
 
@@ -1039,8 +1094,6 @@ function extractTrendingTopics(newsArticles) {
  * Fetch real-time market stats from APIs
  */
 async function fetchMarketStats() {
-    console.log('Fetching market stats...');
-    
     // Show loading state
     Object.keys(marketStats).forEach(key => {
         marketStats[key].loading = true;
@@ -1062,16 +1115,14 @@ async function fetchMarketStats() {
                 return true;
             }
         } catch (error) {
-            console.warn(`Failed to fetch ${key}:`, error.message);
+            // Fetch failed, will fallback to alternative API
         }
-        return false;
     });
     
     const results = await Promise.all(fetchPromises);
     
     // If all failed, try alternative API
     if (results.every(r => !r)) {
-        console.log('Yahoo Finance failed, trying alternative sources...');
         await fetchFromAlternativeAPI();
     }
     
@@ -1120,10 +1171,10 @@ async function fetchYahooFinanceData(symbol) {
                 }
             }
         } catch (error) {
-            console.warn(`Proxy failed for ${symbol}:`, error.message);
+            // Proxy failed, try next
         }
     }
-    
+
     return null;
 }
 
@@ -1178,7 +1229,7 @@ async function fetchFromAlternativeAPI() {
                 }
             }
         } catch (error) {
-            console.warn(`Alternative API failed for ${key}:`, error.message);
+            // Source failed, try next
         }
     }
 }
@@ -1246,16 +1297,33 @@ function renderMarketStats() {
 }
 
 /**
- * Start auto-refresh for market stats
+ * Start auto-refresh for market stats (market-hours aware)
  */
+let marketStatusMonitorTimer = null;
+
 function startMarketStatsRefresh() {
     if (marketStatsTimer) {
         clearInterval(marketStatsTimer);
     }
-    
+    if (marketStatusMonitorTimer) {
+        clearInterval(marketStatusMonitorTimer);
+    }
+
+    const interval = getMarketUpdateInterval();
+
     marketStatsTimer = setInterval(() => {
+        // Skip refresh when tab is hidden
+        if (document.hidden) return;
         fetchMarketStats();
-    }, MARKET_API_CONFIG.UPDATE_INTERVAL);
+    }, interval);
+
+    // Monitor market status changes to re-adjust interval (stored for cleanup)
+    marketStatusMonitorTimer = setInterval(() => {
+        const newInterval = getMarketUpdateInterval();
+        if (Math.abs(newInterval - interval) > 5000) {
+            startMarketStatsRefresh();
+        }
+    }, 60000);
 }
 
 /**
@@ -1492,10 +1560,10 @@ async function fetchMoreNewsFromAPI(category = null) {
                 allNews.push(...news);
             }
         } catch (error) {
-            console.warn(`Failed to fetch more from ${api.name}:`, error.message);
+            // API failed, try next source
         }
     }
-    
+
     // Always try RSS feeds (primary source when APIs are not configured)
     try {
         const rssNews = await fetchNewsFromRSS();
@@ -1511,10 +1579,10 @@ async function fetchMoreNewsFromAPI(category = null) {
             allNews.push(...newRssNews);
         }
     } catch (error) {
-        console.warn('RSS fetch failed:', error.message);
+        // RSS fetch is non-critical
     }
-    
-    return removeDuplicates(allNews);
+
+    return allNews;
 }
 
 /**
@@ -1572,8 +1640,6 @@ async function loadMoreNews() {
                     newsState.displayedNews = newsState.filteredNews.slice(0, endIndex);
                     
                     renderNewsItems();
-                    
-                    console.log(`Loaded ${uniqueNewNews.length} new articles`);
                 } else {
                     showNoMoreNewsMessage();
                 }
@@ -1622,16 +1688,20 @@ function showNoMoreNewsMessage() {
 }
 
 /**
- * Start auto-refresh timer
+ * Start auto-refresh timer (market-hours aware)
  */
 function startAutoRefresh() {
     if (newsState.refreshTimer) {
         clearInterval(newsState.refreshTimer);
     }
-    
+
+    const interval = getNewsRefreshInterval();
+
     newsState.refreshTimer = setInterval(() => {
+        // Skip refresh when tab is hidden
+        if (document.hidden) return;
         loadNewsData();
-    }, NEWS_CONFIG.REFRESH_INTERVAL);
+    }, interval);
 }
 
 /**
@@ -1676,10 +1746,7 @@ function setupAuthHandlers() {
         logoutBtn.addEventListener('click', async (e) => {
             e.preventDefault();
             if (confirm('Are you sure you want to logout?')) {
-                const result = await signOutUser();
-                if (result.success) {
-                    console.log('Logged out successfully');
-                }
+                await signOutUser();
             }
         });
     }

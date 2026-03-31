@@ -142,7 +142,6 @@ async function checkMaintenanceMode() {
                             autoDisabledAt: Date.now(),
                             autoDisabledReason: 'Estimated end time reached'
                         });
-                        console.log('Maintenance mode auto-disabled: estimated end time reached');
                         return; // Maintenance is now disabled, allow access
                     } catch (updateError) {
                         console.error('Failed to auto-disable maintenance:', updateError);
