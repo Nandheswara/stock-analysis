@@ -67,6 +67,8 @@ let selectedUserId = null;
 let unsubscribeAuditLogs = null;
 let unsubscribeRecentActivity = null;
 let impersonatedUserId = null;
+let isInitialized = false;
+let eventListenersBound = false;
 
 /* ========================================
    Initialization
@@ -107,7 +109,10 @@ function initAuthListener() {
         
         // User is admin, show admin panel
         showAdminPanel();
-        initializeAdminPanel();
+        if (!isInitialized) {
+            isInitialized = true;
+            initializeAdminPanel();
+        }
     });
 }
 
@@ -606,8 +611,8 @@ async function loadUsers() {
             allUsers = Object.entries(usersData).map(([uid, data]) => ({
                 uid,
                 ...data,
-                createdAt: data.createdAt || data.metadata?.createdAt || Date.now(),
-                lastActive: data.lastActive || data.metadata?.lastLogin || null
+                createdAt: normalizeTimestamp(data.createdAt) || normalizeTimestamp(data.metadata?.createdAt) || null,
+                lastActive: normalizeTimestamp(data.lastActive) || normalizeTimestamp(data.metadata?.lastLogin) || null
             }));
             
             // Sort by creation date (newest first)
@@ -1936,6 +1941,9 @@ async function backupData() {
  * Bind all event listeners
  */
 function bindEventListeners() {
+    if (eventListenersBound) return;
+    eventListenersBound = true;
+
     // Search and filters
     document.getElementById('userSearchInput')?.addEventListener('input', debounce(filterUsers, 300));
     document.getElementById('userRoleFilter')?.addEventListener('change', filterUsers);
@@ -2237,8 +2245,24 @@ function getInitials(displayName, email) {
 }
 
 /**
+ * Normalize a timestamp value to a numeric millisecond timestamp.
+ * Handles numeric timestamps, ISO strings, and Date objects.
+ * @param {number|string|Date|null|undefined} value - The value to normalize
+ * @returns {number|null} Numeric timestamp in ms, or null if invalid
+ */
+function normalizeTimestamp(value) {
+    if (value == null) return null;
+    if (typeof value === 'number' && value > 0) return value;
+    if (typeof value === 'string' || value instanceof Date) {
+        const ms = new Date(value).getTime();
+        return isNaN(ms) ? null : ms;
+    }
+    return null;
+}
+
+/**
  * Format date
- * @param {number} timestamp - Timestamp
+ * @param {number|string} timestamp - Timestamp (ms) or date string
  * @param {boolean} includeTime - Include time
  * @returns {string}
  */
@@ -2246,6 +2270,7 @@ function formatDate(timestamp, includeTime = false) {
     if (!timestamp) return 'Never';
     
     const date = new Date(timestamp);
+    if (isNaN(date.getTime())) return 'Never';
     const options = {
         year: 'numeric',
         month: 'short',
