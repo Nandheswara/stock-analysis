@@ -147,6 +147,20 @@ body {
     color: var(--text-primary);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+}
+
+main {
+    flex: 1;
+}
+
+/* Full-width container override for main content */
+main .container {
+    max-width: 100%;
+    padding: 0 20px;
 }
 
 /* Selection styling */
@@ -195,6 +209,18 @@ body {
 
 .navbar-dark.bg-dark {
     background-color: var(--bg-primary) !important;
+}
+
+/* Mobile navbar spacing */
+@media (max-width: 991.98px) {
+    .navbar-nav .nav-item.d-flex {
+        margin-left: 0 !important;
+        padding: 0.5rem 1rem;
+    }
+
+    .navbar-nav #authButtons {
+        gap: 0.5rem;
+    }
 }
 
 /* ========================================
