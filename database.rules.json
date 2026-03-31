@@ -12,7 +12,10 @@
     },
     "systemSettings": {
       ".read": "auth != null",
-      ".write": "auth != null"
+      ".write": "auth != null",
+      "allowRegistration": {
+        ".read": true
+      }
     },
     "maintenanceMode": {
       ".read": true,
@@ -27,6 +30,8 @@
       ".write": "auth != null"
     },
     "users": {
+      ".read": "auth != null && (auth.token.email === 'nandheswara21@gmail.com' || root.child('users/' + auth.uid + '/role').val() === 'admin')",
+      ".write": "auth != null && (auth.token.email === 'nandheswara21@gmail.com' || root.child('users/' + auth.uid + '/role').val() === 'admin')",
       "$uid": {
         ".read": "auth.uid === $uid",
         ".write": "auth.uid === $uid",

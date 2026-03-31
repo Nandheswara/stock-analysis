@@ -290,15 +290,20 @@ export function getCurrentUser() {
  */
 export async function signUpUser(email, password, displayName) {
     try {
-        // Check if registration is allowed
-        const settingsRef = dbRef(database, 'systemSettings/allowRegistration');
-        const settingsSnapshot = await get(settingsRef);
-        
-        if (settingsSnapshot.exists() && settingsSnapshot.val() === false) {
-            return { 
-                success: false, 
-                error: 'New registrations are currently disabled. Please contact an administrator.' 
-            };
+        // Check if registration is allowed (publicly readable setting)
+        try {
+            const settingsRef = dbRef(database, 'systemSettings/allowRegistration');
+            const settingsSnapshot = await get(settingsRef);
+            
+            if (settingsSnapshot.exists() && settingsSnapshot.val() === false) {
+                return { 
+                    success: false, 
+                    error: 'New registrations are currently disabled. Please contact an administrator.' 
+                };
+            }
+        } catch (settingsError) {
+            // If settings check fails, allow registration by default
+            console.warn('Could not check registration settings:', settingsError.message);
         }
         
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
