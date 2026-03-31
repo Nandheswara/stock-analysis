@@ -1134,15 +1134,6 @@ function setupTableEventDelegation() {
 }
 
 /**
- * Escape single quotes for HTML attributes
- * @param {string} str - String to escape
- * @returns {string} Escaped string
- */
-function escapeSingleQuotes(str) {
-    return str.replace(/'/g, "\\'");
-}
-
-/**
  * Format value for display in table
  * @param {string} key - Metric key
  * @param {*} value - Value to format

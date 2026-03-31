@@ -296,31 +296,9 @@ function parseGrowwStats(htmlText) {
     lowerCircuit: null
   }
 
-  // Helper to clean numeric values
-  function cleanNumber(str) {
-    if (!str) return null
-    // Remove currency symbols, commas, 'Cr', '%' etc and trim
-    const cleaned = str.replace(/[₹,Cr%]/g, '').trim()
-    const num = parseFloat(cleaned)
-    return isNaN(num) ? str.trim() : num
-  }
-
-  // Helper to find text content by pattern in the page
-  function findTextByPattern(pattern) {
-    const walker = document.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT, null, false)
-    let node
-    while (node = walker.nextNode()) {
-      const txt = node.textContent.trim()
-      if (pattern.test(txt)) {
-        return txt
-      }
-    }
-    return null
-  }
-
   // Method 1: Parse from table cells (td elements)
   const rows = Array.from(doc.querySelectorAll('td'))
-  
+
   function findValueByLabel(labelRegex, nextSiblingIndex = 1) {
     for (const td of rows) {
       const txt = td.textContent && td.textContent.trim()
@@ -337,22 +315,6 @@ function parseGrowwStats(htmlText) {
         if (valueTd) {
           const val = valueTd.textContent && valueTd.textContent.trim()
           if (val) return val
-        }
-      }
-    }
-    return null
-  }
-
-  // Method 2: Parse from common Groww page structure (div based)
-  function findValueFromDivStructure(labelText) {
-    // Groww uses div structures where label and value are siblings or nearby
-    const allDivs = doc.querySelectorAll('div')
-    for (const div of allDivs) {
-      const children = div.children
-      if (children.length >= 2) {
-        const firstChild = children[0].textContent?.trim()
-        if (firstChild && firstChild.toLowerCase().includes(labelText.toLowerCase())) {
-          return children[1].textContent?.trim() || null
         }
       }
     }
@@ -916,11 +878,11 @@ function parseYahooStats(htmlText) {
   // Yahoo Finance shows Beta in "Stock Price History" section under "Trading Information"
   let betaValue = null
   
-  // Method 1: Look for Beta in Yahoo Finance's modern structure with fin-streamer tags
-  // Yahoo uses <fin-streamer> or similar custom elements
-  const allElements = Array.from(doc.querySelectorAll('*'))
-  for (let i = 0; i < allElements.length; i++) {
-    const elem = allElements[i]
+  // Method 1: Look for Beta in Yahoo Finance's modern structure
+  // Use targeted selectors instead of querying all elements
+  const betaCandidates = Array.from(doc.querySelectorAll('td, th, span, div, fin-streamer'))
+  for (let i = 0; i < betaCandidates.length; i++) {
+    const elem = betaCandidates[i]
     const text = elem.textContent?.trim() || ''
     
     // Look for "Beta (5Y Monthly)" label

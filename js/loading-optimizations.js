@@ -283,13 +283,6 @@
         }
     };
     
-    // Expose utilities globally
-    window.ResourcePreloader = ResourcePreloader;
-    window.ImageLazyLoader = ImageLazyLoader;
-    window.ScriptLoader = ScriptLoader;
-    window.PerfTiming = PerfTiming;
-    window.ConnectionAware = ConnectionAware;
-    
     // Auto-initialize on DOM ready
     document.addEventListener('DOMContentLoaded', function() {
         // Initialize image lazy loading

@@ -16,17 +16,19 @@ import {
     listenToPortfolio,
     syncPortfolioToFirebase
 } from './firebase-portfolio-service.js';
-import { 
-    getCurrentUser, 
-    onAuthStateChangedWrapper as onAuthStateChanged, 
-    loginUser, 
-    signupUser, 
+import {
+    getCurrentUser,
+    onAuthStateChangedWrapper as onAuthStateChanged,
+    loginUser,
+    signupUser,
     logoutUser,
     initAuthListener,
     signInWithGoogle,
     isAuthenticated,
-    changePassword
+    changePassword,
+    resetPassword
 } from './firebase-auth-service.js';
+import { escapeHtml } from './utils.js';
 
 /**
  * Constants for brokerage and tax calculations
@@ -603,7 +605,7 @@ function renderStocksTable() {
 
     tbody.innerHTML = stocks.map(stock => `
         <tr>
-            <td class="stock-name">${stock.name}</td>
+            <td class="stock-name">${escapeHtml(stock.name)}</td>
             <td>${stock.quantity}</td>
             <td>${formatCurrency(stock.buyPrice)}</td>
             <td>${stock.sellPrice ? formatCurrency(stock.sellPrice) : '—'}</td>
@@ -791,7 +793,7 @@ async function saveEditStock() {
 /**
  * Deletes a stock from the portfolio
  */
-function deleteStock(stockId) {
+async function deleteStock(stockId) {
     // Check if user is authenticated
     if (!isAuthenticated()) {
         showNotification('Please sign in to delete stocks', 'error');
@@ -800,10 +802,15 @@ function deleteStock(stockId) {
     }
 
     if (confirm('Are you sure you want to delete this stock?')) {
-        portfolioManager.removeStock(stockId);
-        renderStocksTable();
-        updateSummaryDisplay();
-        showNotification('Stock deleted successfully!');
+        try {
+            await portfolioManager.removeStock(stockId);
+            renderStocksTable();
+            updateSummaryDisplay();
+            showNotification('Stock deleted successfully!');
+        } catch (error) {
+            console.error('Error deleting stock:', error);
+            showNotification('Failed to delete stock. Please try again.', 'error');
+        }
     }
 }
 
@@ -1191,8 +1198,6 @@ async function handlePasswordReset() {
     }
 
     try {
-        // Assuming resetPassword function exists in firebase-auth-service
-        const { resetPassword } = await import('./firebase-auth-service.js');
         const result = await resetPassword(email);
         if (result.success) {
             showAuthAlert('Password reset email sent! Check your inbox.', 'success');

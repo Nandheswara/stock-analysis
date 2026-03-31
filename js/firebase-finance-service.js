@@ -15,6 +15,7 @@
 
 import { database } from './firebase-config.js';
 import { getCurrentUser, waitForAuthReady } from './firebase-auth-service.js';
+import { getEffectiveUserId } from './firebase-database-service.js';
 import { 
     ref, 
     set, 
@@ -39,16 +40,6 @@ const CACHE_KEYS = {
 const CACHE_DURATION = 60 * 60 * 1000; // 1 hour
 
 let listeners = {};
-
-/**
- * Get effective user ID (handles impersonation)
- */
-function getEffectiveUserId() {
-    const impersonatedUserId = sessionStorage.getItem('impersonatedUserId');
-    if (impersonatedUserId) return impersonatedUserId;
-    const user = getCurrentUser();
-    return user ? user.uid : null;
-}
 
 /**
  * Get authenticated user, waiting for auth if needed

@@ -66,7 +66,7 @@ window.addEventListener('offline', () => {
  * If admin is impersonating a user, returns the impersonated user's ID
  * @returns {string|null} Effective user ID
  */
-function getEffectiveUserId() {
+export function getEffectiveUserId() {
     // Check for impersonation
     const impersonatedUserId = sessionStorage.getItem('impersonatedUserId');
     if (impersonatedUserId) {
@@ -151,39 +151,6 @@ function clearLocalCache(userId) {
     } catch (error) {
         // Silent fail
     }
-}
-
-/**
- * Get user-specific database reference
- * Uses effective user ID to support impersonation
- * @returns {Object} Firebase database reference for current/impersonated user's stocks
- */
-function getUserStocksRef() {
-    const user = getCurrentUser();
-    if (!user) {
-        throw new Error('User must be authenticated');
-    }
-    
-    // Use effective user ID (handles impersonation)
-    const effectiveUserId = getEffectiveUserId();
-    return ref(database, `users/${effectiveUserId}/stocks`);
-}
-
-/**
- * Get reference to a specific stock
- * Uses effective user ID to support impersonation
- * @param {string} stockId - Stock ID
- * @returns {Object} Firebase database reference
- */
-function getStockRef(stockId) {
-    const user = getCurrentUser();
-    if (!user) {
-        throw new Error('User must be authenticated');
-    }
-    
-    // Use effective user ID (handles impersonation)
-    const effectiveUserId = getEffectiveUserId();
-    return ref(database, `users/${effectiveUserId}/stocks/${stockId}`);
 }
 
 /**

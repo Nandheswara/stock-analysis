@@ -41,23 +41,6 @@ let isCacheWarmed = false;
 let pendingPortfolioSetup = null;
 
 /**
- * Get effective user ID (handles impersonation)
- * If admin is impersonating a user, returns the impersonated user's ID
- * @returns {string|null} Effective user ID
- */
-function getEffectiveUserId() {
-    // Check for impersonation
-    const impersonatedUserId = sessionStorage.getItem('impersonatedUserId');
-    if (impersonatedUserId) {
-        return impersonatedUserId;
-    }
-    
-    // Return actual user ID
-    const user = getCurrentUser();
-    return user ? user.uid : null;
-}
-
-/**
  * Save portfolio to localStorage cache
  * @param {string} userId - User ID
  * @param {Array} stocks - Portfolio stocks
@@ -93,39 +76,6 @@ function loadFromLocalCache(userId) {
         // Silent fail
     }
     return null;
-}
-
-/**
- * Get user-specific portfolio database reference
- * Uses effective user ID to support impersonation
- * @returns {Object|null} Firebase database reference
- */
-function getUserPortfolioRef() {
-    const user = getCurrentUser();
-    if (!user) {
-        return null;
-    }
-    
-    // Use effective user ID (handles impersonation)
-    const effectiveUserId = getEffectiveUserId();
-    return ref(database, `users/${effectiveUserId}/portfolio`);
-}
-
-/**
- * Get reference to a specific portfolio stock
- * Uses effective user ID to support impersonation
- * @param {string} stockId - Stock ID
- * @returns {Object|null} Firebase database reference
- */
-function getPortfolioStockRef(stockId) {
-    const user = getCurrentUser();
-    if (!user) {
-        return null;
-    }
-    
-    // Use effective user ID (handles impersonation)
-    const effectiveUserId = getEffectiveUserId();
-    return ref(database, `users/${effectiveUserId}/portfolio/${stockId}`);
 }
 
 /**

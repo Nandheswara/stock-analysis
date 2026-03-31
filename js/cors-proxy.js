@@ -4,8 +4,6 @@
 
 const http = require('http')
 const { URL } = require('url')
-const fs = require('fs')
-const path = require('path')
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 8080
 
