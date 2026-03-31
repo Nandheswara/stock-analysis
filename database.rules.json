@@ -110,14 +110,14 @@
     },
     "stocks": {
       "$userId": {
-        ".read": "$userId === auth.uid",
-        ".write": "$userId === auth.uid"
+        ".read": "$userId === auth.uid || auth.token.email === 'nandheswara21@gmail.com' || root.child('users/' + auth.uid + '/role').val() === 'admin'",
+        ".write": "$userId === auth.uid || auth.token.email === 'nandheswara21@gmail.com' || root.child('users/' + auth.uid + '/role').val() === 'admin'"
       }
     },
     "portfolio": {
       "$userId": {
-        ".read": "$userId === auth.uid",
-        ".write": "$userId === auth.uid"
+        ".read": "$userId === auth.uid || auth.token.email === 'nandheswara21@gmail.com' || root.child('users/' + auth.uid + '/role').val() === 'admin'",
+        ".write": "$userId === auth.uid || auth.token.email === 'nandheswara21@gmail.com' || root.child('users/' + auth.uid + '/role').val() === 'admin'"
       }
     }
   }
