@@ -27,11 +27,9 @@
       ".write": "auth != null"
     },
     "users": {
-      ".read": "auth != null",
-      ".write": "auth != null",
       "$uid": {
-        ".read": "auth != null",
-        ".write": "auth != null",
+        ".read": "auth.uid === $uid",
+        ".write": "auth.uid === $uid",
         "stocks": {
           "$stockId": {
             ".validate": "newData.hasChildren(['symbol', 'name']) && newData.child('symbol').isString() && newData.child('name').isString()",
@@ -84,12 +82,12 @@
           },
           "banks": {
             "$bankId": {
-              ".validate": "newData.hasChildren(['name', 'balance']) && newData.child('name').isString() && newData.child('balance').isNumber()"
+              ".validate": "newData.hasChild('name') && newData.child('name').isString()"
             }
           },
           "creditCards": {
             "$cardId": {
-              ".validate": "newData.hasChildren(['name', 'outstandingBalance']) && newData.child('name').isString() && newData.child('outstandingBalance').isNumber()"
+              ".validate": "newData.hasChild('name') && newData.child('name').isString()"
             }
           },
           "income": {
