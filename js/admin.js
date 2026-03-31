@@ -887,7 +887,7 @@ window.openUserActions = function(userId) {
     updateToggleStatusButton(user.status || 'active');
     
     // Show modal
-    const modal = new bootstrap.Modal(document.getElementById('userActionsModal'));
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('userActionsModal'));
     modal.show();
 };
 
@@ -1344,10 +1344,17 @@ async function viewUserData() {
     
     document.getElementById('dataUserEmail').textContent = user.email;
     
-    // Close actions modal, open data modal
-    bootstrap.Modal.getInstance(document.getElementById('userActionsModal')).hide();
+    // Reset all content areas to loading state for clean view
+    const loadingSpinner = '<div class="text-center py-4"><div class="spinner-border" role="status"></div></div>';
+    ['userStocksContent', 'userPortfolioContent', 'userFinanceCategoriesContent', 'userFinanceBanksContent', 'userFinanceCardsContent', 'userFinanceIncomeContent'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = loadingSpinner;
+    });
     
-    const dataModal = new bootstrap.Modal(document.getElementById('viewUserDataModal'));
+    // Close actions modal, open data modal
+    bootstrap.Modal.getInstance(document.getElementById('userActionsModal'))?.hide();
+    
+    const dataModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('viewUserDataModal'));
     dataModal.show();
     
     // Load stocks data
@@ -1468,7 +1475,7 @@ async function viewUserData() {
             
             const rows = categoriesArray.map(([catId, cat]) => {
                 const items = cat.items ? Object.values(cat.items) : [];
-                const catTotal = items.reduce((sum, item) => sum + (parseFloat(item.currentValue) || 0), 0);
+                const catTotal = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
                 totalValue += catTotal;
                 totalItems += items.length;
                 
@@ -1521,9 +1528,20 @@ async function viewUserData() {
         
         if (banksSnapshot.exists()) {
             const banks = banksSnapshot.val();
-            const banksArray = Object.values(banks);
+            const banksArray = Object.entries(banks);
             
-            const totalBalance = banksArray.reduce((sum, b) => sum + (parseFloat(b.balance) || 0), 0);
+            // Get latest month balance for each bank
+            function getLatestBankBalance(bank) {
+                if (bank.balances) {
+                    const months = Object.keys(bank.balances).sort();
+                    if (months.length > 0) {
+                        return parseFloat(bank.balances[months[months.length - 1]]) || 0;
+                    }
+                }
+                return parseFloat(bank.balance) || 0;
+            }
+            
+            const totalBalance = banksArray.reduce((sum, [, b]) => sum + getLatestBankBalance(b), 0);
             
             banksContent.innerHTML = `
                 <div class="table-responsive">
@@ -1532,15 +1550,15 @@ async function viewUserData() {
                             <tr>
                                 <th>Bank Name</th>
                                 <th>Account Type</th>
-                                <th>Balance</th>
+                                <th>Latest Balance</th>
                             </tr>
                         </thead>
                         <tbody>
-                            ${banksArray.map(b => `
+                            ${banksArray.map(([, b]) => `
                                 <tr>
                                     <td>${escapeHtml(b.name || b.bankName || 'N/A')}</td>
                                     <td>${escapeHtml(b.accountType || b.type || 'N/A')}</td>
-                                    <td>₹${(parseFloat(b.balance) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td>₹${getLatestBankBalance(b).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -1573,10 +1591,21 @@ async function viewUserData() {
         
         if (cardsSnapshot.exists()) {
             const cards = cardsSnapshot.val();
-            const cardsArray = Object.values(cards);
+            const cardsArray = Object.entries(cards);
             
-            const totalLimit = cardsArray.reduce((sum, c) => sum + (parseFloat(c.creditLimit) || parseFloat(c.limit) || 0), 0);
-            const totalOutstanding = cardsArray.reduce((sum, c) => sum + (parseFloat(c.outstanding) || parseFloat(c.currentBalance) || 0), 0);
+            // Get latest month outstanding for each card
+            function getLatestCCOutstanding(card) {
+                if (card.balances) {
+                    const months = Object.keys(card.balances).sort();
+                    if (months.length > 0) {
+                        return parseFloat(card.balances[months[months.length - 1]]) || 0;
+                    }
+                }
+                return parseFloat(card.outstandingBalance) || parseFloat(card.outstanding) || 0;
+            }
+            
+            const totalLimit = cardsArray.reduce((sum, [, c]) => sum + (parseFloat(c.creditLimit) || parseFloat(c.limit) || 0), 0);
+            const totalOutstanding = cardsArray.reduce((sum, [, c]) => sum + getLatestCCOutstanding(c), 0);
             
             cardsContent.innerHTML = `
                 <div class="table-responsive">
@@ -1585,15 +1614,15 @@ async function viewUserData() {
                             <tr>
                                 <th>Card Name</th>
                                 <th>Credit Limit</th>
-                                <th>Outstanding</th>
+                                <th>Latest Outstanding</th>
                             </tr>
                         </thead>
                         <tbody>
-                            ${cardsArray.map(c => `
+                            ${cardsArray.map(([, c]) => `
                                 <tr>
                                     <td>${escapeHtml(c.name || c.cardName || 'N/A')}</td>
                                     <td>₹${(parseFloat(c.creditLimit) || parseFloat(c.limit) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    <td>₹${(parseFloat(c.outstanding) || parseFloat(c.currentBalance) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td>₹${getLatestCCOutstanding(c).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                 </tr>
                             `).join('')}
                         </tbody>
