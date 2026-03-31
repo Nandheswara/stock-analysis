@@ -16,6 +16,7 @@
  */
 
 import { auth, database } from '../js/firebase-config.js';
+import { escapeHtml } from '../js/utils.js';
 import { 
     initAuthListener, 
     getCurrentUser, 
@@ -1274,17 +1275,6 @@ function showEditItemModal(label, currentValue) {
         saveBtn.addEventListener('click', onSave);
         input.addEventListener('keydown', onKeydown);
     });
-}
-
-// ========================================
-// Escape HTML
-// ========================================
-
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
 }
 
 // ========================================

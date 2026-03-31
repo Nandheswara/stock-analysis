@@ -450,6 +450,9 @@ export function sanitizeHTML(str) {
     return div.innerHTML;
 }
 
+/** Alias for sanitizeHTML - prevents XSS by escaping HTML entities */
+export const escapeHtml = sanitizeHTML;
+
 /**
  * Escape string for use in HTML attributes
  * @param {string} str - String to escape

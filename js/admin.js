@@ -13,6 +13,7 @@
  */
 
 import { auth, database } from './firebase-config.js';
+import { escapeHtml, debounce } from './utils.js';
 import { 
     onAuthStateChanged,
     sendPasswordResetEmail,
@@ -61,6 +62,10 @@ let allUsers = [];
 let filteredUsers = [];
 let currentPage = 1;
 let selectedUserId = null;
+
+// Track Firebase listener unsubscribe functions for cleanup
+let unsubscribeAuditLogs = null;
+let unsubscribeRecentActivity = null;
 let impersonatedUserId = null;
 
 /* ========================================
@@ -127,7 +132,6 @@ function initAdminLoginForm() {
             }
             
             try {
-                const { signInWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js');
                 await signInWithEmailAndPassword(auth, email, password);
                 // Auth state listener will handle the rest
             } catch (error) {
@@ -1555,13 +1559,16 @@ async function logAuditAction(action, targetUserId, details) {
  */
 async function loadAuditLogs() {
     try {
+        // Unsubscribe previous listener to prevent duplicates
+        if (unsubscribeAuditLogs) unsubscribeAuditLogs();
+
         const logsRef = query(
             ref(database, 'adminLogs'),
             orderByChild('timestamp'),
             limitToLast(AUDIT_LOGS_LIMIT)
         );
-        
-        onValue(logsRef, (snapshot) => {
+
+        unsubscribeAuditLogs = onValue(logsRef, (snapshot) => {
             const tbody = document.getElementById('auditLogsBody');
             if (!tbody) return;
             
@@ -1601,13 +1608,16 @@ async function loadAuditLogs() {
  */
 async function loadRecentActivity() {
     try {
+        // Unsubscribe previous listener to prevent duplicates
+        if (unsubscribeRecentActivity) unsubscribeRecentActivity();
+
         const logsRef = query(
             ref(database, 'adminLogs'),
             orderByChild('timestamp'),
             limitToLast(10)
         );
-        
-        onValue(logsRef, (snapshot) => {
+
+        unsubscribeRecentActivity = onValue(logsRef, (snapshot) => {
             const feed = document.getElementById('activityFeed');
             if (!feed) return;
             
@@ -1880,11 +1890,13 @@ function exportUsers() {
         .join('\n');
     
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
+    link.href = url;
     link.download = `users_export_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
-    
+    URL.revokeObjectURL(url);
+
     showToast('Users exported successfully', 'success');
 }
 
@@ -1900,10 +1912,12 @@ async function backupData() {
         if (snapshot.exists()) {
             const data = snapshot.val();
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
+            link.href = url;
             link.download = `backup_${new Date().toISOString().split('T')[0]}.json`;
             link.click();
+            URL.revokeObjectURL(url);
             
             await logAuditAction('backup_created', null, 'Created full database backup');
             
@@ -2195,18 +2209,6 @@ function filterAuditLogs() {
    ======================================== */
 
 /**
- * Escape HTML to prevent XSS
- * @param {string} text - Text to escape
- * @returns {string}
- */
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-/**
  * Get user initials from display name or email
  * @param {string} displayName - User display name
  * @param {string} email - User email
@@ -2361,24 +2363,6 @@ function generatePassword() {
 }
 
 /**
- * Debounce function
- * @param {Function} func - Function to debounce
- * @param {number} wait - Wait time in ms
- * @returns {Function}
- */
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-}
-
-/**
  * Show toast notification
  * @param {string} message - Toast message
  * @param {string} type - Toast type (success, danger, warning, info)
@@ -2418,3 +2402,9 @@ function showToast(message, type = 'info') {
         toastElement.remove();
     });
 }
+
+// Cleanup Firebase listeners on page unload
+window.addEventListener('beforeunload', () => {
+    if (unsubscribeAuditLogs) unsubscribeAuditLogs();
+    if (unsubscribeRecentActivity) unsubscribeRecentActivity();
+});

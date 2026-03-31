@@ -17,13 +17,14 @@
    Firebase Auth Imports
    ======================================== */
 
-import { 
+import {
     initAuthListener,
     signInUser,
     signUpUser,
     signOutUser,
     signInWithGoogle
 } from './firebase-auth-service.js';
+import { escapeHtml } from './utils.js';
 
 /* ========================================
    Configuration
@@ -161,6 +162,12 @@ let marketStats = {
 };
 
 let marketStatsTimer = null;
+
+// Cleanup timers on page unload to prevent memory leaks
+window.addEventListener('beforeunload', () => {
+    if (marketStatsTimer) clearInterval(marketStatsTimer);
+    if (newsState.refreshTimer) clearInterval(newsState.refreshTimer);
+});
 
 /* ========================================
    Initialization
@@ -852,19 +859,23 @@ function calculateMarketSentiment() {
         'plunge', 'sink', 'slump', 'negative', 'weak', 'fear', 'crisis',
         'concern', 'worry', 'risk', 'volatile', 'correction'
     ];
-    
+
+    // Pre-compile regex patterns for performance
+    const positiveRegexes = positiveKeywords.map(kw => new RegExp(`\\b${kw}\\b`, 'gi'));
+    const negativeRegexes = negativeKeywords.map(kw => new RegExp(`\\b${kw}\\b`, 'gi'));
+
     let positiveCount = 0;
     let negativeCount = 0;
-    
+
     newsState.allNews.forEach(news => {
         const text = (news.title + ' ' + news.description).toLowerCase();
-        positiveKeywords.forEach(kw => {
-            const regex = new RegExp(`\\b${kw}\\b`, 'gi');
+        positiveRegexes.forEach(regex => {
+            regex.lastIndex = 0;
             const matches = text.match(regex);
             if (matches) positiveCount += matches.length;
         });
-        negativeKeywords.forEach(kw => {
-            const regex = new RegExp(`\\b${kw}\\b`, 'gi');
+        negativeRegexes.forEach(regex => {
+            regex.lastIndex = 0;
             const matches = text.match(regex);
             if (matches) negativeCount += matches.length;
         });
@@ -1621,18 +1632,6 @@ function startAutoRefresh() {
     newsState.refreshTimer = setInterval(() => {
         loadNewsData();
     }, NEWS_CONFIG.REFRESH_INTERVAL);
-}
-
-/**
- * Escape HTML to prevent XSS
- * @param {string} text - Text to escape
- * @returns {string} Escaped text
- */
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
 }
 
 /**

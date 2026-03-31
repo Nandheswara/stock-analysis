@@ -968,7 +968,7 @@ export async function sendVerificationEmail() {
     } catch (error) {
         return { 
             success: false, 
-            error: getErrorMessage(error.code) 
+            error: getAuthErrorMessage(error.code) 
         };
     }
 }

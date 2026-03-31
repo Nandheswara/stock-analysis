@@ -91,6 +91,19 @@ function initTheme() {
  */
 const PRIMARY_ADMIN_EMAIL = 'nandheswara21@gmail.com';
 
+// Cached Firebase imports to avoid repeated dynamic imports
+let _firebaseCache = null;
+async function getFirebaseModules() {
+    if (!_firebaseCache) {
+        const [config, dbModule] = await Promise.all([
+            import('./firebase-config.js'),
+            import('https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js')
+        ]);
+        _firebaseCache = { ...config, ...dbModule };
+    }
+    return _firebaseCache;
+}
+
 /**
  * Check if current page is the admin page
  */
@@ -109,10 +122,7 @@ async function checkMaintenanceMode() {
     }
     
     try {
-        // Dynamically import Firebase modules
-        const { database } = await import('./firebase-config.js');
-        const { ref, get, set } = await import('https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js');
-        const { auth } = await import('./firebase-config.js');
+        const { database, auth, ref, get, set } = await getFirebaseModules();
         
         // Check maintenance mode setting
         const maintenanceRef = ref(database, 'maintenanceMode');
@@ -245,10 +255,8 @@ function showMaintenanceOverlay(message, estimatedEndTime) {
  */
 async function checkAnnouncements() {
     try {
-        // Dynamically import Firebase modules
-        const { database } = await import('./firebase-config.js');
-        const { ref, get } = await import('https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js');
-        
+        const { database, ref, get } = await getFirebaseModules();
+
         const announcementsRef = ref(database, 'announcements');
         const snapshot = await get(announcementsRef);
         
@@ -378,9 +386,8 @@ async function checkSystemSettings() {
     }
     
     try {
-        const { database } = await import('./firebase-config.js');
-        const { ref, get } = await import('https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js');
-        
+        const { database, ref, get } = await getFirebaseModules();
+
         const settingsRef = ref(database, 'systemSettings');
         const snapshot = await get(settingsRef);
         
@@ -534,12 +541,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Check impersonation immediately
     checkImpersonation();
-    
-    // Check maintenance mode and announcements after a small delay
-    // to allow Firebase to initialize
-    setTimeout(() => {
-        checkMaintenanceMode();
-        checkAnnouncements();
-        checkSystemSettings();
-    }, 500);
+
+    // Initialize Firebase checks - no need for setTimeout,
+    // dynamic imports in getFirebaseModules() handle the async loading
+    Promise.all([
+        checkMaintenanceMode(),
+        checkAnnouncements(),
+        checkSystemSettings()
+    ]).catch(err => console.warn('Firebase checks failed:', err));
 });
