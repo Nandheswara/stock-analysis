@@ -1451,6 +1451,227 @@ async function viewUserData() {
             <div class="alert alert-danger">Error loading portfolio data</div>
         `;
     }
+    
+    // Load finance tracker - categories/investments
+    try {
+        const categoriesRef = ref(database, `users/${selectedUserId}/finance/categories`);
+        const categoriesSnapshot = await get(categoriesRef);
+        
+        const categoriesContent = document.getElementById('userFinanceCategoriesContent');
+        
+        if (categoriesSnapshot.exists()) {
+            const categories = categoriesSnapshot.val();
+            const categoriesArray = Object.entries(categories);
+            
+            let totalValue = 0;
+            let totalItems = 0;
+            
+            const rows = categoriesArray.map(([catId, cat]) => {
+                const items = cat.items ? Object.values(cat.items) : [];
+                const catTotal = items.reduce((sum, item) => sum + (parseFloat(item.currentValue) || 0), 0);
+                totalValue += catTotal;
+                totalItems += items.length;
+                
+                return `
+                    <tr>
+                        <td>${escapeHtml(cat.name || 'N/A')}</td>
+                        <td>${items.length}</td>
+                        <td>₹${catTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    </tr>
+                `;
+            }).join('');
+            
+            categoriesContent.innerHTML = `
+                <div class="table-responsive">
+                    <table class="table table-dark table-sm">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Items</th>
+                                <th>Total Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+                <p class="text-muted mt-2">Total: ${categoriesArray.length} categories, ${totalItems} items, ₹${totalValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            `;
+        } else {
+            categoriesContent.innerHTML = `
+                <div class="empty-state">
+                    <i class="bi bi-collection"></i>
+                    <h5>No Investment Categories</h5>
+                    <p>This user has no finance tracker investment data.</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading finance categories:', error);
+        document.getElementById('userFinanceCategoriesContent').innerHTML = `
+            <div class="alert alert-danger">Error loading investment categories data</div>
+        `;
+    }
+    
+    // Load finance tracker - banks
+    try {
+        const banksRef = ref(database, `users/${selectedUserId}/finance/banks`);
+        const banksSnapshot = await get(banksRef);
+        
+        const banksContent = document.getElementById('userFinanceBanksContent');
+        
+        if (banksSnapshot.exists()) {
+            const banks = banksSnapshot.val();
+            const banksArray = Object.values(banks);
+            
+            const totalBalance = banksArray.reduce((sum, b) => sum + (parseFloat(b.balance) || 0), 0);
+            
+            banksContent.innerHTML = `
+                <div class="table-responsive">
+                    <table class="table table-dark table-sm">
+                        <thead>
+                            <tr>
+                                <th>Bank Name</th>
+                                <th>Account Type</th>
+                                <th>Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${banksArray.map(b => `
+                                <tr>
+                                    <td>${escapeHtml(b.name || b.bankName || 'N/A')}</td>
+                                    <td>${escapeHtml(b.accountType || b.type || 'N/A')}</td>
+                                    <td>₹${(parseFloat(b.balance) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-muted mt-2">Total: ${banksArray.length} accounts, ₹${totalBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            `;
+        } else {
+            banksContent.innerHTML = `
+                <div class="empty-state">
+                    <i class="bi bi-bank"></i>
+                    <h5>No Bank Accounts</h5>
+                    <p>This user has no bank accounts data.</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading banks:', error);
+        document.getElementById('userFinanceBanksContent').innerHTML = `
+            <div class="alert alert-danger">Error loading bank accounts data</div>
+        `;
+    }
+    
+    // Load finance tracker - credit cards
+    try {
+        const cardsRef = ref(database, `users/${selectedUserId}/finance/creditCards`);
+        const cardsSnapshot = await get(cardsRef);
+        
+        const cardsContent = document.getElementById('userFinanceCardsContent');
+        
+        if (cardsSnapshot.exists()) {
+            const cards = cardsSnapshot.val();
+            const cardsArray = Object.values(cards);
+            
+            const totalLimit = cardsArray.reduce((sum, c) => sum + (parseFloat(c.creditLimit) || parseFloat(c.limit) || 0), 0);
+            const totalOutstanding = cardsArray.reduce((sum, c) => sum + (parseFloat(c.outstanding) || parseFloat(c.currentBalance) || 0), 0);
+            
+            cardsContent.innerHTML = `
+                <div class="table-responsive">
+                    <table class="table table-dark table-sm">
+                        <thead>
+                            <tr>
+                                <th>Card Name</th>
+                                <th>Credit Limit</th>
+                                <th>Outstanding</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${cardsArray.map(c => `
+                                <tr>
+                                    <td>${escapeHtml(c.name || c.cardName || 'N/A')}</td>
+                                    <td>₹${(parseFloat(c.creditLimit) || parseFloat(c.limit) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td>₹${(parseFloat(c.outstanding) || parseFloat(c.currentBalance) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-muted mt-2">Total: ${cardsArray.length} cards, Limit: ₹${totalLimit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}, Outstanding: ₹${totalOutstanding.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            `;
+        } else {
+            cardsContent.innerHTML = `
+                <div class="empty-state">
+                    <i class="bi bi-credit-card"></i>
+                    <h5>No Credit Cards</h5>
+                    <p>This user has no credit card data.</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading credit cards:', error);
+        document.getElementById('userFinanceCardsContent').innerHTML = `
+            <div class="alert alert-danger">Error loading credit cards data</div>
+        `;
+    }
+    
+    // Load finance tracker - income
+    try {
+        const incomeRef = ref(database, `users/${selectedUserId}/finance/income`);
+        const incomeSnapshot = await get(incomeRef);
+        
+        const incomeContent = document.getElementById('userFinanceIncomeContent');
+        
+        if (incomeSnapshot.exists()) {
+            const income = incomeSnapshot.val();
+            const incomeEntries = Object.entries(income).sort(([a], [b]) => b.localeCompare(a));
+            
+            incomeContent.innerHTML = `
+                <div class="table-responsive">
+                    <table class="table table-dark table-sm">
+                        <thead>
+                            <tr>
+                                <th>Month</th>
+                                <th>Salary</th>
+                                <th>Other Income</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${incomeEntries.map(([month, data]) => {
+                                const salary = parseFloat(data.salary) || 0;
+                                const other = parseFloat(data.other) || parseFloat(data.otherIncome) || 0;
+                                return `
+                                    <tr>
+                                        <td>${escapeHtml(month)}</td>
+                                        <td>₹${salary.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                        <td>₹${other.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                        <td>₹${(salary + other).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-muted mt-2">Total: ${incomeEntries.length} months of income data</p>
+            `;
+        } else {
+            incomeContent.innerHTML = `
+                <div class="empty-state">
+                    <i class="bi bi-cash-stack"></i>
+                    <h5>No Income Data</h5>
+                    <p>This user has no income records.</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading income:', error);
+        document.getElementById('userFinanceIncomeContent').innerHTML = `
+            <div class="alert alert-danger">Error loading income data</div>
+        `;
+    }
 }
 
 /**
@@ -1466,6 +1687,7 @@ async function deleteUserData() {
     try {
         await remove(ref(database, `stocks/${selectedUserId}`));
         await remove(ref(database, `portfolio/${selectedUserId}`));
+        await remove(ref(database, `users/${selectedUserId}/finance`));
         
         await logAuditAction('data_deleted', selectedUserId, `Deleted all data for: ${user?.email}`);
         
