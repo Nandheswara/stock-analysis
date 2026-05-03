@@ -409,6 +409,46 @@ async function checkSystemSettings() {
 }
 
 /**
+ * Check whether the page is being served from the local file system.
+ * Firebase authentication and Realtime Database access require an HTTP/HTTPS origin.
+ * @returns {boolean}
+ */
+function isLocalFileProtocol() {
+    return window.location.protocol === 'file:';
+}
+
+/**
+ * Show a warning banner when the app is opened from the file system.
+ */
+function showLocalFileProtocolWarning() {
+    if (!isLocalFileProtocol()) {
+        return;
+    }
+
+    if (document.getElementById('localFileAuthWarning')) {
+        return;
+    }
+
+    const warning = document.createElement('div');
+    warning.id = 'localFileAuthWarning';
+    warning.style.cssText = 'position:sticky;top:0;left:0;width:100%;z-index:10550;padding:0.9rem 1rem;margin:0;background:#fff3cd;color:#856404;border:1px solid #ffeeba;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:1rem;font-size:0.95rem;';
+    warning.innerHTML = `
+        <div>
+            <strong>Warning:</strong> This app is opened from a <code>file://</code> URL. Firebase authentication and database access require a local web server.
+            Please serve the project from <code>http://localhost</code> (for example, with <code>python -m http.server</code> or a simple Node.js server).
+        </div>
+        <button type="button" aria-label="Dismiss warning" style="background:none;border:none;font-size:1.2rem;line-height:1;color:#856404;cursor:pointer;">&times;</button>
+    `;
+
+    const dismissButton = warning.querySelector('button');
+    if (dismissButton) {
+        dismissButton.addEventListener('click', () => warning.remove());
+    }
+
+    document.body.prepend(warning);
+}
+
+/**
  * Show feature disabled overlay
  * @param {string} featureName - Name of the disabled feature
  */
@@ -541,11 +581,18 @@ document.addEventListener('DOMContentLoaded', function() {
     // Check impersonation immediately
     checkImpersonation();
 
-    // Initialize Firebase checks - no need for setTimeout,
-    // dynamic imports in getFirebaseModules() handle the async loading
-    Promise.all([
-        checkMaintenanceMode(),
-        checkAnnouncements(),
-        checkSystemSettings()
-    ]).catch(err => console.warn('Firebase checks failed:', err));
+    // Show a helpful warning when the app is opened from file://
+    showLocalFileProtocolWarning();
+
+    if (!isLocalFileProtocol()) {
+        // Initialize Firebase checks - no need for setTimeout,
+        // dynamic imports in getFirebaseModules() handle the async loading
+        Promise.all([
+            checkMaintenanceMode(),
+            checkAnnouncements(),
+            checkSystemSettings()
+        ]).catch(err => console.warn('Firebase checks failed:', err));
+    } else {
+        console.warn('Skipped Firebase runtime checks because the app is loaded from file://. Use a local web server for full Firebase functionality.');
+    }
 });

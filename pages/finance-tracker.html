@@ -294,27 +294,9 @@
                 </button>
             </div>
 
-            <!-- Income Entry -->
-            <div class="income-section">
-                <h3><i class="bi bi-cash-coin"></i> Monthly Income</h3>
-                <form class="income-form" id="incomeForm">
-                    <div class="form-group">
-                        <label for="incomeSalary">Salary / Primary Income</label>
-                        <input type="number" id="incomeSalary" placeholder="₹0" min="0" step="0.01">
-                    </div>
-                    <div class="form-group">
-                        <label for="incomeOther">Other Income</label>
-                        <input type="number" id="incomeOther" placeholder="₹0" min="0" step="0.01">
-                    </div>
-                    <button type="submit" class="income-save-btn">
-                        <i class="bi bi-check-lg"></i> Save
-                    </button>
-                </form>
-            </div>
-
             <!-- Financial Summary Bar: Income | Expenditure | Invested -->
             <div class="financial-summary-bar">
-                <div class="summary-metric income-metric">
+                <div class="summary-metric income-metric clickable" onclick="openEditIncomeModal()" role="button" tabindex="0">
                     <i class="bi bi-cash-stack metric-icon"></i>
                     <div class="metric-label">Income</div>
                     <div class="metric-value" id="summaryIncome">₹0</div>
@@ -331,6 +313,18 @@
                     <div class="metric-label">Invested</div>
                     <div class="metric-value" id="summaryInvested">₹0</div>
                     <div class="metric-sub" id="summaryInvestedSub">vs last month</div>
+                </div>
+                <div class="summary-metric bank-balance-metric">
+                    <i class="bi bi-wallet2 metric-icon"></i>
+                    <div class="metric-label">Bank Balance</div>
+                    <div class="metric-value" id="summaryBankBalance">₹0</div>
+                    <div class="metric-sub" id="summaryBankBalanceSub">Total bank balances</div>
+                </div>
+                <div class="summary-metric tax-metric clickable" onclick="openEditTaxModal()" role="button" tabindex="0">
+                    <i class="bi bi-percent metric-icon"></i>
+                    <div class="metric-label">Tax</div>
+                    <div class="metric-value" id="summaryTax">₹0</div>
+                    <div class="metric-sub" id="summaryTaxSub">Tax tracking not enabled</div>
                 </div>
             </div>
 
@@ -400,15 +394,15 @@
                 </div>
             </div>
 
-            <!-- Credit Cards -->
+            <!-- Expenses -->
             <div class="finance-section">
                 <div class="finance-section-header">
                     <h2 class="finance-section-title">
-                        <i class="bi bi-credit-card" style="color:var(--accent-danger);"></i> Credit Cards (Liabilities)
+                        <i class="bi bi-wallet2" style="color:var(--accent-danger);"></i> Expenses
                     </h2>
                     <div class="finance-section-actions">
                         <button class="btn-finance btn-finance-danger" onclick="openAddCreditCardModal()">
-                            <i class="bi bi-plus-lg"></i> Add Card
+                            <i class="bi bi-plus-lg"></i> Add Expense
                         </button>
                     </div>
                 </div>
@@ -416,12 +410,12 @@
                     <table class="finance-table">
                         <thead>
                             <tr>
-                                <th>Card Name</th>
-                                <th>Issuer</th>
-                                <th>Outstanding</th>
-                                <th>Credit Limit</th>
-                                <th>Utilization</th>
-                                <th>Due Date</th>
+                                <th>Expense</th>
+                                <th>Type</th>
+                                <th>Outstanding / Amount</th>
+                                <th>Limit / Rate</th>
+                                <th>Due / Date</th>
+                                <th>Status</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -481,11 +475,50 @@
                     </h2>
                 </div>
                 <div class="export-section">
-                    <button class="export-btn" onclick="exportFinanceData()">
-                        <i class="bi bi-file-earmark-excel"></i> Download Excel Report
+                    <button class="export-btn" onclick="openExportModal()">
+                        <i class="bi bi-file-earmark-arrow-down"></i> Export Data
                     </button>
                 </div>
             </div>
+
+    <!-- Export Modal -->
+    <div class="finance-modal-overlay" id="exportModal">
+        <div class="finance-modal">
+            <div class="finance-modal-header">
+                <h3><i class="bi bi-file-earmark-arrow-down"></i> Export Finance Data</h3>
+                <button class="finance-modal-close" onclick="closeExportModal()" aria-label="Close export modal">&times;</button>
+            </div>
+            <div class="finance-modal-body">
+                <p class="text-muted">
+                    Choose the export range and file format. For year-wise export, pick January through December of the same year.
+                </p>
+                <form id="exportForm">
+                    <div class="form-group">
+                        <label for="exportFromMonth">From month</label>
+                        <input type="month" id="exportFromMonth" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="exportToMonth">To month</label>
+                        <input type="month" id="exportToMonth" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="exportFormatSelect">Download format</label>
+                        <select id="exportFormatSelect" class="form-select" aria-label="Select download format">
+                            <option value="xlsx">Excel (.xlsx)</option>
+                            <option value="csv">CSV (.csv)</option>
+                            <option value="pdf">PDF (.pdf)</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="finance-modal-footer">
+                <button class="btn-finance btn-finance-outline" onclick="closeExportModal()" type="button">Cancel</button>
+                <button class="btn-finance btn-finance-primary" onclick="exportFinanceData()" type="button">
+                    <i class="bi bi-download"></i> Export
+                </button>
+            </div>
+        </div>
+    </div>
 
         </div>
     </main>
@@ -546,6 +579,141 @@
         </div>
     </div>
 
+    <!-- Edit Income Modal -->
+    <div class="finance-modal-overlay" id="editIncomeModal">
+        <div class="finance-modal">
+            <div class="finance-modal-header">
+                <h3><i class="bi bi-pencil-square"></i> Edit Monthly Income</h3>
+                <button class="finance-modal-close" onclick="closeFinanceModal('editIncomeModal')">&times;</button>
+            </div>
+            <div class="finance-modal-body">
+                <form id="editIncomeForm">
+                    <div class="form-group">
+                        <label for="modalIncomeSalary">Salary / Primary Income</label>
+                        <input type="number" id="modalIncomeSalary" placeholder="₹0" min="0" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="modalIncomeOther">Other Income</label>
+                        <input type="number" id="modalIncomeOther" placeholder="₹0" min="0" step="0.01">
+                    </div>
+                </form>
+            </div>
+            <div class="finance-modal-footer">
+                <button class="btn-finance btn-finance-outline" onclick="closeFinanceModal('editIncomeModal')">Cancel</button>
+                <button class="btn-finance btn-finance-primary" onclick="submitEditIncome()">
+                    <i class="bi bi-check-lg"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Tax Modal -->
+    <div class="finance-modal-overlay" id="editTaxModal">
+        <div class="finance-modal">
+            <div class="finance-modal-header">
+                <h3><i class="bi bi-percent"></i> Edit Monthly Tax</h3>
+                <button class="finance-modal-close" onclick="closeFinanceModal('editTaxModal')">&times;</button>
+            </div>
+            <div class="finance-modal-body">
+                <form id="editTaxForm">
+                    <div class="form-group">
+                        <label for="modalTaxAmount">Tax Amount</label>
+                        <input type="number" id="modalTaxAmount" placeholder="₹0" min="0" step="0.01">
+                    </div>
+                </form>
+            </div>
+            <div class="finance-modal-footer">
+                <button class="btn-finance btn-finance-outline" onclick="closeFinanceModal('editTaxModal')">Cancel</button>
+                <button class="btn-finance btn-finance-primary" onclick="submitEditTax()">
+                    <i class="bi bi-check-lg"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Category Item Modal -->
+    <div class="finance-modal-overlay" id="categoryItemModal">
+        <div class="finance-modal">
+            <div class="finance-modal-header">
+                <h3><i class="bi bi-plus-circle"></i> Add Category Item</h3>
+                <button class="finance-modal-close" onclick="closeFinanceModal('categoryItemModal')">&times;</button>
+            </div>
+            <div class="finance-modal-body">
+                <form id="categoryItemForm">
+                    <input type="hidden" id="categoryItemCategoryId">
+                    <div class="form-group">
+                        <label for="categoryItemNameInput">Item Name</label>
+                        <input type="text" id="categoryItemNameInput" placeholder="e.g., SIP" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="categoryItemAmountInput">Amount</label>
+                        <input type="number" id="categoryItemAmountInput" placeholder="₹0" min="0" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="categoryItemMonthSelect">Month</label>
+                        <select id="categoryItemMonthSelect"></select>
+                    </div>
+                </form>
+            </div>
+            <div class="finance-modal-footer">
+                <button class="btn-finance btn-finance-outline" onclick="closeFinanceModal('categoryItemModal')">Cancel</button>
+                <button class="btn-finance btn-finance-primary" onclick="submitCategoryItemModal()">
+                    <i class="bi bi-check-lg"></i> Save Item
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Category Modal -->
+    <div class="finance-modal-overlay" id="editCategoryModal">
+        <div class="finance-modal">
+            <div class="finance-modal-header">
+                <h3><i class="bi bi-pencil-square"></i> Edit Category</h3>
+                <button class="finance-modal-close" onclick="closeFinanceModal('editCategoryModal')">&times;</button>
+            </div>
+            <div class="finance-modal-body">
+                <form id="editCategoryForm">
+                    <input type="hidden" id="editCategoryId">
+                    <div class="form-group">
+                        <label for="editCategoryNameInput">Category Name</label>
+                        <input type="text" id="editCategoryNameInput" placeholder="e.g., Mutual Funds" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Icon</label>
+                        <div class="icon-selector">
+                            <div class="icon-option" data-icon="bi-folder"><i class="bi bi-folder"></i></div>
+                            <div class="icon-option" data-icon="bi-graph-up-arrow"><i class="bi bi-graph-up-arrow"></i></div>
+                            <div class="icon-option" data-icon="bi-gem"><i class="bi bi-gem"></i></div>
+                            <div class="icon-option" data-icon="bi-safe"><i class="bi bi-safe"></i></div>
+                            <div class="icon-option" data-icon="bi-shield-check"><i class="bi bi-shield-check"></i></div>
+                            <div class="icon-option" data-icon="bi-house-door"><i class="bi bi-house-door"></i></div>
+                            <div class="icon-option" data-icon="bi-piggy-bank"><i class="bi bi-piggy-bank"></i></div>
+                            <div class="icon-option" data-icon="bi-cash-coin"><i class="bi bi-cash-coin"></i></div>
+                            <div class="icon-option" data-icon="bi-currency-rupee"><i class="bi bi-currency-rupee"></i></div>
+                            <div class="icon-option" data-icon="bi-bank"><i class="bi bi-bank"></i></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Color</label>
+                        <div class="color-selector">
+                            <div class="color-option" data-color="#7289ff" style="background:#7289ff;"></div>
+                            <div class="color-option" data-color="#3ddc84" style="background:#3ddc84;"></div>
+                            <div class="color-option" data-color="#ffb454" style="background:#ffb454;"></div>
+                            <div class="color-option" data-color="#ff6b6b" style="background:#ff6b6b;"></div>
+                            <div class="color-option" data-color="#e066ff" style="background:#e066ff;"></div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="finance-modal-footer">
+                <button class="btn-finance btn-finance-outline" onclick="closeFinanceModal('editCategoryModal')">Cancel</button>
+                <button class="btn-finance btn-finance-primary" onclick="submitEditCategory()">
+                    <i class="bi bi-check-lg"></i> Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Add Bank Modal -->
     <div class="finance-modal-overlay" id="addBankModal">
         <div class="finance-modal">
@@ -589,35 +757,71 @@
         </div>
     </div>
 
-    <!-- Add Credit Card Modal -->
+    <!-- Add Expense Modal -->
     <div class="finance-modal-overlay" id="addCreditCardModal">
         <div class="finance-modal">
             <div class="finance-modal-header">
-                <h3 id="addCreditCardModalTitle"><i class="bi bi-credit-card"></i> Add Credit Card</h3>
+                <h3 id="addCreditCardModalTitle"><i class="bi bi-wallet2"></i> Add Expense</h3>
                 <button class="finance-modal-close" onclick="closeFinanceModal('addCreditCardModal')">&times;</button>
             </div>
             <div class="finance-modal-body">
                 <form id="addCreditCardForm">
                     <input type="hidden" id="editCardId">
                     <div class="form-group">
-                        <label for="cardName">Card Name *</label>
-                        <input type="text" id="cardName" placeholder="e.g., HDFC Regalia" required>
+                        <label for="expenseTypeSelect">Expense Type *</label>
+                        <select id="expenseTypeSelect" onchange="onExpenseTypeChange()">
+                            <option value="credit-card">Credit Card</option>
+                            <option value="loan">Loan</option>
+                            <option value="general-expense">General Expense</option>
+                        </select>
                     </div>
                     <div class="form-group">
+                        <label for="cardName">Expense Name *</label>
+                        <input type="text" id="cardName" placeholder="e.g., HDFC Regalia" required>
+                    </div>
+                    <div class="form-group expense-field credit-card-fields">
                         <label for="cardIssuer">Issuer / Bank</label>
                         <input type="text" id="cardIssuer" placeholder="e.g., HDFC Bank">
                     </div>
-                    <div class="form-group">
-                        <label for="cardOutstanding">Outstanding Balance (₹)</label>
-                        <input type="number" id="cardOutstanding" placeholder="0" min="0" step="0.01">
+                    <div class="form-group expense-field loan-fields" style="display:none;">
+                        <label for="cardIssuerLoan">Lender / Institution</label>
+                        <input type="text" id="cardIssuerLoan" placeholder="e.g., SBI Home Loan">
+                    </div>
+                    <div class="form-group expense-field general-fields" style="display:none;">
+                        <label for="cardIssuerGeneral">Vendor / Category</label>
+                        <input type="text" id="cardIssuerGeneral" placeholder="e.g., Utilities, Rent">
                     </div>
                     <div class="form-group">
+                        <label for="cardOutstanding">Amount (₹)</label>
+                        <input type="number" id="cardOutstanding" placeholder="0" min="0" step="0.01">
+                    </div>
+                    <div class="form-group expense-field credit-card-fields">
                         <label for="cardLimit">Credit Limit (₹)</label>
                         <input type="number" id="cardLimit" placeholder="0" min="0" step="0.01">
                     </div>
-                    <div class="form-group">
+                    <div class="form-group expense-field loan-fields" style="display:none;">
+                        <label for="cardInterestRate">Interest Rate (%)</label>
+                        <input type="number" id="cardInterestRate" placeholder="0" min="0" step="0.01">
+                    </div>
+                    <div class="form-group expense-field credit-card-fields" style="display:none;">
                         <label for="cardDueDate">Due Date</label>
                         <input type="date" id="cardDueDate">
+                    </div>
+                    <div class="form-group expense-field general-fields" style="display:none;">
+                        <label for="cardExpenseDate">Expense Date</label>
+                        <input type="date" id="cardExpenseDate">
+                    </div>
+                    <div class="form-group expense-field general-fields" style="display:none;">
+                        <label for="cardNotes">Notes</label>
+                        <input type="text" id="cardNotes" placeholder="Optional note">
+                    </div>
+                    <div class="form-group expense-field credit-card-fields" style="display:none;">
+                        <label for="cardPaymentStatus">Payment Status</label>
+                        <select id="cardPaymentStatus">
+                            <option value="unpaid" selected>Unpaid</option>
+                            <option value="paid">Paid</option>
+                        </select>
+                        <small class="text-muted" style="display:block;margin-top:4px;">When marked as "Paid", this amount won't count towards your liabilities.</small>
                     </div>
                 </form>
             </div>
