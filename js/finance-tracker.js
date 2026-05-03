@@ -995,7 +995,8 @@ window.submitAddCategory = async function() {
     const result = await addCategory({
         name,
         icon: selectedIcon?.dataset.icon || 'bi-folder',
-        color: selectedColor?.dataset.color || '#7289ff'
+        color: selectedColor?.dataset.color || '#7289ff',
+        createdMonth: currentMonth
     });
 
     if (result.success) {
