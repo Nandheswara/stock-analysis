@@ -78,8 +78,12 @@ The proxy enables fetching data from Groww and Yahoo Finance. Without it, data f
 ### Local Development
 
 1. Clone or download this folder
-2. Open `index.html` in your web browser
-3. No server required - runs entirely in the browser!
+2. Run a local web server from the project root
+   - Example: `python -m http.server 8000`
+   - Or use a simple Node.js server of your choice
+3. Open `http://localhost:8000/index.html` in your browser
+
+> ⚠️ Opening files directly with `file://` will break Firebase Authentication and Realtime Database access. Use an HTTP origin such as `http://localhost` for login and cloud sync to work.
 
 ### GitHub Pages Deployment
 

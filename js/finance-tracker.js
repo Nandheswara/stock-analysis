@@ -44,6 +44,7 @@ import {
     updateCreditCard,
     deleteCreditCard,
     saveIncome,
+    saveTax,
     getIncome,
     saveMonthlySnapshot,
     listenToFinanceData,
@@ -62,6 +63,7 @@ let financeData = {
     banks: {},
     creditCards: {},
     income: {},
+    taxes: {},
     snapshots: {}
 };
 let charts = {};
@@ -86,6 +88,12 @@ function getMonthDisplay(monthKey) {
     const [year, month] = monthKey.split('-');
     const date = new Date(year, month - 1, 1);
     return date.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+}
+
+function getMonthFromTimestamp(timestamp) {
+    const value = Number(timestamp) ? new Date(Number(timestamp)) : new Date(timestamp);
+    if (Number.isNaN(value.getTime())) return null;
+    return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}`;
 }
 
 function getPreviousMonth(monthKey) {
@@ -146,9 +154,12 @@ function initMonthNavigator() {
     });
 
     document.getElementById('monthNextBtn').addEventListener('click', () => {
-        currentMonth = getNextMonth(currentMonth);
-        updateMonthDisplay();
-        renderAll();
+        const next = getNextMonth(currentMonth);
+        if (next <= getCurrentMonthKey()) {
+            currentMonth = next;
+            updateMonthDisplay();
+            renderAll();
+        }
     });
 
     document.getElementById('monthCurrentBtn').addEventListener('click', () => {
@@ -162,7 +173,12 @@ function initMonthNavigator() {
 
 function updateMonthDisplay() {
     document.getElementById('monthDisplay').textContent = getMonthDisplay(currentMonth);
-    const isCurrentMonth = currentMonth === getCurrentMonthKey();
+    const currentKey = getCurrentMonthKey();
+    const isCurrentMonth = currentMonth === currentKey;
+    const nextButton = document.getElementById('monthNextBtn');
+    nextButton.disabled = isCurrentMonth || currentMonth > currentKey;
+    nextButton.classList.toggle('disabled', nextButton.disabled);
+
     const btn = document.getElementById('monthCurrentBtn');
     btn.classList.toggle('active', isCurrentMonth);
     btn.textContent = isCurrentMonth ? '● Current' : 'Today';
@@ -173,24 +189,80 @@ function updateMonthDisplay() {
 // ========================================
 
 function initIncomeSection() {
-    document.getElementById('incomeForm').addEventListener('submit', async (e) => {
+    document.getElementById('editIncomeForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const salary = parseFloat(document.getElementById('incomeSalary').value) || 0;
-        const otherIncome = parseFloat(document.getElementById('incomeOther').value) || 0;
-        
-        const result = await saveIncome(currentMonth, { salary, otherIncome });
-        if (result.success) {
-            showToast('Income saved successfully!', 'success');
-        } else {
-            showToast('Failed to save income. ' + (result.error || ''), 'error');
-        }
+        await submitEditIncome();
+    });
+    document.getElementById('editTaxForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await submitEditTax();
+    });
+    document.querySelectorAll('.summary-metric.clickable').forEach(el => {
+        el.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                el.click();
+            }
+        });
     });
 }
 
+window.openEditIncomeModal = function() {
+    const monthIncome = financeData.income[currentMonth] || { salary: 0, otherIncome: 0 };
+    document.getElementById('modalIncomeSalary').value = monthIncome.salary || 0;
+    document.getElementById('modalIncomeOther').value = monthIncome.otherIncome || 0;
+    openModal('editIncomeModal');
+    setTimeout(() => document.getElementById('modalIncomeSalary').focus(), 100);
+};
+
+window.submitEditIncome = async function() {
+    const salary = parseFloat(document.getElementById('modalIncomeSalary').value) || 0;
+    const otherIncome = parseFloat(document.getElementById('modalIncomeOther').value) || 0;
+
+    const result = await saveIncome(currentMonth, { salary, otherIncome });
+    if (result.success) {
+        closeModal('editIncomeModal');
+        showToast('Income updated successfully!', 'success');
+    } else {
+        showToast('Failed to save income. ' + (result.error || ''), 'error');
+    }
+};
+
+window.openEditTaxModal = function() {
+    const monthTax = financeData.taxes?.[currentMonth] || { tax: 0 };
+    document.getElementById('modalTaxAmount').value = monthTax.tax || 0;
+    openModal('editTaxModal');
+    setTimeout(() => document.getElementById('modalTaxAmount').focus(), 100);
+};
+
+window.submitEditTax = async function() {
+    const tax = parseFloat(document.getElementById('modalTaxAmount').value) || 0;
+    const result = await saveTax(currentMonth, { tax });
+    if (result.success) {
+        closeModal('editTaxModal');
+        showToast('Tax updated successfully!', 'success');
+    } else {
+        showToast('Failed to save tax. ' + (result.error || ''), 'error');
+    }
+};
+
 function renderIncome() {
-    const monthIncome = financeData.income[currentMonth];
-    document.getElementById('incomeSalary').value = monthIncome?.salary || '';
-    document.getElementById('incomeOther').value = monthIncome?.otherIncome || '';
+    const monthIncome = financeData.income[currentMonth] || { salary: 0, otherIncome: 0, totalIncome: 0 };
+    const monthTax = financeData.taxes?.[currentMonth] || { tax: 0 };
+
+    const incomeSalaryElem = document.getElementById('incomeSalaryDisplay');
+    const incomeOtherElem = document.getElementById('incomeOtherDisplay');
+    const incomeTaxElem = document.getElementById('incomeTaxDisplay');
+
+    if (incomeSalaryElem) {
+        incomeSalaryElem.textContent = formatCurrency(monthIncome.salary || 0);
+    }
+    if (incomeOtherElem) {
+        incomeOtherElem.textContent = formatCurrency(monthIncome.otherIncome || 0);
+    }
+    if (incomeTaxElem) {
+        incomeTaxElem.textContent = formatCurrency(monthTax.tax || 0);
+    }
 }
 
 // ========================================
@@ -207,11 +279,11 @@ function renderFinancialSummary() {
         ? `Salary: ${formatCurrency(monthIncome.salary)} + Other: ${formatCurrency(monthIncome.otherIncome)}`
         : 'No income recorded';
 
-    // Expenditure — new formula: prevMonth CC bills + bank spends
+    // Expenditure — current month credit card charges and bank spends, independent of paid/unpaid billing status
     document.getElementById('summaryExpenditure').textContent = formatCurrency(summary.expenditure);
     if (summary.expenditure > 0) {
         const parts = [];
-        if (summary.prevMonthCCOutstanding > 0) parts.push(`CC Bills: ${formatCurrency(summary.prevMonthCCOutstanding)}`);
+        if (summary.currentMonthCCOutstanding > 0) parts.push(`Credit Card Charges: ${formatCurrency(summary.currentMonthCCOutstanding)}`);
         if (summary.bankSpends > 0) parts.push(`Bank Spends: ${formatCurrency(summary.bankSpends)}`);
         document.getElementById('summaryExpenditureSub').textContent = parts.join(' + ') || 'Tracked spending';
     } else {
@@ -225,6 +297,12 @@ function renderFinancialSummary() {
         investGrowth >= 0 
             ? `↑ ${formatCurrency(investGrowth)} vs last month` 
             : `↓ ${formatCurrency(Math.abs(investGrowth))} vs last month`;
+
+    // Bank Balance & Tax cards
+    document.getElementById('summaryBankBalance').textContent = formatCurrency(summary.totalBankBalance);
+    document.getElementById('summaryBankBalanceSub').textContent = 'Total bank balances';
+    document.getElementById('summaryTax').textContent = formatCurrency(summary.tax || 0);
+    document.getElementById('summaryTaxSub').textContent = summary.tax > 0 ? 'Estimated tax' : 'Tax tracking not enabled';
 
     // Net Worth Cards
     document.getElementById('totalAssetsValue').textContent = formatCurrency(summary.totalAssets);
@@ -285,6 +363,12 @@ function debouncedSnapshotSave(month, data) {
 // Categories Rendering
 // ========================================
 
+function getCategoryIntroducedMonth(category) {
+    if (category.createdMonth) return category.createdMonth;
+    if (category.createdAt) return getMonthFromTimestamp(category.createdAt);
+    return null;
+}
+
 function renderCategories() {
     const container = document.getElementById('categoriesGrid');
     const categories = financeData.categories;
@@ -298,7 +382,22 @@ function renderCategories() {
         return;
     }
 
-    container.innerHTML = Object.entries(categories).map(([catId, cat]) => {
+    const visibleCategories = Object.entries(categories).filter(([catId, cat]) => {
+        const itemsThisMonth = cat.items ? Object.values(cat.items).filter(item => item.month === currentMonth) : [];
+        const introducedMonth = getCategoryIntroducedMonth(cat);
+        return itemsThisMonth.length > 0 || introducedMonth === currentMonth || introducedMonth === null;
+    });
+
+    if (visibleCategories.length === 0) {
+        container.innerHTML = `
+            <div class="finance-empty-state" style="grid-column: 1/-1;">
+                <i class="bi bi-folder-plus"></i>
+                <p>No categories available for ${getMonthDisplay(currentMonth)}. Add a category or copy from previous month.</p>
+            </div>`;
+        return;
+    }
+
+    container.innerHTML = visibleCategories.map(([catId, cat]) => {
         const items = cat.items ? Object.entries(cat.items)
             .filter(([, item]) => item.month === currentMonth)
             .map(([itemId, item]) => ({ id: itemId, ...item })) : [];
@@ -318,6 +417,12 @@ function renderCategories() {
                         </div>
                     </div>
                     <div class="category-card-actions">
+                        <button class="category-action-btn add-item-btn" onclick="openAddCategoryItemModal('${catId}')" title="Add item">
+                            <i class="bi bi-plus-lg"></i>
+                        </button>
+                        <button class="category-action-btn edit-btn" onclick="openEditCategoryModal('${catId}')" title="Edit category">
+                            <i class="bi bi-pencil"></i>
+                        </button>
                         <button class="category-action-btn delete-btn" onclick="deleteFinanceCategory('${catId}')" title="Delete category">
                             <i class="bi bi-trash"></i>
                         </button>
@@ -347,11 +452,6 @@ function renderCategories() {
                             No items for ${getMonthDisplay(currentMonth)}
                         </div>
                     `}
-                    <form class="add-item-form" onsubmit="addFinanceCategoryItem(event, '${catId}')">
-                        <input type="text" placeholder="Item name" required class="item-name-input">
-                        <input type="number" placeholder="Amount" required min="0" step="0.01" class="item-amount-input" style="max-width:120px;">
-                        <button type="submit"><i class="bi bi-plus"></i> Add</button>
-                    </form>
                 </div>
             </div>
         `;
@@ -418,8 +518,8 @@ function renderCreditCards() {
         container.innerHTML = `
             <tr>
                 <td colspan="7" style="text-align:center;padding:30px;">
-                    <i class="bi bi-credit-card" style="font-size:2rem;display:block;margin-bottom:8px;opacity:0.4;"></i>
-                    <span style="color:var(--text-muted);">No credit cards added yet</span>
+                    <i class="bi bi-wallet2" style="font-size:2rem;display:block;margin-bottom:8px;opacity:0.4;"></i>
+                    <span style="color:var(--text-muted);">No expenses added yet</span>
                 </td>
             </tr>`;
         return;
@@ -451,6 +551,21 @@ function renderCreditCards() {
             dueDateHtml = `<div class="due-date-cell">${warningIcon} ${card.dueDate}</div>`;
         }
 
+        const expenseType = card.type || 'credit-card';
+        const typeLabel = expenseType === 'loan' ? 'Loan' : expenseType === 'general-expense' ? 'General' : 'Credit Card';
+        const typeMeta = escapeHtml(card.issuer || '-');
+        const limitOrRate = expenseType === 'loan'
+            ? (card.interestRate ? `${card.interestRate}%` : '-')
+            : expenseType === 'credit-card'
+                ? formatCurrency(card.creditLimit)
+                : '-';
+        const dueLabel = expenseType === 'general-expense'
+            ? (card.expenseDate || '-')
+            : (card.dueDate || '-');
+        const statusLabel = expenseType === 'general-expense'
+            ? (card.notes ? 'Note' : '-')
+            : (card.isPaid ? 'Paid' : 'Unpaid');
+
         return `
         <tr>
             <td>
@@ -459,18 +574,16 @@ function renderCreditCards() {
                     <strong>${escapeHtml(card.name)}</strong>
                 </div>
             </td>
-            <td>${escapeHtml(card.issuer || '-')}</td>
-            <td class="amount-cell amount-negative">${formatCurrency(outstanding)}</td>
-            <td class="amount-cell">${formatCurrency(card.creditLimit)}</td>
             <td>
-                <div class="utilization-bar-wrapper">
-                    <div class="utilization-bar">
-                        <div class="utilization-bar-fill ${utilClass}" style="width:${Math.min(utilization, 100)}%"></div>
-                    </div>
-                    <span class="utilization-percent">${utilization}%</span>
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                    <span class="badge bg-secondary text-uppercase">${typeLabel}</span>
+                    <span>${typeMeta}</span>
                 </div>
             </td>
-            <td>${dueDateHtml}</td>
+            <td class="amount-cell amount-negative">${formatCurrency(outstanding)}</td>
+            <td class="amount-cell">${limitOrRate}</td>
+            <td>${dueLabel}</td>
+            <td>${statusLabel}</td>
             <td>
                 <div class="table-actions">
                     <button onclick="editFinanceCreditCard('${cardId}')" title="Edit"><i class="bi bi-pencil"></i></button>
@@ -487,10 +600,11 @@ function renderCreditCards() {
 // ========================================
 
 function renderCharts() {
+    const currentSummary = computeFinancialSummary(financeData, currentMonth);
     renderSpendingBreakdownChart();
-    renderNetWorthChart();
-    renderIncomeExpenseChart();
-    renderCategoryTrendChart();
+    renderNetWorthChart(currentSummary);
+    renderIncomeExpenseChart(currentSummary);
+    renderCategoryTrendChart(currentSummary);
 }
 
 function renderSpendingBreakdownChart() {
@@ -561,7 +675,7 @@ function renderSpendingBreakdownChart() {
     });
 }
 
-function renderNetWorthChart() {
+function renderNetWorthChart(currentSummary) {
     const ctx = document.getElementById('netWorthChart');
     if (!ctx) return;
 
@@ -569,12 +683,13 @@ function renderNetWorthChart() {
 
     const snapshots = financeData.snapshots;
     const months = Object.keys(snapshots).sort();
-    const last6 = months.slice(-6);
+    const chartMonths = [...new Set([...months, currentMonth])].sort();
+    const last6 = chartMonths.slice(-6);
 
     const labels = last6.map(m => getMonthDisplay(m).replace(/ \d{4}/, ''));
-    const netWorthData = last6.map(m => snapshots[m]?.netWorth || 0);
-    const assetsData = last6.map(m => snapshots[m]?.totalAssets || 0);
-    const liabilitiesData = last6.map(m => snapshots[m]?.totalLiabilities || 0);
+    const netWorthData = last6.map(m => m === currentMonth ? currentSummary.netWorth : snapshots[m]?.netWorth || 0);
+    const assetsData = last6.map(m => m === currentMonth ? currentSummary.totalAssets : snapshots[m]?.totalAssets || 0);
+    const liabilitiesData = last6.map(m => m === currentMonth ? currentSummary.totalLiabilities : snapshots[m]?.totalLiabilities || 0);
 
     const textColor = getComputedStyle(document.body).getPropertyValue('--text-primary').trim() || '#e9ecef';
     const gridColor = getComputedStyle(document.body).getPropertyValue('--border-color').trim() || '#1f2229';
@@ -642,7 +757,7 @@ function renderNetWorthChart() {
     });
 }
 
-function renderIncomeExpenseChart() {
+function renderIncomeExpenseChart(currentSummary) {
     const ctx = document.getElementById('incomeExpenseChart');
     if (!ctx) return;
 
@@ -650,12 +765,13 @@ function renderIncomeExpenseChart() {
 
     const snapshots = financeData.snapshots;
     const months = Object.keys(snapshots).sort();
-    const last6 = months.slice(-6);
+    const chartMonths = [...new Set([...months, currentMonth])].sort();
+    const last6 = chartMonths.slice(-6);
 
     const labels = last6.map(m => getMonthDisplay(m).replace(/ \d{4}/, ''));
-    const incomeArr = last6.map(m => snapshots[m]?.income || 0);
-    const expenseArr = last6.map(m => snapshots[m]?.totalExpenses || 0);
-    const investedArr = last6.map(m => snapshots[m]?.invested || 0);
+    const incomeArr = last6.map(m => m === currentMonth ? currentSummary.monthIncome.totalIncome : snapshots[m]?.income || 0);
+    const expenseArr = last6.map(m => m === currentMonth ? currentSummary.expenditure : snapshots[m]?.totalExpenses || 0);
+    const investedArr = last6.map(m => m === currentMonth ? currentSummary.investedThisMonth : snapshots[m]?.invested || 0);
 
     const textColor = getComputedStyle(document.body).getPropertyValue('--text-primary').trim() || '#e9ecef';
     const gridColor = getComputedStyle(document.body).getPropertyValue('--border-color').trim() || '#1f2229';
@@ -710,7 +826,7 @@ function renderIncomeExpenseChart() {
     });
 }
 
-function renderCategoryTrendChart() {
+function renderCategoryTrendChart(currentSummary) {
     const ctx = document.getElementById('categoryTrendChart');
     if (!ctx) return;
 
@@ -718,7 +834,8 @@ function renderCategoryTrendChart() {
 
     const snapshots = financeData.snapshots;
     const months = Object.keys(snapshots).sort();
-    const last6 = months.slice(-6);
+    const chartMonths = [...new Set([...months, currentMonth])].sort();
+    const last6 = chartMonths.slice(-6);
     const labels = last6.map(m => getMonthDisplay(m).replace(/ \d{4}/, ''));
 
     const categories = financeData.categories;
@@ -727,9 +844,20 @@ function renderCategoryTrendChart() {
 
     catEntries.forEach(([catId, cat]) => {
         const data = last6.map(m => {
+            if (m === currentMonth) {
+                return currentSummary.categoryBreakdown[catId] || 0;
+            }
             const bd = snapshots[m]?.categoryBreakdown;
             return bd ? (bd[catId] || 0) : 0;
         });
+
+        const firstPositiveIndex = data.findIndex(value => value > 0);
+        if (firstPositiveIndex > 0) {
+            for (let i = 0; i < firstPositiveIndex; i += 1) {
+                data[i] = null;
+            }
+        }
+
         if (data.some(v => v > 0)) {
             datasets.push({
                 label: cat.name,
@@ -824,6 +952,27 @@ function closeModal(modalId) {
     document.getElementById(modalId).classList.remove('active');
 }
 
+window.openExportModal = function() {
+    const modal = document.getElementById('exportModal');
+
+    if (!modal) {
+        console.warn('Export modal element not found');
+        return;
+    }
+
+    const today = new Date();
+    const currentMonthValue = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+
+    document.getElementById('exportFromMonth').value = currentMonthValue;
+    document.getElementById('exportToMonth').value = currentMonthValue;
+    document.getElementById('exportFormatSelect').value = 'xlsx';
+    modal.classList.add('active');
+};
+
+window.closeExportModal = function() {
+    closeModal('exportModal');
+};
+
 // ========================================
 // Global Functions (called from HTML onclick)
 // ========================================
@@ -859,6 +1008,85 @@ window.submitAddCategory = async function() {
     }
 };
 
+window.openAddCategoryItemModal = function(catId) {
+    document.getElementById('categoryItemForm').reset();
+    document.getElementById('categoryItemCategoryId').value = catId;
+    document.getElementById('categoryItemMonthSelect').innerHTML = `
+        <option value="${currentMonth}" selected>${getMonthDisplay(currentMonth)}</option>
+        <option value="${getPreviousMonth(currentMonth)}">${getMonthDisplay(getPreviousMonth(currentMonth))}</option>
+        <option value="${getPreviousMonth(getPreviousMonth(currentMonth))}">${getMonthDisplay(getPreviousMonth(getPreviousMonth(currentMonth)))}</option>
+    `;
+    openModal('categoryItemModal');
+    setTimeout(() => document.getElementById('categoryItemNameInput').focus(), 100);
+};
+
+window.submitCategoryItemModal = async function() {
+    const catId = document.getElementById('categoryItemCategoryId').value;
+    const name = document.getElementById('categoryItemNameInput').value.trim();
+    const amount = parseFloat(document.getElementById('categoryItemAmountInput').value);
+    const month = document.getElementById('categoryItemMonthSelect').value;
+
+    if (!name || isNaN(amount)) {
+        showToast('Enter item name and amount', 'warning');
+        return;
+    }
+
+    const result = await addCategoryItem(catId, {
+        name,
+        amount,
+        month,
+        date: new Date().toISOString().split('T')[0]
+    });
+
+    if (result.success) {
+        showToast(`Item "${name}" added!`, 'success');
+        closeModal('categoryItemModal');
+    } else {
+        showToast('Failed to add item. ' + (result.error || ''), 'error');
+    }
+};
+
+window.openEditCategoryModal = function(catId) {
+    const category = financeData.categories[catId];
+    if (!category) return;
+
+    document.getElementById('editCategoryId').value = catId;
+    document.getElementById('editCategoryNameInput').value = category.name || '';
+
+    document.querySelectorAll('#editCategoryModal .icon-option').forEach(el => el.classList.remove('selected'));
+    document.querySelectorAll('#editCategoryModal .color-option').forEach(el => el.classList.remove('selected'));
+    document.querySelector(`#editCategoryModal .icon-option[data-icon="${category.icon || 'bi-folder'}"]`)?.classList.add('selected');
+    document.querySelector(`#editCategoryModal .color-option[data-color="${category.color || '#7289ff'}"]`)?.classList.add('selected');
+
+    openModal('editCategoryModal');
+    setTimeout(() => document.getElementById('editCategoryNameInput').focus(), 100);
+};
+
+window.submitEditCategory = async function() {
+    const catId = document.getElementById('editCategoryId').value;
+    const name = document.getElementById('editCategoryNameInput').value.trim();
+    const selectedIcon = document.querySelector('#editCategoryModal .icon-option.selected');
+    const selectedColor = document.querySelector('#editCategoryModal .color-option.selected');
+
+    if (!name) {
+        showToast('Please enter a category name', 'warning');
+        return;
+    }
+
+    const result = await updateCategory(catId, {
+        name,
+        icon: selectedIcon?.dataset.icon || 'bi-folder',
+        color: selectedColor?.dataset.color || '#7289ff'
+    });
+
+    if (result.success) {
+        showToast('Category updated successfully!', 'success');
+        closeModal('editCategoryModal');
+    } else {
+        showToast('Failed to update category. ' + (result.error || ''), 'error');
+    }
+};
+
 window.deleteFinanceCategory = async function(catId) {
     const catName = financeData.categories[catId]?.name || 'this category';
     const confirmed = await showConfirmModal(
@@ -877,16 +1105,18 @@ window.addFinanceCategoryItem = async function(event, catId) {
     const form = event.target;
     const nameInput = form.querySelector('.item-name-input');
     const amountInput = form.querySelector('.item-amount-input');
+    const monthSelect = form.querySelector('.item-month-select');
 
     const name = nameInput.value.trim();
     const amount = parseFloat(amountInput.value);
+    const selectedMonth = monthSelect ? monthSelect.value : currentMonth;
 
     if (!name || isNaN(amount)) { showToast('Enter item name and amount', 'warning'); return; }
 
     const result = await addCategoryItem(catId, {
         name,
         amount,
-        month: currentMonth,
+        month: selectedMonth,
         date: new Date().toISOString().split('T')[0]
     });
 
@@ -975,24 +1205,53 @@ window.deleteFinanceBank = async function(bankId) {
 };
 
 // --- Credit Cards ---
+window.setExpenseFormFields = function(type) {
+    const creditFields = document.querySelectorAll('.credit-card-fields');
+    const loanFields = document.querySelectorAll('.loan-fields');
+    const generalFields = document.querySelectorAll('.general-fields');
+
+    creditFields.forEach(el => el.style.display = type === 'credit-card' ? '' : 'none');
+    loanFields.forEach(el => el.style.display = type === 'loan' ? '' : 'none');
+    generalFields.forEach(el => el.style.display = type === 'general-expense' ? '' : 'none');
+};
+
+window.onExpenseTypeChange = function() {
+    const type = document.getElementById('expenseTypeSelect').value;
+    setExpenseFormFields(type);
+};
+
 window.openAddCreditCardModal = function() {
     document.getElementById('addCreditCardForm').reset();
     document.getElementById('editCardId').value = '';
-    document.getElementById('addCreditCardModalTitle').textContent = 'Add Credit Card';
+    document.getElementById('expenseTypeSelect').value = 'credit-card';
+    setExpenseFormFields('credit-card');
+    document.getElementById('addCreditCardModalTitle').textContent = 'Add Expense';
     openModal('addCreditCardModal');
 };
 
 window.submitAddCreditCard = async function() {
     const editId = document.getElementById('editCardId').value;
+    const type = document.getElementById('expenseTypeSelect').value;
+    const paymentStatus = document.getElementById('cardPaymentStatus').value;
+
     const data = {
+        type,
         name: document.getElementById('cardName').value.trim(),
-        issuer: document.getElementById('cardIssuer').value.trim(),
+        issuer: type === 'loan'
+            ? document.getElementById('cardIssuerLoan').value.trim()
+            : type === 'general-expense'
+                ? document.getElementById('cardIssuerGeneral').value.trim()
+                : document.getElementById('cardIssuer').value.trim(),
         outstandingBalance: parseFloat(document.getElementById('cardOutstanding').value) || 0,
         creditLimit: parseFloat(document.getElementById('cardLimit').value) || 0,
-        dueDate: document.getElementById('cardDueDate').value
+        dueDate: document.getElementById('cardDueDate').value,
+        isPaid: paymentStatus === 'paid',
+        interestRate: parseFloat(document.getElementById('cardInterestRate')?.value) || 0,
+        expenseDate: document.getElementById('cardExpenseDate')?.value || '',
+        notes: document.getElementById('cardNotes')?.value.trim() || ''
     };
 
-    if (!data.name) { showToast('Enter card name', 'warning'); return; }
+    if (!data.name) { showToast('Enter expense name', 'warning'); return; }
 
     let result;
     if (editId) {
@@ -1002,7 +1261,7 @@ window.submitAddCreditCard = async function() {
     }
 
     if (result.success) {
-        showToast(editId ? 'Card updated!' : 'Card added!', 'success');
+        showToast(editId ? 'Expense updated!' : 'Expense added!', 'success');
         closeModal('addCreditCardModal');
     } else {
         showToast('Failed. ' + (result.error || ''), 'error');
@@ -1012,22 +1271,34 @@ window.submitAddCreditCard = async function() {
 window.editFinanceCreditCard = function(cardId) {
     const card = financeData.creditCards[cardId];
     if (!card) return;
-    // New format: show month-specific outstanding, or 0 if not entered
     const outstanding = card.balances
         ? (card.balances[currentMonth] || 0)
         : (card.outstandingBalance || 0);
+    const type = card.type || 'credit-card';
     document.getElementById('editCardId').value = cardId;
+    document.getElementById('expenseTypeSelect').value = type;
+    setExpenseFormFields(type);
     document.getElementById('cardName').value = card.name || '';
-    document.getElementById('cardIssuer').value = card.issuer || '';
     document.getElementById('cardOutstanding').value = outstanding || '';
     document.getElementById('cardLimit').value = card.creditLimit || '';
+    document.getElementById('cardInterestRate').value = card.interestRate || '';
     document.getElementById('cardDueDate').value = card.dueDate || '';
-    document.getElementById('addCreditCardModalTitle').textContent = 'Edit Credit Card';
+    document.getElementById('cardExpenseDate').value = card.expenseDate || '';
+    document.getElementById('cardNotes').value = card.notes || '';
+    document.getElementById('cardPaymentStatus').value = card.isPaid ? 'paid' : 'unpaid';
+    if (type === 'loan') {
+        document.getElementById('cardIssuerLoan').value = card.issuer || '';
+    } else if (type === 'general-expense') {
+        document.getElementById('cardIssuerGeneral').value = card.issuer || '';
+    } else {
+        document.getElementById('cardIssuer').value = card.issuer || '';
+    }
+    document.getElementById('addCreditCardModalTitle').textContent = 'Edit Expense';
     openModal('addCreditCardModal');
 };
 
 window.deleteFinanceCreditCard = async function(cardId) {
-    const confirmed = await showConfirmModal('Delete Credit Card', 'Are you sure you want to delete this credit card?');
+    const confirmed = await showConfirmModal('Delete Expense', 'Are you sure you want to delete this expense?');
     if (!confirmed) return;
     const result = await deleteCreditCard(cardId);
     if (result.success) showToast('Card deleted', 'success');
@@ -1038,164 +1309,318 @@ window.deleteFinanceCreditCard = async function(cardId) {
 window.copyFromPreviousMonth = async function() {
     const confirmed = await showConfirmModal(
         'Copy Previous Month',
-        `This will copy bank balances, credit card outstanding amounts, and income from the previous month to ${getMonthDisplay(currentMonth)}. Existing entries for this month will NOT be overwritten. Continue?`
+        `This will copy bank balances, outstanding expenses, and income from the previous month to ${getMonthDisplay(currentMonth)}. Existing entries for this month will NOT be overwritten. Continue?`
     );
     if (!confirmed) return;
 
     showToast('Copying data from previous month...', 'info');
     const result = await copyPreviousMonthData(currentMonth);
     if (result.success) {
-        const msg = `Copied ${result.banksCopied} bank(s) and ${result.cardsCopied} card(s) from ${getMonthDisplay(result.prevMonth)}`;
+        let msg = `Copied ${result.banksCopied} bank(s) and ${result.cardsCopied} card(s) from ${getMonthDisplay(result.prevMonth)}`;
+        if (result.taxesCopied) {
+            msg += `, plus ${result.taxesCopied} tax entr${result.taxesCopied === 1 ? 'y' : 'ies'}`;
+        }
+        if (result.categoryItemsCopied) {
+            msg += `, plus ${result.categoryItemsCopied} investment item(s)`;
+        }
         showToast(msg, 'success');
     } else {
         showToast('Failed to copy. ' + (result.error || ''), 'error');
     }
 };
 
-// --- Excel Export ---
+function getMonthsBetween(fromMonth, toMonth) {
+    const [fromYear, fromMon] = fromMonth.split('-').map(Number);
+    const [toYear, toMon] = toMonth.split('-').map(Number);
+    const months = [];
+    let year = fromYear;
+    let month = fromMon;
+    while (year < toYear || (year === toYear && month <= toMon)) {
+        months.push(`${year}-${String(month).padStart(2, '0')}`);
+        month += 1;
+        if (month > 12) {
+            month = 1;
+            year += 1;
+        }
+    }
+    return months;
+}
+
+function sanitizeCsvCell(value) {
+    return `"${String(value ?? '').replace(/"/g, '""')}"`;
+}
+
+function downloadFile(content, filename, mimeType) {
+    const blob = new Blob([content], { type: mimeType });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+}
+
+function getExportRange() {
+    const fromMonth = document.getElementById('exportFromMonth')?.value;
+    const toMonth = document.getElementById('exportToMonth')?.value;
+    if (!fromMonth || !toMonth) return null;
+    if (fromMonth > toMonth) return null;
+    return {
+        fromMonth,
+        toMonth,
+        months: getMonthsBetween(fromMonth, toMonth)
+    };
+}
+
+async function loadScript(src) {
+    if (document.querySelector(`script[src="${src}"]`)) return;
+    await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+    });
+}
+
+async function ensureSheetJS() {
+    if (!window.XLSX) {
+        await loadScript('https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js');
+    }
+    return window.XLSX;
+}
+
+async function ensureJsPDF() {
+    if (!window.jsPDF) {
+        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+    }
+    if (!window.jspdf && window.jsPDF) {
+        window.jspdf = { jsPDF: window.jsPDF };
+    }
+    if (!window.jspdf?.autoTable) {
+        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js');
+    }
+    return window.jspdf?.jsPDF || window.jsPDF;
+}
+
+function buildExportData(months) {
+    const summary = computeFinancialSummary(financeData, months[months.length - 1]);
+    const dateRangeLabel = months.length === 1
+        ? getMonthDisplay(months[0])
+        : `${getMonthDisplay(months[0])} - ${getMonthDisplay(months[months.length - 1])}`;
+
+    const overviewRows = [
+        ['Financial Overview'],
+        ['Report Range', dateRangeLabel],
+        [],
+        ['Metric', 'Amount (₹)'],
+        ['Total Income', summary.monthIncome.totalIncome || 0],
+        ['  Salary', summary.monthIncome.salary || 0],
+        ['  Other Income', summary.monthIncome.otherIncome || 0],
+        [],
+        ['Expenditure', summary.expenditure],
+        ['  Credit Card Charges', summary.currentMonthCCOutstanding],
+        ['  Bank Spends', summary.bankSpends],
+        [],
+        ['Total Assets', summary.totalAssets],
+        ['  Bank Balances', summary.totalBankBalance],
+        ['  Cumulative Investments', summary.cumulativeCategoryTotal],
+        ['Total Liabilities', summary.totalLiabilities],
+        ['Net Worth', summary.netWorth],
+        [],
+        ['Tax', summary.tax],
+        ['Savings', summary.savings],
+        ['Savings Rate', summary.savingsRate > 0 ? summary.savingsRate.toFixed(1) + '%' : 'N/A']
+    ];
+
+    const categoryRows = [['Category', 'Icon', 'Color', 'Item Name', 'Amount (₹)', 'Month', 'Date', 'Notes']];
+    Object.values(financeData.categories).forEach(cat => {
+        const items = cat.items ? Object.values(cat.items).filter(item => months.includes(item.month)) : [];
+        if (items.length > 0) {
+            items.forEach(item => {
+                categoryRows.push([cat.name, cat.icon, cat.color, item.name, item.amount, item.month, item.date, item.notes || '']);
+            });
+        } else {
+            categoryRows.push([cat.name, cat.icon, cat.color, '', '', '', '', '']);
+        }
+    });
+
+    const pivotHeader = ['Category', ...months.map(getMonthDisplay), 'Total'];
+    const pivotRows = [pivotHeader];
+    Object.values(financeData.categories).forEach(cat => {
+        const row = [cat.name];
+        let catTotal = 0;
+        months.forEach(month => {
+            let monthTotal = 0;
+            if (cat.items) {
+                Object.values(cat.items).forEach(item => {
+                    if (item.month === month) monthTotal += (item.amount || 0);
+                });
+            }
+            row.push(monthTotal);
+            catTotal += monthTotal;
+        });
+        row.push(catTotal);
+        pivotRows.push(row);
+    });
+    const totalsRow = ['TOTAL'];
+    let grandTotal = 0;
+    months.forEach((month, index) => {
+        const monthSum = pivotRows.slice(1).reduce((sum, row) => sum + (row[index + 1] || 0), 0);
+        totalsRow.push(monthSum);
+        grandTotal += monthSum;
+    });
+    totalsRow.push(grandTotal);
+    pivotRows.push(totalsRow);
+
+    const bankHeader = ['Account Name', 'Bank', 'Type', ...months.map(month => `${getMonthDisplay(month)} Balance (₹)`), 'Color'];
+    const bankRows = [bankHeader];
+    Object.values(financeData.banks).forEach(bank => {
+        const row = [bank.name, bank.bankName, bank.accountType];
+        let total = 0;
+        months.forEach(month => {
+            const balance = bank.balances ? (bank.balances[month] || 0) : (month === months[months.length - 1] ? (bank.balance || 0) : 0);
+            row.push(balance);
+            total += balance;
+        });
+        row.push(bank.color || '');
+        bankRows.push(row);
+    });
+
+    const cardHeader = ['Card Name', 'Issuer', ...months.map(month => `${getMonthDisplay(month)} Outstanding (₹)`), 'Credit Limit (₹)', 'Utilization %', 'Due Date', 'Color'];
+    const cardRows = [cardHeader];
+    Object.values(financeData.creditCards).forEach(card => {
+        const row = [card.name, card.issuer];
+        let total = 0;
+        months.forEach(month => {
+            const outstanding = card.balances ? (card.balances[month] || 0) : (month === months[months.length - 1] ? (card.outstandingBalance || 0) : 0);
+            row.push(outstanding);
+            total += outstanding;
+        });
+        const util = card.creditLimit > 0 ? ((total / card.creditLimit) * 100).toFixed(1) : '0.0';
+        row.push(card.creditLimit || 0, util + '%', card.dueDate || '', card.color || '');
+        cardRows.push(row);
+    });
+
+    const incomeRows = [['Month', 'Salary (₹)', 'Other Income (₹)', 'Tax (₹)', 'Total Income (₹)']];
+    months.forEach(month => {
+        const income = financeData.income[month] || { salary: 0, otherIncome: 0, totalIncome: 0 };
+        const tax = financeData.taxes?.[month]?.tax || 0;
+        incomeRows.push([getMonthDisplay(month), income.salary, income.otherIncome, tax, income.totalIncome]);
+    });
+
+    const summaryRows = [['Month', 'Income (₹)', 'Invested (₹)', 'Expenses (₹)', 'Assets (₹)', 'Liabilities (₹)', 'Net Worth (₹)']];
+    months.forEach(month => {
+        const snap = financeData.snapshots[month] || {};
+        summaryRows.push([getMonthDisplay(month), snap.income || 0, snap.invested || 0, snap.totalExpenses || 0, snap.totalAssets || 0, snap.totalLiabilities || 0, snap.netWorth || 0]);
+    });
+
+    const chartRows = [['Month', 'Income (₹)', 'Expenses (₹)', 'Invested (₹)', 'Assets (₹)', 'Liabilities (₹)', 'Net Worth (₹)']];
+    months.forEach(month => {
+        const snap = financeData.snapshots[month] || {};
+        chartRows.push([getMonthDisplay(month), snap.income || 0, snap.totalExpenses || 0, snap.invested || 0, snap.totalAssets || 0, snap.totalLiabilities || 0, snap.netWorth || 0]);
+    });
+
+    return {
+        overviewRows,
+        categoryRows,
+        pivotRows,
+        bankRows,
+        cardRows,
+        incomeRows,
+        summaryRows,
+        chartRows,
+        dateRangeLabel
+    };
+}
+
+function buildCsvSection(title, rows) {
+    return [title, ...rows.map(row => row.map(sanitizeCsvCell).join(','))].join('\r\n');
+}
+
 window.exportFinanceData = async function() {
-    showToast('Preparing Excel export...', 'info');
+    const range = getExportRange();
+    if (!range) {
+        showToast('Please select a valid export range.', 'error');
+        return;
+    }
+
+    const format = document.getElementById('exportFormatSelect')?.value || 'xlsx';
+    showToast('Preparing export...', 'info');
 
     try {
-        // Load SheetJS dynamically
-        if (!window.XLSX) {
-            await new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                script.src = 'https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js';
-                script.onload = resolve;
-                script.onerror = reject;
-                document.head.appendChild(script);
+        const exportData = buildExportData(range.months);
+        const filenameBase = `Finance_Export_${range.fromMonth}_to_${range.toMonth}`;
+
+        if (format === 'csv') {
+            const sections = [
+                buildCsvSection('Overview', exportData.overviewRows),
+                buildCsvSection('Investments', exportData.categoryRows),
+                buildCsvSection('Category by Month', exportData.pivotRows),
+                buildCsvSection('Bank Accounts', exportData.bankRows),
+                buildCsvSection('Expenses', exportData.cardRows),
+                buildCsvSection('Income History', exportData.incomeRows),
+                buildCsvSection('Net Worth History', exportData.summaryRows)
+            ];
+            downloadFile(sections.join('\r\n\r\n'), `${filenameBase}.csv`, 'text/csv;charset=utf-8;');
+        } else if (format === 'pdf') {
+            const PDF = await ensureJsPDF();
+            const doc = new PDF({ unit: 'pt', format: 'a4' });
+            const margin = 40;
+            doc.setFontSize(14);
+            doc.text('Finance Export Report', margin, 50);
+            doc.setFontSize(10);
+            doc.text(`Report range: ${exportData.dateRangeLabel}`, margin, 70);
+            let y = 90;
+
+            doc.autoTable({
+                startY: y,
+                head: [['Metric', 'Amount (₹)']],
+                body: exportData.overviewRows.slice(3),
+                theme: 'grid',
+                styles: { fontSize: 8 }
             });
+            y = doc.lastAutoTable.finalY + 20;
+            doc.text('Investment Categories', margin, y);
+            doc.autoTable({
+                startY: y + 10,
+                head: [exportData.categoryRows[0]],
+                body: exportData.categoryRows.slice(1),
+                theme: 'striped',
+                styles: { fontSize: 7 }
+            });
+            y = doc.lastAutoTable.finalY + 20;
+            doc.text('Income History', margin, y);
+            doc.autoTable({
+                startY: y + 10,
+                head: [exportData.incomeRows[0]],
+                body: exportData.incomeRows.slice(1),
+                theme: 'grid',
+                styles: { fontSize: 8 }
+            });
+            doc.save(`${filenameBase}.pdf`);
+        } else {
+            const XLSX = await ensureSheetJS();
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(exportData.overviewRows), 'Overview');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(exportData.categoryRows), 'Investments');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(exportData.pivotRows), 'Category by Month');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(exportData.bankRows), 'Bank Accounts');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(exportData.cardRows), 'Expenses');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(exportData.incomeRows), 'Income History');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(exportData.summaryRows), 'Net Worth History');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(exportData.chartRows), 'Chart Data');
+            XLSX.writeFile(wb, `${filenameBase}.xlsx`);
         }
 
-        const wb = XLSX.utils.book_new();
-
-        // --- Sheet 1: Financial Overview (current month snapshot) ---
-        const summary = computeFinancialSummary(financeData, currentMonth);
-        const overviewRows = [
-            ['Financial Overview - ' + getMonthDisplay(currentMonth)],
-            [],
-            ['Metric', 'Amount (₹)'],
-            ['Total Income', summary.monthIncome.totalIncome || 0],
-            ['  Salary', summary.monthIncome.salary || 0],
-            ['  Other Income', summary.monthIncome.otherIncome || 0],
-            [],
-            ['Total Invested (This Month)', summary.investedThisMonth],
-            ['Expenditure', summary.expenditure],
-            ['  CC Bills (prev month)', summary.prevMonthCCOutstanding],
-            ['  Bank Spends', summary.bankSpends],
-            [],
-            ['Total Assets', summary.totalAssets],
-            ['  Bank Balances', summary.totalBankBalance],
-            ['  Cumulative Investments', summary.cumulativeCategoryTotal],
-            ['Total Liabilities', summary.totalLiabilities],
-            ['Net Worth', summary.netWorth],
-            [],
-            ['Savings', summary.savings],
-            ['Savings Rate', summary.savingsRate > 0 ? summary.savingsRate.toFixed(1) + '%' : 'N/A']
-        ];
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(overviewRows), 'Overview');
-
-        // --- Sheet 2: Investment Categories ---
-        const catRows = [['Category', 'Icon', 'Color', 'Item Name', 'Amount (₹)', 'Month', 'Date', 'Notes']];
-        Object.values(financeData.categories).forEach(cat => {
-            if (cat.items && Object.keys(cat.items).length > 0) {
-                Object.values(cat.items).forEach(item => {
-                    catRows.push([cat.name, cat.icon, cat.color, item.name, item.amount, item.month, item.date, item.notes || '']);
-                });
-            } else {
-                catRows.push([cat.name, cat.icon, cat.color, '', '', '', '', '']);
-            }
-        });
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(catRows), 'Investments');
-
-        // --- Sheet 3: Category by Month Pivot ---
-        const catNames = Object.values(financeData.categories).map(c => c.name);
-        const allMonths = new Set();
-        Object.values(financeData.categories).forEach(cat => {
-            if (cat.items) Object.values(cat.items).forEach(item => allMonths.add(item.month));
-        });
-        const sortedMonths = Array.from(allMonths).sort();
-        const pivotHeader = ['Category', ...sortedMonths.map(m => getMonthDisplay(m)), 'Total'];
-        const pivotRows = [pivotHeader];
-        Object.values(financeData.categories).forEach(cat => {
-            const row = [cat.name];
-            let catTotal = 0;
-            sortedMonths.forEach(month => {
-                let monthTotal = 0;
-                if (cat.items) {
-                    Object.values(cat.items).forEach(item => {
-                        if (item.month === month) monthTotal += (item.amount || 0);
-                    });
-                }
-                row.push(monthTotal);
-                catTotal += monthTotal;
-            });
-            row.push(catTotal);
-            pivotRows.push(row);
-        });
-        // Add totals row
-        const totalsRow = ['TOTAL'];
-        let grandTotal = 0;
-        sortedMonths.forEach((month, i) => {
-            const monthSum = pivotRows.slice(1).reduce((sum, row) => sum + (row[i + 1] || 0), 0);
-            totalsRow.push(monthSum);
-            grandTotal += monthSum;
-        });
-        totalsRow.push(grandTotal);
-        pivotRows.push(totalsRow);
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(pivotRows), 'Category by Month');
-
-        // --- Sheet 4: Bank Accounts (current month) ---
-        const bankRows = [['Account Name', 'Bank', 'Type', `Balance - ${getMonthDisplay(currentMonth)} (₹)`, 'Color']];
-        let totalBankBal = 0;
-        Object.values(financeData.banks).forEach(bank => {
-            const bal = bank.balances
-                ? (bank.balances[currentMonth] || 0)
-                : (bank.balance || 0);
-            bankRows.push([bank.name, bank.bankName, bank.accountType, bal, bank.color || '']);
-            totalBankBal += bal;
-        });
-        bankRows.push([]);
-        bankRows.push(['Total Bank Balance', '', '', totalBankBal]);
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(bankRows), 'Bank Accounts');
-
-        // --- Sheet 5: Credit Cards (current month) ---
-        const cardRows = [['Card Name', 'Issuer', `Outstanding - ${getMonthDisplay(currentMonth)} (₹)`, 'Credit Limit (₹)', 'Utilization %', 'Due Date', 'Color']];
-        let totalCC = 0;
-        Object.values(financeData.creditCards).forEach(card => {
-            const outstanding = card.balances
-                ? (card.balances[currentMonth] || 0)
-                : (card.outstandingBalance || 0);
-            const util = card.creditLimit > 0 ? ((outstanding / card.creditLimit) * 100).toFixed(1) : 0;
-            cardRows.push([card.name, card.issuer, outstanding, card.creditLimit, util + '%', card.dueDate || '', card.color || '']);
-            totalCC += outstanding;
-        });
-        cardRows.push([]);
-        cardRows.push(['Total Outstanding', '', totalCC]);
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(cardRows), 'Credit Cards');
-
-        // --- Sheet 6: Income History ---
-        const incRows = [['Month', 'Salary (₹)', 'Other Income (₹)', 'Total Income (₹)']];
-        Object.entries(financeData.income).sort().forEach(([month, inc]) => {
-            incRows.push([getMonthDisplay(month), inc.salary, inc.otherIncome, inc.totalIncome]);
-        });
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(incRows), 'Income History');
-
-        // --- Sheet 7: Monthly Summary / Net Worth History ---
-        const sumRows = [['Month', 'Income (₹)', 'Invested (₹)', 'Expenses (₹)', 'Assets (₹)', 'Liabilities (₹)', 'Net Worth (₹)']];
-        Object.entries(financeData.snapshots).sort().forEach(([month, snap]) => {
-            sumRows.push([getMonthDisplay(month), snap.income || 0, snap.invested || 0, snap.totalExpenses || 0, snap.totalAssets || 0, snap.totalLiabilities || 0, snap.netWorth || 0]);
-        });
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sumRows), 'Net Worth History');
-
-        XLSX.writeFile(wb, `Finance_Tracker_${currentMonth}.xlsx`);
-        showToast('Excel exported successfully!', 'success');
+        showToast('Export completed successfully!', 'success');
+        closeExportModal();
     } catch (error) {
-        console.error('Export error:', error);
+        console.error('Export failed:', error);
         showToast('Export failed. Please try again.', 'error');
     }
-};
+}
 
 // --- Modal close handlers ---
 window.closeFinanceModal = function(modalId) {
@@ -1297,6 +1722,24 @@ function setupSelectors() {
             this.classList.add('selected');
         });
     });
+
+    // Export modal defaults
+    const exportFrom = document.getElementById('exportFromMonth');
+    const exportTo = document.getElementById('exportToMonth');
+    const formatSelect = document.getElementById('exportFormatSelect');
+    if (exportFrom && exportTo) {
+        exportFrom.value = currentMonth;
+        exportTo.value = currentMonth;
+        exportFrom.addEventListener('change', () => {
+            if (exportTo.value < exportFrom.value) exportTo.value = exportFrom.value;
+        });
+        exportTo.addEventListener('change', () => {
+            if (exportTo.value < exportFrom.value) exportFrom.value = exportTo.value;
+        });
+    }
+    if (formatSelect) {
+        formatSelect.value = 'xlsx';
+    }
 
     // Modal close on overlay click
     document.querySelectorAll('.finance-modal-overlay').forEach(overlay => {
