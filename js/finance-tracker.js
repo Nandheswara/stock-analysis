@@ -279,13 +279,13 @@ function renderFinancialSummary() {
         ? `Salary: ${formatCurrency(monthIncome.salary)} + Other: ${formatCurrency(monthIncome.otherIncome)}`
         : 'No income recorded';
 
-    // Expenditure — current month credit card charges and bank spends, independent of paid/unpaid billing status
+    // Expenditure — current month all expenses
     document.getElementById('summaryExpenditure').textContent = formatCurrency(summary.expenditure);
     if (summary.expenditure > 0) {
-        const parts = [];
-        if (summary.currentMonthCCOutstanding > 0) parts.push(`Credit Card Charges: ${formatCurrency(summary.currentMonthCCOutstanding)}`);
-        if (summary.bankSpends > 0) parts.push(`Bank Spends: ${formatCurrency(summary.bankSpends)}`);
-        document.getElementById('summaryExpenditureSub').textContent = parts.join(' + ') || 'Tracked spending';
+        const paidText = summary.totalPaidCharges > 0 ? `Paid: ${formatCurrency(summary.totalPaidCharges)}` : '';
+        const unpaidText = summary.totalUnpaidCharges > 0 ? `Unpaid: ${formatCurrency(summary.totalUnpaidCharges)}` : '';
+        const breakdown = [paidText, unpaidText].filter(Boolean).join(' | ');
+        document.getElementById('summaryExpenditureSub').textContent = breakdown || 'Tracked spending';
     } else {
         document.getElementById('summaryExpenditureSub').textContent = 'No expenditure tracked';
     }
@@ -562,9 +562,7 @@ function renderCreditCards() {
         const dueLabel = expenseType === 'general-expense'
             ? (card.expenseDate || '-')
             : (card.dueDate || '-');
-        const statusLabel = expenseType === 'general-expense'
-            ? (card.notes ? 'Note' : '-')
-            : (card.isPaid ? 'Paid' : 'Unpaid');
+        const statusLabel = card.isPaid ? 'Paid' : 'Unpaid';
 
         return `
         <tr>
@@ -1232,7 +1230,11 @@ window.openAddCreditCardModal = function() {
 window.submitAddCreditCard = async function() {
     const editId = document.getElementById('editCardId').value;
     const type = document.getElementById('expenseTypeSelect').value;
-    const paymentStatus = document.getElementById('cardPaymentStatus').value;
+    const paymentStatus = type === 'loan'
+        ? document.getElementById('loanPaymentStatus').value
+        : type === 'general-expense'
+            ? document.getElementById('generalPaymentStatus').value
+            : document.getElementById('cardPaymentStatus').value;
 
     const data = {
         type,
@@ -1243,10 +1245,12 @@ window.submitAddCreditCard = async function() {
                 ? document.getElementById('cardIssuerGeneral').value.trim()
                 : document.getElementById('cardIssuer').value.trim(),
         outstandingBalance: parseFloat(document.getElementById('cardOutstanding').value) || 0,
-        creditLimit: parseFloat(document.getElementById('cardLimit').value) || 0,
-        dueDate: document.getElementById('cardDueDate').value,
+        creditLimit: type === 'credit-card' ? parseFloat(document.getElementById('cardLimit').value) || 0 : 0,
+        dueDate: type === 'loan'
+            ? document.getElementById('loanDueDate').value
+            : document.getElementById('cardDueDate').value,
         isPaid: paymentStatus === 'paid',
-        interestRate: parseFloat(document.getElementById('cardInterestRate')?.value) || 0,
+        interestRate: 0, // Removed for all
         expenseDate: document.getElementById('cardExpenseDate')?.value || '',
         notes: document.getElementById('cardNotes')?.value.trim() || ''
     };
@@ -1281,16 +1285,18 @@ window.editFinanceCreditCard = function(cardId) {
     document.getElementById('cardName').value = card.name || '';
     document.getElementById('cardOutstanding').value = outstanding || '';
     document.getElementById('cardLimit').value = card.creditLimit || '';
-    document.getElementById('cardInterestRate').value = card.interestRate || '';
     document.getElementById('cardDueDate').value = card.dueDate || '';
     document.getElementById('cardExpenseDate').value = card.expenseDate || '';
     document.getElementById('cardNotes').value = card.notes || '';
-    document.getElementById('cardPaymentStatus').value = card.isPaid ? 'paid' : 'unpaid';
     if (type === 'loan') {
+        document.getElementById('loanPaymentStatus').value = card.isPaid ? 'paid' : 'unpaid';
+        document.getElementById('loanDueDate').value = card.dueDate || '';
         document.getElementById('cardIssuerLoan').value = card.issuer || '';
     } else if (type === 'general-expense') {
+        document.getElementById('generalPaymentStatus').value = card.isPaid ? 'paid' : 'unpaid';
         document.getElementById('cardIssuerGeneral').value = card.issuer || '';
     } else {
+        document.getElementById('cardPaymentStatus').value = card.isPaid ? 'paid' : 'unpaid';
         document.getElementById('cardIssuer').value = card.issuer || '';
     }
     document.getElementById('addCreditCardModalTitle').textContent = 'Edit Expense';

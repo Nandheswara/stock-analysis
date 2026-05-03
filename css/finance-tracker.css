@@ -886,6 +886,7 @@
     border-radius: 16px;
     width: 90%;
     max-width: 500px;
+    max-height: 90vh;
     box-shadow: var(--shadow-lg);
     animation: slideUp 0.3s ease;
     overflow: hidden;
@@ -932,6 +933,8 @@
 
 .finance-modal-body {
     padding: 24px;
+    overflow-y: auto;
+    max-height: calc(90vh - 140px); /* Adjust based on header/footer height */
 }
 
 .finance-modal-body .form-group {
