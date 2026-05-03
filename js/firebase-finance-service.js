@@ -898,13 +898,21 @@ export function computeFinancialSummary(data, selectedMonth) {
     });
 
     // ── Credit card outstanding for selected month and previous month ──
-    // Only count UNPAID credit cards in liabilities, but count all charges for expenditure.
+    // Count all charges for expenditure, but only unpaid for liabilities.
     let totalCreditCardOutstanding = 0;
     let totalCreditCardCharges = 0;
+    let totalPaidCharges = 0;
+    let totalUnpaidCharges = 0;
     let prevMonthCCOutstanding = 0;
     Object.values(creditCards).forEach(card => {
+        const charges = getCCCharges(card, selectedMonth);
+        totalCreditCardCharges += charges;
+        if (card.isPaid) {
+            totalPaidCharges += charges;
+        } else {
+            totalUnpaidCharges += charges;
+        }
         totalCreditCardOutstanding += getCCOutstandingIfUnpaid(card, selectedMonth);
-        totalCreditCardCharges += getCCCharges(card, selectedMonth);
         prevMonthCCOutstanding += getCCOutstandingIfUnpaid(card, prevMonth);
     });
     const currentMonthCCOutstanding = totalCreditCardCharges;
@@ -945,14 +953,14 @@ export function computeFinancialSummary(data, selectedMonth) {
     const prevMonthIncome = income[prevMonth] || { salary: 0, otherIncome: 0, totalIncome: 0 };
 
     // ── Expenditure (new formula) ──
-    // Expenditure = Current month credit card charges + Bank account spends
+    // Expenditure = Current month all credit card charges + Bank account spends
     // Bank spends = Prev month overall balance - Current month overall balance - Current month income
     // If month is empty, expenditure is 0
     const hasPreviousBankData = Object.values(banks).some(bank => bank.balances && bank.balances[prevMonth] !== undefined);
     const bankSpends = isEmptyMonth ? 0 : (hasPreviousBankData
         ? Math.max(0, prevMonthBankBalance - totalBankBalance - (monthIncome.totalIncome || 0))
-        : Math.max(0, (monthIncome.totalIncome || 0) - totalBankBalance));
-    const expenditure = isEmptyMonth ? 0 : (totalCreditCardCharges + bankSpends);
+        : (hasMonthlyBankData ? Math.max(0, (monthIncome.totalIncome || 0) - totalBankBalance) : 0));
+    const expenditure = isEmptyMonth ? 0 : totalCreditCardCharges;
 
     // ── Savings rate ──
     const savings = Math.max(0, (monthIncome.totalIncome || 0) - expenditure);
@@ -990,6 +998,8 @@ export function computeFinancialSummary(data, selectedMonth) {
         prevSavingsRate,
         categoryBreakdown,
         tax,
+        totalPaidCharges,
+        totalUnpaidCharges,
         selectedMonth,
         prevMonth,
         isEmptyMonth
