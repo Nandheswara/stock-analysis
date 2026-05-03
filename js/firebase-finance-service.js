@@ -105,7 +105,7 @@ export async function addCategory(categoryData) {
             icon: categoryData.icon || 'bi-folder',
             color: categoryData.color || '#7289ff',
             createdAt: Date.now(),
-            createdMonth: new Date().toISOString().slice(0, 7),
+            createdMonth: categoryData.createdMonth || new Date().toISOString().slice(0, 7),
             updatedAt: Date.now()
         };
         await set(newRef, data);
