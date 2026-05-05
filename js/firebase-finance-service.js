@@ -86,6 +86,59 @@ function loadFromCache(key, userId) {
     return null;
 }
 
+function inferMonthFromDate(date) {
+    if (!date || typeof date !== 'string') return null;
+    const parsed = new Date(date);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function normalizeCategoryItem(item) {
+    if (!item || typeof item !== 'object') return item;
+
+    const normalizedItem = { ...item };
+    const date = typeof normalizedItem.date === 'string' ? normalizedItem.date : null;
+    const month = typeof normalizedItem.month === 'string' ? normalizedItem.month : null;
+    const inferredMonth = inferMonthFromDate(date);
+
+    if (month && date) {
+        const datePrefix = date.slice(0, 7);
+        if (datePrefix !== month) {
+            if (inferredMonth) {
+                const day = date.length >= 10 ? date.slice(8, 10) : '01';
+                normalizedItem.date = `${month}-${day}`;
+            } else {
+                normalizedItem.date = `${month}-01`;
+            }
+        }
+    } else if (date && !month && inferredMonth) {
+        normalizedItem.month = inferredMonth;
+    } else if (!date && month) {
+        normalizedItem.date = `${month}-01`;
+    }
+
+    return normalizedItem;
+}
+
+function normalizeCategoryItemDates(categories) {
+    if (!categories || typeof categories !== 'object') return categories;
+
+    return Object.entries(categories).reduce((normalizedCategories, [catId, cat]) => {
+        if (!cat || typeof cat !== 'object' || !cat.items) {
+            normalizedCategories[catId] = cat;
+            return normalizedCategories;
+        }
+
+        const normalizedItems = Object.entries(cat.items).reduce((items, [itemId, item]) => {
+            items[itemId] = normalizeCategoryItem(item);
+            return items;
+        }, {});
+
+        normalizedCategories[catId] = { ...cat, items: normalizedItems };
+        return normalizedCategories;
+    }, {});
+}
+
 // ========================================
 // CATEGORIES CRUD
 // ========================================
@@ -161,14 +214,16 @@ export async function addCategoryItem(categoryId, itemData) {
     try {
         const itemsRef = ref(database, `users/${user.uid}/finance/categories/${categoryId}/items`);
         const newRef = push(itemsRef);
-        const data = {
+        const itemDate = itemData.date || new Date().toISOString().split('T')[0];
+        const itemMonth = itemData.month || inferMonthFromDate(itemDate);
+        const data = normalizeCategoryItem({
             name: itemData.name,
             amount: parseFloat(itemData.amount) || 0,
-            month: itemData.month, // "YYYY-MM" format
-            date: itemData.date || new Date().toISOString().split('T')[0],
+            month: itemMonth,
+            date: itemDate,
             notes: itemData.notes || '',
             updatedAt: Date.now()
-        };
+        });
         await set(newRef, data);
         return { success: true, id: newRef.key };
     } catch (error) {
@@ -184,8 +239,9 @@ export async function updateCategoryItem(categoryId, itemId, updates) {
     if (!user) return { success: false, error: 'Not authenticated' };
 
     try {
+        const normalizedUpdates = normalizeCategoryItem({ ...updates, updatedAt: Date.now() });
         const itemRef = ref(database, `users/${user.uid}/finance/categories/${categoryId}/items/${itemId}`);
-        await update(itemRef, { ...updates, updatedAt: Date.now() });
+        await update(itemRef, normalizedUpdates);
         return { success: true };
     } catch (error) {
         return { success: false, error: error.message };
@@ -631,16 +687,6 @@ export function listenToFinanceData(callback) {
     const cachedSnapshots = loadFromCache(CACHE_KEYS.SNAPSHOTS, userId);
 
     const hasCache = cachedCategories || cachedBanks || cachedCards || cachedIncome || cachedTaxes;
-    if (hasCache) {
-        queueMicrotask(() => callback({
-            categories: cachedCategories || {},
-            banks: cachedBanks || {},
-            creditCards: cachedCards || {},
-            income: cachedIncome || {},
-            taxes: cachedTaxes || {},
-            snapshots: cachedSnapshots || {}
-        }));
-    }
 
     // Data store
     const store = {
@@ -651,6 +697,19 @@ export function listenToFinanceData(callback) {
         taxes: cachedTaxes || {},
         snapshots: cachedSnapshots || {}
     };
+
+    if (hasCache) {
+        const normalizedCategories = normalizeCategoryItemDates(cachedCategories || {});
+        queueMicrotask(() => callback({
+            categories: normalizedCategories,
+            banks: cachedBanks || {},
+            creditCards: cachedCards || {},
+            income: cachedIncome || {},
+            taxes: cachedTaxes || {},
+            snapshots: cachedSnapshots || {}
+        }));
+        store.categories = normalizedCategories;
+    }
 
     // Track initial listener fires — all 5 listeners fire once on attach.
     // If we served cached data we can skip these initial fires entirely;
@@ -685,7 +744,7 @@ export function listenToFinanceData(callback) {
         // Categories listener
         const catRef = ref(database, `users/${uid}/finance/categories`);
         listeners.categories = onValue(catRef, (snapshot) => {
-            store.categories = snapshot.val() || {};
+            store.categories = normalizeCategoryItemDates(snapshot.val() || {});
             saveToCache(CACHE_KEYS.CATEGORIES, uid, store.categories);
             onListenerData();
         }, () => {});
