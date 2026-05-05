@@ -369,6 +369,47 @@ function getCategoryIntroducedMonth(category) {
     return null;
 }
 
+function getCategoryDisplayKey(category) {
+    return `${(category.name || '').trim().toLowerCase()}|${category.icon || ''}|${category.color || ''}`;
+}
+
+function dedupeCategoriesByName(categories) {
+    const representatives = new Map();
+
+    Object.entries(categories).forEach(([catId, cat]) => {
+        const key = getCategoryDisplayKey(cat);
+        const items = Object.values(cat.items || {});
+        const hasCurrentMonthItem = items.some(item => item.month === currentMonth);
+        const introducedMonth = getCategoryIntroducedMonth(cat);
+        const existing = representatives.get(key);
+
+        if (!existing) {
+            representatives.set(key, { catId, cat, hasCurrentMonthItem, introducedMonth });
+            return;
+        }
+
+        if (hasCurrentMonthItem && !existing.hasCurrentMonthItem) {
+            representatives.set(key, { catId, cat, hasCurrentMonthItem, introducedMonth });
+            return;
+        }
+
+        if (hasCurrentMonthItem === existing.hasCurrentMonthItem) {
+            const getCreatedMetric = (category) => {
+                if (category.createdAt) return Number(category.createdAt);
+                if (category.createdMonth) return Number(category.createdMonth.replace('-', ''));
+                return 0;
+            };
+            const existingCreated = getCreatedMetric(existing.cat);
+            const currentCreated = getCreatedMetric(cat);
+            if (currentCreated > existingCreated) {
+                representatives.set(key, { catId, cat, hasCurrentMonthItem, introducedMonth });
+            }
+        }
+    });
+
+    return Array.from(representatives.values()).map(({ catId, cat }) => [catId, cat]);
+}
+
 function renderCategories() {
     const container = document.getElementById('categoriesGrid');
     const categories = financeData.categories;
@@ -382,10 +423,14 @@ function renderCategories() {
         return;
     }
 
-    const visibleCategories = Object.entries(categories).filter(([catId, cat]) => {
-        const itemsThisMonth = cat.items ? Object.values(cat.items).filter(item => item.month === currentMonth) : [];
+    const dedupedCategories = dedupeCategoriesByName(categories);
+    const visibleCategories = dedupedCategories.filter(([catId, cat]) => {
+        const items = cat.items ? Object.values(cat.items) : [];
+        const itemsThisMonth = items.filter(item => item.month === currentMonth);
+        const hasItemsAnyMonth = items.length > 0;
         const introducedMonth = getCategoryIntroducedMonth(cat);
-        return itemsThisMonth.length > 0 || introducedMonth === currentMonth || introducedMonth === null;
+        const introducedInCurrentOrBefore = introducedMonth && introducedMonth <= currentMonth;
+        return itemsThisMonth.length > 0 || (hasItemsAnyMonth && introducedInCurrentOrBefore) || introducedMonth === null;
     });
 
     if (visibleCategories.length === 0) {
@@ -605,6 +650,43 @@ function renderCharts() {
     renderCategoryTrendChart(currentSummary);
 }
 
+function buildChartSnapshots() {
+    const snapshots = {};
+    const months = new Set(Object.keys(financeData.snapshots || {}));
+
+    Object.keys(financeData.income || {}).forEach(month => months.add(month));
+    Object.keys(financeData.taxes || {}).forEach(month => months.add(month));
+    Object.values(financeData.banks || {}).forEach(bank => {
+        Object.keys(bank.balances || {}).forEach(month => months.add(month));
+    });
+    Object.values(financeData.creditCards || {}).forEach(card => {
+        Object.keys(card.balances || {}).forEach(month => months.add(month));
+    });
+    Object.values(financeData.categories || {}).forEach(category => {
+        Object.values(category.items || {}).forEach(item => {
+            if (item.month) months.add(item.month);
+        });
+    });
+
+    Array.from(months).sort().forEach(month => {
+        const summary = computeFinancialSummary(financeData, month);
+        snapshots[month] = {
+            totalExpenses: summary.expenditure,
+            totalAssets: summary.totalAssets,
+            totalLiabilities: summary.totalLiabilities,
+            netWorth: summary.netWorth,
+            invested: summary.investedThisMonth,
+            income: summary.monthIncome.totalIncome || 0,
+            bankSpends: summary.bankSpends,
+            prevCCBills: summary.prevMonthCCOutstanding,
+            savingsRate: summary.savingsRate,
+            categoryBreakdown: summary.categoryBreakdown
+        };
+    });
+
+    return snapshots;
+}
+
 function renderSpendingBreakdownChart() {
     const ctx = document.getElementById('spendingBreakdownChart');
     if (!ctx) return;
@@ -679,7 +761,7 @@ function renderNetWorthChart(currentSummary) {
 
     if (charts.netWorth) charts.netWorth.destroy();
 
-    const snapshots = financeData.snapshots;
+    const snapshots = buildChartSnapshots();
     const months = Object.keys(snapshots).sort();
     const chartMonths = [...new Set([...months, currentMonth])].sort();
     const last6 = chartMonths.slice(-6);
@@ -761,7 +843,7 @@ function renderIncomeExpenseChart(currentSummary) {
 
     if (charts.incomeExpense) charts.incomeExpense.destroy();
 
-    const snapshots = financeData.snapshots;
+    const snapshots = buildChartSnapshots();
     const months = Object.keys(snapshots).sort();
     const chartMonths = [...new Set([...months, currentMonth])].sort();
     const last6 = chartMonths.slice(-6);
@@ -830,17 +912,18 @@ function renderCategoryTrendChart(currentSummary) {
 
     if (charts.categoryTrend) charts.categoryTrend.destroy();
 
-    const snapshots = financeData.snapshots;
+    const snapshots = buildChartSnapshots();
     const months = Object.keys(snapshots).sort();
     const chartMonths = [...new Set([...months, currentMonth])].sort();
     const last6 = chartMonths.slice(-6);
     const labels = last6.map(m => getMonthDisplay(m).replace(/ \d{4}/, ''));
 
     const categories = financeData.categories;
+    const dedupedCategories = dedupeCategoriesByName(categories);
     const datasets = [];
-    const catEntries = Object.entries(categories);
+    const categoryDataMap = new Map();
 
-    catEntries.forEach(([catId, cat]) => {
+    dedupedCategories.forEach(([catId, cat]) => {
         const data = last6.map(m => {
             if (m === currentMonth) {
                 return currentSummary.categoryBreakdown[catId] || 0;
@@ -857,17 +940,21 @@ function renderCategoryTrendChart(currentSummary) {
         }
 
         if (data.some(v => v > 0)) {
-            datasets.push({
-                label: cat.name,
-                data,
-                borderColor: cat.color || '#7289ff',
-                backgroundColor: (cat.color || '#7289ff') + '33',
-                fill: false,
-                tension: 0.4,
-                borderWidth: 2,
-                pointRadius: 4,
-                pointBackgroundColor: cat.color || '#7289ff'
-            });
+            const key = getCategoryDisplayKey(cat);
+            if (!categoryDataMap.has(key)) {
+                datasets.push({
+                    label: cat.name,
+                    data,
+                    borderColor: cat.color || '#7289ff',
+                    backgroundColor: (cat.color || '#7289ff') + '33',
+                    fill: false,
+                    tension: 0.4,
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    pointBackgroundColor: cat.color || '#7289ff'
+                });
+                categoryDataMap.set(key, true);
+            }
         }
     });
 
@@ -1034,7 +1121,7 @@ window.submitCategoryItemModal = async function() {
         name,
         amount,
         month,
-        date: new Date().toISOString().split('T')[0]
+        date: month === currentMonth ? new Date().toISOString().split('T')[0] : `${month}-01`
     });
 
     if (result.success) {
@@ -1116,7 +1203,7 @@ window.addFinanceCategoryItem = async function(event, catId) {
         name,
         amount,
         month: selectedMonth,
-        date: new Date().toISOString().split('T')[0]
+        date: selectedMonth === currentMonth ? new Date().toISOString().split('T')[0] : `${selectedMonth}-01`
     });
 
     if (result.success) {

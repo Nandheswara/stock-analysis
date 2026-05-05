@@ -101,42 +101,63 @@ function normalizeCategoryItem(item) {
     const month = typeof normalizedItem.month === 'string' ? normalizedItem.month : null;
     const inferredMonth = inferMonthFromDate(date);
 
-    if (month && date) {
-        const datePrefix = date.slice(0, 7);
-        if (datePrefix !== month) {
-            if (inferredMonth) {
-                const day = date.length >= 10 ? date.slice(8, 10) : '01';
-                normalizedItem.date = `${month}-${day}`;
-            } else {
-                normalizedItem.date = `${month}-01`;
-            }
+    if (month) {
+        normalizedItem.month = month;
+        if (!date) {
+            normalizedItem.date = `${month}-01`;
+        } else if (inferredMonth && inferredMonth !== month) {
+            normalizedItem.date = `${month}-01`;
         }
-    } else if (date && !month && inferredMonth) {
+    } else if (inferredMonth) {
         normalizedItem.month = inferredMonth;
-    } else if (!date && month) {
-        normalizedItem.date = `${month}-01`;
     }
 
     return normalizedItem;
 }
 
 function normalizeCategoryItemDates(categories) {
-    if (!categories || typeof categories !== 'object') return categories;
+    return normalizeCategoryItemDatesWithDiff(categories).normalizedCategories;
+}
 
-    return Object.entries(categories).reduce((normalizedCategories, [catId, cat]) => {
+function normalizeCategoryItemDatesWithDiff(categories) {
+    if (!categories || typeof categories !== 'object') {
+        return { normalizedCategories: categories, changedItems: [] };
+    }
+
+    const changedItems = [];
+    const normalizedCategories = Object.entries(categories).reduce((normalizedCategories, [catId, cat]) => {
         if (!cat || typeof cat !== 'object' || !cat.items) {
             normalizedCategories[catId] = cat;
             return normalizedCategories;
         }
 
         const normalizedItems = Object.entries(cat.items).reduce((items, [itemId, item]) => {
-            items[itemId] = normalizeCategoryItem(item);
+            const normalizedItem = normalizeCategoryItem(item);
+            if (JSON.stringify(normalizedItem) !== JSON.stringify(item)) {
+                changedItems.push({ categoryId: catId, itemId, item: normalizedItem });
+            }
+            items[itemId] = normalizedItem;
             return items;
         }, {});
 
         normalizedCategories[catId] = { ...cat, items: normalizedItems };
         return normalizedCategories;
     }, {});
+
+    return { normalizedCategories, changedItems };
+}
+
+async function persistNormalizedCategoryItems(uid, changes) {
+    if (!uid || !Array.isArray(changes) || changes.length === 0) return;
+
+    const updates = {};
+    changes.forEach(({ categoryId, itemId, item }) => {
+        updates[`categories/${categoryId}/items/${itemId}`] = item;
+    });
+
+    if (Object.keys(updates).length > 0) {
+        await update(ref(database, `users/${uid}/finance`), updates);
+    }
 }
 
 // ========================================
@@ -214,8 +235,15 @@ export async function addCategoryItem(categoryId, itemData) {
     try {
         const itemsRef = ref(database, `users/${user.uid}/finance/categories/${categoryId}/items`);
         const newRef = push(itemsRef);
-        const itemDate = itemData.date || new Date().toISOString().split('T')[0];
-        const itemMonth = itemData.month || inferMonthFromDate(itemDate);
+        const itemMonth = typeof itemData.month === 'string' ? itemData.month : null;
+        let itemDate = typeof itemData.date === 'string' ? itemData.date : null;
+
+        if (!itemDate && itemMonth) {
+            itemDate = `${itemMonth}-01`;
+        } else if (!itemDate) {
+            itemDate = new Date().toISOString().split('T')[0];
+        }
+
         const data = normalizeCategoryItem({
             name: itemData.name,
             amount: parseFloat(itemData.amount) || 0,
@@ -744,8 +772,12 @@ export function listenToFinanceData(callback) {
         // Categories listener
         const catRef = ref(database, `users/${uid}/finance/categories`);
         listeners.categories = onValue(catRef, (snapshot) => {
-            store.categories = normalizeCategoryItemDates(snapshot.val() || {});
+            const { normalizedCategories, changedItems } = normalizeCategoryItemDatesWithDiff(snapshot.val() || {});
+            store.categories = normalizedCategories;
             saveToCache(CACHE_KEYS.CATEGORIES, uid, store.categories);
+            if (changedItems.length > 0) {
+                persistNormalizedCategoryItems(uid, changedItems).catch(() => {});
+            }
             onListenerData();
         }, () => {});
 
