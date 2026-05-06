@@ -99,27 +99,46 @@
 }
 
 /* Copy Previous Month Button */
-.copy-prev-month-btn {
+.copy-prev-month-btn,
+.export-nav-btn {
     background: var(--header-gradient);
     color: #fff;
     border: none;
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-size: 0.8rem;
-    font-weight: 600;
     cursor: pointer;
     transition: all 0.25s ease;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
+}
+
+.copy-prev-month-btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
     gap: 6px;
     margin-left: auto;
     white-space: nowrap;
 }
 
-.copy-prev-month-btn:hover {
+.copy-prev-month-btn:hover,
+.export-nav-btn:hover {
     opacity: 0.85;
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(114, 137, 255, 0.35);
+}
+
+.icon-only {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    justify-content: center;
+}
+
+.export-nav-btn {
+    margin-left: 10px;
 }
 
 /* Savings Badge */
