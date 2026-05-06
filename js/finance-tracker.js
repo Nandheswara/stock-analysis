@@ -126,6 +126,13 @@ function showToast(message, type = 'info') {
     toast.innerHTML = `<i class="bi ${icons[type] || icons.info}"></i> ${message}`;
     container.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
+    return toast;
+}
+
+function clearToasts() {
+    const container = document.getElementById('financeToastContainer');
+    if (!container) return;
+    Array.from(container.children).forEach(child => child.remove());
 }
 
 // ========================================
@@ -333,7 +340,8 @@ function renderFinancialSummary() {
     }
 
     // Only save snapshot after initial load to avoid write storms on page load
-    if (!isInitialLoad) {
+    // AND only if the month has actual data (not an empty month)
+    if (!isInitialLoad && !summary.isEmptyMonth) {
         debouncedSnapshotSave(currentMonth, {
             totalExpenses: summary.expenditure,
             totalAssets: summary.totalAssets,
@@ -371,6 +379,13 @@ function getCategoryIntroducedMonth(category) {
 
 function getCategoryDisplayKey(category) {
     return `${(category.name || '').trim().toLowerCase()}|${category.icon || ''}|${category.color || ''}`;
+}
+
+function getCreditCardLimit(card, month) {
+    if (card.monthlyLimits && month && card.monthlyLimits[month] !== undefined) {
+        return parseFloat(card.monthlyLimits[month]) || 0;
+    }
+    return parseFloat(card.creditLimit) || 0;
 }
 
 function dedupeCategoriesByName(categories) {
@@ -579,7 +594,8 @@ function renderCreditCards() {
             ? (card.balances[currentMonth] || 0)
             : (card.outstandingBalance || 0);
 
-        const utilization = card.creditLimit > 0 ? ((outstanding / card.creditLimit) * 100).toFixed(1) : 0;
+        const limit = getCreditCardLimit(card, currentMonth);
+        const utilization = limit > 0 ? ((outstanding / limit) * 100).toFixed(1) : 0;
         const utilClass = utilization <= 30 ? 'low' : utilization <= 70 ? 'medium' : 'high';
         
         // Due date warning
@@ -602,7 +618,7 @@ function renderCreditCards() {
         const limitOrRate = expenseType === 'loan'
             ? (card.interestRate ? `${card.interestRate}%` : '-')
             : expenseType === 'credit-card'
-                ? formatCurrency(card.creditLimit)
+                ? formatCurrency(limit)
                 : '-';
         const dueLabel = expenseType === 'general-expense'
             ? (card.expenseDate || '-')
@@ -670,18 +686,22 @@ function buildChartSnapshots() {
 
     Array.from(months).sort().forEach(month => {
         const summary = computeFinancialSummary(financeData, month);
-        snapshots[month] = {
-            totalExpenses: summary.expenditure,
-            totalAssets: summary.totalAssets,
-            totalLiabilities: summary.totalLiabilities,
-            netWorth: summary.netWorth,
-            invested: summary.investedThisMonth,
-            income: summary.monthIncome.totalIncome || 0,
-            bankSpends: summary.bankSpends,
-            prevCCBills: summary.prevMonthCCOutstanding,
-            savingsRate: summary.savingsRate,
-            categoryBreakdown: summary.categoryBreakdown
-        };
+        
+        // Only include months with actual data in the snapshots
+        if (!summary.isEmptyMonth) {
+            snapshots[month] = {
+                totalExpenses: summary.expenditure,
+                totalAssets: summary.totalAssets,
+                totalLiabilities: summary.totalLiabilities,
+                netWorth: summary.netWorth,
+                invested: summary.investedThisMonth,
+                income: summary.monthIncome.totalIncome || 0,
+                bankSpends: summary.bankSpends,
+                prevCCBills: summary.prevMonthCCOutstanding,
+                savingsRate: summary.savingsRate,
+                categoryBreakdown: summary.categoryBreakdown
+            };
+        }
     });
 
     return snapshots;
@@ -718,6 +738,9 @@ function renderSpendingBreakdownChart() {
         colors.push('#333');
     }
 
+    // Calculate total for percentage calculation
+    const total = data.reduce((sum, val) => sum + val, 0);
+
     charts.spending = new Chart(ctx, {
         type: 'doughnut',
         data: {
@@ -746,7 +769,11 @@ function renderSpendingBreakdownChart() {
                 },
                 tooltip: {
                     callbacks: {
-                        label: (ctx) => `${ctx.label}: ${formatCurrency(ctx.raw)}`
+                        label: (ctx) => {
+                            const amount = formatCurrency(ctx.raw);
+                            const percentage = total > 0 ? ((ctx.raw / total) * 100).toFixed(1) : '0.0';
+                            return `${ctx.label}: ${amount} (${percentage}%)`;
+                        }
                     }
                 }
             },
@@ -919,42 +946,47 @@ function renderCategoryTrendChart(currentSummary) {
     const labels = last6.map(m => getMonthDisplay(m).replace(/ \d{4}/, ''));
 
     const categories = financeData.categories;
-    const dedupedCategories = dedupeCategoriesByName(categories);
-    const datasets = [];
-    const categoryDataMap = new Map();
+    const categoryMap = new Map();
 
-    dedupedCategories.forEach(([catId, cat]) => {
-        const data = last6.map(m => {
-            if (m === currentMonth) {
-                return currentSummary.categoryBreakdown[catId] || 0;
-            }
-            const bd = snapshots[m]?.categoryBreakdown;
-            return bd ? (bd[catId] || 0) : 0;
+    Object.values(categories).forEach(cat => {
+        const key = getCategoryDisplayKey(cat);
+        if (!categoryMap.has(key)) {
+            categoryMap.set(key, {
+                label: cat.name || 'Unnamed',
+                color: cat.color || '#7289ff',
+                totals: new Map()
+            });
+        }
+        const category = categoryMap.get(key);
+        Object.values(cat.items || {}).forEach(item => {
+            if (!item.month) return;
+            const existing = category.totals.get(item.month) || 0;
+            category.totals.set(item.month, existing + (parseFloat(item.amount) || 0));
         });
+    });
 
+    const datasets = [];
+    categoryMap.forEach((category, key) => {
+        const data = last6.map(month => category.totals.get(month) || 0);
         const firstPositiveIndex = data.findIndex(value => value > 0);
         if (firstPositiveIndex > 0) {
             for (let i = 0; i < firstPositiveIndex; i += 1) {
                 data[i] = null;
             }
         }
-
-        if (data.some(v => v > 0)) {
-            const key = getCategoryDisplayKey(cat);
-            if (!categoryDataMap.has(key)) {
-                datasets.push({
-                    label: cat.name,
-                    data,
-                    borderColor: cat.color || '#7289ff',
-                    backgroundColor: (cat.color || '#7289ff') + '33',
-                    fill: false,
-                    tension: 0.4,
-                    borderWidth: 2,
-                    pointRadius: 4,
-                    pointBackgroundColor: cat.color || '#7289ff'
-                });
-                categoryDataMap.set(key, true);
-            }
+        if (data.some(value => value > 0)) {
+            datasets.push({
+                label: category.label,
+                data,
+                borderColor: category.color,
+                backgroundColor: category.color + '33',
+                fill: false,
+                tension: 0.4,
+                spanGaps: true,
+                borderWidth: 2,
+                pointRadius: 4,
+                pointBackgroundColor: category.color
+            });
         }
     });
 
@@ -1372,7 +1404,7 @@ window.editFinanceCreditCard = function(cardId) {
     setExpenseFormFields(type);
     document.getElementById('cardName').value = card.name || '';
     document.getElementById('cardOutstanding').value = outstanding || '';
-    document.getElementById('cardLimit').value = card.creditLimit || '';
+    document.getElementById('cardLimit').value = getCreditCardLimit(card, currentMonth) || '';
     document.getElementById('cardDueDate').value = card.dueDate || '';
     document.getElementById('cardExpenseDate').value = card.expenseDate || '';
     document.getElementById('cardNotes').value = card.notes || '';
@@ -1486,57 +1518,245 @@ async function ensureSheetJS() {
 }
 
 async function ensureJsPDF() {
-    if (!window.jsPDF) {
+    if (!window.jsPDF && !window.jspdf) {
         await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
     }
-    if (!window.jspdf && window.jsPDF) {
-        window.jspdf = { jsPDF: window.jsPDF };
+    const jsPDFCtor = window.jsPDF || window.jspdf?.jsPDF || window.jspdf;
+    if (!jsPDFCtor) {
+        throw new Error('Failed to load jsPDF');
     }
-    if (!window.jspdf?.autoTable) {
+
+    if (!jsPDFCtor.autoTable && !window.jspdf?.autoTable) {
         await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js');
     }
-    return window.jspdf?.jsPDF || window.jsPDF;
+
+    return window.jsPDF || window.jspdf?.jsPDF || window.jspdf;
 }
 
 function buildExportData(months) {
-    const summary = computeFinancialSummary(financeData, months[months.length - 1]);
     const dateRangeLabel = months.length === 1
         ? getMonthDisplay(months[0])
         : `${getMonthDisplay(months[0])} - ${getMonthDisplay(months[months.length - 1])}`;
 
+    // ========================================
+    // OVERVIEW (Month-by-Month Detail)
+    // ========================================
     const overviewRows = [
         ['Financial Overview'],
         ['Report Range', dateRangeLabel],
-        [],
-        ['Metric', 'Amount (₹)'],
-        ['Total Income', summary.monthIncome.totalIncome || 0],
-        ['  Salary', summary.monthIncome.salary || 0],
-        ['  Other Income', summary.monthIncome.otherIncome || 0],
-        [],
-        ['Expenditure', summary.expenditure],
-        ['  Credit Card Charges', summary.currentMonthCCOutstanding],
-        ['  Bank Spends', summary.bankSpends],
-        [],
-        ['Total Assets', summary.totalAssets],
-        ['  Bank Balances', summary.totalBankBalance],
-        ['  Cumulative Investments', summary.cumulativeCategoryTotal],
-        ['Total Liabilities', summary.totalLiabilities],
-        ['Net Worth', summary.netWorth],
-        [],
-        ['Tax', summary.tax],
-        ['Savings', summary.savings],
-        ['Savings Rate', summary.savingsRate > 0 ? summary.savingsRate.toFixed(1) + '%' : 'N/A']
+        []
     ];
 
+    const monthlyOverviewSections = [];
+    months.forEach(month => {
+        const summary = computeFinancialSummary(financeData, month);
+        const monthIncome = summary.monthIncome;
+        const rows = [
+            ['Total Income', monthIncome.totalIncome || 0],
+            ['  Salary', monthIncome.salary || 0],
+            ['  Other Income', monthIncome.otherIncome || 0],
+            ['Expenditure', summary.expenditure],
+            ['  Credit Card Charges', summary.currentMonthCCOutstanding],
+            ['  Bank Spends', summary.bankSpends],
+            ['Savings', summary.savings],
+            ['Savings Rate', summary.savingsRate > 0 ? summary.savingsRate.toFixed(1) + '%' : 'N/A'],
+            ['Total Assets', summary.totalAssets],
+            ['  Bank Balances', summary.totalBankBalance],
+            ['  Cumulative Investments', summary.cumulativeCategoryTotal],
+            ['Total Liabilities', summary.totalLiabilities],
+            ['Net Worth', summary.netWorth],
+            ['Tax', summary.tax || 0]
+        ];
+
+        overviewRows.push([`${getMonthDisplay(month)} Summary`]);
+        overviewRows.push(['Metric', 'Amount (₹)']);
+        rows.forEach(row => overviewRows.push(row));
+        overviewRows.push([]);
+        monthlyOverviewSections.push({ title: `${getMonthDisplay(month)} Summary`, rows });
+    });
+
+    // ========================================
+    // AGGREGATE SUMMARY
+    // ========================================
+    const aggregateSummary = [['AGGREGATE SUMMARY FOR PERIOD']];
+    let totalIncome = 0, totalExpenditure = 0, totalInvested = 0, totalTax = 0;
+    let maxAssets = 0, maxLiabilities = 0, finalNetWorth = 0;
+    const lastSummary = computeFinancialSummary(financeData, months[months.length - 1]);
+    
+    months.forEach(month => {
+        const summary = computeFinancialSummary(financeData, month);
+        totalIncome += summary.monthIncome.totalIncome || 0;
+        totalExpenditure += summary.expenditure;
+        totalInvested += summary.investedThisMonth;
+        totalTax += summary.tax || 0;
+    });
+    maxAssets = lastSummary.totalAssets;
+    maxLiabilities = lastSummary.totalLiabilities;
+    finalNetWorth = lastSummary.netWorth;
+
+    aggregateSummary.push(['Metric', 'Amount (₹)']);
+    aggregateSummary.push(['Total Income (All Months)', totalIncome]);
+    aggregateSummary.push(['Total Expenditure (All Months)', totalExpenditure]);
+    aggregateSummary.push(['Total Invested (All Months)', totalInvested]);
+    aggregateSummary.push(['Total Tax (All Months)', totalTax]);
+    aggregateSummary.push(['Average Monthly Income', months.length > 0 ? (totalIncome / months.length).toFixed(0) : 0]);
+    aggregateSummary.push(['Average Monthly Expenditure', months.length > 0 ? (totalExpenditure / months.length).toFixed(0) : 0]);
+    aggregateSummary.push(['Current Total Assets', maxAssets]);
+    aggregateSummary.push(['Current Total Liabilities', maxLiabilities]);
+    aggregateSummary.push(['Current Net Worth', finalNetWorth]);
+    aggregateSummary.push([]);
+
+    // ========================================
+    // FINANCIAL HEALTH METRICS
+    // ========================================
+    const healthMetrics = [['FINANCIAL HEALTH METRICS']];
+    healthMetrics.push(['Metric', 'Value']);
+    
+    const debtToAssetRatio = maxAssets > 0 ? ((maxLiabilities / maxAssets) * 100).toFixed(1) : 0;
+    const debtToIncomeRatio = totalIncome > 0 ? ((maxLiabilities / (totalIncome / months.length)) * 100).toFixed(1) : 0;
+    const investmentRatio = maxAssets > 0 ? ((lastSummary.cumulativeCategoryTotal / maxAssets) * 100).toFixed(1) : 0;
+    const avgSavingsRate = months.length > 0 ? ((totalIncome - totalExpenditure - totalInvested) / totalIncome * 100).toFixed(1) : 0;
+    
+    healthMetrics.push(['Debt-to-Asset Ratio', debtToAssetRatio + '%']);
+    healthMetrics.push(['Debt-to-Income Ratio', debtToIncomeRatio + '%']);
+    healthMetrics.push(['Investment Ratio', investmentRatio + '%']);
+    healthMetrics.push(['Average Savings Rate', avgSavingsRate + '%']);
+    healthMetrics.push(['Total Months Tracked', months.length]);
+    healthMetrics.push([]);
+
+    // ========================================
+    // EXPENSE BREAKDOWN
+    // ========================================
+    const expenseBreakdown = [['EXPENSE BREAKDOWN']];
+    expenseBreakdown.push(['Credit Card', 'Month', 'Outstanding (₹)', 'Utilization %', 'Status']);
+    Object.values(financeData.creditCards).forEach(card => {
+        months.forEach(month => {
+            const outstanding = card.balances ? (card.balances[month] || 0) : 0;
+            const limit = card.creditLimit || 0;
+            const util = limit > 0 ? ((outstanding / limit) * 100).toFixed(1) : 0;
+            const status = outstanding > 0 ? (card.isPaid ? 'PAID' : 'UNPAID') : 'NO CHARGES';
+            if (outstanding > 0 || card.isPaid) {
+                expenseBreakdown.push([card.name, getMonthDisplay(month), outstanding, util + '%', status]);
+            }
+        });
+    });
+    expenseBreakdown.push([]);
+
+    // ========================================
+    // INVESTMENT ALLOCATION
+    // ========================================
+    const investmentAlloc = [['INVESTMENT ALLOCATION ANALYSIS']];
+    const categoryTotals = {};
+    Object.entries(financeData.categories).forEach(([catId, cat]) => {
+        let catTotal = 0;
+        if (cat.items) {
+            Object.values(cat.items).forEach(item => {
+                if (months.includes(item.month)) catTotal += (item.amount || 0);
+            });
+        }
+        if (catTotal > 0) categoryTotals[cat.name] = catTotal;
+    });
+    
+    investmentAlloc.push(['Category', 'Amount (₹)', 'Percentage']);
+    const investmentTotal = Object.values(categoryTotals).reduce((a, b) => a + b, 0);
+    Object.entries(categoryTotals).forEach(([cat, amount]) => {
+        const pct = investmentTotal > 0 ? ((amount / investmentTotal) * 100).toFixed(1) : 0;
+        investmentAlloc.push([cat, amount, pct + '%']);
+    });
+    investmentAlloc.push(['TOTAL', investmentTotal, '100%']);
+    investmentAlloc.push([]);
+
+    // ========================================
+    // RISK ASSESSMENT & RECOMMENDATIONS
+    // ========================================
+    const recommendations = [['RISK ASSESSMENT & FINANCIAL RECOMMENDATIONS']];
+    recommendations.push([]);
+    
+    const risks = [];
+    const suggestions = [];
+    
+    // Risk Assessment
+    if (debtToAssetRatio > 50) {
+        risks.push(`⚠️  HIGH DEBT LEVEL: Your debt-to-asset ratio is ${debtToAssetRatio}% (>50% threshold). Consider reducing credit card balances.`);
+        suggestions.push(`• Pay off high-interest credit cards aggressively. Prioritize cards with >30% utilization.`);
+    } else if (debtToAssetRatio > 30) {
+        risks.push(`⚠️  MODERATE DEBT: Your debt-to-asset ratio is ${debtToAssetRatio}% (30-50% range). Monitor closely.`);
+        suggestions.push(`• Work on reducing outstanding balances systematically.`);
+    }
+
+    if (debtToIncomeRatio > 50) {
+        risks.push(`⚠️  HIGH DEBT-TO-INCOME: Monthly debt is ${debtToIncomeRatio}% of income. This is concerning.`);
+        suggestions.push(`• Increase income or reduce expenses to lower this ratio below 30%.`);
+    }
+
+    if (avgSavingsRate < 10) {
+        risks.push(`⚠️  LOW SAVINGS RATE: You're saving only ${avgSavingsRate}% of income. This is below recommended 20%.`);
+        suggestions.push(`• Review spending patterns and identify areas to cut expenses.`);
+        suggestions.push(`• Set a target to increase savings to at least 20% of monthly income.`);
+    } else if (avgSavingsRate < 20) {
+        suggestions.push(`• Aim to increase savings rate from ${avgSavingsRate}% to at least 20%.`);
+        suggestions.push(`• Look for recurring expenses that can be eliminated or reduced.`);
+    }
+
+    if (investmentRatio < 20) {
+        suggestions.push(`• Your investment ratio is low (${investmentRatio}%). Consider increasing monthly investments.`);
+        suggestions.push(`• Allocate more surplus to equities or mutual funds for long-term growth.`);
+    }
+
+    if (investmentRatio > 70) {
+        suggestions.push(`• Your investment ratio is high (${investmentRatio}%). Ensure adequate emergency fund (3-6 months expenses).`);
+    }
+
+    // Credit Card analysis
+    Object.values(financeData.creditCards).forEach(card => {
+        const latestMonth = months[months.length - 1];
+        const outstanding = card.balances ? (card.balances[latestMonth] || 0) : 0;
+        const limit = card.creditLimit || 0;
+        const util = limit > 0 ? (outstanding / limit) * 100 : 0;
+        
+        if (util > 80) {
+            risks.push(`⚠️  HIGH UTILIZATION: ${card.name} is ${util.toFixed(1)}% utilized. Keep below 30% for better credit.`);
+            suggestions.push(`• Reduce balance on ${card.name} to below 30% of credit limit (${(limit * 0.3).toFixed(0)} ₹).`);
+        }
+    });
+
+    if (risks.length === 0) {
+        risks.push('✅ NO MAJOR RISKS IDENTIFIED: Your financial health appears stable.');
+    }
+
+    recommendations.push(['IDENTIFIED RISKS']);
+    risks.forEach(risk => recommendations.push([risk]));
+    recommendations.push([]);
+    
+    recommendations.push(['ACTIONABLE SUGGESTIONS']);
+    suggestions.forEach(suggestion => recommendations.push([suggestion]));
+    recommendations.push([]);
+    
+    recommendations.push(['PRIORITY ACTIONS']);
+    if (debtToAssetRatio > 50 || debtToIncomeRatio > 50) {
+        recommendations.push(['1. Prioritize debt reduction - focus on highest interest rate cards first']);
+    }
+    if (avgSavingsRate < 10) {
+        recommendations.push(['1. Increase savings rate by cutting discretionary spending']);
+    } else {
+        recommendations.push(['1. Maintain current savings rate and increase investments']);
+    }
+    recommendations.push(['2. Review monthly spending patterns and identify optimization opportunities']);
+    recommendations.push(['3. Build emergency fund to 6 months of expenses if not already done']);
+    recommendations.push(['4. Consider diversifying investments across asset classes']);
+
     const categoryRows = [['Category', 'Icon', 'Color', 'Item Name', 'Amount (₹)', 'Month', 'Date', 'Notes']];
+    const pdfCategoryRows = [['Category', 'Item Name', 'Amount (₹)', 'Month', 'Date', 'Notes']];
     Object.values(financeData.categories).forEach(cat => {
         const items = cat.items ? Object.values(cat.items).filter(item => months.includes(item.month)) : [];
         if (items.length > 0) {
             items.forEach(item => {
                 categoryRows.push([cat.name, cat.icon, cat.color, item.name, item.amount, item.month, item.date, item.notes || '']);
+                pdfCategoryRows.push([cat.name, item.name, item.amount, item.month, item.date, item.notes || '']);
             });
         } else {
             categoryRows.push([cat.name, cat.icon, cat.color, '', '', '', '', '']);
+            pdfCategoryRows.push([cat.name, '', '', '', '', '']);
         }
     });
 
@@ -1570,31 +1790,44 @@ function buildExportData(months) {
 
     const bankHeader = ['Account Name', 'Bank', 'Type', ...months.map(month => `${getMonthDisplay(month)} Balance (₹)`), 'Color'];
     const bankRows = [bankHeader];
+    const pdfBankHeader = ['Account Name', 'Bank', 'Type', ...months.map(month => `${getMonthDisplay(month)} Balance (₹)`), 'Total Balance (₹)'];
+    const pdfBankRows = [pdfBankHeader];
     Object.values(financeData.banks).forEach(bank => {
         const row = [bank.name, bank.bankName, bank.accountType];
+        const pdfRow = [bank.name, bank.bankName, bank.accountType];
         let total = 0;
         months.forEach(month => {
             const balance = bank.balances ? (bank.balances[month] || 0) : (month === months[months.length - 1] ? (bank.balance || 0) : 0);
             row.push(balance);
+            pdfRow.push(balance);
             total += balance;
         });
         row.push(bank.color || '');
+        pdfRow.push(total);
         bankRows.push(row);
+        pdfBankRows.push(pdfRow);
     });
 
     const cardHeader = ['Card Name', 'Issuer', ...months.map(month => `${getMonthDisplay(month)} Outstanding (₹)`), 'Credit Limit (₹)', 'Utilization %', 'Due Date', 'Color'];
     const cardRows = [cardHeader];
+    const pdfCardHeader = ['Card Name', 'Issuer', ...months.map(month => `${getMonthDisplay(month)} Outstanding (₹)`), 'Credit Limit (₹)', 'Utilization %', 'Due Date'];
+    const pdfCardRows = [pdfCardHeader];
     Object.values(financeData.creditCards).forEach(card => {
         const row = [card.name, card.issuer];
+        const pdfRow = [card.name, card.issuer];
         let total = 0;
         months.forEach(month => {
             const outstanding = card.balances ? (card.balances[month] || 0) : (month === months[months.length - 1] ? (card.outstandingBalance || 0) : 0);
             row.push(outstanding);
+            pdfRow.push(outstanding);
             total += outstanding;
         });
-        const util = card.creditLimit > 0 ? ((total / card.creditLimit) * 100).toFixed(1) : '0.0';
-        row.push(card.creditLimit || 0, util + '%', card.dueDate || '', card.color || '');
+        const limit = getCreditCardLimit(card, currentMonth);
+        const util = limit > 0 ? ((total / limit) * 100).toFixed(1) : '0.0';
+        row.push(limit || 0, util + '%', card.dueDate || '', card.color || '');
+        pdfRow.push(limit || 0, util + '%', card.dueDate || '');
         cardRows.push(row);
+        pdfCardRows.push(pdfRow);
     });
 
     const incomeRows = [['Month', 'Salary (₹)', 'Other Income (₹)', 'Tax (₹)', 'Total Income (₹)']];
@@ -1606,22 +1839,47 @@ function buildExportData(months) {
 
     const summaryRows = [['Month', 'Income (₹)', 'Invested (₹)', 'Expenses (₹)', 'Assets (₹)', 'Liabilities (₹)', 'Net Worth (₹)']];
     months.forEach(month => {
-        const snap = financeData.snapshots[month] || {};
-        summaryRows.push([getMonthDisplay(month), snap.income || 0, snap.invested || 0, snap.totalExpenses || 0, snap.totalAssets || 0, snap.totalLiabilities || 0, snap.netWorth || 0]);
+        const summary = computeFinancialSummary(financeData, month);
+        summaryRows.push([
+            getMonthDisplay(month),
+            summary.monthIncome.totalIncome || 0,
+            summary.investedThisMonth || 0,
+            summary.expenditure || 0,
+            summary.totalAssets || 0,
+            summary.totalLiabilities || 0,
+            summary.netWorth || 0
+        ]);
     });
 
     const chartRows = [['Month', 'Income (₹)', 'Expenses (₹)', 'Invested (₹)', 'Assets (₹)', 'Liabilities (₹)', 'Net Worth (₹)']];
     months.forEach(month => {
-        const snap = financeData.snapshots[month] || {};
-        chartRows.push([getMonthDisplay(month), snap.income || 0, snap.totalExpenses || 0, snap.invested || 0, snap.totalAssets || 0, snap.totalLiabilities || 0, snap.netWorth || 0]);
+        const summary = computeFinancialSummary(financeData, month);
+        chartRows.push([
+            getMonthDisplay(month),
+            summary.monthIncome.totalIncome || 0,
+            summary.expenditure || 0,
+            summary.investedThisMonth || 0,
+            summary.totalAssets || 0,
+            summary.totalLiabilities || 0,
+            summary.netWorth || 0
+        ]);
     });
 
     return {
         overviewRows,
+        monthlyOverviewSections,
+        aggregateSummary,
+        healthMetrics,
+        expenseBreakdown,
+        investmentAlloc,
+        recommendations,
         categoryRows,
+        pdfCategoryRows,
         pivotRows,
         bankRows,
+        pdfBankRows,
         cardRows,
+        pdfCardRows,
         incomeRows,
         summaryRows,
         chartRows,
@@ -1641,6 +1899,7 @@ window.exportFinanceData = async function() {
     }
 
     const format = document.getElementById('exportFormatSelect')?.value || 'xlsx';
+    clearToasts();
     showToast('Preparing export...', 'info');
 
     try {
@@ -1650,6 +1909,11 @@ window.exportFinanceData = async function() {
         if (format === 'csv') {
             const sections = [
                 buildCsvSection('Overview', exportData.overviewRows),
+                buildCsvSection('Aggregate Summary', exportData.aggregateSummary),
+                buildCsvSection('Financial Health Metrics', exportData.healthMetrics),
+                buildCsvSection('Expense Breakdown', exportData.expenseBreakdown),
+                buildCsvSection('Investment Allocation', exportData.investmentAlloc),
+                buildCsvSection('Risk Assessment & Recommendations', exportData.recommendations),
                 buildCsvSection('Investments', exportData.categoryRows),
                 buildCsvSection('Category by Month', exportData.pivotRows),
                 buildCsvSection('Bank Accounts', exportData.bankRows),
@@ -1662,56 +1926,107 @@ window.exportFinanceData = async function() {
             const PDF = await ensureJsPDF();
             const doc = new PDF({ unit: 'pt', format: 'a4' });
             const margin = 40;
-            doc.setFontSize(14);
-            doc.text('Finance Export Report', margin, 50);
-            doc.setFontSize(10);
-            doc.text(`Report range: ${exportData.dateRangeLabel}`, margin, 70);
-            let y = 90;
+            const pageHeight = 842;
+            const lineHeight = 12;
+            let y = 50;
+            const hasAutoTable = typeof doc.autoTable === 'function';
 
-            doc.autoTable({
-                startY: y,
-                head: [['Metric', 'Amount (₹)']],
-                body: exportData.overviewRows.slice(3),
-                theme: 'grid',
-                styles: { fontSize: 8 }
+            doc.setFontSize(16);
+            doc.text('Finance Export Report', margin, y);
+            y += 20;
+            doc.setFontSize(10);
+            doc.text(`Report range: ${exportData.dateRangeLabel}`, margin, y);
+            y += 20;
+
+            const ensurePage = () => {
+                if (y > pageHeight - 100) {
+                    doc.addPage();
+                    y = margin;
+                }
+            };
+
+            const renderTextSection = (title, rows) => {
+                ensurePage();
+                doc.setFontSize(12);
+                doc.text(title, margin, y);
+                y += 16;
+                doc.setFontSize(9);
+                rows.forEach(row => {
+                    if (!row || row.length === 0) {
+                        y += 6;
+                        return;
+                    }
+                    const text = row.join(' : ');
+                    doc.text(text, margin, y);
+                    y += lineHeight;
+                    if (y > pageHeight - 60) ensurePage();
+                });
+                y += 10;
+            };
+
+            const renderTableSection = (title, head, body, opts = {}) => {
+                if (hasAutoTable) {
+                    ensurePage();
+                    doc.setFontSize(12);
+                    doc.text(title, margin, y);
+                    y += 14;
+                    doc.autoTable({
+                        startY: y,
+                        head: [head],
+                        body,
+                        theme: opts.theme || 'grid',
+                        styles: { fontSize: opts.fontSize || 8 },
+                        columnStyles: opts.columnStyles || {}
+                    });
+                    y = doc.lastAutoTable.finalY + 10;
+                } else {
+                    renderTextSection(title, [head, ...body]);
+                }
+            };
+
+            exportData.monthlyOverviewSections.forEach(section => {
+                renderTableSection(section.title, ['Metric', 'Amount (₹)'], section.rows, { theme: 'grid' });
             });
-            y = doc.lastAutoTable.finalY + 20;
-            doc.text('Investment Categories', margin, y);
-            doc.autoTable({
-                startY: y + 10,
-                head: [exportData.categoryRows[0]],
-                body: exportData.categoryRows.slice(1),
-                theme: 'striped',
-                styles: { fontSize: 7 }
-            });
-            y = doc.lastAutoTable.finalY + 20;
-            doc.text('Income History', margin, y);
-            doc.autoTable({
-                startY: y + 10,
-                head: [exportData.incomeRows[0]],
-                body: exportData.incomeRows.slice(1),
-                theme: 'grid',
-                styles: { fontSize: 8 }
-            });
+
+            renderTableSection('Aggregate Summary', ['Metric', 'Amount (₹)'], exportData.aggregateSummary.slice(1), { theme: 'striped' });
+            renderTableSection('Financial Health Metrics', ['Metric', 'Value'], exportData.healthMetrics.slice(1), { theme: 'grid' });
+
+            if (exportData.recommendations.length > 1) {
+                renderTableSection('Risk Assessment & Recommendations', ['Recommendation'], exportData.recommendations.slice(1), { theme: 'plain', columnStyles: { 0: { cellWidth: 500 } } });
+            }
+
+            if (hasAutoTable) {
+                renderTableSection('Investments', exportData.pdfCategoryRows[0], exportData.pdfCategoryRows.slice(1), { theme: 'striped', fontSize: 7 });
+                renderTableSection('Bank Accounts', exportData.pdfBankRows[0], exportData.pdfBankRows.slice(1), { theme: 'grid', fontSize: 7 });
+                renderTableSection('Credit Card Expenses', exportData.pdfCardRows[0], exportData.pdfCardRows.slice(1), { theme: 'grid', fontSize: 7 });
+            }
+
             doc.save(`${filenameBase}.pdf`);
         } else {
             const XLSX = await ensureSheetJS();
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(exportData.overviewRows), 'Overview');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(exportData.aggregateSummary), 'Aggregate Summary');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(exportData.healthMetrics), 'Health Metrics');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(exportData.expenseBreakdown), 'Expenses');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(exportData.investmentAlloc), 'Investment Allocation');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(exportData.recommendations), 'Recommendations');
             XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(exportData.categoryRows), 'Investments');
             XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(exportData.pivotRows), 'Category by Month');
             XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(exportData.bankRows), 'Bank Accounts');
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(exportData.cardRows), 'Expenses');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(exportData.cardRows), 'Credit Cards');
             XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(exportData.incomeRows), 'Income History');
             XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(exportData.summaryRows), 'Net Worth History');
             XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(exportData.chartRows), 'Chart Data');
             XLSX.writeFile(wb, `${filenameBase}.xlsx`);
         }
 
+        clearToasts();
         showToast('Export completed successfully!', 'success');
         closeExportModal();
     } catch (error) {
         console.error('Export failed:', error);
+        clearToasts();
         showToast('Export failed. Please try again.', 'error');
     }
 }

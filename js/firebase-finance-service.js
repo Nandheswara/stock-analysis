@@ -395,11 +395,13 @@ export async function addCreditCard(cardData, month) {
             notes: cardData.notes || '',
             color: cardData.color || '#ff6b6b',
             updatedAt: Date.now(),
-            balances: {}
+            balances: {},
+            monthlyLimits: {}
         };
-        // Store outstanding under the specified month
+        // Store outstanding and month-specific limit under the specified month
         if (month) {
             data.balances[month] = parseFloat(cardData.outstandingBalance) || 0;
+            data.monthlyLimits[month] = parseFloat(cardData.creditLimit) || 0;
         }
         await set(newRef, data);
         return { success: true, id: newRef.key };
@@ -421,7 +423,13 @@ export async function updateCreditCard(cardId, updates, month) {
         if (updates.type !== undefined) updateData.type = updates.type;
         if (updates.name !== undefined) updateData.name = updates.name;
         if (updates.issuer !== undefined) updateData.issuer = updates.issuer;
-        if (updates.creditLimit !== undefined) updateData.creditLimit = parseFloat(updates.creditLimit);
+        if (updates.creditLimit !== undefined) {
+            if (month) {
+                updateData[`monthlyLimits/${month}`] = parseFloat(updates.creditLimit);
+            } else {
+                updateData.creditLimit = parseFloat(updates.creditLimit);
+            }
+        }
         if (updates.dueDate !== undefined) updateData.dueDate = updates.dueDate;
         if (updates.isPaid !== undefined) updateData.isPaid = updates.isPaid;
         if (updates.interestRate !== undefined) updateData.interestRate = parseFloat(updates.interestRate);

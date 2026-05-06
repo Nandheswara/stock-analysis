@@ -289,8 +289,11 @@
                     <i class="bi bi-chevron-right"></i>
                 </button>
                 <button class="month-current-btn" id="monthCurrentBtn">● Current</button>
-                <button class="copy-prev-month-btn" onclick="copyFromPreviousMonth()" title="Copy bank, credit card and income data from previous month">
-                    <i class="bi bi-clipboard-plus"></i> Copy from Previous Month
+                <button class="copy-prev-month-btn icon-only" onclick="copyFromPreviousMonth()" title="Copy bank, credit card and income data from previous month" aria-label="Copy from previous month">
+                    <i class="bi bi-clipboard-plus"></i>
+                </button>
+                <button class="export-nav-btn icon-only" onclick="openExportModal()" title="Export finance data" aria-label="Export finance data">
+                    <i class="bi bi-file-earmark-arrow-down"></i>
                 </button>
             </div>
 
@@ -464,20 +467,6 @@
                             <canvas id="categoryTrendChart"></canvas>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Export Section -->
-            <div class="finance-section">
-                <div class="finance-section-header">
-                    <h2 class="finance-section-title">
-                        <i class="bi bi-download" style="color:var(--accent-success);"></i> Export Data
-                    </h2>
-                </div>
-                <div class="export-section">
-                    <button class="export-btn" onclick="openExportModal()">
-                        <i class="bi bi-file-earmark-arrow-down"></i> Export Data
-                    </button>
                 </div>
             </div>
 
