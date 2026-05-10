@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Equity Labs | Daily Fitness Tracker & Goal Monitor</title>
+    
+    <!-- Preload Firebase SDKs -->
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://stock-analysis-51b9a-default-rtdb.firebaseio.com" crossorigin>
+    <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+    <link rel="dns-prefetch" href="https://www.gstatic.com">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js">
+    
+    <!-- SEO -->
+    <meta name="description" content="Track your daily fitness goals, set health targets, and monitor your workout progress with Equity Labs Fitness Tracker. Perfect for staying accountable.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://nandheswara.github.io/stock-analysis/pages/fitness-tracker.html">
+    <link rel="sitemap" type="application/xml" href="../sitemap.xml">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="Equity Labs | Daily Fitness Tracker">
+    <meta property="og:description" content="Track daily fitness goals, set health targets, and monitor workout progress">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://nandheswara.github.io/stock-analysis/pages/fitness-tracker.html">
+    <meta property="og:site_name" content="Equity Labs">
+    
+    <!-- External CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <!-- CSS Files -->
+    <link rel="stylesheet" href="../css/critical.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/fitness-tracker.css">
+    <link rel="stylesheet" href="../css/firebase-auth.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="../index.html">
+                <i class="bi bi-flask"></i> Equity Labs
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="../index.html">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="analysis.html">
+                            <i class="bi bi-bar-chart-line"></i> Analysis
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="stock-manager.html">
+                            <i class="bi bi-wallet2"></i> Stock Manager
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="finance-tracker.html">
+                            <i class="bi bi-piggy-bank"></i> Finance
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="fitness-tracker.html">
+                            <i class="bi bi-heart-pulse"></i> Fitness
+                        </a>
+                    </li>
+                    <li class="nav-item d-flex align-items-center ms-2">
+                        <button class="btn btn-sm btn-outline-light" id="themeToggle" title="Toggle theme" aria-label="Toggle dark/light theme">
+                            <i class="bi bi-moon-fill" id="themeIcon"></i>
+                        </button>
+                    </li>
+                    <!-- Auth Buttons -->
+                    <li class="nav-item d-flex align-items-center ms-2" id="authButtons">
+                        <button type="button" class="btn btn-sm btn-outline-light me-2" id="loginBtn">
+                            <i class="bi bi-box-arrow-in-right"></i> Login
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-light" id="signupBtn">
+                            <i class="bi bi-person-plus"></i> Sign Up
+                        </button>
+                    </li>
+                    <!-- User Profile -->
+                    <li class="nav-item d-flex align-items-center ms-2" id="userProfile" style="display: none !important;">
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-person-circle"></i> <span id="userEmail">User</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="profile.html" id="profileBtn"><i class="bi bi-person-gear"></i> Profile</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#" id="logoutBtn"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+                            </ul>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Auth Modal -->
+    <div class="modal fade" id="authModal" tabindex="-1" aria-labelledby="authModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="authModalTitle">Sign In</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="authAlertContainer"></div>
+                    <!-- Login Form -->
+                    <form id="loginForm" style="display: block;">
+                        <div class="mb-3">
+                            <label for="loginEmail" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="loginEmail" placeholder="your-email@example.com" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="loginPassword" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="loginPassword" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 mb-2">
+                            <i class="bi bi-box-arrow-in-right"></i> Sign In
+                        </button>
+                        <button type="button" class="btn btn-outline-primary w-100" id="googleSignInBtn">
+                            <i class="bi bi-google"></i> Sign in with Google
+                        </button>
+                        <div class="text-center mt-3">
+                            <small>Don't have an account? <a href="#" id="showSignupForm">Sign up here</a></small>
+                        </div>
+                    </form>
+                    <!-- Signup Form -->
+                    <form id="signupForm" style="display: none;">
+                        <div class="mb-3">
+                            <label for="signupName" class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="signupName" placeholder="John Doe" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="signupEmail" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="signupEmail" placeholder="your-email@example.com" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="signupPassword" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="signupPassword" required minlength="6">
+                            <small class="text-muted">Minimum 6 characters</small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="signupConfirmPassword" class="form-label">Confirm Password</label>
+                            <input type="password" class="form-control" id="signupConfirmPassword" required minlength="6">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 mb-2">
+                            <i class="bi bi-person-plus"></i> Create Account
+                        </button>
+                        <button type="button" class="btn btn-outline-primary w-100" id="googleSignUpBtn">
+                            <i class="bi bi-google"></i> Sign up with Google
+                        </button>
+                        <div class="text-center mt-3">
+                            <small>Already have an account? <a href="#" id="showLoginForm">Sign in here</a></small>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="container-fluid py-4">
+        <!-- Header Section -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="fitness-header">
+                    <div>
+                        <h1 class="mb-1"><i class="bi bi-heart-pulse"></i> Daily Fitness Tracker</h1>
+                        <p class="text-muted mb-0">Set daily targets and track your fitness goals</p>
+                    </div>
+                    <button type="button" class="btn btn-lg btn-success" id="addGoalBtn" data-bs-toggle="modal" data-bs-target="#addGoalModal">
+                        <i class="bi bi-plus-circle"></i> Add Goal
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Date Navigator -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="date-navigator">
+                    <button class="btn-nav" id="prevDayBtn"><i class="bi bi-chevron-left"></i></button>
+                    <div class="date-display" id="dateDisplay">Today</div>
+                    <button class="btn-nav" id="nextDayBtn"><i class="bi bi-chevron-right"></i></button>
+                    <button class="btn btn-outline-secondary btn-sm ms-3" id="todayBtn">Today</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Daily Summary Stats -->
+        <div class="row mb-4">
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="bi bi-target"></i></div>
+                    <div class="stat-content">
+                        <div class="stat-label">Total Goals</div>
+                        <div class="stat-value" id="totalGoalsCount">0</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="stat-card">
+                    <div class="stat-icon completed"><i class="bi bi-check-circle"></i></div>
+                    <div class="stat-content">
+                        <div class="stat-label">Completed</div>
+                        <div class="stat-value" id="completedGoalsCount">0</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="stat-card">
+                    <div class="stat-icon warning"><i class="bi bi-hourglass-split"></i></div>
+                    <div class="stat-content">
+                        <div class="stat-label">In Progress</div>
+                        <div class="stat-value" id="inProgressGoalsCount">0</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="stat-card">
+                    <div class="stat-icon progress"><i class="bi bi-percent"></i></div>
+                    <div class="stat-content">
+                        <div class="stat-label">Progress</div>
+                        <div class="stat-value" id="completionPercentage">0%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fitness Goals List -->
+        <div class="row">
+            <div class="col-12">
+                <div class="fitness-goals-container">
+                    <div id="fitnessGoalsListContainer">
+                        <!-- Goals will be rendered here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add/Edit Goal Modal -->
+    <div class="modal fade" id="addGoalModal" tabindex="-1" aria-labelledby="addGoalModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addGoalModalTitle">
+                        <i class="bi bi-plus-circle"></i> Add New Fitness Goal
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addGoalForm">
+                        <!-- Basic Information -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="goalTitle" class="form-label">Goal Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="goalTitle" placeholder="e.g., Morning Run, Gym Session, Yoga" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="goalCategory" class="form-label">Category <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="goalCategory" required>
+                                        <option value="">Select a category</option>
+                                        <option value="cardio">🏃 Cardio & Running</option>
+                                        <option value="strength">💪 Strength Training</option>
+                                        <option value="yoga">🧘 Yoga & Flexibility</option>
+                                        <option value="sports">⚽ Sports & Games</option>
+                                        <option value="walking">🚶 Walking & Hiking</option>
+                                        <option value="cycling">🚴 Cycling</option>
+                                        <option value="swimming">🏊 Swimming</option>
+                                        <option value="nutrition">🥗 Nutrition & Diet</option>
+                                        <option value="water">💧 Water Intake</option>
+                                        <option value="sleep">😴 Sleep Goal</option>
+                                        <option value="meditation">🧠 Meditation & Mindfulness</option>
+                                        <option value="weight">⚖️ Weight Management</option>
+                                        <option value="other">🎯 Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dynamic Fields Based on Category -->
+                        <div id="dynamicFields" class="row">
+                            <!-- Default fields will be shown here -->
+                        </div>
+
+                        <!-- Common Fields -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="goalDate" class="form-label">Date <span class="text-danger">*</span></label>
+                                    <input type="date" class="form-control" id="goalDate" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="goalTime" class="form-label">Preferred Time</label>
+                                    <input type="time" class="form-control" id="goalTime" placeholder="e.g., 07:00">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="goalNotes" class="form-label">Notes & Motivation (Optional)</label>
+                            <textarea class="form-control" id="goalNotes" placeholder="Add any additional notes, motivation, or reminders..." rows="2"></textarea>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="recurringGoal">
+                                    <label class="form-check-label" for="recurringGoal">
+                                        Make this a daily recurring goal
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="reminderEnabled">
+                                    <label class="form-check-label" for="reminderEnabled">
+                                        Enable reminders for this goal
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-check-circle"></i> Save Goal
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module" src="../js/firebase-config.js"></script>
+    <script type="module" src="../js/firebase-auth-service.js"></script>
+    <script type="module" src="../js/firebase-database-service.js"></script>
+    <script type="module" src="../js/firebase-portfolio-service.js"></script>
+    <script type="module" src="../js/global.js"></script>
+    <script type="module" src="../js/fitness-tracker.js"></script>
+</body>
+</html>
