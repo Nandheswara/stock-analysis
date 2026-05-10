@@ -211,6 +211,42 @@ main .container {
     background-color: var(--bg-primary) !important;
 }
 
+/* Enhanced current page highlighting */
+.navbar .nav-link.active {
+    background-color: var(--accent-primary);
+    color: #ffffff !important;
+    border-radius: 6px;
+    font-weight: 600;
+    box-shadow: var(--glow-primary);
+    position: relative;
+}
+
+.navbar .nav-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #ffffff, transparent);
+    border-radius: 1px;
+}
+
+.navbar .nav-link:hover {
+    color: #ffffff !important;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.navbar .nav-link {
+    transition: all 0.3s ease;
+    border-radius: 6px;
+    margin: 0 2px;
+    padding: 0.5rem 1rem;
+}
+
 /* Mobile navbar spacing */
 @media (max-width: 991.98px) {
     .navbar-nav .nav-item.d-flex {
