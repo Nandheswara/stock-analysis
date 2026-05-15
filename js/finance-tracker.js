@@ -440,12 +440,8 @@ function renderCategories() {
 
     const dedupedCategories = dedupeCategoriesByName(categories);
     const visibleCategories = dedupedCategories.filter(([catId, cat]) => {
-        const items = cat.items ? Object.values(cat.items) : [];
-        const itemsThisMonth = items.filter(item => item.month === currentMonth);
-        const hasItemsAnyMonth = items.length > 0;
         const introducedMonth = getCategoryIntroducedMonth(cat);
-        const introducedInCurrentOrBefore = introducedMonth && introducedMonth <= currentMonth;
-        return itemsThisMonth.length > 0 || (hasItemsAnyMonth && introducedInCurrentOrBefore) || introducedMonth === null;
+        return introducedMonth === null || introducedMonth <= currentMonth;
     });
 
     if (visibleCategories.length === 0) {
