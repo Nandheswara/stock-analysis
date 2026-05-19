@@ -35,7 +35,8 @@ const CACHE_KEYS = {
     CREDIT_CARDS: 'financeCreditCards',
     INCOME: 'financeIncome',
     TAXES: 'financeTaxes',
-    SNAPSHOTS: 'financeSnapshots'
+    SNAPSHOTS: 'financeSnapshots',
+    EPFO: 'financeEPFO'
 };
 
 const CACHE_DURATION = 60 * 60 * 1000; // 1 hour
@@ -536,6 +537,45 @@ export async function getTax(month) {
 }
 
 /**
+ * Save monthly EPFO value
+ * @param {string} month - "YYYY-MM" format
+ * @param {Object} epfoData - { value }
+ */
+export async function saveEPFO(month, epfoData) {
+    const user = await getAuthenticatedUser();
+    if (!user) return { success: false, error: 'Not authenticated' };
+
+    try {
+        const epfoRef = ref(database, `users/${user.uid}/finance/epfo/${month}`);
+        const value = parseFloat(epfoData.value) || 0;
+        const data = {
+            value,
+            updatedAt: Date.now()
+        };
+        await set(epfoRef, data);
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get EPFO value for a specific month
+ */
+export async function getEPFO(month) {
+    const user = await getAuthenticatedUser();
+    if (!user) return null;
+
+    try {
+        const epfoRef = ref(database, `users/${user.uid}/finance/epfo/${month}`);
+        const snapshot = await get(epfoRef);
+        return snapshot.exists() ? snapshot.val() : null;
+    } catch (error) {
+        return null;
+    }
+}
+
+/**
  * Get income for a specific month
  */
 export async function getIncome(month) {
@@ -673,6 +713,16 @@ export async function copyPreviousMonthData(targetMonth) {
             taxesCopied++;
         }
 
+        // Copy EPFO value
+        let epfoCopied = 0;
+        if (data.epfo?.[prevMonth] && !data.epfo?.[targetMonth]) {
+            updates[`epfo/${targetMonth}`] = {
+                ...data.epfo[prevMonth],
+                updatedAt: Date.now()
+            };
+            epfoCopied++;
+        }
+
         if (Object.keys(updates).length > 0) {
             await update(financeRef, updates);
         }
@@ -685,6 +735,7 @@ export async function copyPreviousMonthData(targetMonth) {
             banksCopied,
             cardsCopied,
             taxesCopied,
+            epfoCopied,
             categoryItemsCopied,
             prevMonth
         };
@@ -721,8 +772,9 @@ export function listenToFinanceData(callback) {
     const cachedIncome = loadFromCache(CACHE_KEYS.INCOME, userId);
     const cachedTaxes = loadFromCache(CACHE_KEYS.TAXES, userId);
     const cachedSnapshots = loadFromCache(CACHE_KEYS.SNAPSHOTS, userId);
+    const cachedEPFO = loadFromCache(CACHE_KEYS.EPFO, userId);
 
-    const hasCache = cachedCategories || cachedBanks || cachedCards || cachedIncome || cachedTaxes;
+    const hasCache = cachedCategories || cachedBanks || cachedCards || cachedIncome || cachedTaxes || cachedEPFO;
 
     // Data store
     const store = {
@@ -731,7 +783,8 @@ export function listenToFinanceData(callback) {
         creditCards: cachedCards || {},
         income: cachedIncome || {},
         taxes: cachedTaxes || {},
-        snapshots: cachedSnapshots || {}
+        snapshots: cachedSnapshots || {},
+        epfo: cachedEPFO || {}
     };
 
     if (hasCache) {
@@ -742,7 +795,8 @@ export function listenToFinanceData(callback) {
             creditCards: cachedCards || {},
             income: cachedIncome || {},
             taxes: cachedTaxes || {},
-            snapshots: cachedSnapshots || {}
+            snapshots: cachedSnapshots || {},
+            epfo: cachedEPFO || {}
         }));
         store.categories = normalizedCategories;
     }
@@ -750,7 +804,7 @@ export function listenToFinanceData(callback) {
     // Track initial listener fires — all 5 listeners fire once on attach.
     // If we served cached data we can skip these initial fires entirely;
     // otherwise we batch them into a single callback after all 5 have reported.
-    const TOTAL_LISTENERS = 5;
+    const TOTAL_LISTENERS = 6;
     let initialFiringCount = 0;
     let initialLoadDone = hasCache; // if cache was served, initial load is "done"
     let debounceTimer = null;
@@ -818,6 +872,14 @@ export function listenToFinanceData(callback) {
         listeners.taxes = onValue(taxesRef, (snapshot) => {
             store.taxes = snapshot.val() || {};
             saveToCache(CACHE_KEYS.TAXES, uid, store.taxes);
+            onListenerData();
+        }, () => {});
+
+        // EPFO listener
+        const epfoRef = ref(database, `users/${uid}/finance/epfo`);
+        listeners.epfo = onValue(epfoRef, (snapshot) => {
+            store.epfo = snapshot.val() || {};
+            saveToCache(CACHE_KEYS.EPFO, uid, store.epfo);
             onListenerData();
         }, () => {});
 
@@ -1043,7 +1105,8 @@ export function computeFinancialSummary(data, selectedMonth) {
 
     // ── Assets / Liabilities / Net Worth ──
     // If month is empty (no data entered), show all as 0
-    const totalAssets = isEmptyMonth ? 0 : (totalBankBalance + cumulativeCategoryTotal);
+    const epfoValue = isEmptyMonth ? 0 : ((data.epfo && data.epfo[selectedMonth] && parseFloat(data.epfo[selectedMonth].value)) || 0);
+    const totalAssets = isEmptyMonth ? 0 : (totalBankBalance + cumulativeCategoryTotal + epfoValue);
     const totalLiabilities = isEmptyMonth ? 0 : totalCreditCardOutstanding;
     const netWorth = totalAssets - totalLiabilities;
 
@@ -1096,6 +1159,7 @@ export function computeFinancialSummary(data, selectedMonth) {
         savingsRate,
         prevSavingsRate,
         categoryBreakdown,
+        epfoValue,
         tax,
         totalPaidCharges,
         totalUnpaidCharges,

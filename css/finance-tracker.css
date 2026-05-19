@@ -269,7 +269,8 @@
 
 .networth-cards {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    /* Responsive: fit as many cards as possible per row, min width 200px */
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 20px;
     margin-bottom: 28px;
 }
@@ -284,6 +285,9 @@
     -webkit-backdrop-filter: blur(16px);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
+
+.networth-card.clickable { cursor: pointer; }
+.networth-card.clickable:focus { outline: 3px solid rgba(34,34,34,0.06); box-shadow: var(--shadow-sm); }
 
 .networth-card:hover {
     transform: translateY(-4px);
@@ -305,6 +309,11 @@
     border: 1px solid rgba(114, 137, 255, 0.3);
 }
 
+.networth-card.epfo-card {
+    background: linear-gradient(135deg, rgba(4, 130, 130, 0.12) 0%, rgba(4, 130, 130, 0.03) 100%);
+    border: 1px solid rgba(4, 130, 130, 0.22);
+}
+
 .networth-card .nw-icon {
     font-size: 2.2rem;
     margin-bottom: 8px;
@@ -314,6 +323,7 @@
 .networth-card.assets-card .nw-icon { color: var(--accent-success); }
 .networth-card.liabilities-card .nw-icon { color: var(--accent-danger); }
 .networth-card.networth-total-card .nw-icon { color: var(--accent-primary); }
+.networth-card.epfo-card .nw-icon { color: #048282; }
 
 .networth-card .nw-label {
     font-family: 'Inter', sans-serif;
@@ -335,6 +345,7 @@
 .networth-card.assets-card .nw-value { color: var(--accent-success); }
 .networth-card.liabilities-card .nw-value { color: var(--accent-danger); }
 .networth-card.networth-total-card .nw-value { color: var(--accent-primary); }
+.networth-card.epfo-card .nw-value { color: #048282; }
 
 .networth-card .nw-change {
     font-size: 0.82rem;
@@ -1447,6 +1458,11 @@ body.light-theme .networth-card.liabilities-card {
 body.light-theme .networth-card.networth-total-card {
     background: linear-gradient(135deg, rgba(78, 115, 223, 0.08) 0%, rgba(78, 115, 223, 0.02) 100%);
     border-color: rgba(78, 115, 223, 0.25);
+}
+
+body.light-theme .networth-card.epfo-card {
+    background: linear-gradient(135deg, rgba(4, 130, 130, 0.06) 0%, rgba(4, 130, 130, 0.02) 100%);
+    border-color: rgba(4, 130, 130, 0.18);
 }
 
 /* Scrollbar styling */
