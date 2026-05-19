@@ -45,6 +45,8 @@ import {
     deleteCreditCard,
     saveIncome,
     saveTax,
+    saveEPFO,
+    getEPFO,
     getIncome,
     saveMonthlySnapshot,
     listenToFinanceData,
@@ -64,7 +66,8 @@ let financeData = {
     creditCards: {},
     income: {},
     taxes: {},
-    snapshots: {}
+    snapshots: {},
+    epfo: {}
 };
 let charts = {};
 let unsubscribeFinance = null;
@@ -204,7 +207,7 @@ function initIncomeSection() {
         e.preventDefault();
         await submitEditTax();
     });
-    document.querySelectorAll('.summary-metric.clickable').forEach(el => {
+    document.querySelectorAll('.summary-metric.clickable, .networth-card.clickable').forEach(el => {
         el.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
@@ -250,6 +253,24 @@ window.submitEditTax = async function() {
         showToast('Tax updated successfully!', 'success');
     } else {
         showToast('Failed to save tax. ' + (result.error || ''), 'error');
+    }
+};
+
+window.openEditEPFOModal = function() {
+    const monthEPFO = financeData.epfo?.[currentMonth] || { value: 0 };
+    document.getElementById('modalEPFOAmount').value = monthEPFO.value || 0;
+    openModal('editEPFOModal');
+    setTimeout(() => document.getElementById('modalEPFOAmount').focus(), 100);
+};
+
+window.submitEditEPFO = async function() {
+    const value = parseFloat(document.getElementById('modalEPFOAmount').value) || 0;
+    const result = await saveEPFO(currentMonth, { value });
+    if (result.success) {
+        closeModal('editEPFOModal');
+        showToast('EPFO value updated!', 'success');
+    } else {
+        showToast('Failed to save EPFO. ' + (result.error || ''), 'error');
     }
 };
 
@@ -313,6 +334,8 @@ function renderFinancialSummary() {
 
     // Net Worth Cards
     document.getElementById('totalAssetsValue').textContent = formatCurrency(summary.totalAssets);
+    const epfoElem = document.getElementById('epfoValue');
+    if (epfoElem) epfoElem.textContent = formatCurrency(summary.epfoValue || 0);
     document.getElementById('totalLiabilitiesValue').textContent = formatCurrency(summary.totalLiabilities);
     document.getElementById('netWorthValue').textContent = formatCurrencyWithSign(summary.netWorth);
 
