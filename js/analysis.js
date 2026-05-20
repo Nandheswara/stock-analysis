@@ -100,6 +100,27 @@ function hideLoading() {
 }
 
 /**
+ * Show fetch status banner while data is being loaded
+ * @param {string} message - Status message to display
+ */
+function showFetchStatus(message = 'Fetching in progress...') {
+    const banner = $('#fetchStatusBanner');
+    if (banner.length) {
+        banner.text(message).removeClass('d-none');
+    }
+}
+
+/**
+ * Hide fetch status banner when data loading completes
+ */
+function hideFetchStatus() {
+    const banner = $('#fetchStatusBanner');
+    if (banner.length) {
+        banner.addClass('d-none').text('');
+    }
+}
+
+/**
  * Show loading state on a button
  * @param {jQuery} $button - jQuery button element
  * @param {string} originalText - Original button text to restore later
@@ -222,7 +243,9 @@ $(document).ready(function() {
         }
     });
     
-    $('#fetchAllBtn').on('click', function() {
+    $('#fetchAllBtn').on('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
         fetchAllStocks();
     });
     
@@ -996,7 +1019,7 @@ function renderTableInternal() {
                 <td class="text-center">${formatValue('promoter_holdings', stock.promoter_holdings)}</td>
                 <td class="text-center performance-cell"></td>
                 <td class="text-center">
-                    <button type="button" class="btn btn-sm btn-success me-1" data-action="fetch" data-symbol="${escapedSymbol}" data-id="${stock.stock_id}" title="Fetch Data from Groww">
+                    <button type="button" class="btn btn-sm btn-success me-1 btn-fetch-stock" data-action="fetch-single" data-symbol="${escapedSymbol}" data-id="${stock.stock_id}" title="Fetch Data from Groww">
                         <i class="bi bi-cloud-download"></i> Fetch
                     </button>
                     <button type="button" class="btn btn-sm btn-primary me-1" data-action="edit" data-symbol="${escapedSymbol}" data-name="${escapedName}" data-id="${stock.stock_id}" title="Edit">
@@ -1114,7 +1137,9 @@ function setupTableEventDelegation() {
         const name = button.dataset.name;
         
         switch (action) {
-            case 'fetch':
+            case 'fetch-single':
+                e.preventDefault();
+                e.stopPropagation();
                 if (symbol && stockId) {
                     fetchStockData(symbol, stockId);
                 }
@@ -1420,12 +1445,26 @@ window.clearAllFilters = function() {
 // Data fetching moved to `js/fetch.js`. Create a fetchStockData bound to this module's
 // data and UI helpers using the provided factory, then expose it globally for
 // the inline onclick handlers in the table HTML.
-const fetchStockData = makeFetchStockData({
+const baseFetchStockData = makeFetchStockData({
     getStocksData: () => stocksData,
     renderTable,
     showAlert,
     updateStockInFirebase
 });
+
+/**
+ * Fetch data for a single stock while showing a visible status message.
+ * This wrapper is used by the table fetch button to keep users informed.
+ */
+async function fetchStockData(symbol, stockId) {
+    showFetchStatus(`Fetching in progress for ${symbol}...`);
+    try {
+        await baseFetchStockData(symbol, stockId);
+    } finally {
+        hideFetchStatus();
+    }
+}
+
 window.fetchStockData = fetchStockData;
 // Backwards compatibility: expose crawler object on window
 window.growwCrawler = growwCrawler;
@@ -1446,6 +1485,7 @@ async function fetchAllStocks() {
     
     // Disable the button during fetch
     $fetchAllBtn.prop('disabled', true);
+    showFetchStatus('Fetching in progress for all stocks...');
     
     showAlert('info', `Starting to fetch data for ${totalStocks} stocks. This may take a while...`);
     
@@ -1467,7 +1507,8 @@ async function fetchAllStocks() {
                 continue;
             }
             
-            await fetchStockData(stock.symbol, stock.stock_id);
+            showFetchStatus(`Fetching in progress (${progress}/${totalStocks})...`);
+            await baseFetchStockData(stock.symbol, stock.stock_id);
             successCount++;
             
         } catch (error) {
@@ -1484,6 +1525,7 @@ async function fetchAllStocks() {
     // Restore button
     $fetchAllBtn.prop('disabled', false);
     $fetchAllBtn.html(originalBtnHtml);
+    hideFetchStatus();
     
     // Show summary
     if (failCount === 0) {
