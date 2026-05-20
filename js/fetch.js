@@ -151,6 +151,11 @@ function buildGrowwUrl(symbol) {
   return `${GROWW_BASE_URL}${slug}`
 }
 
+function buildGrowwTechnicalsUrl(symbol) {
+  const slug = symbolToGrowwSlug(symbol)
+  return `${GROWW_BASE_URL}${slug}/technicals`
+}
+
 /**
  * Fetch URL through multiple CORS proxies with fallback
  * Tries multiple proxy services until one succeeds
@@ -270,6 +275,7 @@ function parseGrowwStats(htmlText) {
     bookValue: null,
     debtToEquity: null,
     faceValue: null,
+    beta: null,
     promoterHoldings: null,
     // Performance
     currentPrice: null,
@@ -432,6 +438,7 @@ function parseGrowwStats(htmlText) {
   result.bookValue = findValueByLabel(/^Book Value/i) || findFromFullText(/Book Value\s*([\d\.]+)/i)
   result.debtToEquity = findValueByLabel(/^Debt to Equity/i) || findFromFullText(/Debt to Equity\s*([\d\.]+)/i)
   result.faceValue = findValueByLabel(/^Face Value/i) || findFromFullText(/Face Value\s*([\d\.]+)/i)
+  result.beta = findValueByLabel(/^Beta(?:\s*\(.*\))?$/i) || findFromFullText(/Beta\s*(?:\([^)]*\))?[:\s]*([+\-]?\d+\.?\d*)/i)
 
   // Extract performance metrics
   result.todayLow = findValueByLabel(/Today's Low/i) || findFromFullText(/Today's Low\s*([\d,\.]+)/i)
@@ -1020,9 +1027,10 @@ function mapGrowwToTableFields(growwData) {
   const parseNum = (val) => {
     if (val === null || val === undefined) return null
     if (typeof val === 'number') return val
-    const cleaned = String(val).replace(/[₹,Cr%]/g, '').trim()
+    const cleaned = String(val).replace(/[₹,Cr%+]/g, '').trim()
+    if (/^(N\/A|-|)$/i.test(cleaned)) return null
     const num = parseFloat(cleaned)
-    return isNaN(num) ? val : num
+    return isNaN(num) ? null : num
   }
 
   return {
@@ -1044,7 +1052,8 @@ function mapGrowwToTableFields(growwData) {
     week_52_low: growwData.week52Low ? parseNum(growwData.week52Low) : null,
     volume: growwData.volume ? parseNum(growwData.volume) : null,
     open_price: growwData.open ? parseNum(growwData.open) : null,
-    prev_close: growwData.prevClose ? parseNum(growwData.prevClose) : null
+    prev_close: growwData.prevClose ? parseNum(growwData.prevClose) : null,
+    beta: growwData.beta ? parseNum(growwData.beta) : null
   }
 }
 
@@ -1062,13 +1071,11 @@ export function makeFetchStockData({ getStocksData, renderTable, showAlert, upda
 
       // Build URLs for both Groww and Yahoo Finance
       const growwUrl = buildGrowwUrl(symbol)
+      const technicalsUrl = buildGrowwTechnicalsUrl(symbol)
       const yahooUrl = await buildYahooUrl(symbol)
-      
-      
-      
 
-      // Fetch from BOTH sources in parallel using Promise.all
-      // Yahoo Finance is optional since it often blocks proxies
+      // Fetch from Groww overview and Yahoo Finance in parallel.
+      // If beta is missing from the overview page, we will fetch technicals separately.
       const [growwData, yahooData] = await Promise.all([
         fetchGrowwStats(growwUrl).catch(err => {
           console.error('fetch.js: Groww fetch failed:', err.message)
@@ -1091,9 +1098,26 @@ export function makeFetchStockData({ getStocksData, renderTable, showAlert, upda
       // Map data from both sources
       const mappedGrowwData = hasGrowwData ? mapGrowwToTableFields(growwData) : {}
       const mappedYahooData = hasYahooData ? mapYahooToTableFields(yahooData) : {}
+
+      // If Groww beta is missing from the overview page, try the technicals page.
+      if (hasGrowwData && mappedGrowwData.beta === null) {
+        try {
+          const technicalsData = await fetchGrowwStats(technicalsUrl).catch(() => null)
+          if (technicalsData && technicalsData.beta !== null && technicalsData.beta !== undefined) {
+            mappedGrowwData.beta = mapGrowwToTableFields(technicalsData).beta
+          }
+        } catch (_) {
+          // non-blocking: technicals page may be unavailable due to anti-bot protection
+        }
+      }
       
-      // Combine data from both sources
-      const mappedData = { ...mappedGrowwData, ...mappedYahooData }
+      // Merge data from both sources, giving Groww precedence for shared metrics
+      const mappedData = { ...mappedYahooData }
+      for (const [field, value] of Object.entries(mappedGrowwData)) {
+        if (value !== null && value !== undefined) {
+          mappedData[field] = value
+        }
+      }
       
       const promoterFetched = Boolean(growwData?.promoterHoldings)
       
