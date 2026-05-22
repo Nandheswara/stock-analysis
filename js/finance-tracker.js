@@ -165,11 +165,9 @@ function initMonthNavigator() {
 
     document.getElementById('monthNextBtn').addEventListener('click', () => {
         const next = getNextMonth(currentMonth);
-        if (next <= getCurrentMonthKey()) {
-            currentMonth = next;
-            updateMonthDisplay();
-            renderAll();
-        }
+        currentMonth = next;
+        updateMonthDisplay();
+        renderAll();
     });
 
     document.getElementById('monthCurrentBtn').addEventListener('click', () => {
@@ -186,8 +184,8 @@ function updateMonthDisplay() {
     const currentKey = getCurrentMonthKey();
     const isCurrentMonth = currentMonth === currentKey;
     const nextButton = document.getElementById('monthNextBtn');
-    nextButton.disabled = isCurrentMonth || currentMonth > currentKey;
-    nextButton.classList.toggle('disabled', nextButton.disabled);
+    nextButton.disabled = false;
+    nextButton.classList.remove('disabled');
 
     const btn = document.getElementById('monthCurrentBtn');
     btn.classList.toggle('active', isCurrentMonth);
@@ -330,7 +328,7 @@ function renderFinancialSummary() {
     document.getElementById('summaryBankBalance').textContent = formatCurrency(summary.totalBankBalance);
     document.getElementById('summaryBankBalanceSub').textContent = 'Total bank balances';
     document.getElementById('summaryTax').textContent = formatCurrency(summary.tax || 0);
-    document.getElementById('summaryTaxSub').textContent = summary.tax > 0 ? 'Estimated tax' : 'Tax tracking not enabled';
+    document.getElementById('summaryTaxSub').textContent = summary.tax > 0 ? 'Estimated tax' : 'No Tax Recorded';
 
     // Net Worth Cards
     document.getElementById('totalAssetsValue').textContent = formatCurrency(summary.totalAssets);
