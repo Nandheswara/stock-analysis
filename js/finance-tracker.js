@@ -411,6 +411,13 @@ function getCreditCardLimit(card, month) {
     return parseFloat(card.creditLimit) || 0;
 }
 
+function isCardPaidForMonth(card, month) {
+    if (card.paymentStatusByMonth && month && card.paymentStatusByMonth[month] !== undefined) {
+        return Boolean(card.paymentStatusByMonth[month]);
+    }
+    return Boolean(card.isPaid);
+}
+
 function dedupeCategoriesByName(categories) {
     const representatives = new Map();
 
@@ -642,7 +649,8 @@ function renderCreditCards() {
         const dueLabel = expenseType === 'general-expense'
             ? (card.expenseDate || '-')
             : (card.dueDate || '-');
-        const statusLabel = card.isPaid ? 'Paid' : 'Unpaid';
+        const isPaidForCurrentMonth = isCardPaidForMonth(card, currentMonth);
+        const statusLabel = isPaidForCurrentMonth ? 'Paid' : 'Unpaid';
 
         return `
         <tr>
@@ -816,6 +824,7 @@ function renderNetWorthChart(currentSummary) {
     const netWorthData = last6.map(m => m === currentMonth ? currentSummary.netWorth : snapshots[m]?.netWorth || 0);
     const assetsData = last6.map(m => m === currentMonth ? currentSummary.totalAssets : snapshots[m]?.totalAssets || 0);
     const liabilitiesData = last6.map(m => m === currentMonth ? currentSummary.totalLiabilities : snapshots[m]?.totalLiabilities || 0);
+    const expenditureData = last6.map(m => m === currentMonth ? currentSummary.expenditure : snapshots[m]?.totalExpenses || 0);
 
     const textColor = getComputedStyle(document.body).getPropertyValue('--text-primary').trim() || '#e9ecef';
     const gridColor = getComputedStyle(document.body).getPropertyValue('--border-color').trim() || '#1f2229';
@@ -855,6 +864,16 @@ function renderNetWorthChart(currentSummary) {
                     tension: 0.4,
                     pointRadius: 3,
                     pointBackgroundColor: '#ff6b6b'
+                },
+                {
+                    label: 'Expenditure',
+                    data: expenditureData,
+                    borderColor: '#ff9f43',
+                    borderWidth: 2,
+                    borderDash: [8, 4],
+                    tension: 0.4,
+                    pointRadius: 3,
+                    pointBackgroundColor: '#ff9f43'
                 }
             ] : [{ label: 'No Data', data: [0], borderColor: '#444', borderWidth: 1 }]
         },
@@ -1428,14 +1447,14 @@ window.editFinanceCreditCard = function(cardId) {
     document.getElementById('cardExpenseDate').value = card.expenseDate || '';
     document.getElementById('cardNotes').value = card.notes || '';
     if (type === 'loan') {
-        document.getElementById('loanPaymentStatus').value = card.isPaid ? 'paid' : 'unpaid';
+        document.getElementById('loanPaymentStatus').value = isCardPaidForMonth(card, currentMonth) ? 'paid' : 'unpaid';
         document.getElementById('loanDueDate').value = card.dueDate || '';
         document.getElementById('cardIssuerLoan').value = card.issuer || '';
     } else if (type === 'general-expense') {
-        document.getElementById('generalPaymentStatus').value = card.isPaid ? 'paid' : 'unpaid';
+        document.getElementById('generalPaymentStatus').value = isCardPaidForMonth(card, currentMonth) ? 'paid' : 'unpaid';
         document.getElementById('cardIssuerGeneral').value = card.issuer || '';
     } else {
-        document.getElementById('cardPaymentStatus').value = card.isPaid ? 'paid' : 'unpaid';
+        document.getElementById('cardPaymentStatus').value = isCardPaidForMonth(card, currentMonth) ? 'paid' : 'unpaid';
         document.getElementById('cardIssuer').value = card.issuer || '';
     }
     document.getElementById('addCreditCardModalTitle').textContent = 'Edit Expense';
@@ -1653,8 +1672,9 @@ function buildExportData(months) {
             const outstanding = card.balances ? (card.balances[month] || 0) : 0;
             const limit = card.creditLimit || 0;
             const util = limit > 0 ? ((outstanding / limit) * 100).toFixed(1) : 0;
-            const status = outstanding > 0 ? (card.isPaid ? 'PAID' : 'UNPAID') : 'NO CHARGES';
-            if (outstanding > 0 || card.isPaid) {
+            const isPaidForMonth = isCardPaidForMonth(card, month);
+            const status = outstanding > 0 ? (isPaidForMonth ? 'PAID' : 'UNPAID') : 'NO CHARGES';
+            if (outstanding > 0 || isPaidForMonth) {
                 expenseBreakdown.push([card.name, getMonthDisplay(month), outstanding, util + '%', status]);
             }
         });
