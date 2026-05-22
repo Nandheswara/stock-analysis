@@ -162,21 +162,35 @@ function buildGrowwTechnicalsUrl(symbol) {
  * @param {string} url - The target URL to fetch
  * @returns {Promise<string>} - The response text
  */
-async function fetchWithCorsFallback(url) {
+async function fetchWithCorsFallback(url, expectHtml = true) {
   const tried = []
   
   // List of CORS proxy services to try (in order of reliability)
   const proxies = [
     // Local proxy (if running cors-proxy.js)
     (u) => `http://localhost:8080/proxy?url=${encodeURIComponent(u)}`,
-    // Public CORS proxies - try multiple services
+    // Public CORS proxies - prefer those that support CORS reliably
+    (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+    (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+    (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
     (u) => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
     (u) => `https://corsproxy.org/?${encodeURIComponent(u)}`,
     (u) => `https://proxy.cors.sh/${u}`,
     (u) => `https://thingproxy.freeboard.io/fetch/${u}`,
-    (u) => `https://cors-anywhere.herokuapp.com/${u}`,
-    (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
+    (u) => `https://cors-anywhere.herokuapp.com/${u}`
   ]
+
+  function isProxyErrorResponse(text) {
+    const normalized = String(text || '').trim()
+    if (!normalized) return true
+    if (/^(Edge:|Too Many Requests|Access Denied|403 Forbidden|Forbidden|Service Unavailable|Not Found|Error)/i.test(normalized)) {
+      return true
+    }
+    if (/<(?:html|body|title)[^>]*>.*?(?:Access Denied|Forbidden|Error|Not Found|Too Many Requests)/i.test(normalized)) {
+      return true
+    }
+    return false
+  }
 
   for (let i = 0; i < proxies.length; i++) {
     const makeProxy = proxies[i]
@@ -211,12 +225,24 @@ async function fetchWithCorsFallback(url) {
         }
       }
       
-      // Verify we got HTML content (not an error page)
+      if (!expectHtml) {
+        const trimmed = txt.trim()
+        if (!trimmed.startsWith('{') && !trimmed.startsWith('[') && isProxyErrorResponse(trimmed)) {
+          throw new Error('Proxy returned non-JSON error response')
+        }
+        return txt
+      }
+
+      if (isProxyErrorResponse(txt)) {
+        throw new Error('Proxy returned an error page')
+      }
+
+      // Verify we got HTML content
       if (txt && (txt.includes('<!DOCTYPE') || txt.includes('<html'))) {
         return txt
-      } else {
-        throw new Error('Response does not contain HTML')
       }
+
+      throw new Error('Response does not contain HTML')
     } catch (err) {
       const errorMsg = err.name === 'AbortError' ? 'Timeout' : (err && err.message)
       tried.push({ proxy: proxyUrl, error: errorMsg })
@@ -227,7 +253,11 @@ async function fetchWithCorsFallback(url) {
   try {
     const res = await fetch(url, { mode: 'cors' })
     if (!res.ok) throw new Error('Network response not ok: ' + res.status)
-    return await res.text()
+    const txt = await res.text()
+    if (!expectHtml || txt && (txt.includes('<!DOCTYPE') || txt.includes('<html'))) {
+      return txt
+    }
+    throw new Error('Direct response does not contain HTML')
   } catch (err) {
     tried.push({ direct: url, error: err && err.message })
     
@@ -293,25 +323,59 @@ function parseGrowwStats(htmlText) {
     lowerCircuit: null
   }
 
-  // Method 1: Parse from table cells (td elements)
-  const rows = Array.from(doc.querySelectorAll('td'))
+  // Method 1: Parse from table cells and neighboring nodes
+  const rows = Array.from(doc.querySelectorAll('td, th, div, span, p, li'))
+
+  function isNumericCandidate(text) {
+    if (!text) return false
+    const trimmed = text.trim()
+    return /^[-+]?\d[\d,\.]*\s*(?:%|[₹A-Za-z]{1,5})?$/.test(trimmed)
+  }
 
   function findValueByLabel(labelRegex, nextSiblingIndex = 1) {
-    for (const td of rows) {
-      const txt = td.textContent && td.textContent.trim()
+    for (const node of rows) {
+      const txt = node.textContent && node.textContent.trim()
       if (!txt) continue
       if (labelRegex.test(txt)) {
-        let valueTd = td.nextElementSibling
-        if (!valueTd) {
-          const parent = td.parentElement
+        let valueNode = node.nextElementSibling
+        if (!valueNode) {
+          const parent = node.parentElement
           if (parent) {
-            const tds = parent.querySelectorAll('td')
-            if (tds.length >= 2) valueTd = tds[nextSiblingIndex]
+            const cells = parent.querySelectorAll('td, th')
+            if (cells.length >= 2) {
+              valueNode = cells[nextSiblingIndex]
+            } else if (parent.nextElementSibling) {
+              valueNode = parent.nextElementSibling
+            }
           }
         }
-        if (valueTd) {
-          const val = valueTd.textContent && valueTd.textContent.trim()
-          if (val) return val
+
+        if (valueNode) {
+          const val = valueNode.textContent && valueNode.textContent.trim()
+          if (val && val !== txt && isNumericCandidate(val)) return val
+        }
+
+        // Fallback: try siblings inside the same parent container
+        const parent = node.parentElement
+        if (parent) {
+          const children = Array.from(parent.children)
+          const currentIndex = children.indexOf(node)
+          if (currentIndex >= 0 && children[currentIndex + nextSiblingIndex]) {
+            const candidate = children[currentIndex + nextSiblingIndex].textContent?.trim()
+            if (candidate && candidate !== txt && isNumericCandidate(candidate)) {
+              return candidate
+            }
+          }
+        }
+
+        // Fallback: search within the same row for a nearby numeric value
+        const row = node.closest('tr')
+        if (row) {
+          const cells = row.querySelectorAll('td, th')
+          if (cells.length >= 2) {
+            const candidate = cells[nextSiblingIndex]?.textContent?.trim()
+            if (candidate && candidate !== txt) return candidate
+          }
         }
       }
     }
@@ -331,7 +395,7 @@ function parseGrowwStats(htmlText) {
     let current
     while (current = walker.nextNode()) {
       const text = (current.textContent || '').trim()
-      const percentMatch = text.match(/([\d.,]+%)/)
+      const percentMatch = text.match(/([+\-]?[\d.,]+%)/)
       if (percentMatch) {
         return percentMatch[1].trim()
       }
@@ -429,15 +493,15 @@ function parseGrowwStats(htmlText) {
 
   // Extract fundamentals
   result.marketCap = findValueByLabel(/^Market Cap/i) || findFromFullText(/Market Cap[₹\s]*([\d,\.]+\s*Cr)/i)
-  result.roe = findValueByLabel(/^ROE/i) || findFromFullText(/ROE\s*([\d\.]+%?)/i)
-  result.pe = findValueByLabel(/P\/E Ratio|P\/E\s*\(TTM\)/i) || findFromFullText(/P\/E Ratio\s*\(TTM\)\s*([\d\.]+)/i)
-  result.eps = findValueByLabel(/^EPS\s*\(TTM\)/i) || findFromFullText(/EPS\s*\(TTM\)\s*([\d\.]+)/i)
-  result.pbRatio = findValueByLabel(/^P\/B Ratio/i) || findFromFullText(/P\/B Ratio\s*([\d\.]+)/i)
-  result.dividendYield = findValueByLabel(/^Dividend Yield/i) || findFromFullText(/Dividend Yield\s*([\d\.]+%?)/i)
-  result.industryPe = findValueByLabel(/^Industry P\/E/i) || findFromFullText(/Industry P\/E\s*([\d\.]+)/i)
-  result.bookValue = findValueByLabel(/^Book Value/i) || findFromFullText(/Book Value\s*([\d\.]+)/i)
-  result.debtToEquity = findValueByLabel(/^Debt to Equity/i) || findFromFullText(/Debt to Equity\s*([\d\.]+)/i)
-  result.faceValue = findValueByLabel(/^Face Value/i) || findFromFullText(/Face Value\s*([\d\.]+)/i)
+  result.roe = findValueByLabel(/^ROE\b/i) || findValueByLabel(/ROE\s*\(/i) || findFromFullText(/ROE[^\d%+\-]*([+\-]?[\d,\.]+%?)/i)
+  result.pe = findValueByLabel(/P\/E Ratio|P\/E\s*\(TTM\)/i) || findFromFullText(/P\/E Ratio\s*\(TTM\)\s*([+\-]?[\d\.]+)/i)
+  result.eps = findValueByLabel(/^EPS\s*\(TTM\)/i) || findFromFullText(/EPS\s*\(TTM\)\s*([+\-]?[\d\.]+)/i)
+  result.pbRatio = findValueByLabel(/^P\/B Ratio/i) || findFromFullText(/P\/B Ratio\s*([+\-]?[\d\.]+)/i)
+  result.dividendYield = findValueByLabel(/^Dividend Yield/i) || findFromFullText(/Dividend Yield\s*([+\-]?[\d\.]+%?)/i)
+  result.industryPe = findValueByLabel(/^Industry P\/E/i) || findFromFullText(/Industry P\/E\s*([+\-]?[\d\.]+)/i)
+  result.bookValue = findValueByLabel(/^Book Value/i) || findFromFullText(/Book Value\s*([+\-]?[\d\.]+)/i)
+  result.debtToEquity = findValueByLabel(/^Debt to Equity/i) || findFromFullText(/Debt to Equity\s*([+\-]?[\d\.]+)/i)
+  result.faceValue = findValueByLabel(/^Face Value/i) || findFromFullText(/Face Value\s*([+\-]?[\d\.]+)/i)
   result.beta = findValueByLabel(/^Beta(?:\s*\(.*\))?$/i) || findFromFullText(/Beta\s*(?:\([^)]*\))?[:\s]*([+\-]?\d+\.?\d*)/i)
 
   // Extract performance metrics
@@ -531,6 +595,7 @@ export const growwCrawler = { fetchMarketCap, fetchGrowwStats, buildGrowwUrl, sy
 // ============================================================================
 
 const YAHOO_BASE_URL = 'https://finance.yahoo.com/quote/'
+const YAHOO_SEARCH_URL = 'https://query2.finance.yahoo.com/v1/finance/search?q='
 
 /**
  * Yahoo symbol mapping cache (loaded once from resource/yahoo-symbols.json)
@@ -603,14 +668,15 @@ async function loadYahooSymbols() {
   if (yahooSymbolsCache) {
     return yahooSymbolsCache
   }
-  
+
   try {
-    const response = await fetch('/resource/yahoo-symbols.json')
+    const path = new URL('../resource/yahoo-symbols.json', window.location.href).href
+    const response = await fetch(path)
     if (!response.ok) {
       throw new Error(`Failed to load Yahoo symbols: ${response.status}`)
     }
     yahooSymbolsCache = await response.json()
-    
+
     return yahooSymbolsCache
   } catch (err) {
     console.error('fetch.js: Failed to load Yahoo symbols mapping', err)
@@ -621,6 +687,42 @@ async function loadYahooSymbols() {
 }
 
 /**
+ * Resolve a company name or slug to a Yahoo Finance symbol using the Yahoo search API.
+ * @param {string} query - Human readable company name or slug converted to text
+ * @returns {Promise<string|null>} Yahoo symbol if found
+ */
+async function resolveYahooSymbolFromSearch(query) {
+  if (!query) return null
+
+  try {
+    const responseText = await fetchWithCorsFallback(`${YAHOO_SEARCH_URL}${encodeURIComponent(query)}`, false)
+    const trimmed = String(responseText || '').trim()
+    if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
+      throw new Error('Yahoo search proxy did not return JSON')
+    }
+
+    const data = JSON.parse(trimmed)
+    const results = data?.quotes || data?.quoteResponse?.result
+
+    if (Array.isArray(results) && results.length > 0) {
+      const nseResult = results.find(item => item.symbol?.endsWith('.NS') || item.exchange === 'NSE')
+      if (nseResult?.symbol) {
+        return nseResult.symbol
+      }
+
+      const first = results[0].symbol
+      if (first) {
+        return first.includes('.') ? first : `${first}.NS`
+      }
+    }
+  } catch (err) {
+    console.warn('fetch.js: Yahoo search fallback failed for', query, err)
+  }
+
+  return null
+}
+
+/**
  * Convert stock symbol to Yahoo Finance symbol format
  * Handles both direct symbols (e.g., "TCS") and Groww slugs (e.g., "tata-consultancy-services-ltd")
  * @param {string} symbol - Stock symbol or Groww slug
@@ -628,7 +730,7 @@ async function loadYahooSymbols() {
  */
 async function symbolToYahooSymbol(symbol) {
   if (!symbol) return null
-  
+
   const mapping = await loadYahooSymbols()
   let upperSymbol = symbol.toUpperCase().trim()
   
@@ -636,25 +738,47 @@ async function symbolToYahooSymbol(symbol) {
   const lowerSymbol = symbol.toLowerCase().trim()
   if (slugToSymbolMap[lowerSymbol]) {
     upperSymbol = slugToSymbolMap[lowerSymbol]
-    
   }
-  
+
+  // If the symbol already appears Yahoo-qualified, return as-is
+  if (/^[A-Z0-9]+\.(NS|BO|L|SI|TO|HK|US)$/i.test(upperSymbol)) {
+    return upperSymbol.toUpperCase()
+  }
+
   // Try exact match first
   if (mapping[upperSymbol]) {
-    
     return mapping[upperSymbol]
   }
-  
+
   // Try to extract symbol from common formats
   // e.g., "ITC Ltd" -> "ITC", "Reliance Industries" -> "RELIANCE"
   const parts = upperSymbol.split(/\s+/)
   if (parts.length > 0 && mapping[parts[0]]) {
-    
     return mapping[parts[0]]
   }
-  
-  // If not found, try appending .NS as default for NSE stocks
-  return `${upperSymbol}.NS`
+
+  // If this looks like a valid NSE ticker, use .NS shorthand
+  if (/^[A-Z0-9]{1,10}$/.test(upperSymbol)) {
+    return `${upperSymbol}.NS`
+  }
+
+  // If not found, try Yahoo search by company name or slug
+  const slugQuery = lowerSymbol
+    .replace(/[-_]+/g, ' ')
+    .replace(/\b(ltd|limited|pvt|private|company|india|industries|corporation|services|finance|bank|technologies|telecom|solutions|enterprises)\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  if (slugQuery) {
+    const resolvedSymbol = await resolveYahooSymbolFromSearch(slugQuery)
+    if (resolvedSymbol) {
+      mapping[upperSymbol] = resolvedSymbol
+      yahooSymbolsCache = mapping
+      return resolvedSymbol
+    }
+  }
+
+  return null
 }
 
 /**
@@ -710,23 +834,44 @@ function parseYahooStats(htmlText) {
     return isNaN(num) ? null : num
   }
 
-  // Helper to find value by label in table rows
+  // Helper to find value by label in table rows or adjacent elements
   function findValueByLabel(labelPattern) {
     const allRows = Array.from(doc.querySelectorAll('tr'))
-    
+
     for (const row of allRows) {
       const cells = row.querySelectorAll('td, th')
       if (cells.length < 2) continue
-      
-      // Check if first cell contains the label
+
       const labelText = cells[0].textContent?.trim() || ''
       if (labelPattern.test(labelText)) {
-        // Return the value from the second cell
         const valueText = cells[1].textContent?.trim()
-        
-        return valueText
+        if (valueText) return valueText
       }
     }
+
+    const allNodes = Array.from(doc.querySelectorAll('td, th, div, span, p, li, strong, b'))
+    for (const node of allNodes) {
+      const text = node.textContent?.trim() || ''
+      if (!text || !labelPattern.test(text)) continue
+
+      let valueText = node.nextElementSibling?.textContent?.trim()
+      if (valueText && valueText !== text) return valueText
+
+      if (node.parentElement) {
+        valueText = node.parentElement.nextElementSibling?.textContent?.trim()
+        if (valueText && valueText !== text) return valueText
+      }
+
+      const row = node.closest('tr')
+      if (row) {
+        const cells = row.querySelectorAll('td, th')
+        if (cells.length >= 2) {
+          valueText = cells[1].textContent?.trim()
+          if (valueText && valueText !== text) return valueText
+        }
+      }
+    }
+
     return null
   }
 
@@ -1035,25 +1180,25 @@ function mapGrowwToTableFields(growwData) {
 
   return {
     // Map to existing table columns
-    roe: growwData.roe ? parseNum(growwData.roe) : null,
-    pe_ratio: growwData.pe ? parseNum(growwData.pe) : null,
-    industry_pe: growwData.industryPe ? parseNum(growwData.industryPe) : null,
-    price_to_book: growwData.pbRatio ? parseNum(growwData.pbRatio) : null,
-    dividend_yield: growwData.dividendYield ? parseNum(growwData.dividendYield) : null,
-    debt_to_equity: growwData.debtToEquity ? parseNum(growwData.debtToEquity) : null,
-    promoter_holdings: growwData.promoterHoldings ? parseNum(growwData.promoterHoldings) : null,
+    roe: growwData.roe != null && growwData.roe !== '' ? parseNum(growwData.roe) : null,
+    pe_ratio: growwData.pe != null && growwData.pe !== '' ? parseNum(growwData.pe) : null,
+    industry_pe: growwData.industryPe != null && growwData.industryPe !== '' ? parseNum(growwData.industryPe) : null,
+    price_to_book: growwData.pbRatio != null && growwData.pbRatio !== '' ? parseNum(growwData.pbRatio) : null,
+    dividend_yield: growwData.dividendYield != null && growwData.dividendYield !== '' ? parseNum(growwData.dividendYield) : null,
+    debt_to_equity: growwData.debtToEquity != null && growwData.debtToEquity !== '' ? parseNum(growwData.debtToEquity) : null,
+    promoter_holdings: growwData.promoterHoldings != null && growwData.promoterHoldings !== '' ? parseNum(growwData.promoterHoldings) : null,
     // Additional fields that could be added
     market_cap: growwData.marketCap || null,
-    eps: growwData.eps ? parseNum(growwData.eps) : null,
-    book_value: growwData.bookValue ? parseNum(growwData.bookValue) : null,
-    face_value: growwData.faceValue ? parseNum(growwData.faceValue) : null,
-    current_price: growwData.currentPrice ? parseNum(growwData.currentPrice) : null,
-    week_52_high: growwData.week52High ? parseNum(growwData.week52High) : null,
-    week_52_low: growwData.week52Low ? parseNum(growwData.week52Low) : null,
-    volume: growwData.volume ? parseNum(growwData.volume) : null,
-    open_price: growwData.open ? parseNum(growwData.open) : null,
-    prev_close: growwData.prevClose ? parseNum(growwData.prevClose) : null,
-    beta: growwData.beta ? parseNum(growwData.beta) : null
+    eps: growwData.eps != null && growwData.eps !== '' ? parseNum(growwData.eps) : null,
+    book_value: growwData.bookValue != null && growwData.bookValue !== '' ? parseNum(growwData.bookValue) : null,
+    face_value: growwData.faceValue != null && growwData.faceValue !== '' ? parseNum(growwData.faceValue) : null,
+    current_price: growwData.currentPrice != null && growwData.currentPrice !== '' ? parseNum(growwData.currentPrice) : null,
+    week_52_high: growwData.week52High != null && growwData.week52High !== '' ? parseNum(growwData.week52High) : null,
+    week_52_low: growwData.week52Low != null && growwData.week52Low !== '' ? parseNum(growwData.week52Low) : null,
+    volume: growwData.volume != null && growwData.volume !== '' ? parseNum(growwData.volume) : null,
+    open_price: growwData.open != null && growwData.open !== '' ? parseNum(growwData.open) : null,
+    prev_close: growwData.prevClose != null && growwData.prevClose !== '' ? parseNum(growwData.prevClose) : null,
+    beta: growwData.beta != null && growwData.beta !== '' ? parseNum(growwData.beta) : null
   }
 }
 
@@ -1072,7 +1217,28 @@ export function makeFetchStockData({ getStocksData, renderTable, showAlert, upda
       // Build URLs for both Groww and Yahoo Finance
       const growwUrl = buildGrowwUrl(symbol)
       const technicalsUrl = buildGrowwTechnicalsUrl(symbol)
-      const yahooUrl = await buildYahooUrl(symbol)
+
+      let yahooUrl = null
+      try {
+        const stocks = getStocksData ? getStocksData() : []
+        const currentStock = stockId && Array.isArray(stocks)
+          ? stocks.find(s => s.stock_id === stockId)
+          : null
+        const yahooSource = currentStock?.stock_symbol || symbol
+
+        try {
+          yahooUrl = await buildYahooUrl(yahooSource)
+        } catch (err) {
+          // Fall back to using slug-based lookup if symbol-based lookup fails
+          if (yahooSource !== symbol) {
+            yahooUrl = await buildYahooUrl(symbol)
+          } else {
+            throw err
+          }
+        }
+      } catch (err) {
+        console.warn('fetch.js: Yahoo URL build failed:', err.message)
+      }
 
       // Fetch from Groww overview and Yahoo Finance in parallel.
       // If beta is missing from the overview page, we will fetch technicals separately.
@@ -1081,9 +1247,9 @@ export function makeFetchStockData({ getStocksData, renderTable, showAlert, upda
           console.error('fetch.js: Groww fetch failed:', err.message)
           return null // Non-blocking: continue even if Groww fails
         }),
-        fetchYahooStats(yahooUrl).catch(err => {
+        yahooUrl ? fetchYahooStats(yahooUrl).catch(err => {
           return null // Non-blocking: Yahoo Finance is optional
-        })
+        }) : Promise.resolve(null)
       ])
       
       // Check if we got any data from either source

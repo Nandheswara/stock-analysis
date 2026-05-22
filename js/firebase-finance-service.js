@@ -94,6 +94,13 @@ function inferMonthFromDate(date) {
     return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}`;
 }
 
+function isCardPaidForMonth(card, month) {
+    if (card && card.paymentStatusByMonth && month && card.paymentStatusByMonth[month] !== undefined) {
+        return Boolean(card.paymentStatusByMonth[month]);
+    }
+    return Boolean(card && card.isPaid);
+}
+
 function normalizeCategoryItem(item) {
     if (!item || typeof item !== 'object') return item;
 
@@ -397,12 +404,14 @@ export async function addCreditCard(cardData, month) {
             color: cardData.color || '#ff6b6b',
             updatedAt: Date.now(),
             balances: {},
-            monthlyLimits: {}
+            monthlyLimits: {},
+            paymentStatusByMonth: {}
         };
         // Store outstanding and month-specific limit under the specified month
         if (month) {
             data.balances[month] = parseFloat(cardData.outstandingBalance) || 0;
             data.monthlyLimits[month] = parseFloat(cardData.creditLimit) || 0;
+            data.paymentStatusByMonth[month] = Boolean(cardData.isPaid);
         }
         await set(newRef, data);
         return { success: true, id: newRef.key };
@@ -432,7 +441,13 @@ export async function updateCreditCard(cardId, updates, month) {
             }
         }
         if (updates.dueDate !== undefined) updateData.dueDate = updates.dueDate;
-        if (updates.isPaid !== undefined) updateData.isPaid = updates.isPaid;
+        if (updates.isPaid !== undefined) {
+            if (month) {
+                updateData[`paymentStatusByMonth/${month}`] = Boolean(updates.isPaid);
+            } else {
+                updateData.isPaid = Boolean(updates.isPaid);
+            }
+        }
         if (updates.interestRate !== undefined) updateData.interestRate = parseFloat(updates.interestRate);
         if (updates.expenseDate !== undefined) updateData.expenseDate = updates.expenseDate;
         if (updates.notes !== undefined) updateData.notes = updates.notes;
@@ -662,6 +677,12 @@ export async function copyPreviousMonthData(targetMonth) {
                 if (targetOutstanding === undefined || targetOutstanding === null) {
                     updates[`creditCards/${cardId}/balances/${targetMonth}`] = prevOutstanding;
                     cardsCopied++;
+                }
+
+                const prevPaymentStatus = card.paymentStatusByMonth?.[prevMonth] ?? card.isPaid ?? false;
+                const targetPaymentStatus = card.paymentStatusByMonth?.[targetMonth];
+                if (targetPaymentStatus === undefined || targetPaymentStatus === null) {
+                    updates[`creditCards/${cardId}/paymentStatusByMonth/${targetMonth}`] = Boolean(prevPaymentStatus);
                 }
             });
         }
@@ -1033,7 +1054,7 @@ export function computeFinancialSummary(data, selectedMonth) {
         if (card.type === 'general-expense') {
             return 0; // General expenses are not treated as ongoing liabilities
         }
-        if (card.isPaid) {
+        if (isCardPaidForMonth(card, month)) {
             return 0; // Exclude paid liabilities from liabilities
         }
         if (card.balances) {
@@ -1067,8 +1088,9 @@ export function computeFinancialSummary(data, selectedMonth) {
     let prevMonthCCOutstanding = 0;
     Object.values(creditCards).forEach(card => {
         const charges = getCCCharges(card, selectedMonth);
+        const isPaidForSelectedMonth = isCardPaidForMonth(card, selectedMonth);
         totalCreditCardCharges += charges;
-        if (card.isPaid) {
+        if (isPaidForSelectedMonth) {
             totalPaidCharges += charges;
         } else {
             totalUnpaidCharges += charges;
