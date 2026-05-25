@@ -678,6 +678,21 @@
                                 <i class="bi bi-cash-stack"></i> Income
                             </button>
                         </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="finance-taxes-tab" data-bs-toggle="tab" data-bs-target="#financeTaxesData" type="button" role="tab">
+                                <i class="bi bi-receipt"></i> Taxes
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="finance-epfo-tab" data-bs-toggle="tab" data-bs-target="#financeEPFOData" type="button" role="tab">
+                                <i class="bi bi-piggy-bank"></i> EPFO
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="finance-snapshots-tab" data-bs-toggle="tab" data-bs-target="#financeSnapshotsData" type="button" role="tab">
+                                <i class="bi bi-calendar3"></i> Monthly Snapshots
+                            </button>
+                        </li>
                     </ul>
                     <div class="tab-content p-3" id="userDataTabContent">
                         <div class="tab-pane fade show active" id="stocksData" role="tabpanel">
@@ -717,6 +732,27 @@
                         </div>
                         <div class="tab-pane fade" id="financeIncomeData" role="tabpanel">
                             <div id="userFinanceIncomeContent">
+                                <div class="text-center py-4">
+                                    <div class="spinner-border" role="status"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="financeTaxesData" role="tabpanel">
+                            <div id="userFinanceTaxesContent">
+                                <div class="text-center py-4">
+                                    <div class="spinner-border" role="status"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="financeEPFOData" role="tabpanel">
+                            <div id="userFinanceEPFOContent">
+                                <div class="text-center py-4">
+                                    <div class="spinner-border" role="status"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="financeSnapshotsData" role="tabpanel">
+                            <div id="userFinanceSnapshotsContent">
                                 <div class="text-center py-4">
                                     <div class="spinner-border" role="status"></div>
                                 </div>
@@ -817,6 +853,14 @@
                         <div class="form-check form-switch mb-3">
                             <input class="form-check-input" type="checkbox" id="enableStockManager" checked>
                             <label class="form-check-label" for="enableStockManager">Enable Stock Manager</label>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="enableNews" checked>
+                            <label class="form-check-label" for="enableNews">Enable News Page</label>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="enableFinanceTracker" checked>
+                            <label class="form-check-label" for="enableFinanceTracker">Enable Finance Tracker</label>
                         </div>
                         
                         <hr class="my-4">

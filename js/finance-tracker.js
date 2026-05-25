@@ -955,7 +955,25 @@ function renderIncomeExpenseChart(currentSummary) {
                     labels: { color: textColor, font: { family: 'Inter', size: 12 }, usePointStyle: true }
                 },
                 tooltip: {
-                    callbacks: { label: (ctx) => `${ctx.dataset.label}: ${formatCurrency(ctx.raw)}` }
+                    callbacks: {
+                        label: function(ctx) {
+                            const chart = ctx.chart;
+                            const dataIndex = ctx.dataIndex;
+                            const datasets = chart.data.datasets;
+                            const incomeDataset = datasets.find(ds => ds.label === 'Income');
+                            const incomeBase = incomeDataset && Array.isArray(incomeDataset.data)
+                                ? (Number(incomeDataset.data[dataIndex]) || 0)
+                                : 0;
+                            const value = Number(ctx.raw) || 0;
+                            let percent = '0.0';
+                            if (ctx.dataset.label === 'Income') {
+                                percent = incomeBase > 0 ? '100.0' : '0.0';
+                            } else {
+                                percent = incomeBase > 0 ? ((value / incomeBase) * 100).toFixed(1) : '0.0';
+                            }
+                            return `${ctx.dataset.label}: ${formatCurrency(value)} (${percent}%)`;
+                        }
+                    }
                 }
             },
             scales: {

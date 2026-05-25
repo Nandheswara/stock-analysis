@@ -1346,7 +1346,17 @@ async function viewUserData() {
     
     // Reset all content areas to loading state for clean view
     const loadingSpinner = '<div class="text-center py-4"><div class="spinner-border" role="status"></div></div>';
-    ['userStocksContent', 'userPortfolioContent', 'userFinanceCategoriesContent', 'userFinanceBanksContent', 'userFinanceCardsContent', 'userFinanceIncomeContent'].forEach(id => {
+    [
+        'userStocksContent',
+        'userPortfolioContent',
+        'userFinanceCategoriesContent',
+        'userFinanceBanksContent',
+        'userFinanceCardsContent',
+        'userFinanceIncomeContent',
+        'userFinanceTaxesContent',
+        'userFinanceEPFOContent',
+        'userFinanceSnapshotsContent'
+    ].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.innerHTML = loadingSpinner;
     });
@@ -1699,6 +1709,175 @@ async function viewUserData() {
         console.error('Error loading income:', error);
         document.getElementById('userFinanceIncomeContent').innerHTML = `
             <div class="alert alert-danger">Error loading income data</div>
+        `;
+    }
+
+    // Load finance tracker - taxes
+    try {
+        const taxesRef = ref(database, `users/${selectedUserId}/finance/taxes`);
+        const taxesSnapshot = await get(taxesRef);
+
+        const taxesContent = document.getElementById('userFinanceTaxesContent');
+
+        if (taxesSnapshot.exists()) {
+            const taxes = taxesSnapshot.val();
+            const taxEntries = Object.entries(taxes).sort(([a], [b]) => b.localeCompare(a));
+
+            const totalTax = taxEntries.reduce((sum, [, data]) => {
+                return sum + (parseFloat(data.tax) || 0);
+            }, 0);
+
+            taxesContent.innerHTML = `
+                <div class="table-responsive">
+                    <table class="table table-dark table-sm">
+                        <thead>
+                            <tr>
+                                <th>Month</th>
+                                <th>Tax Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${taxEntries.map(([month, data]) => {
+                                const taxValue = parseFloat(data.tax) || 0;
+                                return `
+                                    <tr>
+                                        <td>${escapeHtml(month)}</td>
+                                        <td>₹${taxValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-muted mt-2">Total: ${taxEntries.length} months, ₹${totalTax.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            `;
+        } else {
+            taxesContent.innerHTML = `
+                <div class="empty-state">
+                    <i class="bi bi-receipt"></i>
+                    <h5>No Tax Data</h5>
+                    <p>This user has no tax records.</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading taxes:', error);
+        document.getElementById('userFinanceTaxesContent').innerHTML = `
+            <div class="alert alert-danger">Error loading taxes data</div>
+        `;
+    }
+
+    // Load finance tracker - EPFO
+    try {
+        const epfoRef = ref(database, `users/${selectedUserId}/finance/epfo`);
+        const epfoSnapshot = await get(epfoRef);
+
+        const epfoContent = document.getElementById('userFinanceEPFOContent');
+
+        if (epfoSnapshot.exists()) {
+            const epfo = epfoSnapshot.val();
+            const epfoEntries = Object.entries(epfo).sort(([a], [b]) => b.localeCompare(a));
+
+            const totalEPFO = epfoEntries.reduce((sum, [, data]) => {
+                return sum + (parseFloat(data.value) || 0);
+            }, 0);
+
+            epfoContent.innerHTML = `
+                <div class="table-responsive">
+                    <table class="table table-dark table-sm">
+                        <thead>
+                            <tr>
+                                <th>Month</th>
+                                <th>EPFO Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${epfoEntries.map(([month, data]) => {
+                                const epfoValue = parseFloat(data.value) || 0;
+                                return `
+                                    <tr>
+                                        <td>${escapeHtml(month)}</td>
+                                        <td>₹${epfoValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-muted mt-2">Total: ${epfoEntries.length} months, ₹${totalEPFO.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            `;
+        } else {
+            epfoContent.innerHTML = `
+                <div class="empty-state">
+                    <i class="bi bi-piggy-bank"></i>
+                    <h5>No EPFO Data</h5>
+                    <p>This user has no EPFO records.</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading EPFO:', error);
+        document.getElementById('userFinanceEPFOContent').innerHTML = `
+            <div class="alert alert-danger">Error loading EPFO data</div>
+        `;
+    }
+
+    // Load finance tracker - monthly snapshots
+    try {
+        const snapshotsRef = ref(database, `users/${selectedUserId}/finance/monthlySnapshots`);
+        const snapshotsSnapshot = await get(snapshotsRef);
+
+        const snapshotsContent = document.getElementById('userFinanceSnapshotsContent');
+
+        if (snapshotsSnapshot.exists()) {
+            const snapshots = snapshotsSnapshot.val();
+            const snapshotEntries = Object.entries(snapshots).sort(([a], [b]) => b.localeCompare(a));
+
+            snapshotsContent.innerHTML = `
+                <div class="table-responsive">
+                    <table class="table table-dark table-sm">
+                        <thead>
+                            <tr>
+                                <th>Month</th>
+                                <th>Total Assets</th>
+                                <th>Total Liabilities</th>
+                                <th>Net Worth</th>
+                                <th>Updated</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${snapshotEntries.map(([month, data]) => {
+                                const totalAssets = parseFloat(data.totalAssets) || 0;
+                                const totalLiabilities = parseFloat(data.totalLiabilities) || 0;
+                                const netWorth = parseFloat(data.netWorth) || (totalAssets - totalLiabilities);
+                                return `
+                                    <tr>
+                                        <td>${escapeHtml(month)}</td>
+                                        <td>₹${totalAssets.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                        <td>₹${totalLiabilities.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                        <td>₹${netWorth.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                        <td>${formatDate(data.timestamp || data.updatedAt)}</td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-muted mt-2">Total: ${snapshotEntries.length} monthly snapshots</p>
+            `;
+        } else {
+            snapshotsContent.innerHTML = `
+                <div class="empty-state">
+                    <i class="bi bi-calendar3"></i>
+                    <h5>No Snapshot Data</h5>
+                    <p>This user has no monthly finance snapshots.</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading monthly snapshots:', error);
+        document.getElementById('userFinanceSnapshotsContent').innerHTML = `
+            <div class="alert alert-danger">Error loading monthly snapshots data</div>
         `;
     }
 }
@@ -2064,6 +2243,8 @@ async function saveSystemSettings(event) {
         requireEmailVerification: document.getElementById('requireEmailVerification').checked,
         enableAnalysis: document.getElementById('enableAnalysis').checked,
         enableStockManager: document.getElementById('enableStockManager').checked,
+        enableNews: document.getElementById('enableNews').checked,
+        enableFinanceTracker: document.getElementById('enableFinanceTracker').checked,
         maxStocksPerUser: parseInt(document.getElementById('maxStocksPerUser').value),
         maxPortfolioItems: parseInt(document.getElementById('maxPortfolioItems').value),
         updatedAt: Date.now(),
@@ -2411,8 +2592,14 @@ async function loadSystemSettings() {
             document.getElementById('requireEmailVerification').checked = settings.requireEmailVerification === true;
             document.getElementById('enableAnalysis').checked = settings.enableAnalysis !== false;
             document.getElementById('enableStockManager').checked = settings.enableStockManager !== false;
+            document.getElementById('enableNews').checked = settings.enableNews !== false;
+            document.getElementById('enableFinanceTracker').checked = settings.enableFinanceTracker !== false;
             document.getElementById('maxStocksPerUser').value = settings.maxStocksPerUser || 100;
             document.getElementById('maxPortfolioItems').value = settings.maxPortfolioItems || 200;
+        } else {
+            // Ensure defaults are explicit when settings do not exist yet.
+            document.getElementById('enableNews').checked = true;
+            document.getElementById('enableFinanceTracker').checked = true;
         }
     } catch (error) {
         console.error('Error loading system settings:', error);
