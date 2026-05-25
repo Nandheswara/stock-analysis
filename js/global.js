@@ -402,6 +402,16 @@ async function checkSystemSettings() {
             if (settings.enableStockManager === false && window.location.pathname.includes('stock-manager.html')) {
                 showFeatureDisabledOverlay('Stock Manager');
             }
+
+            // Check if News page is disabled
+            if (settings.enableNews === false && window.location.pathname.includes('news.html')) {
+                showFeatureDisabledOverlay('News');
+            }
+
+            // Check if Finance Tracker page is disabled
+            if (settings.enableFinanceTracker === false && window.location.pathname.includes('finance-tracker.html')) {
+                showFeatureDisabledOverlay('Finance Tracker');
+            }
         }
     } catch (error) {
         console.error('Error checking system settings:', error);
