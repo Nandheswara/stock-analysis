@@ -808,7 +808,8 @@ async function deleteStock(stockId) {
             updateSummaryDisplay();
             showNotification('Stock deleted successfully!');
         } catch (error) {
-            console.error('Error deleting stock:', error);
+            const { log } = await import('./utils.js');
+            log('error', 'Error deleting stock', { error: error.message });
             showNotification('Failed to delete stock. Please try again.', 'error');
         }
     }
@@ -1316,7 +1317,8 @@ function showAuthModal(mode) {
     // Show Bootstrap modal
     const modalElement = document.getElementById('authModal');
     if (!modalElement) {
-        console.error('Auth modal element not found');
+        const { log } = await import('./utils.js');
+        log('error', 'Auth modal element not found');
         return;
     }
 
@@ -1327,7 +1329,8 @@ function showAuthModal(mode) {
         }
         modal.show();
     } catch (error) {
-        console.error('Error showing auth modal:', error);
+        const { log } = await import('./utils.js');
+        log('error', 'Error showing auth modal', { error: error.message });
     }
 }
 

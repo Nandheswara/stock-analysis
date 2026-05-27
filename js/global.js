@@ -144,7 +144,6 @@ async function checkMaintenanceMode() {
                         });
                         return; // Maintenance is now disabled, allow access
                     } catch (updateError) {
-                        console.error('Failed to auto-disable maintenance:', updateError);
                         // If we can't update, still allow access since time has passed
                         return;
                     }
@@ -188,7 +187,7 @@ async function checkMaintenanceMode() {
             }
         }
     } catch (error) {
-        console.error('Error checking maintenance mode:', error);
+        // Error checking maintenance mode - continue loading
     }
 }
 
@@ -287,7 +286,7 @@ async function checkAnnouncements() {
             }
         }
     } catch (error) {
-        console.error('Error checking announcements:', error);
+        // Error checking announcements - continue silently
     }
 }
 
@@ -414,7 +413,7 @@ async function checkSystemSettings() {
             }
         }
     } catch (error) {
-        console.error('Error checking system settings:', error);
+        // Error checking system settings - use defaults
     }
 }
 
@@ -601,8 +600,8 @@ document.addEventListener('DOMContentLoaded', function() {
             checkMaintenanceMode(),
             checkAnnouncements(),
             checkSystemSettings()
-        ]).catch(err => console.warn('Firebase checks failed:', err));
+        ]).catch(err => { /* Firebase checks failed silently */ });
     } else {
-        console.warn('Skipped Firebase runtime checks because the app is loaded from file://. Use a local web server for full Firebase functionality.');
+        // Skip Firebase runtime checks for file:// protocol
     }
 });

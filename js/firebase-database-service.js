@@ -309,7 +309,7 @@ function setupFirebaseListener(user, callback, cacheAlreadyServed = false) {
         isFirstLoad = false;
         callback(stocksArray);
     }, (error) => {
-        console.error('Firebase listener error:', error.message);
+        // Firebase listener error - fallback to local data
         const localData = loadFromSessionStorage();
         callback(localData);
     });
@@ -372,8 +372,6 @@ export async function addStock(stockData, customStockId = null) {
         };
         
     } catch (error) {
-        console.error('Add stock failed:', error.message);
-        
         // If auth error, try waiting for auth and retry once
         if (error.code === 'PERMISSION_DENIED' && user._fromCache) {
             const confirmedUser = await waitForAuthReady();
@@ -439,8 +437,6 @@ export async function updateStock(stockId, updates) {
         };
         
     } catch (error) {
-        console.error('Update stock failed:', error.message);
-        
         if (!isOnline) {
             const index = localStocksCache.findIndex(s => s.stock_id === stockId);
             if (index !== -1) {
@@ -494,8 +490,6 @@ export async function deleteStock(stockId) {
         };
         
     } catch (error) {
-        console.error('Delete stock failed:', error.message);
-        
         if (!isOnline) {
             localStocksCache = localStocksCache.filter(s => s.stock_id !== stockId);
             saveToSessionStorage(localStocksCache);
@@ -545,7 +539,6 @@ export async function deleteAllStocks() {
         };
         
     } catch (error) {
-        console.error('Delete all stocks failed:', error.message);
         return { 
             success: false, 
             error: error.message 

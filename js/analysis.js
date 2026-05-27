@@ -55,6 +55,11 @@ import {
     batchDOMUpdate
 } from './utils.js';
 
+// Replaced console.log with the centralized logging utility
+import { log } from './utils.js';
+
+log('info', 'Analysis module loaded successfully.');
+
 /* ========================================
    Global Variables
    ======================================== */
@@ -1512,7 +1517,7 @@ async function fetchAllStocks() {
             successCount++;
             
         } catch (error) {
-            console.error(`Error fetching data for ${stock.symbol}:`, error);
+            // Error fetching stock data - continue with next
             failCount++;
         }
         

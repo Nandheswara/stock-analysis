@@ -87,6 +87,10 @@ const server = http.createServer(async (req, res) => {
     }
 })
 
+import { log } from './utils.js';
+
+log('info', `Local CORS proxy running on http://localhost:${PORT}/proxy?url=<target>`)
+
 server.listen(PORT, () => {
   console.log(`Local CORS proxy running on http://localhost:${PORT}/proxy?url=<target>`)
 })

@@ -679,7 +679,6 @@ async function loadYahooSymbols() {
 
     return yahooSymbolsCache
   } catch (err) {
-    console.error('fetch.js: Failed to load Yahoo symbols mapping', err)
     // Return basic fallback mapping
     yahooSymbolsCache = { 'ITC': 'ITC.NS' }
     return yahooSymbolsCache
@@ -716,7 +715,7 @@ async function resolveYahooSymbolFromSearch(query) {
       }
     }
   } catch (err) {
-    console.warn('fetch.js: Yahoo search fallback failed for', query, err)
+    // Yahoo search fallback failed - return null
   }
 
   return null
@@ -1237,14 +1236,14 @@ export function makeFetchStockData({ getStocksData, renderTable, showAlert, upda
           }
         }
       } catch (err) {
-        console.warn('fetch.js: Yahoo URL build failed:', err.message)
+        // Yahoo URL build failed - try Groww
       }
 
       // Fetch from Groww overview and Yahoo Finance in parallel.
       // If beta is missing from the overview page, we will fetch technicals separately.
       const [growwData, yahooData] = await Promise.all([
         fetchGrowwStats(growwUrl).catch(err => {
-          console.error('fetch.js: Groww fetch failed:', err.message)
+          // Groww fetch failed - non-blocking
           return null // Non-blocking: continue even if Groww fails
         }),
         yahooUrl ? fetchYahooStats(yahooUrl).catch(err => {
@@ -1344,7 +1343,7 @@ export function makeFetchStockData({ getStocksData, renderTable, showAlert, upda
         // Non-critical: stock data update failed
       }
     } catch (err) {
-      console.error('fetchStockData error', err)
+      // fetchStockData error - return null
       if (showAlert) showAlert('danger', `Error fetching data: ${err && err.message ? err.message : String(err)}`)
     }
   }

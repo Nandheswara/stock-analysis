@@ -37,16 +37,28 @@ class AuthModalManager {
     init() {
         const modalElement = document.getElementById('authModal');
         if (!modalElement) {
+            console.error('AuthModal element not found');
             return;
         }
 
-        this.modal = new bootstrap.Modal(modalElement);
-        this.forms.login = document.getElementById('loginForm');
-        this.forms.signup = document.getElementById('signupForm');
-        this.forms.forgotPassword = document.getElementById('forgotPasswordForm');
-        this.alertContainer = document.getElementById('authAlertContainer');
+        // Ensure bootstrap is loaded
+        if (typeof bootstrap === 'undefined') {
+            console.warn('Bootstrap not loaded yet. Retrying in 100ms...');
+            setTimeout(() => this.init(), 100);
+            return;
+        }
 
-        this.bindEvents();
+        try {
+            this.modal = new bootstrap.Modal(modalElement);
+            this.forms.login = document.getElementById('loginForm');
+            this.forms.signup = document.getElementById('signupForm');
+            this.forms.forgotPassword = document.getElementById('forgotPasswordForm');
+            this.alertContainer = document.getElementById('authAlertContainer');
+
+            this.bindEvents();
+        } catch (error) {
+            console.error('Error initializing AuthModalManager:', error);
+        }
     }
 
     /**
@@ -73,6 +85,10 @@ class AuthModalManager {
 
         if (loginBtn) {
             loginBtn.addEventListener('click', () => {
+                if (!this.modal) {
+                    console.error('Modal not initialized yet');
+                    return;
+                }
                 this.showLoginForm();
                 this.modal.show();
             });
@@ -80,6 +96,10 @@ class AuthModalManager {
 
         if (signupBtn) {
             signupBtn.addEventListener('click', () => {
+                if (!this.modal) {
+                    console.error('Modal not initialized yet');
+                    return;
+                }
                 this.showSignupForm();
                 this.modal.show();
             });
@@ -595,4 +615,10 @@ function initHomePage() {
 }
 
 // Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', initHomePage);
+// Note: ES6 modules are deferred, so DOM might already be loaded
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initHomePage);
+} else {
+    // DOM already loaded (common with ES6 modules)
+    initHomePage();
+}

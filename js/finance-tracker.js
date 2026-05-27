@@ -55,6 +55,11 @@ import {
     copyPreviousMonthData
 } from '../js/firebase-finance-service.js';
 
+import { log } from './utils.js';
+
+// Replaced console.log with the centralized logging utility
+log('info', 'Finance tracker initialized successfully.');
+
 // ========================================
 // State
 // ========================================
@@ -469,7 +474,13 @@ function renderCategories() {
     const dedupedCategories = dedupeCategoriesByName(categories);
     const visibleCategories = dedupedCategories.filter(([catId, cat]) => {
         const introducedMonth = getCategoryIntroducedMonth(cat);
-        return introducedMonth === null || introducedMonth <= currentMonth;
+        const hasItemsForCurrentMonth = cat.items && Object.values(cat.items).some(item => item.month === currentMonth);
+        const wasCreatedThisMonth = introducedMonth === currentMonth;
+        
+        // Show categories if:
+        // 1. They have items for the current month, OR
+        // 2. They were created in the current month (even if no items yet)
+        return (hasItemsForCurrentMonth || wasCreatedThisMonth) && (introducedMonth === null || introducedMonth <= currentMonth);
     });
 
     if (visibleCategories.length === 0) {
@@ -561,7 +572,28 @@ function renderBanks() {
         return;
     }
 
-    container.innerHTML = Object.entries(banks).map(([bankId, bank]) => {
+    // Filter banks to show only those with balance for current month or created this month
+    const visibleBanks = Object.entries(banks).filter(([bankId, bank]) => {
+        const hasBalanceForMonth = bank.balances && bank.balances[currentMonth] !== undefined;
+        const createdMonth = bank.createdMonth || (bank.createdAt ? getMonthFromTimestamp(bank.createdAt) : null);
+        const wasCreatedThisMonth = createdMonth === currentMonth;
+        
+        // Show if: has balance for this month OR was created this month
+        return hasBalanceForMonth || wasCreatedThisMonth;
+    });
+
+    if (visibleBanks.length === 0) {
+        container.innerHTML = `
+            <tr>
+                <td colspan="5" style="text-align:center;padding:30px;">
+                    <i class="bi bi-bank" style="font-size:2rem;display:block;margin-bottom:8px;opacity:0.4;"></i>
+                    <span style="color:var(--text-muted);">No bank accounts for ${getMonthDisplay(currentMonth)}</span>
+                </td>
+            </tr>`;
+        return;
+    }
+
+    container.innerHTML = visibleBanks.map(([bankId, bank]) => {
         // New format: show month-specific balance, or 0 if not entered yet
         // Old format (no balances obj): use global balance
         const balance = bank.balances
@@ -609,9 +641,30 @@ function renderCreditCards() {
         return;
     }
 
+    // Filter credit cards/expenses to show only those with balance for current month or created this month
+    const visibleCards = Object.entries(cards).filter(([cardId, card]) => {
+        const hasBalanceForMonth = card.balances && card.balances[currentMonth] !== undefined;
+        const createdMonth = card.createdMonth || (card.createdAt ? getMonthFromTimestamp(card.createdAt) : null);
+        const wasCreatedThisMonth = createdMonth === currentMonth;
+        
+        // Show if: has balance for this month OR was created this month
+        return hasBalanceForMonth || wasCreatedThisMonth;
+    });
+
+    if (visibleCards.length === 0) {
+        container.innerHTML = `
+            <tr>
+                <td colspan="7" style="text-align:center;padding:30px;">
+                    <i class="bi bi-wallet2" style="font-size:2rem;display:block;margin-bottom:8px;opacity:0.4;"></i>
+                    <span style="color:var(--text-muted);">No expenses for ${getMonthDisplay(currentMonth)}</span>
+                </td>
+            </tr>`;
+        return;
+    }
+
     const today = new Date();
 
-    container.innerHTML = Object.entries(cards).map(([cardId, card]) => {
+    container.innerHTML = visibleCards.map(([cardId, card]) => {
         // New format: show month-specific outstanding, or 0 if not entered yet
         // Old format (no balances obj): use global outstandingBalance
         const outstanding = card.balances
@@ -887,12 +940,9 @@ function renderNetWorthChart(currentSummary) {
                 }
             },
             scales: {
-                x: { ticks: { color: textColor }, grid: { color: gridColor } },
+                x: { ticks: { color: textColor }, grid: { display: false } },
                 y: {
-                    ticks: {
-                        color: textColor,
-                        callback: (val) => formatCurrency(val)
-                    },
+                    ticks: { color: textColor, callback: (val) => formatCurrency(val) },
                     grid: { color: gridColor }
                 }
             }
@@ -1127,7 +1177,7 @@ window.openExportModal = function() {
     const modal = document.getElementById('exportModal');
 
     if (!modal) {
-        console.warn('Export modal element not found');
+        // Export modal not found - silent return
         return;
     }
 
@@ -2080,7 +2130,6 @@ window.exportFinanceData = async function() {
         showToast('Export completed successfully!', 'success');
         closeExportModal();
     } catch (error) {
-        console.error('Export failed:', error);
         clearToasts();
         showToast('Export failed. Please try again.', 'error');
     }
@@ -2323,6 +2372,10 @@ function setupAuth() {
 
     // Login/Signup btn triggers
     document.getElementById('loginBtn')?.addEventListener('click', () => {
+        if (typeof bootstrap === 'undefined') {
+            console.error('Bootstrap not loaded yet');
+            return;
+        }
         document.getElementById('loginForm').style.display = 'block';
         document.getElementById('signupForm').style.display = 'none';
         document.getElementById('forgotPasswordForm').style.display = 'none';
@@ -2331,6 +2384,10 @@ function setupAuth() {
     });
 
     document.getElementById('signupBtn')?.addEventListener('click', () => {
+        if (typeof bootstrap === 'undefined') {
+            console.error('Bootstrap not loaded yet');
+            return;
+        }
         document.getElementById('loginForm').style.display = 'none';
         document.getElementById('signupForm').style.display = 'block';
         document.getElementById('forgotPasswordForm').style.display = 'none';
