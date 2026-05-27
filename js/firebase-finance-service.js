@@ -101,6 +101,12 @@ function isCardPaidForMonth(card, month) {
     return Boolean(card && card.isPaid);
 }
 
+function getMonthFromTimestamp(timestamp) {
+    const value = Number(timestamp) ? new Date(Number(timestamp)) : new Date(timestamp);
+    if (Number.isNaN(value.getTime())) return null;
+    return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}`;
+}
+
 function normalizeCategoryItem(item) {
     if (!item || typeof item !== 'object') return item;
 
@@ -319,6 +325,8 @@ export async function addBank(bankData, month) {
             bankName: bankData.bankName,
             accountType: bankData.accountType || 'savings',
             color: bankData.color || '#3ddc84',
+            createdAt: Date.now(),
+            createdMonth: month || new Date().toISOString().slice(0, 7),
             updatedAt: Date.now(),
             balances: {}
         };
@@ -402,6 +410,8 @@ export async function addCreditCard(cardData, month) {
             expenseDate: cardData.expenseDate || '',
             notes: cardData.notes || '',
             color: cardData.color || '#ff6b6b',
+            createdAt: Date.now(),
+            createdMonth: month || new Date().toISOString().slice(0, 7),
             updatedAt: Date.now(),
             balances: {},
             monthlyLimits: {},
@@ -658,11 +668,19 @@ export async function copyPreviousMonthData(targetMonth) {
         // Copy bank balances
         if (data.banks) {
             Object.entries(data.banks).forEach(([bankId, bank]) => {
+                // Only copy banks that were created in or before the previous month
+                const bankCreatedMonth = bank.createdMonth || (bank.createdAt ? getMonthFromTimestamp(bank.createdAt) : null);
+                if (bankCreatedMonth && bankCreatedMonth > prevMonth) {
+                    return; // Skip banks created after the previous month
+                }
+                
                 // Get previous month balance (with backward compat)
                 const prevBalance = bank.balances?.[prevMonth] ?? bank.balance ?? 0;
-                // Only copy if target month doesn't already have data
+                // Only copy if target month doesn't already have data AND previous month had data
                 const targetBalance = bank.balances?.[targetMonth];
-                if (targetBalance === undefined || targetBalance === null) {
+                const hasPrevMonthData = bank.balances?.[prevMonth] !== undefined || bank.balance !== undefined;
+                
+                if ((targetBalance === undefined || targetBalance === null) && hasPrevMonthData) {
                     updates[`banks/${bankId}/balances/${targetMonth}`] = prevBalance;
                     banksCopied++;
                 }
@@ -672,16 +690,24 @@ export async function copyPreviousMonthData(targetMonth) {
         // Copy credit card balances
         if (data.creditCards) {
             Object.entries(data.creditCards).forEach(([cardId, card]) => {
+                // Only copy cards that were created in or before the previous month
+                const cardCreatedMonth = card.createdMonth || (card.createdAt ? getMonthFromTimestamp(card.createdAt) : null);
+                if (cardCreatedMonth && cardCreatedMonth > prevMonth) {
+                    return; // Skip cards created after the previous month
+                }
+                
                 const prevOutstanding = card.balances?.[prevMonth] ?? card.outstandingBalance ?? 0;
                 const targetOutstanding = card.balances?.[targetMonth];
-                if (targetOutstanding === undefined || targetOutstanding === null) {
+                const hasPrevMonthData = card.balances?.[prevMonth] !== undefined || card.outstandingBalance !== undefined;
+                
+                if ((targetOutstanding === undefined || targetOutstanding === null) && hasPrevMonthData) {
                     updates[`creditCards/${cardId}/balances/${targetMonth}`] = prevOutstanding;
                     cardsCopied++;
                 }
 
                 const prevPaymentStatus = card.paymentStatusByMonth?.[prevMonth] ?? card.isPaid ?? false;
                 const targetPaymentStatus = card.paymentStatusByMonth?.[targetMonth];
-                if (targetPaymentStatus === undefined || targetPaymentStatus === null) {
+                if ((targetPaymentStatus === undefined || targetPaymentStatus === null) && hasPrevMonthData) {
                     updates[`creditCards/${cardId}/paymentStatusByMonth/${targetMonth}`] = Boolean(prevPaymentStatus);
                 }
             });
@@ -696,17 +722,17 @@ export async function copyPreviousMonthData(targetMonth) {
                 if (!cat.items) return;
                 const prevItems = Object.entries(cat.items).filter(([, item]) => item.month === prevMonth);
                 const targetItems = Object.values(cat.items).filter((item) => item.month === targetMonth);
-                const targetItemSet = new Set(targetItems.map((item) => `${item.name}|${item.amount}|${item.date}|${item.notes || ''}`));
+                const targetItemSet = new Set(targetItems.map((item) => `${item.name}|${item.amount}|${item.notes || ''}`));
 
                 prevItems.forEach(([, item]) => {
-                    const itemKey = `${item.name}|${item.amount}|${item.date}|${item.notes || ''}`;
+                    const itemKey = `${item.name}|${item.amount}|${item.notes || ''}`;
                     if (targetItemSet.has(itemKey)) return;
                     const itemRef = push(ref(database, `users/${user.uid}/finance/categories/${catId}/items`));
                     const copiedItem = {
                         name: item.name,
                         amount: item.amount || 0,
                         month: targetMonth,
-                        date: new Date().toISOString().split('T')[0],
+                        date: `${targetMonth}-01`, // Set to first day of target month
                         notes: item.notes || '',
                         updatedAt: Date.now()
                     };
@@ -985,7 +1011,7 @@ export async function createDefaultCategories() {
         }
         await set(catRef, categoriesData);
     } catch (error) {
-        console.error('Error creating default categories:', error);
+        // Error creating default categories is non-critical, silently continue
     }
 }
 
@@ -1126,10 +1152,13 @@ export function computeFinancialSummary(data, selectedMonth) {
     });
 
     // ── Assets / Liabilities / Net Worth ──
-    // If month is empty (no data entered), show all as 0
-    const epfoValue = isEmptyMonth ? 0 : ((data.epfo && data.epfo[selectedMonth] && parseFloat(data.epfo[selectedMonth].value)) || 0);
-    const totalAssets = isEmptyMonth ? 0 : (totalBankBalance + cumulativeCategoryTotal + epfoValue);
-    const totalLiabilities = isEmptyMonth ? 0 : totalCreditCardOutstanding;
+    // Use ONLY current month values to match what's visible in the UI
+    // This prevents confusion where old investments from hidden months are counted
+    const hasAnyMonthData = hasMonthlyBankData || hasMonthlyCCData || hasMonthlyIncome || monthCategoryTotal > 0;
+    const epfoValue = (hasAnyMonthData && data.epfo && data.epfo[selectedMonth]) ? parseFloat(data.epfo[selectedMonth].value) || 0 : 0;
+    // Use monthCategoryTotal (current month only) instead of cumulativeCategoryTotal
+    const totalAssets = hasAnyMonthData ? (totalBankBalance + monthCategoryTotal + epfoValue) : 0;
+    const totalLiabilities = hasAnyMonthData ? totalCreditCardOutstanding : 0;
     const netWorth = totalAssets - totalLiabilities;
 
     // ── Income ──

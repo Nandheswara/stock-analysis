@@ -352,7 +352,8 @@ async function loadPhoneNumber() {
             if (phoneText) phoneText.style.display = 'none';
         }
     } catch (error) {
-        console.error('Failed to load phone number:', error);
+        const { log } = await import('./utils.js');
+        log('error', 'Failed to load phone number', { error: error.message });
     }
 }
 

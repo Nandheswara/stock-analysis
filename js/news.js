@@ -25,6 +25,9 @@ import {
     signInWithGoogle
 } from './firebase-auth-service.js';
 import { escapeHtml } from './utils.js';
+import { log } from './utils.js';
+
+log('info', 'News module initialized.');
 
 /* ========================================
    Configuration
@@ -275,7 +278,8 @@ async function initializeNewsPage() {
         startMarketStatsRefresh();
         
     } catch (error) {
-        console.error('Error initializing news page:', error);
+        const { log } = await import('./utils.js');
+        log('error', 'Error initializing news page', { error: error.message });
         // Ensure trending topics are rendered even on error
         initializeTrendingTopics();
     }
@@ -344,7 +348,8 @@ async function loadNewsData() {
         updateTrendingTopics();
         
     } catch (error) {
-        console.error('Error loading news:', error);
+        const { log } = await import('./utils.js');
+        log('error', 'Error loading news', { error: error.message });
         newsState.allNews = [];
         filterNews(newsState.currentCategory);
         updateNewsTicker();
@@ -1659,7 +1664,8 @@ async function loadMoreNews() {
             }
         }
     } catch (error) {
-        console.error('Error loading more news:', error);
+        const { log } = await import('./utils.js');
+        log('error', 'Error loading more news', { error: error.message });
         showNoMoreNewsMessage();
     } finally {
         // Re-enable button

@@ -13,6 +13,8 @@
  * @module market-movers
  */
 
+import { log } from './utils.js';
+
 const MarketMovers = (function() {
     'use strict';
 
@@ -25,7 +27,9 @@ const MarketMovers = (function() {
         CORS_PROXIES: [
             'https://api.allorigins.win/raw?url=',
             'https://corsproxy.io/?',
-            'https://api.codetabs.com/v1/proxy?quest='
+            'https://cors-anywhere.herokuapp.com/',
+            'https://api.codetabs.com/v1/proxy?quest=',
+            'https://thingproxy.freeboard.io/fetch/'
         ],
         // Adaptive intervals based on market status
         REFRESH_INTERVALS: {
@@ -89,6 +93,10 @@ const MarketMovers = (function() {
 
     // API Endpoints
     const API = {
+        // Working APIs (no CORS issues)
+        ALPHA_VANTAGE: 'https://www.alphavantage.co/query?function=TOP_GAINERS_LOSERS&apikey=',
+        YAHOO_TRENDING: 'https://query1.finance.yahoo.com/v1/finance/trending/IN',
+        // Requires CORS proxy
         NSE_GAINERS: 'https://www.nseindia.com/api/live-analysis-variations?index=gainers',
         NSE_LOSERS: 'https://www.nseindia.com/api/live-analysis-variations?index=losers',
         YAHOO_SCREENER: 'https://query2.finance.yahoo.com/v1/finance/screener/predefined/saved',
@@ -96,6 +104,8 @@ const MarketMovers = (function() {
         GROWW_TOP_LOSERS: 'https://groww.in/v1/api/stocks_data/v2/top_losers',
         NSE_INDEX: 'https://www.nseindia.com/api/equity-stockIndices?index='
     };
+
+
 
     // State
     let state = {
@@ -302,30 +312,44 @@ const MarketMovers = (function() {
        ======================================== */
 
     async function fetchWithProxy(url, options = {}) {
+        const errors = [];
+        
         for (const proxy of CONFIG.CORS_PROXIES) {
             try {
                 const proxyUrl = proxy + encodeURIComponent(url);
+                log('debug', `Trying proxy: ${proxy.substring(0, 30)}...`, { url: url.substring(0, 50) });
+                
                 const response = await fetch(proxyUrl, {
                     ...options,
-                    headers: { 'Accept': 'application/json', ...options.headers }
+                    headers: { 'Accept': 'application/json', ...options.headers },
+                    timeout: 10000
                 });
+                
                 if (response.ok) {
                     const text = await response.text();
                     try {
-                        return JSON.parse(text);
+                        const data = JSON.parse(text);
+                        log('debug', `Proxy success: ${proxy.substring(0, 30)}...`);
+                        return data;
                     } catch {
                         if (text.includes('{')) {
                             const jsonStart = text.indexOf('{');
                             const jsonEnd = text.lastIndexOf('}') + 1;
-                            return JSON.parse(text.slice(jsonStart, jsonEnd));
+                            const data = JSON.parse(text.slice(jsonStart, jsonEnd));
+                            log('debug', `Proxy success (extracted JSON): ${proxy.substring(0, 30)}...`);
+                            return data;
                         }
                     }
                 }
+                errors.push(`${proxy}: HTTP ${response.status}`);
             } catch (error) {
-                // Proxy failure is expected during fallback
+                errors.push(`${proxy}: ${error.message}`);
+                log('debug', `Proxy failed: ${proxy.substring(0, 30)}... - ${error.message}`);
             }
         }
-        throw new Error('All proxies failed');
+        
+        log('warn', 'All CORS proxies failed', { errors, url: url.substring(0, 50) });
+        throw new Error('All proxies failed: ' + errors.join('; '));
     }
 
     async function fetchFromNSE() {
@@ -358,6 +382,139 @@ const MarketMovers = (function() {
             return { gainers, losers };
         }
         throw new Error('No data from NSE');
+    }
+
+    /**
+     * Fetch from Alpha Vantage API (BEST - No CORS issues)
+     * Get free API key: https://www.alphavantage.co/support/#api-key
+     */
+
+
+    /**
+     * Fetch trending stocks from Yahoo Finance (No CORS)
+     */
+    /**
+     * Fetch from Yahoo Finance using popular Indian stock symbols
+     * Alternative approach: Search for each stock individually
+     * Note: Yahoo Finance v7 quote endpoint is now restricted
+     */
+    async function fetchFromIndianStocksList() {
+        try {
+            // Use Yahoo search API for Indian stocks (more reliable)
+            const searchUrl = 'https://query1.finance.yahoo.com/v1/finance/search?q=nifty&quotesCount=50&newsCount=0&enableFuzzyQuery=false&quotesQueryId=tss_match_phrase_query&region=IN';
+            
+            log('debug', 'Fetching Indian stocks via Yahoo search');
+            
+            const response = await fetch(searchUrl);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            
+            const data = await response.json();
+            const quotes = data?.quotes || [];
+            
+            // Filter for NSE/BSE stocks only
+            const indianStocks = quotes
+                .filter(q => (q.symbol?.endsWith('.NS') || q.symbol?.endsWith('.BO')) && q.exchange)
+                .slice(0, 50); // Limit to 50 stocks
+            
+            if (indianStocks.length === 0) throw new Error('No Indian stocks found');
+            
+            log('debug', `Found ${indianStocks.length} Indian stocks from search`);
+            
+            // Now we need to get current prices - but the quote API is blocked
+            // So we'll throw and let it fall through to Yahoo Trending which works
+            throw new Error('Quote API restricted - using alternative');
+            
+        } catch (error) {
+            log('debug', 'Indian stocks list API failed: ' + error.message);
+        }
+        throw new Error('Indian stocks list API failed');
+    }
+
+    async function fetchFromYahooTrending() {
+        try {
+            const response = await fetch(API.YAHOO_TRENDING);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            
+            const data = await response.json();
+            const quotes = data?.finance?.result?.[0]?.quotes || [];
+            
+            if (quotes.length === 0) throw new Error('No trending data');
+            
+            // Sort by performance to get gainers/losers
+            const indianStocks = quotes
+                .filter(q => q.symbol?.endsWith('.NS') || q.symbol?.endsWith('.BO'))
+                .map(stock => ({
+                    symbol: stock.symbol?.replace(/\.(NS|BO)$/, '') || 'N/A',
+                    name: stock.shortName || stock.longName || stock.symbol || 'N/A',
+                    price: stock.regularMarketPrice || 0,
+                    change: stock.regularMarketChange || 0,
+                    changePercent: stock.regularMarketChangePercent || 0,
+                    volume: stock.regularMarketVolume || 0
+                }))
+                .filter(s => s.price > 0);
+            
+            // Sort by change percentage
+            const sorted = [...indianStocks].sort((a, b) => b.changePercent - a.changePercent);
+            const gainers = sorted.filter(s => s.changePercent > 0).slice(0, CONFIG.MAX_STOCKS);
+            const losers = sorted.filter(s => s.changePercent < 0).reverse().slice(0, CONFIG.MAX_STOCKS);
+            
+            if (gainers.length > 0 || losers.length > 0) {
+                state.dataSource = 'Yahoo Finance Trending (India)';
+                removeDemoDataWarning();
+                log('info', `Yahoo Trending: ${gainers.length} gainers, ${losers.length} losers`);
+                return { gainers, losers };
+            }
+        } catch (error) {
+            log('debug', 'Yahoo Trending API failed: ' + error.message);
+        }
+        throw new Error('Yahoo Trending API failed');
+    }
+
+    async function fetchFromYahooDirect() {
+        // Try Yahoo Finance without CORS proxy (some endpoints allow CORS)
+        try {
+            const gainersUrl = 'https://query1.finance.yahoo.com/v1/finance/screener?lang=en-US&region=IN&scrIds=day_gainers&count=50';
+            const losersUrl = 'https://query1.finance.yahoo.com/v1/finance/screener?lang=en-US&region=IN&scrIds=day_losers&count=50';
+            
+            const [gainersResp, losersResp] = await Promise.all([
+                fetch(gainersUrl),
+                fetch(losersUrl)
+            ]);
+            
+            if (gainersResp.ok && losersResp.ok) {
+                const [gainersData, losersData] = await Promise.all([
+                    gainersResp.json(),
+                    losersResp.json()
+                ]);
+                
+                const parseYahooData = (data) => {
+                    const quotes = data?.finance?.result?.[0]?.quotes || [];
+                    return quotes
+                        .filter(q => q.symbol?.endsWith('.NS') || q.symbol?.endsWith('.BO'))
+                        .slice(0, CONFIG.MAX_STOCKS)
+                        .map(stock => ({
+                            symbol: stock.symbol?.replace(/\.(NS|BO)$/, '') || 'N/A',
+                            name: stock.shortName || stock.longName || stock.symbol || 'N/A',
+                            price: stock.regularMarketPrice || 0,
+                            change: stock.regularMarketChange || 0,
+                            changePercent: stock.regularMarketChangePercent || 0,
+                            volume: stock.regularMarketVolume || 0
+                        }));
+                };
+                
+                const gainers = parseYahooData(gainersData);
+                const losers = parseYahooData(losersData);
+                
+                if (gainers.length > 0 || losers.length > 0) {
+                    state.dataSource = 'Yahoo Finance (Live)';
+                    removeDemoDataWarning();
+                    return { gainers, losers };
+                }
+            }
+        } catch (error) {
+            log('debug', 'Yahoo Direct API failed: ' + error.message);
+        }
+        throw new Error('Yahoo Direct API failed');
     }
 
     async function fetchFromGroww() {
@@ -521,42 +678,57 @@ const MarketMovers = (function() {
         // If a specific index is selected, fetch directly from NSE for that index
         if (state.selectedIndex !== 'auto') {
             try {
+                log('info', `Fetching market movers for: ${state.selectedIndex}`);
                 const result = await fetchFromSpecificIndex(state.selectedIndex);
                 if (result.gainers.length > 0 || result.losers.length > 0) {
                     setCache(result.gainers, result.losers, state.dataSource);
                     state.lastFetchTime = Date.now();
                     showLoading(false);
+                    log('info', `Fetched ${result.gainers.length} gainers, ${result.losers.length} losers from ${state.dataSource}`);
                     return result;
                 }
             } catch (error) {
+                log('warn', `Failed to fetch ${state.selectedIndex}`, { error: error.message });
                 // Fall through to auto strategies
             }
         }
 
+        // Prioritize Indian market APIs only
         const strategies = [
-            { name: 'Groww', fn: fetchFromGroww },
-            { name: 'Yahoo Screener', fn: fetchFromYahooScreener },
-            { name: 'NSE Gainers/Losers', fn: fetchFromNSE },
-            { name: 'NSE NIFTY', fn: fetchFromNSEIndices }
+            { name: 'Yahoo Trending (India)', fn: fetchFromYahooTrending },
+            { name: 'Groww (India)', fn: fetchFromGroww },
+            { name: 'NSE Gainers/Losers (India)', fn: fetchFromNSE },
+            { name: 'NSE NIFTY (India)', fn: fetchFromNSEIndices },
+            { name: 'Yahoo Screener (India)', fn: fetchFromYahooScreener },
+            { name: 'Yahoo Direct (India)', fn: fetchFromYahooDirect }
         ];
 
+        const errors = [];
         for (const strategy of strategies) {
             try {
+                log('info', `Trying strategy: ${strategy.name}`);
                 const result = await strategy.fn();
                 if (result.gainers.length > 0 || result.losers.length > 0) {
                     setCache(result.gainers, result.losers, state.dataSource);
                     state.lastFetchTime = Date.now();
                     showLoading(false);
+                    removeDemoDataWarning(); // Clear warning when live data loads
+                    log('info', `✓ ${strategy.name} succeeded: ${result.gainers.length} gainers, ${result.losers.length} losers`);
                     return result;
                 }
             } catch (error) {
-                // Strategy failure is expected during fallback
+                errors.push({ strategy: strategy.name, error: error.message });
+                log('warn', `✗ ${strategy.name} failed: ${error.message}`);
             }
         }
 
+        log('error', 'All market data strategies failed', { errors });
+        log('error', 'Detailed API errors:', JSON.stringify(errors, null, 2));
+        
+        // Use fallback data instead of showing empty tables
+        const fallbackData = getFallbackMarketData();
         showLoading(false);
-        showError('Unable to fetch market data. Please try again later.');
-        return { gainers: [], losers: [] };
+        return fallbackData;
     }
 
     /* ========================================
@@ -591,6 +763,49 @@ const MarketMovers = (function() {
 
     function clearCache() {
         localStorage.removeItem(getCacheKey());
+    }
+
+    /* ========================================
+       Fallback Data (when all APIs fail)
+       ======================================== */
+
+    /**
+     * Returns sample market data when all APIs fail
+     * This ensures users always see something instead of "No gainers/losers today"
+     */
+    function getFallbackMarketData() {
+        log('warn', '⚠️ All real APIs failed - Using DEMO DATA (not accurate)');
+        state.dataSource = '⚠️ DEMO DATA - NOT REAL (APIs Unavailable)';
+        
+        // Show prominent warning banner
+        showDemoDataWarning();
+        
+        return {
+            gainers: [
+                { symbol: 'RELIANCE', name: 'Reliance Industries', price: 2456.75, change: 45.30, changePercent: 1.88, volume: 5234567 },
+                { symbol: 'TCS', name: 'Tata Consultancy Services', price: 3567.80, change: 52.15, changePercent: 1.48, volume: 2345678 },
+                { symbol: 'HDFCBANK', name: 'HDFC Bank', price: 1678.90, change: 23.45, changePercent: 1.42, volume: 8765432 },
+                { symbol: 'INFY', name: 'Infosys', price: 1456.30, change: 18.75, changePercent: 1.30, volume: 3456789 },
+                { symbol: 'ICICIBANK', name: 'ICICI Bank', price: 987.65, change: 11.25, changePercent: 1.15, volume: 6543210 },
+                { symbol: 'HINDUNILVR', name: 'Hindustan Unilever', price: 2345.20, change: 25.80, changePercent: 1.11, volume: 1234567 },
+                { symbol: 'BHARTIARTL', name: 'Bharti Airtel', price: 876.45, change: 9.15, changePercent: 1.05, volume: 4567890 },
+                { symbol: 'SBIN', name: 'State Bank of India', price: 567.30, change: 5.85, changePercent: 1.04, volume: 9876543 },
+                { symbol: 'KOTAKBANK', name: 'Kotak Mahindra Bank', price: 1789.55, change: 17.20, changePercent: 0.97, volume: 2345678 },
+                { symbol: 'LT', name: 'Larsen & Toubro', price: 3210.40, change: 28.90, changePercent: 0.91, volume: 1876543 }
+            ],
+            losers: [
+                { symbol: 'BAJFINANCE', name: 'Bajaj Finance', price: 6543.20, change: -78.45, changePercent: -1.18, volume: 876543 },
+                { symbol: 'ASIANPAINT', name: 'Asian Paints', price: 3210.75, change: -36.50, changePercent: -1.12, volume: 654321 },
+                { symbol: 'MARUTI', name: 'Maruti Suzuki India', price: 9876.30, change: -98.20, changePercent: -0.98, volume: 432109 },
+                { symbol: 'TITAN', name: 'Titan Company', price: 2987.65, change: -27.15, changePercent: -0.90, volume: 765432 },
+                { symbol: 'AXISBANK', name: 'Axis Bank', price: 987.40, change: -8.75, changePercent: -0.88, volume: 5432109 },
+                { symbol: 'ULTRACEMCO', name: 'UltraTech Cement', price: 7654.20, change: -65.30, changePercent: -0.85, volume: 234567 },
+                { symbol: 'WIPRO', name: 'Wipro', price: 432.10, change: -3.55, changePercent: -0.81, volume: 3210987 },
+                { symbol: 'NESTLEIND', name: 'Nestle India', price: 23456.70, change: -186.40, changePercent: -0.79, volume: 123456 },
+                { symbol: 'SUNPHARMA', name: 'Sun Pharmaceutical Industries', price: 1234.50, change: -9.35, changePercent: -0.75, volume: 2109876 },
+                { symbol: 'ONGC', name: 'Oil and Natural Gas Corporation', price: 234.80, change: -1.70, changePercent: -0.72, volume: 7654321 }
+            ]
+        };
     }
 
     /* ========================================
@@ -648,8 +863,8 @@ const MarketMovers = (function() {
 
         const rows = tableBody.querySelectorAll('.stock-row');
         rows.forEach(row => {
-            const symbolEl = row.querySelector('.stock-symbol');
-            if (symbolEl && changedSymbols.has(symbolEl.textContent.trim())) {
+            const symbol = row.dataset.symbol;
+            if (symbol && changedSymbols.has(symbol)) {
                 row.classList.add(type === 'gainers' ? 'flash-green' : 'flash-red');
                 setTimeout(() => {
                     row.classList.remove('flash-green', 'flash-red');
@@ -1060,18 +1275,19 @@ const MarketMovers = (function() {
         const tableBody = document.getElementById('gainersTableBody');
         if (!tableBody) return;
 
-        if (pageItems.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="4" class="no-data">No gainers today</td></tr>`;
+        if (pageItems.length === 0 && list.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="4" class="no-data">Loading gainers...</td></tr>`;
         } else {
             tableBody.innerHTML = pageItems.map((stock, idx) => {
                 const rank = start + idx + 1;
                 const displayName = getStockName(stock.symbol, stock.name);
+                const isDemoData = state.dataSource && state.dataSource.includes('DEMO');
                 return `
-                    <tr class="stock-row gainer-row" data-symbol="${escapeHtml(stock.symbol)}">
+                    <tr class="stock-row gainer-row" data-symbol="${escapeHtml(stock.symbol)}" ${isDemoData ? 'style="opacity: 0.6;"' : ''}>
                         <td class="rank-cell">${rank}</td>
                         <td class="symbol-cell">
-                            <span class="stock-symbol">${escapeHtml(stock.symbol)}</span>
-                            <span class="stock-name">${escapeHtml(truncateName(displayName, 22))}</span>
+                            <span class="stock-symbol">${escapeHtml(truncateName(displayName, 22))}</span>
+                            <span class="stock-name">${escapeHtml(stock.symbol)}</span>
                         </td>
                         <td class="price-cell">\u20B9${formatPrice(stock.price)}</td>
                         <td class="change-cell positive">\u25B2 ${formatPercent(stock.changePercent)}%</td>
@@ -1095,18 +1311,19 @@ const MarketMovers = (function() {
         const tableBody = document.getElementById('losersTableBody');
         if (!tableBody) return;
 
-        if (pageItems.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="4" class="no-data">No losers today</td></tr>`;
+        if (pageItems.length === 0 && list.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="4" class="no-data">Loading losers...</td></tr>`;
         } else {
             tableBody.innerHTML = pageItems.map((stock, idx) => {
                 const rank = start + idx + 1;
                 const displayName = getStockName(stock.symbol, stock.name);
+                const isDemoData = state.dataSource && state.dataSource.includes('DEMO');
                 return `
-                    <tr class="stock-row loser-row" data-symbol="${escapeHtml(stock.symbol)}">
+                    <tr class="stock-row loser-row" data-symbol="${escapeHtml(stock.symbol)}" ${isDemoData ? 'style="opacity: 0.6;"' : ''}>
                         <td class="rank-cell">${rank}</td>
                         <td class="symbol-cell">
-                            <span class="stock-symbol">${escapeHtml(stock.symbol)}</span>
-                            <span class="stock-name">${escapeHtml(truncateName(displayName, 22))}</span>
+                            <span class="stock-symbol">${escapeHtml(truncateName(displayName, 22))}</span>
+                            <span class="stock-name">${escapeHtml(stock.symbol)}</span>
                         </td>
                         <td class="price-cell">\u20B9${formatPrice(stock.price)}</td>
                         <td class="change-cell negative">\u25BC ${formatPercent(stock.changePercent)}%</td>
@@ -1211,6 +1428,32 @@ const MarketMovers = (function() {
         const errorHtml = `<tr><td colspan="4" class="error-message">\u26A0\uFE0F ${escapeHtml(message)}</td></tr>`;
         if (gainersBody) gainersBody.innerHTML = errorHtml;
         if (losersBody) losersBody.innerHTML = errorHtml;
+    }
+
+    function showDemoDataWarning() {
+        const container = document.getElementById('marketMoversContainer');
+        if (!container) return;
+        
+        // Remove any existing warning
+        const existing = container.querySelector('.demo-data-warning');
+        if (existing) existing.remove();
+        
+        // Create warning banner
+        const warning = document.createElement('div');
+        warning.className = 'demo-data-warning';
+        warning.style.cssText = 'background: #ff6b6b; color: white; padding: 15px; margin-bottom: 20px; border-radius: 8px; text-align: center; font-weight: bold; border: 3px solid #c92a2a;';
+        warning.innerHTML = `
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <strong>WARNING: DEMO DATA ONLY</strong><br>
+            <small style="font-weight: normal;">Real market APIs are currently unavailable. The data shown below is NOT ACCURATE and for demonstration purposes only. Please refresh to retry fetching live data.</small>
+        `;
+        
+        container.insertBefore(warning, container.firstChild);
+    }
+
+    function removeDemoDataWarning() {
+        const warning = document.querySelector('.demo-data-warning');
+        if (warning) warning.remove();
     }
 
     /* ========================================

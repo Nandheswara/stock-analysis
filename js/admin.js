@@ -33,6 +33,7 @@ import {
     orderByChild,
     limitToLast
 } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js";
+import { log } from './utils.js';
 
 /* ========================================
    Constants
@@ -140,7 +141,7 @@ function initAdminLoginForm() {
                 await signInWithEmailAndPassword(auth, email, password);
                 // Auth state listener will handle the rest
             } catch (error) {
-                console.error('Login error:', error);
+                // Error:('Login error:', error);
                 showAdminAuthError(getAuthErrorMessage(error.code));
             }
         });
@@ -161,7 +162,7 @@ function initAdminLoginForm() {
                 await signInWithPopup(auth, provider);
                 // Auth state listener will handle the rest
             } catch (error) {
-                console.error('Google login error:', error);
+                // Error:('Google login error:', error);
                 showAdminAuthError(getAuthErrorMessage(error.code));
             }
         });
@@ -275,7 +276,7 @@ async function checkAdminStatus(user) {
             }
         }
     } catch (error) {
-        console.error('Error checking admin list:', error);
+        // Error:('Error checking admin list:', error);
     }
     
     // Method 3: Check user's role in their profile
@@ -286,7 +287,7 @@ async function checkAdminStatus(user) {
             return true;
         }
     } catch (error) {
-        console.error('Error checking admin status:', error);
+        // Error:('Error checking admin status:', error);
     }
     
     return false;
@@ -421,7 +422,7 @@ async function ensurePrimaryAdminExists() {
             });
         }
     } catch (error) {
-        console.error('Error ensuring primary admin exists:', error);
+        // Error:('Error ensuring primary admin exists:', error);
     }
 }
 
@@ -496,7 +497,7 @@ async function loadAdminUsers() {
         tbody.innerHTML = html;
         
     } catch (error) {
-        console.error('Error loading admin users:', error);
+        // Error:('Error loading admin users:', error);
         showToast('Error loading admin users', 'danger');
     }
 }
@@ -552,7 +553,7 @@ async function addAdminAccess(event) {
         showToast(`Admin access granted to ${email}`, 'success');
         
     } catch (error) {
-        console.error('Error adding admin:', error);
+        // Error:('Error adding admin:', error);
         showToast(`Error: ${error.message}`, 'danger');
     }
 }
@@ -589,7 +590,7 @@ window.removeAdminAccess = async function(adminId, email) {
         showToast(`Admin access removed from ${email}`, 'success');
         
     } catch (error) {
-        console.error('Error removing admin:', error);
+        // Error:('Error removing admin:', error);
         showToast(`Error: ${error.message}`, 'danger');
     }
 };
@@ -628,7 +629,7 @@ async function loadUsers() {
             renderEmptyUsersTable();
         }
     } catch (error) {
-        console.error('Error loading users:', error);
+        // Error:('Error loading users:', error);
         showToast('Error loading users', 'danger');
     }
 }
@@ -968,7 +969,7 @@ async function toggleUserStatus() {
         statusSpan.className = `badge ${newStatus === 'disabled' ? 'badge-disabled' : 'badge-active'}`;
         
     } catch (error) {
-        console.error('Error toggling user status:', error);
+        // Error:('Error toggling user status:', error);
         showToast(`Error: ${error.message}`, 'danger');
     }
 }
@@ -1114,7 +1115,7 @@ async function addUser(event) {
         }, 2000);
         
     } catch (error) {
-        console.error('Error creating user:', error);
+        // Error:('Error creating user:', error);
         let errorMessage = error.message;
         
         if (error.code === 'auth/email-already-in-use') {
@@ -1162,7 +1163,7 @@ async function updateUser(event) {
         showToast('User updated successfully', 'success');
         
     } catch (error) {
-        console.error('Error updating user:', error);
+        // Error:('Error updating user:', error);
         showToast(`Error updating user: ${error.message}`, 'danger');
     }
 }
@@ -1185,7 +1186,7 @@ async function sendResetPassword() {
         showToast(`Password reset email sent to ${user.email}`, 'success');
         
     } catch (error) {
-        console.error('Error sending password reset:', error);
+        // Error:('Error sending password reset:', error);
         showToast(`Error: ${error.message}`, 'danger');
     }
 }
@@ -1227,7 +1228,7 @@ async function deleteUser() {
         document.getElementById('deleteConfirmInput').value = '';
         
     } catch (error) {
-        console.error('Error deleting user:', error);
+        // Error:('Error deleting user:', error);
         showToast(`Error deleting user: ${error.message}`, 'danger');
     }
 }
@@ -1262,7 +1263,7 @@ async function impersonateUser() {
         showImpersonationBanner(user.email);
         
     } catch (error) {
-        console.error('Error starting impersonation:', error);
+        // Error:('Error starting impersonation:', error);
         showToast(`Error: ${error.message}`, 'danger');
     }
 }
@@ -1411,7 +1412,7 @@ async function viewUserData() {
             `;
         }
     } catch (error) {
-        console.error('Error loading stocks:', error);
+        // Error:('Error loading stocks:', error);
         document.getElementById('userStocksContent').innerHTML = `
             <div class="alert alert-danger">Error loading stocks data</div>
         `;
@@ -1463,7 +1464,7 @@ async function viewUserData() {
             `;
         }
     } catch (error) {
-        console.error('Error loading portfolio:', error);
+        // Error:('Error loading portfolio:', error);
         document.getElementById('userPortfolioContent').innerHTML = `
             <div class="alert alert-danger">Error loading portfolio data</div>
         `;
@@ -1523,7 +1524,7 @@ async function viewUserData() {
             `;
         }
     } catch (error) {
-        console.error('Error loading finance categories:', error);
+        // Error:('Error loading finance categories:', error);
         document.getElementById('userFinanceCategoriesContent').innerHTML = `
             <div class="alert alert-danger">Error loading investment categories data</div>
         `;
@@ -1586,7 +1587,7 @@ async function viewUserData() {
             `;
         }
     } catch (error) {
-        console.error('Error loading banks:', error);
+        // Error:('Error loading banks:', error);
         document.getElementById('userFinanceBanksContent').innerHTML = `
             <div class="alert alert-danger">Error loading bank accounts data</div>
         `;
@@ -1650,7 +1651,7 @@ async function viewUserData() {
             `;
         }
     } catch (error) {
-        console.error('Error loading credit cards:', error);
+        // Error:('Error loading credit cards:', error);
         document.getElementById('userFinanceCardsContent').innerHTML = `
             <div class="alert alert-danger">Error loading credit cards data</div>
         `;
@@ -1706,7 +1707,7 @@ async function viewUserData() {
             `;
         }
     } catch (error) {
-        console.error('Error loading income:', error);
+        // Error:('Error loading income:', error);
         document.getElementById('userFinanceIncomeContent').innerHTML = `
             <div class="alert alert-danger">Error loading income data</div>
         `;
@@ -1761,7 +1762,7 @@ async function viewUserData() {
             `;
         }
     } catch (error) {
-        console.error('Error loading taxes:', error);
+        // Error:('Error loading taxes:', error);
         document.getElementById('userFinanceTaxesContent').innerHTML = `
             <div class="alert alert-danger">Error loading taxes data</div>
         `;
@@ -1816,7 +1817,7 @@ async function viewUserData() {
             `;
         }
     } catch (error) {
-        console.error('Error loading EPFO:', error);
+        // Error:('Error loading EPFO:', error);
         document.getElementById('userFinanceEPFOContent').innerHTML = `
             <div class="alert alert-danger">Error loading EPFO data</div>
         `;
@@ -1875,7 +1876,7 @@ async function viewUserData() {
             `;
         }
     } catch (error) {
-        console.error('Error loading monthly snapshots:', error);
+        // Error:('Error loading monthly snapshots:', error);
         document.getElementById('userFinanceSnapshotsContent').innerHTML = `
             <div class="alert alert-danger">Error loading monthly snapshots data</div>
         `;
@@ -1905,7 +1906,7 @@ async function deleteUserData() {
         viewUserData();
         
     } catch (error) {
-        console.error('Error deleting user data:', error);
+        // Error:('Error deleting user data:', error);
         showToast(`Error: ${error.message}`, 'danger');
     }
 }
@@ -1984,7 +1985,7 @@ async function logAuditAction(action, targetUserId, details) {
             details: details
         });
     } catch (error) {
-        console.error('Error logging action:', error);
+        // Error:('Error logging action:', error);
     }
 }
 
@@ -2033,7 +2034,7 @@ async function loadAuditLogs() {
             }
         });
     } catch (error) {
-        console.error('Error loading audit logs:', error);
+        // Error:('Error loading audit logs:', error);
     }
 }
 
@@ -2084,7 +2085,7 @@ async function loadRecentActivity() {
             }
         });
     } catch (error) {
-        console.error('Error loading activity:', error);
+        // Error:('Error loading activity:', error);
     }
 }
 
@@ -2161,7 +2162,7 @@ async function loadActiveAnnouncements() {
         `).join('');
         
     } catch (error) {
-        console.error('Error loading announcements:', error);
+        // Error:('Error loading announcements:', error);
         container.innerHTML = '<p class="text-danger text-center mb-0">Error loading announcements</p>';
     }
 }
@@ -2181,7 +2182,7 @@ async function deleteAnnouncement(announcementId) {
         showToast('Announcement deleted successfully', 'success');
         loadActiveAnnouncements(); // Refresh the list
     } catch (error) {
-        console.error('Error deleting announcement:', error);
+        // Error:('Error deleting announcement:', error);
         showToast(`Error: ${error.message}`, 'danger');
     }
 }
@@ -2222,7 +2223,7 @@ async function createAnnouncement(event) {
         loadActiveAnnouncements(); // Refresh the list
         
     } catch (error) {
-        console.error('Error creating announcement:', error);
+        // Error:('Error creating announcement:', error);
         showToast(`Error: ${error.message}`, 'danger');
     }
 }
@@ -2261,7 +2262,7 @@ async function saveSystemSettings(event) {
         showToast('Settings saved successfully', 'success');
         
     } catch (error) {
-        console.error('Error saving settings:', error);
+        // Error:('Error saving settings:', error);
         showToast(`Error: ${error.message}`, 'danger');
     }
 }
@@ -2293,7 +2294,7 @@ async function saveMaintenanceMode(event) {
         showToast(`Maintenance mode ${enabled ? 'enabled' : 'disabled'}`, enabled ? 'warning' : 'success');
         
     } catch (error) {
-        console.error('Error updating maintenance mode:', error);
+        // Error:('Error updating maintenance mode:', error);
         showToast(`Error: ${error.message}`, 'danger');
     }
 }
@@ -2360,7 +2361,7 @@ async function backupData() {
             showToast('Backup created successfully', 'success');
         }
     } catch (error) {
-        console.error('Error creating backup:', error);
+        // Error:('Error creating backup:', error);
         showToast(`Error: ${error.message}`, 'danger');
     }
 }
@@ -2445,7 +2446,7 @@ function bindEventListeners() {
             await auth.signOut();
             window.location.href = '../index.html';
         } catch (error) {
-            console.error('Error signing out:', error);
+            // Error:('Error signing out:', error);
         }
     });
     
@@ -2502,7 +2503,7 @@ async function clearOldLogs() {
             showToast('No audit logs found', 'info');
         }
     } catch (error) {
-        console.error('Error clearing logs:', error);
+        // Error:('Error clearing logs:', error);
         showToast(`Error: ${error.message}`, 'danger');
     }
 }
@@ -2572,7 +2573,7 @@ async function sendBulkEmail(event) {
         showToast(`Email queued for ${targetUsers.length} users. Note: Actual sending requires a configured email service (Cloud Functions).`, 'success');
         
     } catch (error) {
-        console.error('Error queueing bulk email:', error);
+        // Error:('Error queueing bulk email:', error);
         showToast(`Error: ${error.message}`, 'danger');
     }
 }
@@ -2602,7 +2603,7 @@ async function loadSystemSettings() {
             document.getElementById('enableFinanceTracker').checked = true;
         }
     } catch (error) {
-        console.error('Error loading system settings:', error);
+        // Error:('Error loading system settings:', error);
     }
 }
 
@@ -2627,7 +2628,7 @@ async function loadMaintenanceSettings() {
             }
         }
     } catch (error) {
-        console.error('Error loading maintenance settings:', error);
+        // Error:('Error loading maintenance settings:', error);
     }
 }
 

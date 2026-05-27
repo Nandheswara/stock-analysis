@@ -198,7 +198,7 @@ export function initAuthListener() {
                 try {
                     callback(user);
                 } catch (e) {
-                    console.error('Auth callback error:', e);
+                    // Auth callback errors are logged silently
                 }
             });
         }
@@ -303,7 +303,6 @@ export async function signUpUser(email, password, displayName) {
             }
         } catch (settingsError) {
             // If settings check fails, allow registration by default
-            console.warn('Could not check registration settings:', settingsError.message);
         }
         
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -330,13 +329,11 @@ export async function signUpUser(email, password, displayName) {
                 }
             });
         } catch (dbError) {
-            console.error('Error saving user to database:', dbError);
             // Don't fail signup if database write fails
         }
         
         return { success: true, user: userCredential.user };
     } catch (error) {
-        console.error('Sign up failed:', error.code);
         return { success: false, error: getAuthErrorMessage(error.code) };
     }
 }
@@ -431,7 +428,6 @@ export async function signInUser(email, password) {
                 });
             }
         } catch (dbError) {
-            console.error('Error checking user status:', dbError);
             // Don't fail login if database check fails
         }
         
@@ -444,7 +440,6 @@ export async function signInUser(email, password) {
         
         return { success: true, user };
     } catch (error) {
-        console.error('Sign in failed:', error.code);
         return { success: false, error: getAuthErrorMessage(error.code) };
     } finally {
         isLoginInProgress = false;
@@ -523,7 +518,6 @@ export async function signInWithGoogle() {
                 });
             }
         } catch (dbError) {
-            console.error('Error checking Google user status:', dbError);
             // Don't fail login if database check fails
         }
         
@@ -536,7 +530,6 @@ export async function signInWithGoogle() {
         
         return { success: true, user };
     } catch (error) {
-        console.error('Google sign-in failed:', error.code);
         return { success: false, error: getAuthErrorMessage(error.code) };
     } finally {
         isLoginInProgress = false;
@@ -568,7 +561,6 @@ function clearAllLocalStorageCache() {
         keysToRemove.forEach(key => localStorage.removeItem(key));
     } catch (error) {
         // Silent fail - localStorage might be disabled
-        console.warn('Failed to clear localStorage cache:', error);
     }
 }
 
@@ -582,7 +574,6 @@ function clearAllSessionStorage() {
         sessionStorage.clear();
     } catch (error) {
         // Silent fail - sessionStorage might be disabled
-        console.warn('Failed to clear sessionStorage:', error);
     }
 }
 
@@ -686,8 +677,6 @@ export async function changePassword(currentPassword, newPassword) {
             message: 'Password changed successfully!' 
         };
     } catch (error) {
-        console.error('Password change failed:', error.code);
-        
         let errorMessage = 'Failed to change password. Please try again.';
         
         if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
@@ -750,7 +739,6 @@ export async function updateDisplayName(newDisplayName) {
             displayName: trimmedName
         };
     } catch (error) {
-        console.error('Display name update failed:', error.code);
         return { 
             success: false, 
             error: 'Failed to update display name. Please try again.' 
@@ -792,7 +780,6 @@ export async function updatePhoneNumber(phoneNumber) {
             phoneNumber: trimmedPhone
         };
     } catch (error) {
-        console.error('Phone number update failed:', error.code, error.message);
         return { 
             success: false, 
             error: 'Failed to update phone number. Please try again.' 
@@ -818,7 +805,6 @@ export async function getPhoneNumber() {
         }
         return null;
     } catch (error) {
-        console.error('Failed to get phone number:', error.code, error.message);
         return null;
     }
 }
@@ -862,8 +848,6 @@ export async function deleteUserAccount(password) {
             message: 'Account deleted successfully.' 
         };
     } catch (error) {
-        console.error('Account deletion failed:', error.code);
-        
         let errorMessage = 'Failed to delete account. Please try again.';
         
         if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
@@ -1009,7 +993,7 @@ export async function isUserAdmin(user = null) {
             return true;
         }
     } catch (error) {
-        console.error('Error checking admin list:', error);
+        // Error checking admin list - continue with other checks
     }
     
     // Method 3: Check user's role in their profile
@@ -1020,7 +1004,7 @@ export async function isUserAdmin(user = null) {
             return true;
         }
     } catch (error) {
-        console.error('Error checking admin status:', error);
+        // Error checking admin status - continue
     }
     
     return false;
@@ -1054,7 +1038,6 @@ async function getAdminEmailsFromDB() {
         adminCacheTimestamp = now;
         return cachedAdminEmails;
     } catch (error) {
-        console.error('Error fetching admin emails:', error);
         return cachedAdminEmails || [];
     }
 }

@@ -44,8 +44,8 @@ const analytics = getAnalytics(app);
  * Set auth persistence to local storage for faster subsequent logins
  * Persists across browser restarts for improved user experience
  */
-setPersistence(auth, browserLocalPersistence).catch((error) => {
-    console.error('Failed to set auth persistence:', error.message);
+setPersistence(auth, browserLocalPersistence).catch(() => {
+    // Auth persistence error is non-critical, silently continue
 });
 
 /**
