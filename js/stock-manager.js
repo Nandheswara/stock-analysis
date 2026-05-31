@@ -216,22 +216,28 @@ class PortfolioManager {
         this.loadPreloadedData();
     }
 
+    createStockFromData(stockData) {
+        const stock = new Stock(
+            stockData.name,
+            stockData.quantity,
+            stockData.buyPrice,
+            stockData.sellPrice
+        );
+        stock.id = stockData.id;
+        stock.dateAdded = stockData.dateAdded;
+        return stock;
+    }
+
+    hydrateStocks(stockList) {
+        return stockList.map(stockData => this.createStockFromData(stockData));
+    }
+
     /**
      * Load preloaded data from inline cache script for instant display
      */
     loadPreloadedData() {
         if (window.__PRELOADED_PORTFOLIO__ && window.__PRELOADED_PORTFOLIO__.length > 0) {
-            this.stocks = window.__PRELOADED_PORTFOLIO__.map(stockData => {
-                const stock = new Stock(
-                    stockData.name,
-                    stockData.quantity,
-                    stockData.buyPrice,
-                    stockData.sellPrice
-                );
-                stock.id = stockData.id;
-                stock.dateAdded = stockData.dateAdded;
-                return stock;
-            });
+            this.stocks = this.hydrateStocks(window.__PRELOADED_PORTFOLIO__);
             // Immediately render the cached data
             window.__PORTFOLIO_RENDERED__ = true;
             renderStocksTable();
@@ -261,17 +267,7 @@ class PortfolioManager {
                         if (cached) {
                             const cachedStocks = JSON.parse(cached);
                             if (cachedStocks && cachedStocks.length > 0) {
-                                this.stocks = cachedStocks.map(stockData => {
-                                    const stock = new Stock(
-                                        stockData.name,
-                                        stockData.quantity,
-                                        stockData.buyPrice,
-                                        stockData.sellPrice
-                                    );
-                                    stock.id = stockData.id;
-                                    stock.dateAdded = stockData.dateAdded;
-                                    return stock;
-                                });
+                                this.stocks = this.hydrateStocks(cachedStocks);
                                 renderStocksTable();
                                 updateSummaryDisplay();
                             }
@@ -296,17 +292,7 @@ class PortfolioManager {
                     const hasDataChanged = this.hasPortfolioDataChanged(deduped);
                     
                     if (hasDataChanged) {
-                        this.stocks = deduped.map(stockData => {
-                            const stock = new Stock(
-                                stockData.name,
-                                stockData.quantity,
-                                stockData.buyPrice,
-                                stockData.sellPrice
-                            );
-                            stock.id = stockData.id;
-                            stock.dateAdded = stockData.dateAdded;
-                            return stock;
-                        });
+                        this.stocks = this.hydrateStocks(deduped);
                         
                         renderStocksTable();
                         updateSummaryDisplay();
@@ -329,17 +315,7 @@ class PortfolioManager {
             const firebaseStocks = await loadPortfolioStocks();
             
             if (firebaseStocks.length > 0) {
-                this.stocks = firebaseStocks.map(stockData => {
-                    const stock = new Stock(
-                        stockData.name,
-                        stockData.quantity,
-                        stockData.buyPrice,
-                        stockData.sellPrice
-                    );
-                    stock.id = stockData.id;
-                    stock.dateAdded = stockData.dateAdded;
-                    return stock;
-                });
+                this.stocks = this.hydrateStocks(firebaseStocks);
                 
                 renderStocksTable();
                 updateSummaryDisplay();

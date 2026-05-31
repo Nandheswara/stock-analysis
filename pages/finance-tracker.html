@@ -281,49 +281,53 @@
 
             <!-- Month Navigator -->
             <div class="month-navigator">
-                <button class="month-btn" id="monthPrevBtn" title="Previous month">
-                    <i class="bi bi-chevron-left"></i>
-                </button>
-                <div class="month-display" id="monthDisplay">March 2025</div>
-                <button class="month-btn" id="monthNextBtn" title="Next month">
-                    <i class="bi bi-chevron-right"></i>
-                </button>
-                <button class="month-current-btn" id="monthCurrentBtn">● Current</button>
-                <button class="copy-prev-month-btn icon-only" onclick="copyFromPreviousMonth()" title="Copy bank, credit card and income data from previous month" aria-label="Copy from previous month">
-                    <i class="bi bi-clipboard-plus"></i>
-                </button>
-                <button class="export-nav-btn icon-only" onclick="openExportModal()" title="Export finance data" aria-label="Export finance data">
-                    <i class="bi bi-file-earmark-arrow-down"></i>
-                </button>
+                <div class="month-nav-left">
+                    <button class="month-btn" id="monthPrevBtn" title="Previous month">
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
+                    <div class="month-display" id="monthDisplay">March 2025</div>
+                    <button class="month-btn" id="monthNextBtn" title="Next month">
+                        <i class="bi bi-chevron-right"></i>
+                    </button>
+                    <button class="month-current-btn" id="monthCurrentBtn">● Current</button>
+                </div>
+                <div class="month-nav-right">
+                    <button class="view-settings-btn icon-only" onclick="openSectionSettingsModal()" title="Customize visible sections" aria-label="Customize finance tracker sections">
+                        <i class="bi bi-sliders2"></i>
+                    </button>
+                    <button class="mask-data-btn icon-only" id="maskDataBtn" onclick="toggleAmountMasking()" title="Mask amount values" aria-label="Mask or unmask amount values">
+                        <i class="bi bi-eye-slash" id="maskDataIcon"></i>
+                    </button>
+                </div>
             </div>
 
             <!-- Financial Summary Bar: Income | Expenditure | Invested -->
-            <div class="financial-summary-bar">
-                <div class="summary-metric income-metric clickable" onclick="openEditIncomeModal()" role="button" tabindex="0">
+            <div class="financial-summary-bar" id="financialSummarySection" data-section-preference="financialSummary">
+                <div class="summary-metric income-metric clickable" id="summaryIncomeCard" data-widget-preference="summaryIncome" onclick="openEditIncomeModal()" role="button" tabindex="0">
                     <i class="bi bi-cash-stack metric-icon"></i>
                     <div class="metric-label">Income</div>
                     <div class="metric-value" id="summaryIncome">₹0</div>
                     <div class="metric-sub" id="summaryIncomeSub">No income recorded</div>
                 </div>
-                <div class="summary-metric expenditure-metric">
+                <div class="summary-metric expenditure-metric" id="summaryExpenditureCard" data-widget-preference="summaryExpenditure">
                     <i class="bi bi-cart-dash metric-icon"></i>
                     <div class="metric-label">Expenditure</div>
                     <div class="metric-value" id="summaryExpenditure">₹0</div>
                     <div class="metric-sub" id="summaryExpenditureSub">Bank + Card spending</div>
                 </div>
-                <div class="summary-metric invested-metric">
+                <div class="summary-metric invested-metric" id="summaryInvestedCard" data-widget-preference="summaryInvested">
                     <i class="bi bi-graph-up-arrow metric-icon"></i>
                     <div class="metric-label">Invested</div>
                     <div class="metric-value" id="summaryInvested">₹0</div>
                     <div class="metric-sub" id="summaryInvestedSub">vs last month</div>
                 </div>
-                <div class="summary-metric bank-balance-metric">
+                <div class="summary-metric bank-balance-metric" id="summaryBankBalanceCard" data-widget-preference="summaryBankBalance">
                     <i class="bi bi-wallet2 metric-icon"></i>
                     <div class="metric-label">Bank Balance</div>
                     <div class="metric-value" id="summaryBankBalance">₹0</div>
                     <div class="metric-sub" id="summaryBankBalanceSub">Total bank balances</div>
                 </div>
-                <div class="summary-metric tax-metric clickable" onclick="openEditTaxModal()" role="button" tabindex="0">
+                <div class="summary-metric tax-metric clickable" id="summaryTaxCard" data-widget-preference="summaryTax" onclick="openEditTaxModal()" role="button" tabindex="0">
                     <i class="bi bi-percent metric-icon"></i>
                     <div class="metric-label">Tax</div>
                     <div class="metric-value" id="summaryTax">₹0</div>
@@ -332,23 +336,23 @@
             </div>
 
             <!-- Net Worth Cards -->
-            <div class="networth-cards">
-                <div class="networth-card assets-card">
+            <div class="networth-cards" id="netWorthSection" data-section-preference="netWorth">
+                <div class="networth-card assets-card" id="netWorthAssetsCard" data-widget-preference="netWorthAssets">
                     <i class="bi bi-bank nw-icon"></i>
                     <div class="nw-label">Total Assets</div>
                     <div class="nw-value" id="totalAssetsValue">₹0</div>
                 </div>
-                <div class="networth-card liabilities-card">
+                <div class="networth-card liabilities-card" id="netWorthLiabilitiesCard" data-widget-preference="netWorthLiabilities">
                     <i class="bi bi-credit-card-2-back nw-icon"></i>
                     <div class="nw-label">Total Liabilities</div>
                     <div class="nw-value" id="totalLiabilitiesValue">₹0</div>
                 </div>
-                <div class="networth-card networth-total-card">
+                <div class="networth-card networth-total-card" id="netWorthTotalCard" data-widget-preference="netWorthTotal">
                     <i class="bi bi-trophy nw-icon"></i>
                     <div class="nw-label">Net Worth</div>
                     <div class="nw-value" id="netWorthValue">₹0</div>
                 </div>
-                <div class="networth-card epfo-card clickable" onclick="openEditEPFOModal()" role="button" tabindex="0">
+                <div class="networth-card epfo-card clickable" id="netWorthEPFOCard" data-widget-preference="netWorthEPFO" onclick="openEditEPFOModal()" role="button" tabindex="0">
                     <i class="bi bi-briefcase nw-icon"></i>
                     <div class="nw-label">EPFO</div>
                     <div class="nw-value" id="epfoValue">₹0</div>
@@ -356,7 +360,7 @@
             </div>
 
             <!-- Investment Categories -->
-            <div class="finance-section">
+            <div class="finance-section" id="investmentCategoriesSection" data-section-preference="investmentCategories">
                 <div class="finance-section-header">
                     <h2 class="finance-section-title">
                         <i class="bi bi-collection" style="color:var(--accent-primary);"></i> Investment Categories
@@ -373,7 +377,7 @@
             </div>
 
             <!-- Bank Accounts -->
-            <div class="finance-section">
+            <div class="finance-section" id="bankAccountsSection" data-section-preference="bankAccounts">
                 <div class="finance-section-header">
                     <h2 class="finance-section-title">
                         <i class="bi bi-bank" style="color:var(--accent-success);"></i> Bank Accounts
@@ -403,7 +407,7 @@
             </div>
 
             <!-- Expenses -->
-            <div class="finance-section">
+            <div class="finance-section" id="expensesSection" data-section-preference="expenses">
                 <div class="finance-section-header">
                     <h2 class="finance-section-title">
                         <i class="bi bi-wallet2" style="color:var(--accent-danger);"></i> Expenses
@@ -433,14 +437,47 @@
                     </table>
                 </div>
             </div>
-            <div class="finance-section">
+
+            <!-- Insurance -->
+            <div class="finance-section" id="insuranceSection" data-section-preference="insurance">
+                <div class="finance-section-header">
+                    <h2 class="finance-section-title">
+                        <i class="bi bi-shield-check" style="color:var(--accent-warning);"></i> Insurance
+                    </h2>
+                    <div class="finance-section-actions">
+                        <button class="btn-finance btn-finance-warning" onclick="openAddInsuranceModal()">
+                            <i class="bi bi-plus-lg"></i> Add Insurance
+                        </button>
+                    </div>
+                </div>
+                <div class="finance-table-wrapper">
+                    <table class="finance-table">
+                        <thead>
+                            <tr>
+                                <th>Policy</th>
+                                <th>Insurance Type</th>
+                                <th>Provider</th>
+                                <th class="insurance-premium-amount-header">Premium / Amount</th>
+                                <th>Coverage</th>
+                                <th>Premium Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="insuranceTableBody">
+                            <!-- Dynamic content -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="finance-section" id="analyticsSection" data-section-preference="analytics">
                 <div class="finance-section-header">
                     <h2 class="finance-section-title">
                         <i class="bi bi-bar-chart-line" style="color:var(--accent-primary);"></i> Analytics
                     </h2>
                 </div>
                 <div class="charts-grid">
-                    <div class="chart-card">
+                    <div class="chart-card" id="analyticsInvestmentBreakdownCard" data-widget-preference="analyticsInvestmentBreakdown">
                         <div class="chart-card-title">
                             <i class="bi bi-pie-chart"></i> Investment Breakdown
                         </div>
@@ -448,7 +485,7 @@
                             <canvas id="spendingBreakdownChart"></canvas>
                         </div>
                     </div>
-                    <div class="chart-card">
+                    <div class="chart-card" id="analyticsNetWorthTrendCard" data-widget-preference="analyticsNetWorthTrend">
                         <div class="chart-card-title">
                             <i class="bi bi-graph-up"></i> Net Worth Trend
                         </div>
@@ -456,7 +493,7 @@
                             <canvas id="netWorthChart"></canvas>
                         </div>
                     </div>
-                    <div class="chart-card">
+                    <div class="chart-card" id="analyticsIncomeExpenseCard" data-widget-preference="analyticsIncomeExpense">
                         <div class="chart-card-title">
                             <i class="bi bi-bar-chart"></i> Income vs Expenditure vs Invested
                         </div>
@@ -464,7 +501,7 @@
                             <canvas id="incomeExpenseChart"></canvas>
                         </div>
                     </div>
-                    <div class="chart-card">
+                    <div class="chart-card" id="analyticsCategoryTrendCard" data-widget-preference="analyticsCategoryTrend">
                         <div class="chart-card-title">
                             <i class="bi bi-activity"></i> Category Trends
                         </div>
@@ -475,7 +512,123 @@
                 </div>
             </div>
 
+            <div class="finance-empty-state finance-hidden-empty-state" id="sectionsHiddenState" style="display:none;">
+                <i class="bi bi-layout-wtf"></i>
+                <p>All finance tracker sections are hidden for this view.</p>
+                <button class="btn-finance btn-finance-primary" onclick="openSectionSettingsModal()" type="button">
+                    <i class="bi bi-sliders2"></i> Customize Sections
+                </button>
+            </div>
+
     <!-- Export Modal -->
+    <div class="finance-modal-overlay" id="sectionSettingsModal">
+        <div class="finance-modal finance-settings-modal">
+            <div class="finance-modal-header">
+                <h3><i class="bi bi-sliders2"></i> Customize Finance Sections</h3>
+                <button class="finance-modal-close" onclick="closeSectionSettingsModal()" aria-label="Close section settings">&times;</button>
+            </div>
+            <div class="finance-modal-body">
+                <section class="settings-block">
+                    <h4 class="settings-block-title">Section Visibility</h4>
+                    <p class="text-muted">Enable or disable entire sections based on your preference.</p>
+                    <form id="sectionPreferencesForm" class="section-preferences-form">
+                        <div id="sectionPreferencesList" class="section-preferences-list"></div>
+                    </form>
+                </section>
+
+                <section class="settings-block">
+                    <h4 class="settings-block-title">Card And Widget Visibility</h4>
+                    <p class="text-muted">Control individual summary cards, net worth cards, and analytics cards.</p>
+                    <form id="widgetPreferencesForm" class="section-preferences-form">
+                        <div id="widgetPreferencesList" class="section-preferences-list"></div>
+                    </form>
+                </section>
+
+                <section class="settings-block">
+                    <h4 class="settings-block-title">Individual Records Visibility</h4>
+                    <p class="text-muted">Show or hide investment categories.</p>
+                    <div class="settings-record-grid">
+                        <div class="settings-record-card">
+                            <h5>Investment Categories</h5>
+                            <div id="recordPrefCategoriesList" class="record-preferences-list"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="settings-block">
+                    <h4 class="settings-block-title">Data Tools</h4>
+                    <div class="settings-tools-grid">
+                        <div class="settings-tool-card">
+                            <h5><i class="bi bi-file-earmark-arrow-down"></i> Download Data</h5>
+                            <div class="form-group">
+                                <label for="settingsExportFromMonth">From month</label>
+                                <input type="month" id="settingsExportFromMonth" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="settingsExportToMonth">To month</label>
+                                <input type="month" id="settingsExportToMonth" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="settingsExportFormatSelect">Download format</label>
+                                <select id="settingsExportFormatSelect" class="form-select" aria-label="Select download format in settings">
+                                    <option value="xlsx">Excel (.xlsx)</option>
+                                    <option value="csv">CSV (.csv)</option>
+                                    <option value="pdf">PDF (.pdf)</option>
+                                    <option value="json">JSON (.json)</option>
+                                </select>
+                            </div>
+                            <button class="btn-finance btn-finance-primary" onclick="exportFinanceDataFromSettings()" type="button">
+                                <i class="bi bi-download"></i> Download Data
+                            </button>
+                        </div>
+
+                        <div class="settings-tool-card">
+                            <h5><i class="bi bi-clipboard-plus"></i> Copy Data Between Months</h5>
+                            <div class="form-group">
+                                <label for="copySourceMonth">Source month</label>
+                                <input type="month" id="copySourceMonth" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="copyTargetMonth">Target month</label>
+                                <input type="month" id="copyTargetMonth" required>
+                            </div>
+                            <div class="settings-checkbox-grid">
+                                <label class="settings-checkbox-item"><input type="checkbox" id="copySectionCategories" checked> Investment categories</label>
+                                <label class="settings-checkbox-item"><input type="checkbox" id="copySectionBanks" checked> Bank accounts</label>
+                                <label class="settings-checkbox-item"><input type="checkbox" id="copySectionExpenses" checked> Expenses</label>
+                                <label class="settings-checkbox-item"><input type="checkbox" id="copySectionInsurance" checked> Insurance</label>
+                                <label class="settings-checkbox-item"><input type="checkbox" id="copySectionIncome" checked> Income</label>
+                                <label class="settings-checkbox-item"><input type="checkbox" id="copySectionTaxes" checked> Tax</label>
+                                <label class="settings-checkbox-item"><input type="checkbox" id="copySectionEPFO" checked> EPFO</label>
+                            </div>
+                            <div class="settings-checkbox-overwrite" role="group" aria-labelledby="copyModeSelectionLabel">
+                                <div class="settings-copy-mode-title" id="copyModeSelectionLabel">Copy mode</div>
+                                <label class="settings-checkbox-item">
+                                    <input type="radio" name="copyModeSelection" id="copyModeCopyOnly" value="copy-only"> Copy Only
+                                </label>
+                                <label class="settings-checkbox-item">
+                                    <input type="radio" name="copyModeSelection" id="copyModeReplace" value="replace"> Copy and Replace
+                                </label>
+                            </div>
+                            <button class="btn-finance btn-finance-success" onclick="copyFinanceDataFromSettings()" type="button">
+                                <i class="bi bi-clipboard-check"></i> Copy Selected Data
+                            </button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+            <div class="finance-modal-footer">
+                <button class="btn-finance btn-finance-outline" onclick="closeSectionSettingsModal()" type="button">Cancel</button>
+                <button class="btn-finance btn-finance-outline" onclick="resetSectionPreferencesToDefaults()" type="button">
+                    <i class="bi bi-arrow-counterclockwise"></i> Reset Defaults
+                </button>
+                <button class="btn-finance btn-finance-primary" onclick="saveSectionPreferences()" type="button">
+                    <i class="bi bi-check-lg"></i> Save Preferences
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div class="finance-modal-overlay" id="exportModal">
         <div class="finance-modal">
             <div class="finance-modal-header">
@@ -501,6 +654,7 @@
                             <option value="xlsx">Excel (.xlsx)</option>
                             <option value="csv">CSV (.csv)</option>
                             <option value="pdf">PDF (.pdf)</option>
+                            <option value="json">JSON (.json)</option>
                         </select>
                     </div>
                 </form>
@@ -524,7 +678,7 @@
         <div class="finance-modal">
             <div class="finance-modal-header">
                 <h3><i class="bi bi-folder-plus"></i> Add Category</h3>
-                <button class="finance-modal-close" onclick="closeFinanceModal('addCategoryModal')">&times;</button>
+                <button type="button" class="finance-modal-close" onclick="closeFinanceModal('addCategoryModal')">&times;</button>
             </div>
             <div class="finance-modal-body">
                 <form id="addCategoryForm">
@@ -565,8 +719,8 @@
                 </form>
             </div>
             <div class="finance-modal-footer">
-                <button class="btn-finance btn-finance-outline" onclick="closeFinanceModal('addCategoryModal')">Cancel</button>
-                <button class="btn-finance btn-finance-primary" onclick="submitAddCategory()">
+                <button type="button" class="btn-finance btn-finance-outline" onclick="closeFinanceModal('addCategoryModal')">Cancel</button>
+                <button type="submit" form="addCategoryForm" class="btn-finance btn-finance-primary">
                     <i class="bi bi-plus-lg"></i> Add Category
                 </button>
             </div>
@@ -666,10 +820,6 @@
                     <div class="form-group">
                         <label for="categoryItemAmountInput">Amount</label>
                         <input type="number" id="categoryItemAmountInput" placeholder="₹0" min="0" step="0.01" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="categoryItemMonthSelect">Month</label>
-                        <select id="categoryItemMonthSelect"></select>
                     </div>
                 </form>
             </div>
@@ -785,15 +935,16 @@
             <div class="finance-modal-body">
                 <form id="addCreditCardForm">
                     <input type="hidden" id="editCardId">
-                    <div class="form-group">
+                    <div class="form-group non-insurance-fields">
                         <label for="expenseTypeSelect">Expense Type *</label>
                         <select id="expenseTypeSelect" onchange="onExpenseTypeChange()">
                             <option value="credit-card">Credit Card</option>
                             <option value="loan">Loan</option>
                             <option value="general-expense">General Expense</option>
+                            <option value="insurance">Insurance</option>
                         </select>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group non-insurance-fields">
                         <label for="cardName">Expense Name *</label>
                         <input type="text" id="cardName" placeholder="e.g., HDFC Regalia" required>
                     </div>
@@ -809,9 +960,25 @@
                         <label for="cardIssuerGeneral">Vendor / Category</label>
                         <input type="text" id="cardIssuerGeneral" placeholder="e.g., Utilities, Rent">
                     </div>
-                    <div class="form-group">
+                    <div class="form-group expense-field insurance-fields" style="display:none;">
+                        <label for="cardIssuerInsurance">Insurance Provider</label>
+                        <input type="text" id="cardIssuerInsurance" placeholder="e.g., HDFC Life">
+                    </div>
+                    <div class="form-group expense-field insurance-fields" style="display:none;">
+                        <label for="insurancePolicyType">Insurance Type</label>
+                        <select id="insurancePolicyType">
+                            <option value="term">Term Insurance</option>
+                            <option value="health">Health Insurance</option>
+                            <option value="corporate">Corporate Insurance</option>
+                        </select>
+                    </div>
+                    <div class="form-group expense-field non-insurance-fields">
                         <label for="cardOutstanding">Amount (₹)</label>
                         <input type="number" id="cardOutstanding" placeholder="0" min="0" step="0.01">
+                    </div>
+                    <div class="form-group expense-field insurance-fields" style="display:none;">
+                        <label for="insurancePremiumAmount">Premium Amount (₹)</label>
+                        <input type="number" id="insurancePremiumAmount" placeholder="0" min="0" step="0.01">
                     </div>
                     <div class="form-group expense-field credit-card-fields">
                         <label for="cardLimit">Credit Limit (₹)</label>
@@ -829,9 +996,25 @@
                         <label for="cardExpenseDate">Expense Date</label>
                         <input type="date" id="cardExpenseDate">
                     </div>
+                    <div class="form-group expense-field insurance-fields" style="display:none;">
+                        <label for="insuranceStartDate">Insurance Start Date</label>
+                        <input type="date" id="insuranceStartDate">
+                    </div>
+                    <div class="form-group expense-field insurance-fields" style="display:none;">
+                        <label for="insuranceValidUpto">Valid Upto</label>
+                        <input type="date" id="insuranceValidUpto">
+                    </div>
                     <div class="form-group expense-field general-fields" style="display:none;">
                         <label for="cardNotes">Notes</label>
                         <input type="text" id="cardNotes" placeholder="Optional note">
+                    </div>
+                    <div class="form-group expense-field insurance-fields" style="display:none;">
+                        <label for="insurancePolicyNumber">Policy Number</label>
+                        <input type="text" id="insurancePolicyNumber" placeholder="Optional policy number">
+                    </div>
+                    <div class="form-group expense-field insurance-fields" style="display:none;">
+                        <label for="insuranceCoverageAmount">Coverage Amount (₹)</label>
+                        <input type="number" id="insuranceCoverageAmount" placeholder="0" min="0" step="0.01">
                     </div>
                     <div class="form-group expense-field credit-card-fields" style="display:none;">
                         <label for="cardPaymentStatus">Payment Status</label>
@@ -856,6 +1039,15 @@
                             <option value="paid">Paid</option>
                         </select>
                         <small class="text-muted" style="display:block;margin-top:4px;">When marked as "Paid", this amount won't count towards your liabilities.</small>
+                    </div>
+                    <div class="form-group expense-field insurance-fields" style="display:none;">
+                        <label for="insuranceStatusSelect">Status</label>
+                        <select id="insuranceStatusSelect">
+                            <option value="active" selected>Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="expired">Expired</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
                     </div>
                 </form>
             </div>
@@ -896,7 +1088,11 @@
             </div>
             <div class="finance-modal-body">
                 <div class="form-group">
-                    <label id="editItemLabel">Amount</label>
+                    <label for="editItemNameInput">Item Name</label>
+                    <input type="text" id="editItemNameInput" placeholder="Enter item name" required>
+                </div>
+                <div class="form-group">
+                    <label for="editItemAmountInput">Amount</label>
                     <input type="number" id="editItemAmountInput" placeholder="Enter new amount" min="0" step="0.01">
                 </div>
             </div>

@@ -13,7 +13,7 @@
  * @module market-movers
  */
 
-import { log } from './utils.js';
+import { log, escapeHtml as escapeHtmlUtil } from './utils.js';
 
 const MarketMovers = (function() {
     'use strict';
@@ -123,6 +123,26 @@ const MarketMovers = (function() {
         selectedIndex: loadIndexPref() // 'auto' or a specific NIFTY index
     };
 
+    const MARKET_STATUS_META = {
+        open: {
+            cacheDuration: CONFIG.CACHE_DURATIONS.MARKET_OPEN,
+            refreshInterval: CONFIG.REFRESH_INTERVALS.MARKET_OPEN,
+            label: 'Market Open'
+        },
+        pre_post: {
+            cacheDuration: CONFIG.CACHE_DURATIONS.PRE_POST_MARKET,
+            refreshInterval: CONFIG.REFRESH_INTERVALS.PRE_POST_MARKET,
+            label: 'Pre/Post Market'
+        },
+        closed: {
+            cacheDuration: CONFIG.CACHE_DURATIONS.MARKET_CLOSED,
+            refreshInterval: CONFIG.REFRESH_INTERVALS.MARKET_CLOSED,
+            label: 'Market Closed'
+        }
+    };
+
+    const escapeHtml = (text) => (text ? escapeHtmlUtil(text) : '');
+
     /** Load saved index preference from localStorage */
     function loadIndexPref() {
         try {
@@ -192,40 +212,29 @@ const MarketMovers = (function() {
         return 'closed';
     }
 
+    function getCurrentMarketStatusMeta() {
+        return MARKET_STATUS_META[getMarketStatus()] || MARKET_STATUS_META.closed;
+    }
+
     /**
      * Get the appropriate cache duration based on market status
      */
     function getCacheDuration() {
-        const status = getMarketStatus();
-        switch (status) {
-            case 'open': return CONFIG.CACHE_DURATIONS.MARKET_OPEN;
-            case 'pre_post': return CONFIG.CACHE_DURATIONS.PRE_POST_MARKET;
-            default: return CONFIG.CACHE_DURATIONS.MARKET_CLOSED;
-        }
+        return getCurrentMarketStatusMeta().cacheDuration;
     }
 
     /**
      * Get the appropriate auto-refresh interval based on market status
      */
     function getRefreshInterval() {
-        const status = getMarketStatus();
-        switch (status) {
-            case 'open': return CONFIG.REFRESH_INTERVALS.MARKET_OPEN;
-            case 'pre_post': return CONFIG.REFRESH_INTERVALS.PRE_POST_MARKET;
-            default: return CONFIG.REFRESH_INTERVALS.MARKET_CLOSED;
-        }
+        return getCurrentMarketStatusMeta().refreshInterval;
     }
 
     /**
      * Get a human-friendly label for current market status
      */
     function getMarketStatusLabel() {
-        const status = getMarketStatus();
-        switch (status) {
-            case 'open': return 'Market Open';
-            case 'pre_post': return 'Pre/Post Market';
-            default: return 'Market Closed';
-        }
+        return getCurrentMarketStatusMeta().label;
     }
 
     /* ========================================
@@ -1475,13 +1484,6 @@ const MarketMovers = (function() {
     function truncateName(name, maxLength) {
         if (!name) return '';
         return name.length > maxLength ? name.substring(0, maxLength) + '...' : name;
-    }
-
-    function escapeHtml(text) {
-        if (!text) return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
     }
 
     /* ========================================
