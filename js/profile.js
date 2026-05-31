@@ -137,6 +137,16 @@ function setupEventListeners() {
         confirmDeleteBtn.addEventListener('click', handleDeleteAccount);
     }
 
+    const deleteConfirmPasswordInput = document.getElementById('deleteConfirmPassword');
+    if (deleteConfirmPasswordInput && confirmDeleteBtn) {
+        deleteConfirmPasswordInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                confirmDeleteBtn.click();
+            }
+        });
+    }
+
     // Logout button
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {

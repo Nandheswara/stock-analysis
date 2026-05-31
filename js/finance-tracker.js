@@ -33,16 +33,16 @@ import {
 import {
     addCategory,
     updateCategory,
-    deleteCategory,
+    deleteCategoryForMonth,
     addCategoryItem,
     updateCategoryItem,
     deleteCategoryItem,
     addBank,
     updateBank,
-    deleteBank,
+    deleteBankForMonth,
     addCreditCard,
     updateCreditCard,
-    deleteCreditCard,
+    deleteCreditCardForMonth,
     saveIncome,
     saveTax,
     saveEPFO,
@@ -52,7 +52,11 @@ import {
     listenToFinanceData,
     createDefaultCategories,
     computeFinancialSummary,
-    copyPreviousMonthData
+    copyFinanceDataBetweenMonths,
+    copyPreviousMonthData,
+    getFinanceViewPreferences,
+    saveFinanceViewPreferences,
+    getFinanceRawData
 } from '../js/firebase-finance-service.js';
 
 import { log } from './utils.js';
@@ -82,6 +86,735 @@ let isRendering = false;
 let lastRenderedDataJSON = ''; // Track if data actually changed
 let isInitialLoad = true;      // Prevent snapshot save on first render
 let chartRenderRAF = null;     // requestAnimationFrame handle for chart rendering
+let isAddCategorySubmitting = false;
+const SECTION_PREFERENCE_META = Object.freeze([
+    {
+        key: 'financialSummary',
+        sectionId: 'financialSummarySection',
+        label: 'Financial Summary',
+        description: 'Income, expenditure, invested, bank balance and tax cards.'
+    },
+    {
+        key: 'netWorth',
+        sectionId: 'netWorthSection',
+        label: 'Net Worth Cards',
+        description: 'Assets, liabilities, net worth and EPFO cards.'
+    },
+    {
+        key: 'investmentCategories',
+        sectionId: 'investmentCategoriesSection',
+        label: 'Investment Categories',
+        description: 'Category cards with investment items and monthly totals.'
+    },
+    {
+        key: 'bankAccounts',
+        sectionId: 'bankAccountsSection',
+        label: 'Bank Accounts',
+        description: 'Bank account table and monthly balances.'
+    },
+    {
+        key: 'expenses',
+        sectionId: 'expensesSection',
+        label: 'Expenses',
+        description: 'Credit cards, loans and general expense tracking table.'
+    },
+    {
+        key: 'insurance',
+        sectionId: 'insuranceSection',
+        label: 'Insurance',
+        description: 'Insurance policies, premium amounts and status tracking.'
+    },
+    {
+        key: 'analytics',
+        sectionId: 'analyticsSection',
+        label: 'Analytics',
+        description: 'Investment breakdown, trend charts and month-by-month analytics.'
+    }
+]);
+
+const WIDGET_PREFERENCE_META = Object.freeze([
+    { key: 'summaryIncome', elementId: 'summaryIncomeCard', label: 'Summary: Income Card', description: 'Shows salary and other income totals.' },
+    { key: 'summaryExpenditure', elementId: 'summaryExpenditureCard', label: 'Summary: Expenditure Card', description: 'Shows monthly expenditure totals.' },
+    { key: 'summaryInvested', elementId: 'summaryInvestedCard', label: 'Summary: Invested Card', description: 'Shows invested amount and change.' },
+    { key: 'summaryBankBalance', elementId: 'summaryBankBalanceCard', label: 'Summary: Bank Balance Card', description: 'Shows total current bank balances.' },
+    { key: 'summaryTax', elementId: 'summaryTaxCard', label: 'Summary: Tax Card', description: 'Shows monthly tax values.' },
+    { key: 'netWorthAssets', elementId: 'netWorthAssetsCard', label: 'Net Worth: Assets Card', description: 'Shows total assets.' },
+    { key: 'netWorthLiabilities', elementId: 'netWorthLiabilitiesCard', label: 'Net Worth: Liabilities Card', description: 'Shows total liabilities.' },
+    { key: 'netWorthTotal', elementId: 'netWorthTotalCard', label: 'Net Worth: Total Card', description: 'Shows current net worth.' },
+    { key: 'netWorthEPFO', elementId: 'netWorthEPFOCard', label: 'Net Worth: EPFO Card', description: 'Shows EPFO value.' },
+    { key: 'analyticsInvestmentBreakdown', elementId: 'analyticsInvestmentBreakdownCard', label: 'Analytics: Investment Breakdown', description: 'Pie chart by category.' },
+    { key: 'analyticsNetWorthTrend', elementId: 'analyticsNetWorthTrendCard', label: 'Analytics: Net Worth Trend', description: 'Line chart for asset growth.' },
+    { key: 'analyticsIncomeExpense', elementId: 'analyticsIncomeExpenseCard', label: 'Analytics: Income vs Expenditure', description: 'Bar chart for income/expense/invested.' },
+    { key: 'analyticsCategoryTrend', elementId: 'analyticsCategoryTrendCard', label: 'Analytics: Category Trends', description: 'Line chart by investment category.' }
+]);
+
+const SECTION_WIDGET_GROUPS = Object.freeze({
+    financialSummary: Object.freeze(['summaryIncome', 'summaryExpenditure', 'summaryInvested', 'summaryBankBalance', 'summaryTax']),
+    netWorth: Object.freeze(['netWorthAssets', 'netWorthLiabilities', 'netWorthTotal', 'netWorthEPFO']),
+    analytics: Object.freeze(['analyticsInvestmentBreakdown', 'analyticsNetWorthTrend', 'analyticsIncomeExpense', 'analyticsCategoryTrend'])
+});
+
+const WIDGET_SECTION_MAP = Object.freeze(
+    Object.entries(SECTION_WIDGET_GROUPS).reduce((acc, [sectionKey, widgetKeys]) => {
+        widgetKeys.forEach((widgetKey) => {
+            acc[widgetKey] = sectionKey;
+        });
+        return acc;
+    }, {})
+);
+
+const ITEM_PREFERENCE_META = Object.freeze([
+    {
+        key: 'categories',
+        containerId: 'recordPrefCategoriesList',
+        emptyMessage: 'No investment categories found.'
+    }
+]);
+
+const DEFAULT_SECTION_PREFERENCES = Object.freeze({
+    sections: Object.freeze(
+        SECTION_PREFERENCE_META.reduce((acc, section) => {
+            acc[section.key] = true;
+            return acc;
+        }, {})
+    ),
+    widgets: Object.freeze(
+        WIDGET_PREFERENCE_META.reduce((acc, widget) => {
+            acc[widget.key] = true;
+            return acc;
+        }, {})
+    ),
+    items: Object.freeze(
+        ITEM_PREFERENCE_META.reduce((acc, itemMeta) => {
+            acc[itemMeta.key] = Object.freeze({});
+            return acc;
+        }, {})
+    )
+});
+let financeViewPreferences = createDefaultSectionPreferences();
+let recordPreferenceSelectionMap = createRecordPreferenceSelectionMap();
+let isAmountMasked = false;
+const AMOUNT_MASK_STORAGE_KEY = 'financeTrackerMaskAmounts';
+const AMOUNT_MASK_TOKEN = '*****';
+const AMOUNT_MASK_SELECTOR = [
+    '#summaryIncome',
+    '#summaryExpenditure',
+    '#summaryInvested',
+    '#summaryBankBalance',
+    '#summaryTax',
+    '#summaryIncomeSub',
+    '#summaryExpenditureSub',
+    '#summaryInvestedSub',
+    '#totalAssetsValue',
+    '#totalLiabilitiesValue',
+    '#netWorthValue',
+    '#epfoValue',
+    '.category-card-total',
+    '.category-item-amount',
+    '.amount-cell',
+    '.insurance-coverage-amount'
+].join(', ');
+const AMOUNT_MASK_EXCLUDED_SELECTOR = '#savingsRateValue';
+
+function createRecordPreferenceSelectionMap() {
+    return ITEM_PREFERENCE_META.reduce((acc, itemMeta) => {
+        acc[itemMeta.key] = {};
+        return acc;
+    }, {});
+}
+
+function createDefaultSectionPreferences() {
+    const items = ITEM_PREFERENCE_META.reduce((acc, itemMeta) => {
+        acc[itemMeta.key] = {};
+        return acc;
+    }, {});
+
+    return {
+        sections: { ...DEFAULT_SECTION_PREFERENCES.sections },
+        widgets: { ...DEFAULT_SECTION_PREFERENCES.widgets },
+        items
+    };
+}
+
+function normalizePreferenceMap(rawMap) {
+    if (!rawMap || typeof rawMap !== 'object') return {};
+
+    return Object.entries(rawMap).reduce((acc, [key, value]) => {
+        if (typeof key === 'string' && key) {
+            acc[key] = Boolean(value);
+        }
+        return acc;
+    }, {});
+}
+
+function normalizeSectionPreferences(preferences) {
+    const normalized = createDefaultSectionPreferences();
+    if (!preferences || typeof preferences !== 'object') {
+        return normalized;
+    }
+
+    const rawSections = preferences.sections && typeof preferences.sections === 'object'
+        ? preferences.sections
+        : {};
+
+    SECTION_PREFERENCE_META.forEach(({ key }) => {
+        if (rawSections[key] !== undefined) {
+            normalized.sections[key] = Boolean(rawSections[key]);
+        }
+    });
+
+    const rawWidgets = preferences.widgets && typeof preferences.widgets === 'object'
+        ? preferences.widgets
+        : {};
+
+    WIDGET_PREFERENCE_META.forEach(({ key }) => {
+        if (rawWidgets[key] !== undefined) {
+            normalized.widgets[key] = Boolean(rawWidgets[key]);
+        }
+    });
+
+    const rawItems = preferences.items && typeof preferences.items === 'object'
+        ? preferences.items
+        : {};
+
+    ITEM_PREFERENCE_META.forEach(({ key }) => {
+        normalized.items[key] = normalizePreferenceMap(rawItems[key]);
+    });
+
+    return normalized;
+}
+
+function isSectionEnabled(sectionKey) {
+    return Boolean(financeViewPreferences.sections[sectionKey]);
+}
+
+function isWidgetEnabled(widgetKey) {
+    return Boolean(financeViewPreferences.widgets[widgetKey]);
+}
+
+function isItemVisible(itemType, itemId) {
+    if (!itemType || !itemId) return true;
+    return financeViewPreferences.items?.[itemType]?.[itemId] !== false;
+}
+
+function hasVisibleWidgetsForSection(sectionKey) {
+    const widgetKeys = SECTION_WIDGET_GROUPS[sectionKey];
+    if (!widgetKeys || widgetKeys.length === 0) return true;
+    return widgetKeys.some((widgetKey) => isWidgetEnabled(widgetKey));
+}
+
+function maskAmountString(value) {
+    const rawText = String(value ?? '');
+    if (!/\d/.test(rawText)) return rawText;
+    return rawText.replace(/[-+]?\d[\d,]*(?:\.\d+)?/g, AMOUNT_MASK_TOKEN);
+}
+
+function updateMaskDataButton() {
+    const button = document.getElementById('maskDataBtn');
+    const icon = document.getElementById('maskDataIcon');
+    if (!button || !icon) return;
+
+    if (isAmountMasked) {
+        icon.className = 'bi bi-eye';
+        button.title = 'Show amount values';
+        button.setAttribute('aria-label', 'Show amount values');
+    } else {
+        icon.className = 'bi bi-eye-slash';
+        button.title = 'Mask amount values';
+        button.setAttribute('aria-label', 'Mask amount values');
+    }
+}
+
+function applyAmountMasking() {
+    const excludedNodes = document.querySelectorAll(AMOUNT_MASK_EXCLUDED_SELECTOR);
+    excludedNodes.forEach((node) => {
+        const storedOriginal = node.dataset.maskOriginalText;
+        const storedOriginalTitle = node.dataset.maskOriginalTitle;
+
+        if (storedOriginal !== undefined) {
+            node.textContent = storedOriginal;
+            delete node.dataset.maskOriginalText;
+        }
+
+        if (storedOriginalTitle !== undefined) {
+            if (storedOriginalTitle) {
+                node.setAttribute('title', storedOriginalTitle);
+            } else {
+                node.removeAttribute('title');
+            }
+            delete node.dataset.maskOriginalTitle;
+        }
+
+        delete node.dataset.maskState;
+    });
+
+    const nodes = document.querySelectorAll(AMOUNT_MASK_SELECTOR);
+    nodes.forEach((node) => {
+        const currentText = node.textContent || '';
+        const storedOriginal = node.dataset.maskOriginalText;
+        const expectedMasked = storedOriginal !== undefined ? maskAmountString(storedOriginal) : null;
+        const hasTitle = node.hasAttribute('title');
+        const currentTitle = hasTitle ? (node.getAttribute('title') || '') : '';
+        const storedOriginalTitle = node.dataset.maskOriginalTitle;
+
+        if (isAmountMasked) {
+            const isStillMasked = storedOriginal !== undefined && currentText === expectedMasked;
+            if (!isStillMasked) {
+                node.dataset.maskOriginalText = currentText;
+                node.textContent = maskAmountString(currentText);
+            }
+
+            if (hasTitle && storedOriginalTitle === undefined) {
+                node.dataset.maskOriginalTitle = currentTitle;
+            }
+            if (hasTitle) {
+                node.setAttribute('title', maskAmountString(currentTitle));
+            }
+
+            node.dataset.maskState = 'masked';
+        } else if (node.dataset.maskState === 'masked') {
+            node.textContent = storedOriginal !== undefined ? storedOriginal : currentText;
+
+            if (storedOriginalTitle !== undefined) {
+                if (storedOriginalTitle) {
+                    node.setAttribute('title', storedOriginalTitle);
+                } else {
+                    node.removeAttribute('title');
+                }
+                delete node.dataset.maskOriginalTitle;
+            }
+
+            delete node.dataset.maskOriginalText;
+            delete node.dataset.maskState;
+        }
+    });
+}
+
+function initializeAmountMasking() {
+    try {
+        isAmountMasked = localStorage.getItem(AMOUNT_MASK_STORAGE_KEY) === '1';
+    } catch (error) {
+        isAmountMasked = false;
+    }
+    updateMaskDataButton();
+    applyAmountMasking();
+}
+
+window.toggleAmountMasking = function() {
+    isAmountMasked = !isAmountMasked;
+    try {
+        localStorage.setItem(AMOUNT_MASK_STORAGE_KEY, isAmountMasked ? '1' : '0');
+    } catch (error) {
+        // Ignore localStorage failures
+    }
+
+    updateMaskDataButton();
+    applyAmountMasking();
+    showToast(isAmountMasked ? 'Amount values masked.' : 'Amount values visible.', 'info');
+};
+
+function destroyCharts() {
+    Object.values(charts).forEach((chartInstance) => {
+        if (chartInstance && typeof chartInstance.destroy === 'function') {
+            chartInstance.destroy();
+        }
+    });
+    charts = {};
+}
+
+function updateHiddenSectionsState() {
+    const hiddenState = document.getElementById('sectionsHiddenState');
+    if (!hiddenState) return;
+
+    const hasVisibleSection = SECTION_PREFERENCE_META.some(({ sectionId }) => {
+        const section = document.getElementById(sectionId);
+        return section && section.style.display !== 'none';
+    });
+    hiddenState.style.display = hasVisibleSection ? 'none' : '';
+}
+
+function applyWidgetPreferences() {
+    WIDGET_PREFERENCE_META.forEach(({ key, elementId }) => {
+        const element = document.getElementById(elementId);
+        if (!element) return;
+
+        const parentSectionKey = WIDGET_SECTION_MAP[key];
+        const sectionEnabled = parentSectionKey ? isSectionEnabled(parentSectionKey) : true;
+        element.style.display = sectionEnabled && isWidgetEnabled(key) ? '' : 'none';
+    });
+
+    Object.entries(SECTION_WIDGET_GROUPS).forEach(([sectionKey, widgetKeys]) => {
+        const sectionMeta = SECTION_PREFERENCE_META.find((item) => item.key === sectionKey);
+        const section = sectionMeta ? document.getElementById(sectionMeta.sectionId) : null;
+        if (!section) return;
+
+        if (!isSectionEnabled(sectionKey)) {
+            section.style.display = 'none';
+            return;
+        }
+
+        const hasVisibleWidget = widgetKeys.some((widgetKey) => isWidgetEnabled(widgetKey));
+        section.style.display = hasVisibleWidget ? '' : 'none';
+    });
+}
+
+function applySectionPreferences() {
+    SECTION_PREFERENCE_META.forEach(({ key, sectionId }) => {
+        const section = document.getElementById(sectionId);
+        if (!section) return;
+        section.style.display = isSectionEnabled(key) ? '' : 'none';
+    });
+
+    applyWidgetPreferences();
+
+    if (!isSectionEnabled('financialSummary')) {
+        const savingsBadge = document.getElementById('savingsRateValue');
+        if (savingsBadge) savingsBadge.style.display = 'none';
+    }
+
+    updateHiddenSectionsState();
+}
+
+function renderSectionPreferenceOptions() {
+    const container = document.getElementById('sectionPreferencesList');
+    if (!container) return;
+
+    container.innerHTML = SECTION_PREFERENCE_META.map(({ key, label, description }) => `
+        <label class="section-preference-item" for="section-pref-${key}">
+            <div class="section-preference-content">
+                <div class="section-preference-title">${label}</div>
+                <div class="section-preference-description">${description}</div>
+            </div>
+            <div class="section-preference-switch-wrap">
+                <input
+                    type="checkbox"
+                    class="section-preference-toggle"
+                    id="section-pref-${key}"
+                    data-pref-key="${key}"
+                />
+            </div>
+        </label>
+    `).join('');
+
+    syncSectionPreferenceInputs();
+}
+
+function renderWidgetPreferenceOptions() {
+    const container = document.getElementById('widgetPreferencesList');
+    if (!container) return;
+
+    container.innerHTML = WIDGET_PREFERENCE_META.map(({ key, label, description }) => `
+        <label class="section-preference-item" for="widget-pref-${key}">
+            <div class="section-preference-content">
+                <div class="section-preference-title">${label}</div>
+                <div class="section-preference-description">${description}</div>
+            </div>
+            <div class="section-preference-switch-wrap">
+                <input
+                    type="checkbox"
+                    class="widget-preference-toggle"
+                    id="widget-pref-${key}"
+                    data-widget-key="${key}"
+                />
+            </div>
+        </label>
+    `).join('');
+
+    syncWidgetPreferenceInputs();
+}
+
+function buildRecordPreferenceRows(itemType) {
+    if (itemType === 'categories') {
+        return dedupeCategoriesByName(financeData.categories || {})
+            .map(([id, category]) => ({
+                id,
+                label: category.name || 'Unnamed Category',
+                sub: category.icon || 'Investment category'
+            }))
+            .sort((a, b) => a.label.localeCompare(b.label));
+    }
+
+    if (itemType === 'expenses') {
+        return Object.entries(financeData.creditCards || {})
+            .filter(([, card]) => (card.type || 'credit-card') !== 'insurance')
+            .map(([id, card]) => ({
+                id,
+                label: card.name || 'Unnamed Expense',
+                sub: card.issuer || card.type || 'Expense'
+            }))
+            .sort((a, b) => a.label.localeCompare(b.label));
+    }
+
+    if (itemType === 'insurance') {
+        return Object.entries(financeData.creditCards || {})
+            .filter(([, card]) => (card.type || 'credit-card') === 'insurance')
+            .map(([id, card]) => ({
+                id,
+                label: card.name || 'Unnamed Policy',
+                sub: card.issuer || card.insuranceCategory || 'Insurance policy'
+            }))
+            .sort((a, b) => a.label.localeCompare(b.label));
+    }
+
+    return [];
+}
+
+function groupRecordEntries(entries) {
+    const grouped = new Map();
+
+    entries.forEach((entry) => {
+        const key = `${(entry.label || '').trim().toLowerCase()}|${(entry.sub || '').trim().toLowerCase()}`;
+        if (!grouped.has(key)) {
+            grouped.set(key, { ...entry, linkedIds: [entry.id] });
+            return;
+        }
+
+        const current = grouped.get(key);
+        current.linkedIds.push(entry.id);
+    });
+
+    return Array.from(grouped.values());
+}
+
+function renderRecordPreferenceOptions() {
+    recordPreferenceSelectionMap = createRecordPreferenceSelectionMap();
+
+    ITEM_PREFERENCE_META.forEach(({ key, containerId, emptyMessage }) => {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        const entries = buildRecordPreferenceRows(key);
+        if (entries.length === 0) {
+            container.innerHTML = `<div class="record-preference-empty">${emptyMessage}</div>`;
+            recordPreferenceSelectionMap[key] = {};
+            return;
+        }
+
+        const groupedEntries = groupRecordEntries(entries);
+        recordPreferenceSelectionMap[key] = groupedEntries.reduce((acc, entry) => {
+            acc[entry.id] = entry.linkedIds || [entry.id];
+            return acc;
+        }, {});
+
+        container.innerHTML = groupedEntries.map((entry, index) => {
+            const safeInputId = `record-pref-${key}-${index}-${entry.id}`.replace(/[^a-zA-Z0-9_-]/g, '_');
+            const duplicateSuffix = entry.linkedIds && entry.linkedIds.length > 1
+                ? ` (grouped ${entry.linkedIds.length})`
+                : '';
+            return `
+                <label class="record-preference-item" for="${safeInputId}">
+                    <input
+                        type="checkbox"
+                        class="record-preference-toggle"
+                        id="${safeInputId}"
+                        data-item-type="${key}"
+                        data-item-id="${entry.id}"
+                    >
+                    <span class="record-preference-text">
+                        ${escapeHtml(entry.label)}
+                        <span class="record-preference-sub">${escapeHtml((entry.sub || '') + duplicateSuffix)}</span>
+                    </span>
+                </label>
+            `;
+        }).join('');
+    });
+
+    syncRecordPreferenceInputs();
+}
+
+function syncSectionPreferenceInputs() {
+    document.querySelectorAll('.section-preference-toggle').forEach((toggle) => {
+        const key = toggle.dataset.prefKey;
+        toggle.checked = isSectionEnabled(key);
+    });
+}
+
+function syncWidgetPreferenceInputs() {
+    document.querySelectorAll('.widget-preference-toggle').forEach((toggle) => {
+        const key = toggle.dataset.widgetKey;
+        toggle.checked = isWidgetEnabled(key);
+    });
+}
+
+function syncRecordPreferenceInputs() {
+    document.querySelectorAll('.record-preference-toggle').forEach((toggle) => {
+        const itemType = toggle.dataset.itemType;
+        const itemId = toggle.dataset.itemId;
+        const linkedIds = recordPreferenceSelectionMap[itemType]?.[itemId] || [itemId];
+        toggle.checked = linkedIds.every((linkedId) => isItemVisible(itemType, linkedId));
+    });
+}
+
+function syncAllPreferenceInputs() {
+    syncSectionPreferenceInputs();
+    syncWidgetPreferenceInputs();
+    syncRecordPreferenceInputs();
+}
+
+function initializeSettingsToolInputs() {
+    const settingsExportFrom = document.getElementById('settingsExportFromMonth');
+    const settingsExportTo = document.getElementById('settingsExportToMonth');
+    const settingsExportFormat = document.getElementById('settingsExportFormatSelect');
+    const copySourceMonth = document.getElementById('copySourceMonth');
+    const copyTargetMonth = document.getElementById('copyTargetMonth');
+
+    if (settingsExportFrom && !settingsExportFrom.value) settingsExportFrom.value = currentMonth;
+    if (settingsExportTo && !settingsExportTo.value) settingsExportTo.value = currentMonth;
+    if (settingsExportFormat && !settingsExportFormat.value) settingsExportFormat.value = 'xlsx';
+    if (copyTargetMonth && !copyTargetMonth.value) copyTargetMonth.value = currentMonth;
+    if (copySourceMonth && !copySourceMonth.value) copySourceMonth.value = getPreviousMonth(currentMonth);
+
+    if (settingsExportFrom && settingsExportTo) {
+        settingsExportFrom.addEventListener('change', () => {
+            if (settingsExportTo.value < settingsExportFrom.value) {
+                settingsExportTo.value = settingsExportFrom.value;
+            }
+        });
+
+        settingsExportTo.addEventListener('change', () => {
+            if (settingsExportTo.value < settingsExportFrom.value) {
+                settingsExportFrom.value = settingsExportTo.value;
+            }
+        });
+    }
+}
+
+function syncSettingsToolInputsForCurrentMonth() {
+    const settingsExportFrom = document.getElementById('settingsExportFromMonth');
+    const settingsExportTo = document.getElementById('settingsExportToMonth');
+    const copySourceMonth = document.getElementById('copySourceMonth');
+    const copyTargetMonth = document.getElementById('copyTargetMonth');
+
+    if (settingsExportFrom && !settingsExportFrom.value) {
+        settingsExportFrom.value = currentMonth;
+    }
+
+    if (settingsExportTo) {
+        settingsExportTo.value = currentMonth;
+    }
+
+    if (copyTargetMonth) {
+        copyTargetMonth.value = currentMonth;
+    }
+
+    if (copySourceMonth && (!copySourceMonth.value || copySourceMonth.value === currentMonth)) {
+        copySourceMonth.value = getPreviousMonth(currentMonth);
+    }
+}
+
+function getSectionPreferencesFromInputs() {
+    const nextPreferences = createDefaultSectionPreferences();
+
+    document.querySelectorAll('.section-preference-toggle').forEach((toggle) => {
+        const key = toggle.dataset.prefKey;
+        if (nextPreferences.sections[key] !== undefined) {
+            nextPreferences.sections[key] = Boolean(toggle.checked);
+        }
+    });
+
+    document.querySelectorAll('.widget-preference-toggle').forEach((toggle) => {
+        const key = toggle.dataset.widgetKey;
+        if (nextPreferences.widgets[key] !== undefined) {
+            nextPreferences.widgets[key] = Boolean(toggle.checked);
+        }
+    });
+
+    document.querySelectorAll('.record-preference-toggle').forEach((toggle) => {
+        const itemType = toggle.dataset.itemType;
+        const itemId = toggle.dataset.itemId;
+        if (!itemType || !itemId || !nextPreferences.items[itemType]) return;
+        const linkedIds = recordPreferenceSelectionMap[itemType]?.[itemId] || [itemId];
+        linkedIds.forEach((linkedId) => {
+            nextPreferences.items[itemType][linkedId] = Boolean(toggle.checked);
+        });
+    });
+
+    return nextPreferences;
+}
+
+async function loadSectionPreferences() {
+    const result = await getFinanceViewPreferences();
+    financeViewPreferences = normalizeSectionPreferences(result.preferences);
+    applySectionPreferences();
+    syncAllPreferenceInputs();
+}
+
+async function persistSectionPreferences(nextPreferences, successMessage) {
+    const result = await saveFinanceViewPreferences(nextPreferences);
+    if (!result.success) {
+        showToast('Unable to save section preferences. Please try again.', 'error');
+        return false;
+    }
+
+    financeViewPreferences = normalizeSectionPreferences(result.preferences);
+    applySectionPreferences();
+    renderRecordPreferenceOptions();
+    renderAll();
+    showToast(successMessage, 'success');
+    return true;
+}
+
+function initSectionPreferences() {
+    renderSectionPreferenceOptions();
+    renderWidgetPreferenceOptions();
+    renderRecordPreferenceOptions();
+    initializeSettingsToolInputs();
+
+    const form = document.getElementById('sectionPreferencesForm');
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await window.saveSectionPreferences();
+        });
+    }
+
+    const widgetForm = document.getElementById('widgetPreferencesForm');
+    if (widgetForm) {
+        widgetForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await window.saveSectionPreferences();
+        });
+    }
+}
+
+window.openSectionSettingsModal = function() {
+    if (!getCurrentUser()) {
+        showToast('Please sign in to customize sections.', 'warning');
+        return;
+    }
+    renderRecordPreferenceOptions();
+    syncAllPreferenceInputs();
+    syncSettingsToolInputsForCurrentMonth();
+    openModal('sectionSettingsModal');
+};
+
+window.closeSectionSettingsModal = function() {
+    closeModal('sectionSettingsModal');
+};
+
+window.saveSectionPreferences = async function() {
+    if (!getCurrentUser()) {
+        showToast('Please sign in to save preferences.', 'warning');
+        return;
+    }
+    const nextPreferences = getSectionPreferencesFromInputs();
+    const saved = await persistSectionPreferences(nextPreferences, 'Section preferences updated.');
+    if (saved) {
+        closeModal('sectionSettingsModal');
+    }
+};
+
+window.resetSectionPreferencesToDefaults = async function() {
+    if (!getCurrentUser()) {
+        showToast('Please sign in to reset preferences.', 'warning');
+        return;
+    }
+    const resetPreferences = createDefaultSectionPreferences();
+    const saved = await persistSectionPreferences(resetPreferences, 'Section preferences reset to defaults.');
+    if (saved) {
+        syncAllPreferenceInputs();
+    }
+};
 
 // ========================================
 // Month Helpers
@@ -114,6 +847,50 @@ function getNextMonth(monthKey) {
     const [year, month] = monthKey.split('-').map(Number);
     const d = new Date(year, month, 1);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function normalizeIdentityPart(value) {
+    if (value === undefined || value === null) return '';
+    return String(value).trim().toLowerCase();
+}
+
+function getMonthAmount(record, monthKey, fallbackKey) {
+    if (record?.balances && record.balances[monthKey] !== undefined) {
+        return Number(record.balances[monthKey]) || 0;
+    }
+    return Number(record?.[fallbackKey]) || 0;
+}
+
+function pickPreferredDuplicateEntry(existingEntry, nextEntry, amountGetter) {
+    if (!existingEntry) return nextEntry;
+
+    const existingRecord = existingEntry[1];
+    const nextRecord = nextEntry[1];
+    const existingUpdatedAt = Number(existingRecord.updatedAt || existingRecord.createdAt || 0);
+    const nextUpdatedAt = Number(nextRecord.updatedAt || nextRecord.createdAt || 0);
+
+    if (nextUpdatedAt > existingUpdatedAt) {
+        return nextEntry;
+    }
+    if (nextUpdatedAt < existingUpdatedAt) {
+        return existingEntry;
+    }
+
+    const existingAmount = Math.abs(Number(amountGetter(existingRecord)) || 0);
+    const nextAmount = Math.abs(Number(amountGetter(nextRecord)) || 0);
+    return nextAmount > existingAmount ? nextEntry : existingEntry;
+}
+
+function collapseMonthDuplicates(entries, getIdentityKey, amountGetter) {
+    const deduped = new Map();
+    entries.forEach(([recordId, record]) => {
+        const identityKey = getIdentityKey(record);
+        const dedupeKey = identityKey || recordId;
+        const entry = [recordId, record];
+        const preferred = pickPreferredDuplicateEntry(deduped.get(dedupeKey), entry, amountGetter);
+        deduped.set(dedupeKey, preferred);
+    });
+    return Array.from(deduped.values());
 }
 
 // ========================================
@@ -302,6 +1079,7 @@ function renderIncome() {
 
 function renderFinancialSummary() {
     const summary = computeFinancialSummary(financeData, currentMonth);
+    const showSummaryCards = isSectionEnabled('financialSummary') && hasVisibleWidgetsForSection('financialSummary');
 
     // Income
     const monthIncome = summary.monthIncome;
@@ -344,7 +1122,7 @@ function renderFinancialSummary() {
 
     // Header savings rate badge — meaningful breakdown
     const badge = document.getElementById('savingsRateValue');
-    if (monthIncome.totalIncome > 0) {
+    if (monthIncome.totalIncome > 0 && showSummaryCards) {
         const rate = summary.savingsRate.toFixed(1);
         let badgeClass = 'bg-success'; // > 30%
         if (summary.savingsRate < 10) badgeClass = 'bg-danger';
@@ -407,6 +1185,87 @@ function getCategoryDisplayKey(category) {
     return `${(category.name || '').trim().toLowerCase()}|${category.icon || ''}|${category.color || ''}`;
 }
 
+function normalizeMonthToken(month) {
+    if (!month || typeof month !== 'string') return null;
+    const match = month.trim().match(/^(\d{4})-(\d{1,2})$/);
+    if (!match) return null;
+    const [, year, mon] = match;
+    const monthNumber = Number(mon);
+    if (Number.isNaN(monthNumber) || monthNumber < 1 || monthNumber > 12) return null;
+    return `${year}-${String(monthNumber).padStart(2, '0')}`;
+}
+
+function inferMonthFromDateValue(dateValue) {
+    if (!dateValue || typeof dateValue !== 'string') return null;
+    const token = dateValue.trim();
+    const match = token.match(/^(\d{4})-(\d{1,2})(?:-\d{1,2})?/);
+    if (!match) return null;
+    const [, year, mon] = match;
+    const monthNumber = Number(mon);
+    if (Number.isNaN(monthNumber) || monthNumber < 1 || monthNumber > 12) return null;
+    return `${year}-${String(monthNumber).padStart(2, '0')}`;
+}
+
+function isCategoryItemShape(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+    return Object.prototype.hasOwnProperty.call(value, 'name')
+        || Object.prototype.hasOwnProperty.call(value, 'amount')
+        || Object.prototype.hasOwnProperty.call(value, 'month')
+        || Object.prototype.hasOwnProperty.call(value, 'date');
+}
+
+function resolveCategoryItemMonth(item, fallbackMonth = null) {
+    if (!item || typeof item !== 'object') return fallbackMonth;
+    const fromMonth = normalizeMonthToken(item.month);
+    if (fromMonth) return fromMonth;
+    const fromDate = inferMonthFromDateValue(item.date);
+    if (fromDate) return fromDate;
+    return fallbackMonth;
+}
+
+function getLinkedCategoryIds(catId) {
+    const category = financeData.categories?.[catId];
+    if (!category) return [catId];
+    const displayKey = getCategoryDisplayKey(category);
+    return Object.entries(financeData.categories)
+        .filter(([, candidate]) => getCategoryDisplayKey(candidate) === displayKey)
+        .map(([linkedCatId]) => linkedCatId);
+}
+
+function getCategoryItemsForMonth(category, monthKey) {
+    if (!category || !category.items || typeof category.items !== 'object') return [];
+
+    const normalizedTargetMonth = normalizeMonthToken(monthKey) || monthKey;
+    const entries = [];
+
+    Object.entries(category.items).forEach(([entryKey, entryValue]) => {
+        if (!entryValue || typeof entryValue !== 'object') return;
+
+        const groupedMonth = normalizeMonthToken(entryKey);
+        if (isCategoryItemShape(entryValue)) {
+            const itemMonth = resolveCategoryItemMonth(entryValue, groupedMonth);
+            if (itemMonth === normalizedTargetMonth) {
+                entries.push({ id: entryKey, ...entryValue, month: itemMonth });
+            }
+            return;
+        }
+
+        Object.entries(entryValue).forEach(([nestedItemId, nestedItem]) => {
+            if (!nestedItem || typeof nestedItem !== 'object') return;
+            const itemMonth = resolveCategoryItemMonth(nestedItem, groupedMonth);
+            if (itemMonth === normalizedTargetMonth) {
+                entries.push({ id: `${entryKey}/${nestedItemId}`, ...nestedItem, month: itemMonth });
+            }
+        });
+    });
+
+    return entries;
+}
+
+function hasCategoryItemsForMonth(category, monthKey) {
+    return getCategoryItemsForMonth(category, monthKey).length > 0;
+}
+
 function getCreditCardLimit(card, month) {
     if (card.monthlyLimits && month && card.monthlyLimits[month] !== undefined) {
         return parseFloat(card.monthlyLimits[month]) || 0;
@@ -421,37 +1280,51 @@ function isCardPaidForMonth(card, month) {
     return Boolean(card.isPaid);
 }
 
-function dedupeCategoriesByName(categories) {
+function dedupeCategoriesByName(categories, monthKey = null) {
     const representatives = new Map();
+    const getCreatedMetric = (category) => {
+        if (category.createdAt) return Number(category.createdAt);
+        if (category.createdMonth) return Number(String(category.createdMonth).replace('-', ''));
+        return 0;
+    };
+
+    const getMonthRelevance = (category) => {
+        if (!monthKey) return 0;
+
+        const hasMonthItems = hasCategoryItemsForMonth(category, monthKey) ? 1 : 0;
+        const introducedMonth = getCategoryIntroducedMonth(category);
+        const introducedThisMonth = introducedMonth === monthKey ? 1 : 0;
+
+        // Prefer categories that actually have data for the month,
+        // then categories that were introduced in the month.
+        return (hasMonthItems * 2) + introducedThisMonth;
+    };
 
     Object.entries(categories).forEach(([catId, cat]) => {
         const key = getCategoryDisplayKey(cat);
-        const items = Object.values(cat.items || {});
-        const hasCurrentMonthItem = items.some(item => item.month === currentMonth);
-        const introducedMonth = getCategoryIntroducedMonth(cat);
         const existing = representatives.get(key);
 
         if (!existing) {
-            representatives.set(key, { catId, cat, hasCurrentMonthItem, introducedMonth });
+            representatives.set(key, { catId, cat });
             return;
         }
 
-        if (hasCurrentMonthItem && !existing.hasCurrentMonthItem) {
-            representatives.set(key, { catId, cat, hasCurrentMonthItem, introducedMonth });
+        const existingRelevance = getMonthRelevance(existing.cat);
+        const currentRelevance = getMonthRelevance(cat);
+
+        if (currentRelevance > existingRelevance) {
+            representatives.set(key, { catId, cat });
             return;
         }
 
-        if (hasCurrentMonthItem === existing.hasCurrentMonthItem) {
-            const getCreatedMetric = (category) => {
-                if (category.createdAt) return Number(category.createdAt);
-                if (category.createdMonth) return Number(category.createdMonth.replace('-', ''));
-                return 0;
-            };
-            const existingCreated = getCreatedMetric(existing.cat);
-            const currentCreated = getCreatedMetric(cat);
-            if (currentCreated > existingCreated) {
-                representatives.set(key, { catId, cat, hasCurrentMonthItem, introducedMonth });
-            }
+        if (currentRelevance < existingRelevance) {
+            return;
+        }
+
+        const existingCreated = getCreatedMetric(existing.cat);
+        const currentCreated = getCreatedMetric(cat);
+        if (currentCreated > existingCreated) {
+            representatives.set(key, { catId, cat });
         }
     });
 
@@ -471,36 +1344,33 @@ function renderCategories() {
         return;
     }
 
-    const dedupedCategories = dedupeCategoriesByName(categories);
+    const dedupedCategories = dedupeCategoriesByName(categories, currentMonth);
     const visibleCategories = dedupedCategories.filter(([catId, cat]) => {
+        if (!isItemVisible('categories', catId)) {
+            return false;
+        }
+
+        const hasMonthItems = hasCategoryItemsForMonth(cat, currentMonth);
         const introducedMonth = getCategoryIntroducedMonth(cat);
-        const hasItemsForCurrentMonth = cat.items && Object.values(cat.items).some(item => item.month === currentMonth);
-        const wasCreatedThisMonth = introducedMonth === currentMonth;
-        
-        // Show categories if:
-        // 1. They have items for the current month, OR
-        // 2. They were created in the current month (even if no items yet)
-        return (hasItemsForCurrentMonth || wasCreatedThisMonth) && (introducedMonth === null || introducedMonth <= currentMonth);
+        return hasMonthItems || introducedMonth === currentMonth;
     });
 
     if (visibleCategories.length === 0) {
         container.innerHTML = `
             <div class="finance-empty-state" style="grid-column: 1/-1;">
                 <i class="bi bi-folder-plus"></i>
-                <p>No categories available for ${getMonthDisplay(currentMonth)}. Add a category or copy from previous month.</p>
+                <p>No visible categories available. Add a category to get started.</p>
             </div>`;
         return;
     }
 
     container.innerHTML = visibleCategories.map(([catId, cat]) => {
-        const items = cat.items ? Object.entries(cat.items)
-            .filter(([, item]) => item.month === currentMonth)
-            .map(([itemId, item]) => ({ id: itemId, ...item })) : [];
+        const items = getCategoryItemsForMonth(cat, currentMonth);
         
         const totalAmount = items.reduce((sum, item) => sum + (item.amount || 0), 0);
 
         return `
-            <div class="category-card" data-cat-id="${catId}">
+            <div class="category-card" data-cat-id="${catId}" data-item-pref-type="categories" data-item-pref-id="${catId}">
                 <div class="category-card-header" style="border-left: 4px solid ${cat.color || '#7289ff'};">
                     <div class="category-card-info">
                         <div class="category-icon" style="background: ${cat.color || '#7289ff'}">
@@ -531,7 +1401,7 @@ function renderCategories() {
                                     <span class="category-item-name">${escapeHtml(item.name)}</span>
                                     <span class="category-item-amount">${formatCurrency(item.amount)}</span>
                                     <div class="category-item-actions">
-                                        <button class="edit-item-btn" onclick="editFinanceCategoryItem('${catId}', '${item.id}', '${escapeHtml(item.name)}', ${item.amount})" title="Edit">
+                                        <button class="edit-item-btn" onclick="editFinanceCategoryItem('${catId}', '${item.id}', '${encodeURIComponent(item.name || '')}', ${Number.parseFloat(item.amount) || 0})" title="Edit">
                                             <i class="bi bi-pencil"></i>
                                         </button>
                                         <button class="delete-item-btn" onclick="deleteFinanceCategoryItem('${catId}', '${item.id}')" title="Delete">
@@ -572,17 +1442,21 @@ function renderBanks() {
         return;
     }
 
-    // Filter banks to show only those with balance for current month or created this month
+    // Bank account visibility is section-level only, but still month-aware.
     const visibleBanks = Object.entries(banks).filter(([bankId, bank]) => {
         const hasBalanceForMonth = bank.balances && bank.balances[currentMonth] !== undefined;
         const createdMonth = bank.createdMonth || (bank.createdAt ? getMonthFromTimestamp(bank.createdAt) : null);
         const wasCreatedThisMonth = createdMonth === currentMonth;
-        
-        // Show if: has balance for this month OR was created this month
         return hasBalanceForMonth || wasCreatedThisMonth;
     });
 
-    if (visibleBanks.length === 0) {
+    const dedupedVisibleBanks = collapseMonthDuplicates(
+        visibleBanks,
+        (bank) => `${normalizeIdentityPart(bank.name)}|${normalizeIdentityPart(bank.accountType || 'savings')}`,
+        (bank) => getMonthAmount(bank, currentMonth, 'balance')
+    );
+
+    if (dedupedVisibleBanks.length === 0) {
         container.innerHTML = `
             <tr>
                 <td colspan="5" style="text-align:center;padding:30px;">
@@ -593,7 +1467,7 @@ function renderBanks() {
         return;
     }
 
-    container.innerHTML = visibleBanks.map(([bankId, bank]) => {
+    container.innerHTML = dedupedVisibleBanks.map(([bankId, bank]) => {
         // New format: show month-specific balance, or 0 if not entered yet
         // Old format (no balances obj): use global balance
         const balance = bank.balances
@@ -641,17 +1515,24 @@ function renderCreditCards() {
         return;
     }
 
-    // Filter credit cards/expenses to show only those with balance for current month or created this month
+    // Expenses visibility is section-level only, but still month-aware.
     const visibleCards = Object.entries(cards).filter(([cardId, card]) => {
+        if ((card.type || 'credit-card') === 'insurance') {
+            return false;
+        }
         const hasBalanceForMonth = card.balances && card.balances[currentMonth] !== undefined;
         const createdMonth = card.createdMonth || (card.createdAt ? getMonthFromTimestamp(card.createdAt) : null);
         const wasCreatedThisMonth = createdMonth === currentMonth;
-        
-        // Show if: has balance for this month OR was created this month
         return hasBalanceForMonth || wasCreatedThisMonth;
     });
 
-    if (visibleCards.length === 0) {
+    const dedupedVisibleCards = collapseMonthDuplicates(
+        visibleCards,
+        (card) => `${normalizeIdentityPart(card.name)}|${normalizeIdentityPart(card.type || 'credit-card')}`,
+        (card) => getMonthAmount(card, currentMonth, 'outstandingBalance')
+    );
+
+    if (dedupedVisibleCards.length === 0) {
         container.innerHTML = `
             <tr>
                 <td colspan="7" style="text-align:center;padding:30px;">
@@ -664,7 +1545,7 @@ function renderCreditCards() {
 
     const today = new Date();
 
-    container.innerHTML = visibleCards.map(([cardId, card]) => {
+    container.innerHTML = dedupedVisibleCards.map(([cardId, card]) => {
         // New format: show month-specific outstanding, or 0 if not entered yet
         // Old format (no balances obj): use global outstandingBalance
         const outstanding = card.balances
@@ -732,16 +1613,163 @@ function renderCreditCards() {
     }).join('');
 }
 
+function getInsuranceTypeLabel(type) {
+    if (type === 'health') return 'Health';
+    if (type === 'corporate') return 'Corporate';
+    return 'Term';
+}
+
+function getInsuranceStatusBadgeClass(status) {
+    const normalizedStatus = typeof status === 'string' ? status.trim().toLowerCase() : 'active';
+
+    if (normalizedStatus === 'active') return 'bg-success';
+    if (normalizedStatus === 'pending' || normalizedStatus === 'grace' || normalizedStatus === 'grace-period') {
+        return 'bg-warning text-dark';
+    }
+    if (normalizedStatus === 'expired' || normalizedStatus === 'inactive' || normalizedStatus === 'lapsed' || normalizedStatus === 'cancelled' || normalizedStatus === 'canceled') {
+        return 'bg-danger';
+    }
+
+    return 'bg-secondary';
+}
+
+function renderInsurance() {
+    const container = document.getElementById('insuranceTableBody');
+    if (!container) return;
+
+    const cards = financeData.creditCards;
+
+    if (!cards || Object.keys(cards).length === 0) {
+        container.innerHTML = `
+            <tr>
+                <td colspan="8" style="text-align:center;padding:30px;">
+                    <i class="bi bi-shield-check" style="font-size:2rem;display:block;margin-bottom:8px;opacity:0.4;"></i>
+                    <span style="color:var(--text-muted);">No insurance policies added yet</span>
+                </td>
+            </tr>`;
+        return;
+    }
+
+    // Insurance visibility is section-level only, but still month-aware.
+    const visiblePolicies = Object.entries(cards).filter(([cardId, card]) => {
+        if ((card.type || 'credit-card') !== 'insurance') {
+            return false;
+        }
+        const hasBalanceForMonth = card.balances && card.balances[currentMonth] !== undefined;
+        const createdMonth = card.createdMonth || (card.createdAt ? getMonthFromTimestamp(card.createdAt) : null);
+        const wasCreatedThisMonth = createdMonth === currentMonth;
+        return hasBalanceForMonth || wasCreatedThisMonth;
+    });
+
+    const dedupedVisiblePolicies = collapseMonthDuplicates(
+        visiblePolicies,
+        (card) => {
+            const policyKey = normalizeIdentityPart(card.policyNumber);
+            if (policyKey) return `policy:${policyKey}`;
+            return `${normalizeIdentityPart(card.name)}|${normalizeIdentityPart(card.insuranceCategory || 'term')}`;
+        },
+        (card) => getMonthAmount(card, currentMonth, 'outstandingBalance')
+    );
+
+    if (dedupedVisiblePolicies.length === 0) {
+        container.innerHTML = `
+            <tr>
+                <td colspan="8" style="text-align:center;padding:30px;">
+                    <i class="bi bi-shield-check" style="font-size:2rem;display:block;margin-bottom:8px;opacity:0.4;"></i>
+                    <span style="color:var(--text-muted);">No insurance entries for ${getMonthDisplay(currentMonth)}</span>
+                </td>
+            </tr>`;
+        return;
+    }
+
+    container.innerHTML = dedupedVisiblePolicies.map(([cardId, card]) => {
+        const amount = card.balances
+            ? (card.balances[currentMonth] || 0)
+            : (card.outstandingBalance || 0);
+        const insuranceType = getInsuranceTypeLabel(card.insuranceCategory || 'term');
+        const provider = escapeHtml(card.issuer || '-');
+        const validUpto = card.insuranceValidUpto || card.dueDate || '-';
+        const policyNumber = escapeHtml(card.policyNumber || '');
+        const coverageAmount = Number.parseFloat(card.coverageAmount);
+        const coverageDisplay = Number.isFinite(coverageAmount)
+            ? formatCurrency(coverageAmount)
+            : '-';
+        const coverageClass = Number.isFinite(coverageAmount)
+            ? 'insurance-coverage-amount amount-positive'
+            : 'insurance-coverage-amount';
+        const statusLabel = card.insuranceStatus || 'active';
+        const statusBadgeClass = getInsuranceStatusBadgeClass(statusLabel);
+
+        return `
+        <tr>
+            <td>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <span style="width:8px;height:8px;border-radius:50%;background:${card.color || '#ffb454'};display:inline-block;"></span>
+                    <div style="display:flex;flex-direction:column;gap:4px;">
+                        <strong>${escapeHtml(card.name)}</strong>
+                        ${policyNumber ? `<span style="font-size:0.8rem;color:var(--text-muted);">Policy ${policyNumber}</span>` : ''}
+                    </div>
+                </div>
+            </td>
+            <td><span class="badge bg-secondary text-uppercase">${insuranceType}</span></td>
+            <td>${provider}</td>
+            <td class="amount-cell amount-insurance">${formatCurrency(amount)}</td>
+            <td>
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                    <span class="${coverageClass}">${coverageDisplay}</span>
+                </div>
+            </td>
+            <td>
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                    <span>${validUpto}</span>
+                </div>
+            </td>
+            <td><span class="badge ${statusBadgeClass} text-uppercase">${escapeHtml(statusLabel)}</span></td>
+            <td>
+                <div class="table-actions">
+                    <button onclick="editFinanceCreditCard('${cardId}')" title="Edit"><i class="bi bi-pencil"></i></button>
+                    <button class="delete-row-btn" onclick="deleteFinanceCreditCard('${cardId}')" title="Delete"><i class="bi bi-trash"></i></button>
+                </div>
+            </td>
+        </tr>
+        `;
+    }).join('');
+}
+
 // ========================================
 // Charts
 // ========================================
 
 function renderCharts() {
     const currentSummary = computeFinancialSummary(financeData, currentMonth);
-    renderSpendingBreakdownChart();
-    renderNetWorthChart(currentSummary);
-    renderIncomeExpenseChart(currentSummary);
-    renderCategoryTrendChart(currentSummary);
+
+    if (isWidgetEnabled('analyticsInvestmentBreakdown')) {
+        renderSpendingBreakdownChart();
+    } else if (charts.spending) {
+        charts.spending.destroy();
+        delete charts.spending;
+    }
+
+    if (isWidgetEnabled('analyticsNetWorthTrend')) {
+        renderNetWorthChart(currentSummary);
+    } else if (charts.netWorth) {
+        charts.netWorth.destroy();
+        delete charts.netWorth;
+    }
+
+    if (isWidgetEnabled('analyticsIncomeExpense')) {
+        renderIncomeExpenseChart(currentSummary);
+    } else if (charts.incomeExpense) {
+        charts.incomeExpense.destroy();
+        delete charts.incomeExpense;
+    }
+
+    if (isWidgetEnabled('analyticsCategoryTrend')) {
+        renderCategoryTrendChart(currentSummary);
+    } else if (charts.categoryTrend) {
+        charts.categoryTrend.destroy();
+        delete charts.categoryTrend;
+    }
 }
 
 function buildChartSnapshots() {
@@ -1131,20 +2159,39 @@ function renderAll() {
     if (isRendering) return;
     isRendering = true;
     try {
+        applySectionPreferences();
         renderIncome();
-        renderFinancialSummary();
-        renderCategories();
-        renderBanks();
-        renderCreditCards();
-        // Defer chart rendering to next animation frame to avoid blocking UI
+        const shouldRenderSummary = isSectionEnabled('financialSummary') && hasVisibleWidgetsForSection('financialSummary');
+        const shouldRenderNetWorth = isSectionEnabled('netWorth') && hasVisibleWidgetsForSection('netWorth');
+        if (shouldRenderSummary || shouldRenderNetWorth) {
+            renderFinancialSummary();
+        } else {
+            const badge = document.getElementById('savingsRateValue');
+            if (badge) badge.style.display = 'none';
+        }
+        if (isSectionEnabled('investmentCategories')) renderCategories();
+        if (isSectionEnabled('bankAccounts')) renderBanks();
+        if (isSectionEnabled('expenses')) renderCreditCards();
+        if (isSectionEnabled('insurance')) renderInsurance();
+
+        // Defer chart rendering to next animation frame to avoid blocking UI.
         if (chartRenderRAF) cancelAnimationFrame(chartRenderRAF);
-        chartRenderRAF = requestAnimationFrame(() => {
-            renderCharts();
-            // Mark initial load as complete after first full render cycle
+        if (isSectionEnabled('analytics') && hasVisibleWidgetsForSection('analytics')) {
+            chartRenderRAF = requestAnimationFrame(() => {
+                renderCharts();
+                // Mark initial load as complete after first full render cycle
+                if (isInitialLoad) {
+                    isInitialLoad = false;
+                }
+            });
+        } else {
+            destroyCharts();
             if (isInitialLoad) {
                 isInitialLoad = false;
             }
-        });
+        }
+
+        applyAmountMasking();
     } finally {
         isRendering = false;
     }
@@ -1208,36 +2255,44 @@ window.openAddCategoryModal = function() {
     openModal('addCategoryModal');
 };
 
-window.submitAddCategory = async function() {
+window.submitAddCategory = async function(event) {
+    if (event?.preventDefault) {
+        event.preventDefault();
+    }
+
+    if (isAddCategorySubmitting) return;
+
     const name = document.getElementById('categoryNameInput').value.trim();
     if (!name) { showToast('Please enter a category name', 'warning'); return; }
 
     const selectedIcon = document.querySelector('#addCategoryModal .icon-option.selected');
     const selectedColor = document.querySelector('#addCategoryModal .color-option.selected');
+    isAddCategorySubmitting = true;
 
-    const result = await addCategory({
-        name,
-        icon: selectedIcon?.dataset.icon || 'bi-folder',
-        color: selectedColor?.dataset.color || '#7289ff',
-        createdMonth: currentMonth
-    });
+    try {
+        const result = await addCategory({
+            name,
+            icon: selectedIcon?.dataset.icon || 'bi-folder',
+            color: selectedColor?.dataset.color || '#7289ff',
+            createdMonth: currentMonth
+        });
 
-    if (result.success) {
-        showToast(`Category "${name}" added!`, 'success');
-        closeModal('addCategoryModal');
-    } else {
-        showToast('Failed to add category. ' + (result.error || ''), 'error');
+        if (result.success) {
+            showToast(`Category "${name}" added!`, 'success');
+            closeFinanceModal('addCategoryModal');
+        } else {
+            showToast('Failed to add category. ' + (result.error || ''), 'error');
+        }
+    } catch (error) {
+        showToast('Failed to add category. Please try again.', 'error');
+    } finally {
+        isAddCategorySubmitting = false;
     }
 };
 
 window.openAddCategoryItemModal = function(catId) {
     document.getElementById('categoryItemForm').reset();
     document.getElementById('categoryItemCategoryId').value = catId;
-    document.getElementById('categoryItemMonthSelect').innerHTML = `
-        <option value="${currentMonth}" selected>${getMonthDisplay(currentMonth)}</option>
-        <option value="${getPreviousMonth(currentMonth)}">${getMonthDisplay(getPreviousMonth(currentMonth))}</option>
-        <option value="${getPreviousMonth(getPreviousMonth(currentMonth))}">${getMonthDisplay(getPreviousMonth(getPreviousMonth(currentMonth)))}</option>
-    `;
     openModal('categoryItemModal');
     setTimeout(() => document.getElementById('categoryItemNameInput').focus(), 100);
 };
@@ -1246,7 +2301,7 @@ window.submitCategoryItemModal = async function() {
     const catId = document.getElementById('categoryItemCategoryId').value;
     const name = document.getElementById('categoryItemNameInput').value.trim();
     const amount = parseFloat(document.getElementById('categoryItemAmountInput').value);
-    const month = document.getElementById('categoryItemMonthSelect').value;
+    const month = currentMonth;
 
     if (!name || isNaN(amount)) {
         showToast('Enter item name and amount', 'warning');
@@ -1311,14 +2366,30 @@ window.submitEditCategory = async function() {
 
 window.deleteFinanceCategory = async function(catId) {
     const catName = financeData.categories[catId]?.name || 'this category';
+    const monthLabel = getMonthDisplay(currentMonth);
+    const linkedCategoryIds = getLinkedCategoryIds(catId);
     const confirmed = await showConfirmModal(
-        'Delete Category',
-        `Delete "${catName}" and all its items? This cannot be undone.`
+        'Delete Category For Month',
+        `Delete "${catName}" entries for ${monthLabel} only? Other months will be kept.`
     );
     if (!confirmed) return;
-    const result = await deleteCategory(catId);
-    if (result.success) showToast(`Category deleted`, 'success');
-    else showToast('Failed to delete. ' + (result.error || ''), 'error');
+
+    const results = await Promise.all(linkedCategoryIds.map((linkedCatId) => deleteCategoryForMonth(linkedCatId, currentMonth)));
+    const firstFailure = results.find((result) => !result.success);
+    if (firstFailure) {
+        showToast('Failed to delete. ' + (firstFailure.error || ''), 'error');
+        return;
+    }
+
+    const removedItemsCount = results.reduce((sum, result) => sum + (result.removedItemsCount || 0), 0);
+    const removedAny = results.some((result) => result.removedMonth || result.deletedWholeRecord);
+
+    if (removedAny) {
+        const itemInfo = removedItemsCount > 0 ? ` (${removedItemsCount} item${removedItemsCount === 1 ? '' : 's'} removed)` : '';
+        showToast(`Category removed for ${monthLabel}${itemInfo}`, 'success');
+    } else {
+        showToast(`No ${monthLabel} data found in this category`, 'warning');
+    }
 };
 
 // --- Category Items ---
@@ -1352,12 +2423,37 @@ window.addFinanceCategoryItem = async function(event, catId) {
 };
 
 window.editFinanceCategoryItem = async function(catId, itemId, name, amount) {
-    const newAmount = await showEditItemModal(`Update amount for "${name}":`, amount);
-    if (newAmount === null) return;
-    const parsed = parseFloat(newAmount);
-    if (isNaN(parsed)) { showToast('Invalid amount', 'warning'); return; }
-    updateCategoryItem(catId, itemId, { amount: parsed })
-        .then(r => r.success ? showToast('Updated!', 'success') : showToast('Failed', 'error'));
+    let decodedName = '';
+    try {
+        decodedName = typeof name === 'string' ? decodeURIComponent(name) : '';
+    } catch (error) {
+        decodedName = typeof name === 'string' ? name : '';
+    }
+
+    const itemName = decodedName || 'Unnamed Item';
+    const editedItem = await showEditItemModal(itemName, amount);
+    if (editedItem === null) return;
+
+    const updatedName = typeof editedItem.name === 'string' ? editedItem.name.trim() : '';
+    const parsedAmount = parseFloat(editedItem.amount);
+
+    if (!updatedName) {
+        showToast('Item name is required', 'warning');
+        return;
+    }
+    if (isNaN(parsedAmount)) {
+        showToast('Invalid amount', 'warning');
+        return;
+    }
+
+    updateCategoryItem(catId, itemId, { name: updatedName, amount: parsedAmount })
+        .then((result) => {
+            if (result.success) {
+                showToast('Item updated!', 'success');
+            } else {
+                showToast('Failed to update item. ' + (result.error || ''), 'error');
+            }
+        });
 };
 
 window.deleteFinanceCategoryItem = async function(catId, itemId) {
@@ -1419,11 +2515,29 @@ window.editFinanceBank = function(bankId) {
 };
 
 window.deleteFinanceBank = async function(bankId) {
-    const confirmed = await showConfirmModal('Delete Bank Account', 'Are you sure you want to delete this bank account?');
+    const monthLabel = getMonthDisplay(currentMonth);
+    const confirmed = await showConfirmModal(
+        'Delete Bank Value',
+        `Delete this bank value for ${monthLabel}? Other months will be kept.`
+    );
     if (!confirmed) return;
-    const result = await deleteBank(bankId);
-    if (result.success) showToast('Bank deleted', 'success');
-    else showToast('Failed', 'error');
+    const result = await deleteBankForMonth(bankId, currentMonth);
+    if (!result.success) {
+        showToast('Failed. ' + (result.error || ''), 'error');
+        return;
+    }
+
+    if (!result.removedMonth) {
+        showToast(`No bank value exists for ${monthLabel}.`, 'info');
+        return;
+    }
+
+    showToast(
+        result.deletedWholeRecord
+            ? `Bank account deleted (no values left after removing ${monthLabel}).`
+            : `Bank value deleted for ${monthLabel}.`,
+        'success'
+    );
 };
 
 // --- Credit Cards ---
@@ -1431,10 +2545,14 @@ window.setExpenseFormFields = function(type) {
     const creditFields = document.querySelectorAll('.credit-card-fields');
     const loanFields = document.querySelectorAll('.loan-fields');
     const generalFields = document.querySelectorAll('.general-fields');
+    const insuranceFields = document.querySelectorAll('.insurance-fields');
+    const nonInsuranceFields = document.querySelectorAll('.non-insurance-fields');
 
     creditFields.forEach(el => el.style.display = type === 'credit-card' ? '' : 'none');
     loanFields.forEach(el => el.style.display = type === 'loan' ? '' : 'none');
     generalFields.forEach(el => el.style.display = type === 'general-expense' ? '' : 'none');
+    insuranceFields.forEach(el => el.style.display = type === 'insurance' ? '' : 'none');
+    nonInsuranceFields.forEach(el => el.style.display = type === 'insurance' ? 'none' : '');
 };
 
 window.onExpenseTypeChange = function() {
@@ -1446,8 +2564,21 @@ window.openAddCreditCardModal = function() {
     document.getElementById('addCreditCardForm').reset();
     document.getElementById('editCardId').value = '';
     document.getElementById('expenseTypeSelect').value = 'credit-card';
+    document.getElementById('insurancePolicyType').value = 'term';
+    document.getElementById('insuranceStatusSelect').value = 'active';
     setExpenseFormFields('credit-card');
     document.getElementById('addCreditCardModalTitle').textContent = 'Add Expense';
+    openModal('addCreditCardModal');
+};
+
+window.openAddInsuranceModal = function() {
+    document.getElementById('addCreditCardForm').reset();
+    document.getElementById('editCardId').value = '';
+    document.getElementById('expenseTypeSelect').value = 'insurance';
+    document.getElementById('insurancePolicyType').value = 'term';
+    document.getElementById('insuranceStatusSelect').value = 'active';
+    setExpenseFormFields('insurance');
+    document.getElementById('addCreditCardModalTitle').textContent = 'Add Insurance';
     openModal('addCreditCardModal');
 };
 
@@ -1458,28 +2589,63 @@ window.submitAddCreditCard = async function() {
         ? document.getElementById('loanPaymentStatus').value
         : type === 'general-expense'
             ? document.getElementById('generalPaymentStatus').value
-            : document.getElementById('cardPaymentStatus').value;
+            : type === 'insurance'
+                ? 'unpaid'
+                : document.getElementById('cardPaymentStatus').value;
+        const insuranceCoverageAmount = type === 'insurance'
+            ? (parseFloat(document.getElementById('insuranceCoverageAmount').value) || 0)
+            : 0;
+    const insuranceProvider = type === 'insurance' ? document.getElementById('cardIssuerInsurance').value.trim() : '';
+    const insuranceType = type === 'insurance' ? document.getElementById('insurancePolicyType').value : '';
+    const insuranceTypeLabel = getInsuranceTypeLabel(insuranceType);
+    const generatedInsuranceName = insuranceProvider
+        ? `${insuranceTypeLabel} - ${insuranceProvider}`
+        : `${insuranceTypeLabel} Insurance`;
 
     const data = {
         type,
-        name: document.getElementById('cardName').value.trim(),
+        name: type === 'insurance'
+            ? generatedInsuranceName
+            : document.getElementById('cardName').value.trim(),
         issuer: type === 'loan'
             ? document.getElementById('cardIssuerLoan').value.trim()
             : type === 'general-expense'
                 ? document.getElementById('cardIssuerGeneral').value.trim()
+                : type === 'insurance'
+                    ? document.getElementById('cardIssuerInsurance').value.trim()
                 : document.getElementById('cardIssuer').value.trim(),
-        outstandingBalance: parseFloat(document.getElementById('cardOutstanding').value) || 0,
+        outstandingBalance: type === 'insurance'
+            ? (parseFloat(document.getElementById('insurancePremiumAmount').value) || 0)
+            : (parseFloat(document.getElementById('cardOutstanding').value) || 0),
         creditLimit: type === 'credit-card' ? parseFloat(document.getElementById('cardLimit').value) || 0 : 0,
         dueDate: type === 'loan'
             ? document.getElementById('loanDueDate').value
+            : type === 'insurance'
+                ? document.getElementById('insuranceValidUpto').value
             : document.getElementById('cardDueDate').value,
-        isPaid: paymentStatus === 'paid',
+        isPaid: type === 'insurance' ? false : paymentStatus === 'paid',
         interestRate: 0, // Removed for all
-        expenseDate: document.getElementById('cardExpenseDate')?.value || '',
-        notes: document.getElementById('cardNotes')?.value.trim() || ''
+        expenseDate: type === 'insurance'
+            ? (document.getElementById('insuranceStartDate')?.value || '')
+            : (document.getElementById('cardExpenseDate')?.value || ''),
+        notes: document.getElementById('cardNotes')?.value.trim() || '',
+        insuranceCategory: type === 'insurance' ? document.getElementById('insurancePolicyType').value : '',
+        policyNumber: type === 'insurance' ? document.getElementById('insurancePolicyNumber').value.trim() : '',
+        insuranceStartDate: type === 'insurance' ? (document.getElementById('insuranceStartDate').value || '') : '',
+        insuranceValidUpto: type === 'insurance' ? (document.getElementById('insuranceValidUpto').value || '') : '',
+        coverageAmount: insuranceCoverageAmount,
+        insuranceStatus: type === 'insurance' ? document.getElementById('insuranceStatusSelect').value : ''
     };
 
-    if (!data.name) { showToast('Enter expense name', 'warning'); return; }
+    if (type === 'insurance') {
+        if (!insuranceProvider) {
+            showToast('Enter insurance provider', 'warning');
+            return;
+        }
+    } else if (!data.name) {
+        showToast('Enter expense name', 'warning');
+        return;
+    }
 
     let result;
     if (editId) {
@@ -1506,11 +2672,17 @@ window.editFinanceCreditCard = function(cardId) {
     document.getElementById('editCardId').value = cardId;
     document.getElementById('expenseTypeSelect').value = type;
     setExpenseFormFields(type);
-    document.getElementById('cardName').value = card.name || '';
+    if (type !== 'insurance') {
+        document.getElementById('cardName').value = card.name || '';
+    }
     document.getElementById('cardOutstanding').value = outstanding || '';
+    document.getElementById('insurancePremiumAmount').value = outstanding || '';
     document.getElementById('cardLimit').value = getCreditCardLimit(card, currentMonth) || '';
     document.getElementById('cardDueDate').value = card.dueDate || '';
     document.getElementById('cardExpenseDate').value = card.expenseDate || '';
+    document.getElementById('insuranceStartDate').value = card.insuranceStartDate || card.expenseDate || '';
+    document.getElementById('insuranceValidUpto').value = card.insuranceValidUpto || card.dueDate || '';
+    document.getElementById('insuranceCoverageAmount').value = card.coverageAmount ?? '';
     document.getElementById('cardNotes').value = card.notes || '';
     if (type === 'loan') {
         document.getElementById('loanPaymentStatus').value = isCardPaidForMonth(card, currentMonth) ? 'paid' : 'unpaid';
@@ -1519,27 +2691,55 @@ window.editFinanceCreditCard = function(cardId) {
     } else if (type === 'general-expense') {
         document.getElementById('generalPaymentStatus').value = isCardPaidForMonth(card, currentMonth) ? 'paid' : 'unpaid';
         document.getElementById('cardIssuerGeneral').value = card.issuer || '';
+    } else if (type === 'insurance') {
+        document.getElementById('cardIssuerInsurance').value = card.issuer || '';
+        document.getElementById('insurancePolicyType').value = card.insuranceCategory || 'term';
+        document.getElementById('insurancePolicyNumber').value = card.policyNumber || '';
+        document.getElementById('insuranceStatusSelect').value = card.insuranceStatus || 'active';
     } else {
         document.getElementById('cardPaymentStatus').value = isCardPaidForMonth(card, currentMonth) ? 'paid' : 'unpaid';
         document.getElementById('cardIssuer').value = card.issuer || '';
     }
-    document.getElementById('addCreditCardModalTitle').textContent = 'Edit Expense';
+    document.getElementById('addCreditCardModalTitle').textContent = type === 'insurance' ? 'Edit Insurance' : 'Edit Expense';
     openModal('addCreditCardModal');
 };
 
 window.deleteFinanceCreditCard = async function(cardId) {
-    const confirmed = await showConfirmModal('Delete Expense', 'Are you sure you want to delete this expense?');
+    const monthLabel = getMonthDisplay(currentMonth);
+    const confirmed = await showConfirmModal(
+        'Delete Expense Value',
+        `Delete this expense value for ${monthLabel}? Other months will be kept.`
+    );
     if (!confirmed) return;
-    const result = await deleteCreditCard(cardId);
-    if (result.success) showToast('Card deleted', 'success');
-    else showToast('Failed', 'error');
+    const result = await deleteCreditCardForMonth(cardId, currentMonth);
+    if (!result.success) {
+        showToast('Failed. ' + (result.error || ''), 'error');
+        return;
+    }
+
+    if (!result.removedMonth) {
+        showToast(`No expense value exists for ${monthLabel}.`, 'info');
+        return;
+    }
+
+    showToast(
+        result.deletedWholeRecord
+            ? `Expense deleted (no values left after removing ${monthLabel}).`
+            : `Expense value deleted for ${monthLabel}.`,
+        'success'
+    );
 };
 
 // --- Copy Previous Month ---
 window.copyFromPreviousMonth = async function() {
     const confirmed = await showConfirmModal(
         'Copy Previous Month',
-        `This will copy bank balances, outstanding expenses, and income from the previous month to ${getMonthDisplay(currentMonth)}. Existing entries for this month will NOT be overwritten. Continue?`
+        `This will copy major finance data from the previous month to ${getMonthDisplay(currentMonth)}. Existing entries for this month will NOT be overwritten. Continue?`,
+        {
+            confirmText: 'Confirm',
+            confirmVariant: 'primary',
+            confirmIcon: 'bi-check-lg'
+        }
     );
     if (!confirmed) return;
 
@@ -1550,6 +2750,9 @@ window.copyFromPreviousMonth = async function() {
         if (result.taxesCopied) {
             msg += `, plus ${result.taxesCopied} tax entr${result.taxesCopied === 1 ? 'y' : 'ies'}`;
         }
+        if (result.epfoCopied) {
+            msg += `, plus ${result.epfoCopied} EPFO entr${result.epfoCopied === 1 ? 'y' : 'ies'}`;
+        }
         if (result.categoryItemsCopied) {
             msg += `, plus ${result.categoryItemsCopied} investment item(s)`;
         }
@@ -1557,6 +2760,97 @@ window.copyFromPreviousMonth = async function() {
     } else {
         showToast('Failed to copy. ' + (result.error || ''), 'error');
     }
+};
+
+window.copyFinanceDataFromSettings = async function() {
+    if (!getCurrentUser()) {
+        showToast('Please sign in to copy data.', 'warning');
+        return;
+    }
+
+    const sourceMonth = document.getElementById('copySourceMonth')?.value;
+    const targetMonth = document.getElementById('copyTargetMonth')?.value;
+
+    if (!sourceMonth || !targetMonth) {
+        showToast('Please choose source and target month.', 'warning');
+        return;
+    }
+
+    if (sourceMonth === targetMonth) {
+        showToast('Source and target month cannot be the same.', 'warning');
+        return;
+    }
+
+    const selectedCopyMode = document.querySelector('input[name="copyModeSelection"]:checked')?.value;
+    if (!selectedCopyMode) {
+        showToast('Please select either Copy Only or Copy and Replace before continuing.', 'warning');
+        return;
+    }
+
+    const copyAndReplaceEnabled = selectedCopyMode === 'replace';
+    const selectedCopyModeLabel = copyAndReplaceEnabled ? 'Copy and Replace' : 'Copy Only';
+
+    const options = {
+        includeCategories: Boolean(document.getElementById('copySectionCategories')?.checked),
+        includeBanks: Boolean(document.getElementById('copySectionBanks')?.checked),
+        includeExpenses: Boolean(document.getElementById('copySectionExpenses')?.checked),
+        includeInsurance: Boolean(document.getElementById('copySectionInsurance')?.checked),
+        includeIncome: Boolean(document.getElementById('copySectionIncome')?.checked),
+        includeTaxes: Boolean(document.getElementById('copySectionTaxes')?.checked),
+        includeEPFO: Boolean(document.getElementById('copySectionEPFO')?.checked),
+        overwriteExisting: copyAndReplaceEnabled,
+        replaceCategories: copyAndReplaceEnabled && Boolean(document.getElementById('copySectionCategories')?.checked),
+        replaceInsurance: copyAndReplaceEnabled && Boolean(document.getElementById('copySectionInsurance')?.checked)
+    };
+
+    const hasSelectedSection = options.includeCategories
+        || options.includeBanks
+        || options.includeExpenses
+        || options.includeInsurance
+        || options.includeIncome
+        || options.includeTaxes
+        || options.includeEPFO;
+    if (!hasSelectedSection) {
+        showToast('Select at least one section to copy.', 'warning');
+        return;
+    }
+
+    const confirmed = await showConfirmModal(
+        'Copy Selected Data',
+        `Copy selected data from ${getMonthDisplay(sourceMonth)} to ${getMonthDisplay(targetMonth)} in ${selectedCopyModeLabel} mode?`,
+        {
+            confirmText: 'Confirm',
+            confirmVariant: 'primary',
+            confirmIcon: 'bi-check-lg'
+        }
+    );
+    if (!confirmed) return;
+
+    showToast('Copying selected data...', 'info');
+    const result = await copyFinanceDataBetweenMonths(sourceMonth, targetMonth, options);
+    if (!result.success) {
+        showToast('Failed to copy selected data. ' + (result.error || ''), 'error');
+        return;
+    }
+
+    const summaryParts = [];
+    if (options.includeCategories) {
+        const found = result.categorySourceItemsFound || 0;
+        const copied = result.categoryItemsCopied || 0;
+        const skipped = result.categoryItemsSkipped || 0;
+        const failed = result.categoryItemsFailed || 0;
+        const invalid = result.categorySourceItemsInvalid || 0;
+        summaryParts.push(`${copied} investment item(s) copied (source: ${found}, skipped: ${skipped}, failed: ${failed}, invalid: ${invalid})`);
+    }
+    if (options.includeBanks) summaryParts.push(`${result.banksCopied || 0} bank account value(s)`);
+    if (options.includeExpenses) summaryParts.push(`${result.expensesCopied || 0} expense entr${(result.expensesCopied || 0) === 1 ? 'y' : 'ies'}`);
+    if (options.includeInsurance) summaryParts.push(`${result.insuranceCopied || 0} insurance entr${(result.insuranceCopied || 0) === 1 ? 'y' : 'ies'}`);
+    if (options.includeIncome) summaryParts.push(`${result.incomeCopied || 0} income entr${(result.incomeCopied || 0) === 1 ? 'y' : 'ies'}`);
+    if (options.includeTaxes) summaryParts.push(`${result.taxesCopied || 0} tax entr${(result.taxesCopied || 0) === 1 ? 'y' : 'ies'}`);
+    if (options.includeEPFO) summaryParts.push(`${result.epfoCopied || 0} EPFO entr${(result.epfoCopied || 0) === 1 ? 'y' : 'ies'}`);
+
+    const summaryText = summaryParts.length > 0 ? summaryParts.join(', ') : 'No data copied';
+    showToast(`Copy completed: ${summaryText}`, 'success');
 };
 
 function getMonthsBetween(fromMonth, toMonth) {
@@ -1591,9 +2885,13 @@ function downloadFile(content, filename, mimeType) {
     setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 }
 
-function getExportRange() {
-    const fromMonth = document.getElementById('exportFromMonth')?.value;
-    const toMonth = document.getElementById('exportToMonth')?.value;
+function getExportRange(fromMonthInput, toMonthInput) {
+    const fromMonth = fromMonthInput !== undefined
+        ? fromMonthInput
+        : document.getElementById('exportFromMonth')?.value;
+    const toMonth = toMonthInput !== undefined
+        ? toMonthInput
+        : document.getElementById('exportToMonth')?.value;
     if (!fromMonth || !toMonth) return null;
     if (fromMonth > toMonth) return null;
     return {
@@ -1603,35 +2901,125 @@ function getExportRange() {
     };
 }
 
-async function loadScript(src) {
-    if (document.querySelector(`script[src="${src}"]`)) return;
-    await new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = src;
-        script.onload = resolve;
-        script.onerror = reject;
-        document.head.appendChild(script);
+const SCRIPT_LOAD_TIMEOUT_MS = 12000;
+const scriptLoadCache = new Map();
+
+async function loadScript(src, timeoutMs = SCRIPT_LOAD_TIMEOUT_MS) {
+    if (scriptLoadCache.has(src)) {
+        return scriptLoadCache.get(src);
+    }
+
+    const existing = document.querySelector(`script[src="${src}"]`);
+    if (existing?.dataset.loaded === 'true') {
+        return;
+    }
+
+    const promise = new Promise((resolve, reject) => {
+        const script = existing || document.createElement('script');
+        let done = false;
+        let timerId = null;
+
+        const cleanup = () => {
+            script.removeEventListener('load', onLoad);
+            script.removeEventListener('error', onError);
+            if (timerId) {
+                clearTimeout(timerId);
+            }
+        };
+
+        const onLoad = () => {
+            if (done) return;
+            done = true;
+            script.dataset.loaded = 'true';
+            script.dataset.failed = 'false';
+            cleanup();
+            resolve();
+        };
+
+        const onError = () => {
+            if (done) return;
+            done = true;
+            script.dataset.failed = 'true';
+            cleanup();
+            reject(new Error(`Failed to load script: ${src}`));
+        };
+
+        script.addEventListener('load', onLoad);
+        script.addEventListener('error', onError);
+
+        timerId = setTimeout(() => {
+            if (done) return;
+            done = true;
+            script.dataset.failed = 'true';
+            cleanup();
+            reject(new Error(`Timeout loading script: ${src}`));
+        }, timeoutMs);
+
+        if (!existing) {
+            script.src = src;
+            script.async = true;
+            document.head.appendChild(script);
+        }
+    }).finally(() => {
+        scriptLoadCache.delete(src);
     });
+
+    scriptLoadCache.set(src, promise);
+    return promise;
+}
+
+async function loadScriptWithFallback(urls, globalCheck) {
+    let lastError = null;
+
+    for (const url of urls) {
+        if (typeof globalCheck === 'function' && globalCheck()) {
+            return;
+        }
+
+        try {
+            await loadScript(url);
+            if (typeof globalCheck !== 'function' || globalCheck()) {
+                return;
+            }
+        } catch (error) {
+            lastError = error;
+        }
+    }
+
+    throw lastError || new Error('Unable to load required export libraries.');
 }
 
 async function ensureSheetJS() {
     if (!window.XLSX) {
-        await loadScript('https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js');
+        await loadScriptWithFallback([
+            'https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js',
+            'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+            'https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js'
+        ], () => Boolean(window.XLSX));
+    }
+    if (!window.XLSX) {
+        throw new Error('SheetJS could not be loaded. Please check internet access or choose CSV/JSON format.');
     }
     return window.XLSX;
 }
 
 async function ensureJsPDF() {
     if (!window.jsPDF && !window.jspdf) {
-        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+        await loadScriptWithFallback([
+            'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+            'https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js'
+        ], () => Boolean(window.jsPDF || window.jspdf));
     }
     const jsPDFCtor = window.jsPDF || window.jspdf?.jsPDF || window.jspdf;
     if (!jsPDFCtor) {
-        throw new Error('Failed to load jsPDF');
+        throw new Error('jsPDF could not be loaded. Please check internet access or choose CSV/JSON format.');
     }
 
     if (!jsPDFCtor.autoTable && !window.jspdf?.autoTable) {
-        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js');
+        await loadScriptWithFallback([
+            'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js',
+            'https://unpkg.com/jspdf-autotable@3.5.29/dist/jspdf.plugin.autotable.min.js'
+        ], () => Boolean(jsPDFCtor.autoTable || window.jspdf?.autoTable));
     }
 
     return window.jsPDF || window.jspdf?.jsPDF || window.jspdf;
@@ -1996,14 +3384,31 @@ function buildCsvSection(title, rows) {
     return [title, ...rows.map(row => row.map(sanitizeCsvCell).join(','))].join('\r\n');
 }
 
-window.exportFinanceData = async function() {
-    const range = getExportRange();
+window.exportFinanceData = async function(options = {}) {
+    let fromMonth = document.getElementById('exportFromMonth')?.value;
+    let toMonth = document.getElementById('exportToMonth')?.value;
+    let format = document.getElementById('exportFormatSelect')?.value || 'xlsx';
+    let closeMainExportModal = true;
+
+    if (options && typeof options === 'object') {
+        if (Object.prototype.hasOwnProperty.call(options, 'fromMonth')) {
+            fromMonth = options.fromMonth;
+        }
+        if (Object.prototype.hasOwnProperty.call(options, 'toMonth')) {
+            toMonth = options.toMonth;
+        }
+        if (Object.prototype.hasOwnProperty.call(options, 'format')) {
+            format = options.format || format;
+        }
+        closeMainExportModal = options.closeModal !== false;
+    }
+
+    const range = getExportRange(fromMonth, toMonth);
     if (!range) {
         showToast('Please select a valid export range.', 'error');
         return;
     }
 
-    const format = document.getElementById('exportFormatSelect')?.value || 'xlsx';
     clearToasts();
     showToast('Preparing export...', 'info');
 
@@ -2011,7 +3416,17 @@ window.exportFinanceData = async function() {
         const exportData = buildExportData(range.months);
         const filenameBase = `Finance_Export_${range.fromMonth}_to_${range.toMonth}`;
 
-        if (format === 'csv') {
+        if (format === 'json') {
+            const rawResult = await getFinanceRawData();
+            if (!rawResult.success) {
+                throw new Error(rawResult.error || 'Unable to fetch finance data');
+            }
+            downloadFile(
+                JSON.stringify(rawResult.data || {}, null, 2),
+                `${filenameBase}.json`,
+                'application/json;charset=utf-8;'
+            );
+        } else if (format === 'csv') {
             const sections = [
                 buildCsvSection('Overview', exportData.overviewRows),
                 buildCsvSection('Aggregate Summary', exportData.aggregateSummary),
@@ -2128,12 +3543,28 @@ window.exportFinanceData = async function() {
 
         clearToasts();
         showToast('Export completed successfully!', 'success');
-        closeExportModal();
+        if (closeMainExportModal) {
+            closeExportModal();
+        }
     } catch (error) {
         clearToasts();
-        showToast('Export failed. Please try again.', 'error');
+        const message = error?.message || 'Export failed. Please try again.';
+        showToast(message, 'error');
     }
 }
+
+window.exportFinanceDataFromSettings = async function() {
+    const fromMonth = document.getElementById('settingsExportFromMonth')?.value;
+    const toMonth = document.getElementById('settingsExportToMonth')?.value;
+    const format = document.getElementById('settingsExportFormatSelect')?.value || 'xlsx';
+
+    await window.exportFinanceData({
+        fromMonth,
+        toMonth,
+        format,
+        closeModal: false
+    });
+};
 
 // --- Modal close handlers ---
 window.closeFinanceModal = function(modalId) {
@@ -2146,21 +3577,54 @@ window.closeFinanceModal = function(modalId) {
 
 /**
  * Show a custom confirmation modal (replaces browser confirm())
+ * @param {string} title
+ * @param {string} message
+ * @param {{confirmText?: string, confirmVariant?: 'danger'|'primary'|'success', confirmIcon?: string}=} options
  * @returns {Promise<boolean>} true if confirmed, false if cancelled
  */
-function showConfirmModal(title, message) {
+function showConfirmModal(title, message, options = {}) {
     return new Promise((resolve) => {
+        const {
+            confirmText = 'Delete',
+            confirmVariant = 'danger',
+            confirmIcon = confirmVariant === 'danger' ? 'bi-trash' : 'bi-check-lg'
+        } = options;
+
         document.getElementById('confirmModalTitle').textContent = title;
         document.getElementById('confirmModalMessage').textContent = message;
         openModal('confirmModal');
 
+        const modal = document.getElementById('confirmModal');
         const okBtn = document.getElementById('confirmModalOk');
         const cancelBtn = document.getElementById('confirmModalCancel');
+
+        const confirmVariantClass = confirmVariant === 'primary'
+            ? 'btn-finance-primary'
+            : confirmVariant === 'success'
+                ? 'btn-finance-success'
+                : 'btn-finance-danger';
+
+        okBtn.className = `btn-finance ${confirmVariantClass}`;
+        okBtn.innerHTML = confirmIcon
+            ? `<i class="bi ${confirmIcon}"></i> ${confirmText}`
+            : confirmText;
 
         function cleanup() {
             okBtn.removeEventListener('click', onOk);
             cancelBtn.removeEventListener('click', onCancel);
+            modal.removeEventListener('keydown', onKeydown);
             closeModal('confirmModal');
+        }
+
+        function onKeydown(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                onOk();
+            }
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                onCancel();
+            }
         }
 
         function onOk() {
@@ -2175,34 +3639,44 @@ function showConfirmModal(title, message) {
 
         okBtn.addEventListener('click', onOk);
         cancelBtn.addEventListener('click', onCancel);
+        modal.addEventListener('keydown', onKeydown);
+        setTimeout(() => okBtn.focus(), 0);
     });
 }
 
 /**
  * Show a custom edit-item modal (replaces browser prompt())
- * @returns {Promise<string|null>} entered value or null if cancelled
+ * @returns {Promise<{name: string, amount: string}|null>} edited payload or null if cancelled
  */
-function showEditItemModal(label, currentValue) {
+function showEditItemModal(itemName, currentValue) {
     return new Promise((resolve) => {
-        document.getElementById('editItemLabel').textContent = label;
-        const input = document.getElementById('editItemAmountInput');
-        input.value = currentValue;
+        const itemNameInput = document.getElementById('editItemNameInput');
+        const amountInput = document.getElementById('editItemAmountInput');
+        if (itemNameInput) {
+            itemNameInput.value = itemName || 'Unnamed Item';
+        }
+        amountInput.value = currentValue;
         openModal('editItemModal');
-        setTimeout(() => input.focus(), 100);
+        setTimeout(() => amountInput.focus(), 100);
 
         const saveBtn = document.getElementById('editItemModalSave');
-        const overlay = document.getElementById('editItemModal');
 
         function cleanup() {
             saveBtn.removeEventListener('click', onSave);
-            input.removeEventListener('keydown', onKeydown);
+            amountInput.removeEventListener('keydown', onKeydown);
+            if (itemNameInput) {
+                itemNameInput.removeEventListener('keydown', onKeydown);
+            }
             closeModal('editItemModal');
         }
 
         function onSave() {
-            const val = input.value;
+            const payload = {
+                name: itemNameInput ? itemNameInput.value : '',
+                amount: amountInput.value
+            };
             cleanup();
-            resolve(val);
+            resolve(payload);
         }
 
         function onKeydown(e) {
@@ -2211,7 +3685,10 @@ function showEditItemModal(label, currentValue) {
         }
 
         saveBtn.addEventListener('click', onSave);
-        input.addEventListener('keydown', onKeydown);
+        amountInput.addEventListener('keydown', onKeydown);
+        if (itemNameInput) {
+            itemNameInput.addEventListener('keydown', onKeydown);
+        }
     });
 }
 
@@ -2254,6 +3731,13 @@ function setupSelectors() {
         formatSelect.value = 'xlsx';
     }
 
+    const addCategoryForm = document.getElementById('addCategoryForm');
+    if (addCategoryForm) {
+        addCategoryForm.addEventListener('submit', (event) => {
+            window.submitAddCategory(event);
+        });
+    }
+
     // Modal close on overlay click
     document.querySelectorAll('.finance-modal-overlay').forEach(overlay => {
         overlay.addEventListener('click', (e) => {
@@ -2286,11 +3770,18 @@ function setupAuth() {
             // Reset state for new user session
             isInitialLoad = true;
             lastRenderedDataJSON = '';
+            financeViewPreferences = createDefaultSectionPreferences();
+            applySectionPreferences();
+            loadSectionPreferences().catch(() => {
+                financeViewPreferences = createDefaultSectionPreferences();
+                applySectionPreferences();
+            });
 
             // Setup finance data listener
             if (unsubscribeFinance) unsubscribeFinance();
             unsubscribeFinance = listenToFinanceData((data) => {
                 financeData = data;
+                renderRecordPreferenceOptions();
                 debouncedRenderAll();
             });
 
@@ -2305,6 +3796,12 @@ function setupAuth() {
             // Reset state on logout
             isInitialLoad = true;
             lastRenderedDataJSON = '';
+            financeViewPreferences = createDefaultSectionPreferences();
+            applySectionPreferences();
+            renderRecordPreferenceOptions();
+            const sectionSettingsModal = document.getElementById('sectionSettingsModal');
+            if (sectionSettingsModal) sectionSettingsModal.classList.remove('active');
+            destroyCharts();
         }
     });
 
@@ -2484,5 +3981,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initMonthNavigator();
     initIncomeSection();
     setupSelectors();
+    initSectionPreferences();
+    initializeAmountMasking();
+    applySectionPreferences();
     setupAuth();
 });

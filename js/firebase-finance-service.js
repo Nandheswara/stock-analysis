@@ -39,6 +39,54 @@ const CACHE_KEYS = {
     EPFO: 'financeEPFO'
 };
 
+const FINANCE_VIEW_SECTION_KEYS = Object.freeze([
+    'financialSummary',
+    'netWorth',
+    'investmentCategories',
+    'bankAccounts',
+    'expenses',
+    'insurance',
+    'analytics'
+]);
+
+const FINANCE_VIEW_WIDGET_KEYS = Object.freeze([
+    'summaryIncome',
+    'summaryExpenditure',
+    'summaryInvested',
+    'summaryBankBalance',
+    'summaryTax',
+    'netWorthAssets',
+    'netWorthLiabilities',
+    'netWorthTotal',
+    'netWorthEPFO',
+    'analyticsInvestmentBreakdown',
+    'analyticsNetWorthTrend',
+    'analyticsIncomeExpense',
+    'analyticsCategoryTrend'
+]);
+
+const FINANCE_VIEW_ITEM_KEYS = Object.freeze([
+    'categories',
+    'banks',
+    'expenses',
+    'insurance'
+]);
+
+const DEFAULT_FINANCE_VIEW_PREFERENCES = Object.freeze({
+    sections: Object.freeze(FINANCE_VIEW_SECTION_KEYS.reduce((acc, key) => {
+        acc[key] = true;
+        return acc;
+    }, {})),
+    widgets: Object.freeze(FINANCE_VIEW_WIDGET_KEYS.reduce((acc, key) => {
+        acc[key] = true;
+        return acc;
+    }, {})),
+    items: Object.freeze(FINANCE_VIEW_ITEM_KEYS.reduce((acc, key) => {
+        acc[key] = Object.freeze({});
+        return acc;
+    }, {}))
+});
+
 const CACHE_DURATION = 60 * 60 * 1000; // 1 hour
 
 let listeners = {};
@@ -61,6 +109,65 @@ function getFinanceRef(path = '') {
     const userId = getEffectiveUserId();
     if (!userId) return null;
     return ref(database, `users/${userId}/finance${path ? '/' + path : ''}`);
+}
+
+function cloneDefaultFinanceViewPreferences() {
+    const items = FINANCE_VIEW_ITEM_KEYS.reduce((acc, key) => {
+        acc[key] = {};
+        return acc;
+    }, {});
+
+    return {
+        sections: { ...DEFAULT_FINANCE_VIEW_PREFERENCES.sections },
+        widgets: { ...DEFAULT_FINANCE_VIEW_PREFERENCES.widgets },
+        items
+    };
+}
+
+function normalizePreferenceMap(mapData) {
+    if (!mapData || typeof mapData !== 'object') return {};
+
+    return Object.entries(mapData).reduce((acc, [key, value]) => {
+        if (typeof key === 'string' && key) {
+            acc[key] = Boolean(value);
+        }
+        return acc;
+    }, {});
+}
+
+function normalizeFinanceViewPreferences(preferences) {
+    const normalized = cloneDefaultFinanceViewPreferences();
+    if (!preferences || typeof preferences !== 'object') return normalized;
+
+    const rawSections = preferences.sections && typeof preferences.sections === 'object'
+        ? preferences.sections
+        : {};
+
+    FINANCE_VIEW_SECTION_KEYS.forEach((key) => {
+        if (rawSections[key] !== undefined) {
+            normalized.sections[key] = Boolean(rawSections[key]);
+        }
+    });
+
+    const rawWidgets = preferences.widgets && typeof preferences.widgets === 'object'
+        ? preferences.widgets
+        : {};
+
+    FINANCE_VIEW_WIDGET_KEYS.forEach((key) => {
+        if (rawWidgets[key] !== undefined) {
+            normalized.widgets[key] = Boolean(rawWidgets[key]);
+        }
+    });
+
+    const rawItems = preferences.items && typeof preferences.items === 'object'
+        ? preferences.items
+        : {};
+
+    FINANCE_VIEW_ITEM_KEYS.forEach((itemKey) => {
+        normalized.items[itemKey] = normalizePreferenceMap(rawItems[itemKey]);
+    });
+
+    return normalized;
 }
 
 // ========================================
@@ -89,9 +196,50 @@ function loadFromCache(key, userId) {
 
 function inferMonthFromDate(date) {
     if (!date || typeof date !== 'string') return null;
+
+    const canonicalMatch = date.trim().match(/^(\d{4})-(\d{1,2})(?:-\d{1,2})?/);
+    if (canonicalMatch) {
+        const [, yearStr, monthStr] = canonicalMatch;
+        const monthNumber = Number(monthStr);
+        if (!Number.isNaN(monthNumber) && monthNumber >= 1 && monthNumber <= 12) {
+            return `${yearStr}-${String(monthNumber).padStart(2, '0')}`;
+        }
+    }
+
     const parsed = new Date(date);
     if (Number.isNaN(parsed.getTime())) return null;
     return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function normalizeMonthKey(month) {
+    if (!month || typeof month !== 'string') return null;
+    const match = month.trim().match(/^(\d{4})-(\d{1,2})$/);
+    if (!match) return null;
+
+    const [, yearStr, monthStr] = match;
+    const monthNumber = Number(monthStr);
+    if (Number.isNaN(monthNumber) || monthNumber < 1 || monthNumber > 12) return null;
+
+    return `${yearStr}-${String(monthNumber).padStart(2, '0')}`;
+}
+
+function toNumericAmount(value) {
+    if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+    if (typeof value === 'string') {
+        const cleaned = value.replace(/[^\d.-]/g, '');
+        if (!cleaned) return null;
+        const parsed = Number(cleaned);
+        return Number.isFinite(parsed) ? parsed : null;
+    }
+    return null;
+}
+
+function isCategoryItemLike(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+    return Object.prototype.hasOwnProperty.call(value, 'name')
+        || Object.prototype.hasOwnProperty.call(value, 'amount')
+        || Object.prototype.hasOwnProperty.call(value, 'month')
+        || Object.prototype.hasOwnProperty.call(value, 'date');
 }
 
 function isCardPaidForMonth(card, month) {
@@ -112,7 +260,7 @@ function normalizeCategoryItem(item) {
 
     const normalizedItem = { ...item };
     const date = typeof normalizedItem.date === 'string' ? normalizedItem.date : null;
-    const month = typeof normalizedItem.month === 'string' ? normalizedItem.month : null;
+    const month = normalizeMonthKey(normalizedItem.month) || (typeof normalizedItem.month === 'string' ? normalizedItem.month : null);
     const inferredMonth = inferMonthFromDate(date);
 
     if (month) {
@@ -126,47 +274,182 @@ function normalizeCategoryItem(item) {
         normalizedItem.month = inferredMonth;
     }
 
+    const numericAmount = toNumericAmount(normalizedItem.amount);
+    if (numericAmount !== null) {
+        normalizedItem.amount = numericAmount;
+    }
+
+    if (typeof normalizedItem.name !== 'string') {
+        normalizedItem.name = normalizedItem.name === undefined || normalizedItem.name === null
+            ? ''
+            : String(normalizedItem.name);
+    }
+
+    if (typeof normalizedItem.notes !== 'string') {
+        normalizedItem.notes = normalizedItem.notes === undefined || normalizedItem.notes === null
+            ? ''
+            : String(normalizedItem.notes);
+    }
+
     return normalizedItem;
+}
+
+function getCategoryItemMonth(item) {
+    if (!item || typeof item !== 'object') return null;
+    if (typeof item.month === 'string' && item.month) {
+        return normalizeMonthKey(item.month) || item.month;
+    }
+    return inferMonthFromDate(item.date);
+}
+
+function getCategoryIntroducedMonth(category) {
+    if (!category || typeof category !== 'object') return null;
+    const fromCreatedMonth = normalizeMonthKey(category.createdMonth);
+    if (fromCreatedMonth) return fromCreatedMonth;
+    if (category.createdAt) return normalizeMonthKey(getMonthFromTimestamp(category.createdAt));
+    return null;
+}
+
+function getCategoryCreatedMetric(category) {
+    if (!category || typeof category !== 'object') return 0;
+    if (category.createdAt) return Number(category.createdAt) || 0;
+    const introducedMonth = getCategoryIntroducedMonth(category);
+    if (!introducedMonth) return 0;
+    return Number(String(introducedMonth).replace('-', '')) || 0;
+}
+
+function getCategoryDisplayKey(category) {
+    if (!category || typeof category !== 'object') return '';
+    const normalizedName = (category.name || '').trim().toLowerCase();
+    const icon = category.icon || '';
+    const color = category.color || '';
+    return `${normalizedName}|${icon}|${color}`;
+}
+
+function selectRepresentativeCategory(groupEntries, monthKey) {
+    if (!Array.isArray(groupEntries) || groupEntries.length === 0) return null;
+    if (!monthKey) return groupEntries[0];
+
+    return groupEntries.reduce((best, current) => {
+        if (!best) return current;
+
+        const bestMonthItemsCount = best.itemEntries.filter(({ month }) => (normalizeMonthKey(month) || month) === monthKey).length;
+        const currentMonthItemsCount = current.itemEntries.filter(({ month }) => (normalizeMonthKey(month) || month) === monthKey).length;
+        if (currentMonthItemsCount > bestMonthItemsCount) return current;
+        if (currentMonthItemsCount < bestMonthItemsCount) return best;
+
+        const bestIntroducedMonth = getCategoryIntroducedMonth(best.cat);
+        const currentIntroducedMonth = getCategoryIntroducedMonth(current.cat);
+
+        const bestIntroducedThisMonth = bestIntroducedMonth === monthKey;
+        const currentIntroducedThisMonth = currentIntroducedMonth === monthKey;
+        if (currentIntroducedThisMonth && !bestIntroducedThisMonth) return current;
+        if (bestIntroducedThisMonth && !currentIntroducedThisMonth) return best;
+
+        const bestCreated = getCategoryCreatedMetric(best.cat);
+        const currentCreated = getCategoryCreatedMetric(current.cat);
+        return currentCreated > bestCreated ? current : best;
+    }, null);
 }
 
 function normalizeCategoryItemDates(categories) {
     return normalizeCategoryItemDatesWithDiff(categories).normalizedCategories;
 }
 
-function normalizeCategoryItemDatesWithDiff(categories) {
-    if (!categories || typeof categories !== 'object') {
-        return { normalizedCategories: categories, changedItems: [] };
+function normalizeCategoryItemsObject(rawItems) {
+    if (!rawItems || typeof rawItems !== 'object' || Array.isArray(rawItems)) {
+        return { normalizedItems: {}, changed: Boolean(rawItems) };
     }
 
-    const changedItems = [];
+    const normalizedItems = {};
+    let changed = false;
+
+    Object.entries(rawItems).forEach(([entryKey, entryValue]) => {
+        if (!entryValue || typeof entryValue !== 'object' || Array.isArray(entryValue)) {
+            changed = true;
+            return;
+        }
+
+        const entryMonth = normalizeMonthKey(entryKey);
+
+        if (isCategoryItemLike(entryValue)) {
+            const normalizedItem = normalizeCategoryItem({
+                ...entryValue,
+                month: normalizeMonthKey(getCategoryItemMonth(entryValue)) || entryMonth || entryValue.month,
+                date: entryValue.date || ((normalizeMonthKey(getCategoryItemMonth(entryValue)) || entryMonth) ? `${normalizeMonthKey(getCategoryItemMonth(entryValue)) || entryMonth}-01` : undefined)
+            });
+            normalizedItems[entryKey] = normalizedItem;
+
+            if (entryMonth || JSON.stringify(normalizedItem) !== JSON.stringify(entryValue)) {
+                changed = true;
+            }
+            return;
+        }
+
+        if (entryMonth) {
+            changed = true;
+        }
+
+        Object.entries(entryValue).forEach(([nestedItemId, nestedItem]) => {
+            if (!nestedItem || typeof nestedItem !== 'object' || Array.isArray(nestedItem) || !isCategoryItemLike(nestedItem)) {
+                changed = true;
+                return;
+            }
+
+            const nestedMonth = normalizeMonthKey(getCategoryItemMonth(nestedItem)) || entryMonth;
+            const normalizedNested = normalizeCategoryItem({
+                ...nestedItem,
+                month: nestedMonth || nestedItem.month,
+                date: nestedItem.date || (nestedMonth ? `${nestedMonth}-01` : undefined)
+            });
+
+            let targetItemId = nestedItemId;
+            if (Object.prototype.hasOwnProperty.call(normalizedItems, targetItemId)) {
+                targetItemId = `${entryKey}_${nestedItemId}`;
+                changed = true;
+            }
+
+            normalizedItems[targetItemId] = normalizedNested;
+        });
+    });
+
+    if (!changed && Object.keys(rawItems).length !== Object.keys(normalizedItems).length) {
+        changed = true;
+    }
+
+    return { normalizedItems, changed };
+}
+
+function normalizeCategoryItemDatesWithDiff(categories) {
+    if (!categories || typeof categories !== 'object') {
+        return { normalizedCategories: categories, changedCategories: [] };
+    }
+
+    const changedCategories = [];
     const normalizedCategories = Object.entries(categories).reduce((normalizedCategories, [catId, cat]) => {
         if (!cat || typeof cat !== 'object' || !cat.items) {
             normalizedCategories[catId] = cat;
             return normalizedCategories;
         }
 
-        const normalizedItems = Object.entries(cat.items).reduce((items, [itemId, item]) => {
-            const normalizedItem = normalizeCategoryItem(item);
-            if (JSON.stringify(normalizedItem) !== JSON.stringify(item)) {
-                changedItems.push({ categoryId: catId, itemId, item: normalizedItem });
-            }
-            items[itemId] = normalizedItem;
-            return items;
-        }, {});
+        const { normalizedItems, changed } = normalizeCategoryItemsObject(cat.items);
+        if (changed) {
+            changedCategories.push({ categoryId: catId, items: normalizedItems });
+        }
 
         normalizedCategories[catId] = { ...cat, items: normalizedItems };
         return normalizedCategories;
     }, {});
 
-    return { normalizedCategories, changedItems };
+    return { normalizedCategories, changedCategories };
 }
 
 async function persistNormalizedCategoryItems(uid, changes) {
     if (!uid || !Array.isArray(changes) || changes.length === 0) return;
 
     const updates = {};
-    changes.forEach(({ categoryId, itemId, item }) => {
-        updates[`categories/${categoryId}/items/${itemId}`] = item;
+    changes.forEach(({ categoryId, items }) => {
+        updates[`categories/${categoryId}/items`] = items;
     });
 
     if (Object.keys(updates).length > 0) {
@@ -230,6 +513,94 @@ export async function deleteCategory(categoryId) {
         const catRef = ref(database, `users/${user.uid}/finance/categories/${categoryId}`);
         await remove(catRef);
         return { success: true };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Delete only the selected month's entries for a category.
+ * If the category was introduced in that month and no entries remain,
+ * the whole category is removed.
+ */
+export async function deleteCategoryForMonth(categoryId, month) {
+    const user = await getAuthenticatedUser();
+    if (!user) return { success: false, error: 'Not authenticated' };
+    if (!categoryId) return { success: false, error: 'Category ID is required' };
+    if (!month) return { success: false, error: 'Month is required' };
+
+    try {
+        const catRef = ref(database, `users/${user.uid}/finance/categories/${categoryId}`);
+        const snapshot = await get(catRef);
+
+        if (!snapshot.exists()) {
+            return { success: true, removedMonth: false, deletedWholeRecord: false, removedItemsCount: 0 };
+        }
+
+        const category = snapshot.val() || {};
+        const items = category.items && typeof category.items === 'object' ? category.items : {};
+        const normalizedMonth = normalizeMonthKey(month) || month;
+        const introducedMonth = normalizeMonthKey(category.createdMonth)
+            || (category.createdAt ? normalizeMonthKey(getMonthFromTimestamp(category.createdAt)) : null);
+
+        const { normalizedItems } = normalizeCategoryItemsObject(items);
+        const remainingItems = {};
+        let removedItemsCount = 0;
+        const remainingMonths = new Set();
+
+        Object.entries(normalizedItems).forEach(([itemId, item]) => {
+            const itemMonth = normalizeMonthKey(getCategoryItemMonth(item)) || getCategoryItemMonth(item);
+            if (itemMonth === normalizedMonth) {
+                removedItemsCount += 1;
+                return;
+            }
+
+            remainingItems[itemId] = normalizeCategoryItem(item);
+            if (itemMonth) {
+                remainingMonths.add(itemMonth);
+            }
+        });
+
+        const hasRemainingItems = Object.keys(remainingItems).length > 0;
+        const shouldDeleteWholeCategory = introducedMonth === normalizedMonth && !hasRemainingItems;
+
+        if (shouldDeleteWholeCategory) {
+            await remove(catRef);
+            return {
+                success: true,
+                removedMonth: true,
+                deletedWholeRecord: true,
+                removedItemsCount
+            };
+        }
+
+        const shouldAdjustIntroducedMonth = introducedMonth === normalizedMonth && hasRemainingItems;
+        if (removedItemsCount === 0 && !shouldAdjustIntroducedMonth) {
+            return {
+                success: true,
+                removedMonth: false,
+                deletedWholeRecord: false,
+                removedItemsCount: 0
+            };
+        }
+
+        const updates = {
+            items: remainingItems,
+            updatedAt: Date.now()
+        };
+
+        if (shouldAdjustIntroducedMonth && remainingMonths.size > 0) {
+            updates.createdMonth = Array.from(remainingMonths).sort()[0];
+        }
+
+        await update(catRef, updates);
+
+        return {
+            success: true,
+            removedMonth: removedItemsCount > 0 || shouldAdjustIntroducedMonth,
+            deletedWholeRecord: false,
+            removedItemsCount
+        };
     } catch (error) {
         return { success: false, error: error.message };
     }
@@ -385,6 +756,56 @@ export async function deleteBank(bankId) {
     }
 }
 
+/**
+ * Delete only the selected month's bank balance for an account.
+ * If no month balances remain, removes the whole bank account record.
+ */
+export async function deleteBankForMonth(bankId, month) {
+    const user = await getAuthenticatedUser();
+    if (!user) return { success: false, error: 'Not authenticated' };
+    if (!month) return { success: false, error: 'Month is required' };
+
+    try {
+        const bankRef = ref(database, `users/${user.uid}/finance/banks/${bankId}`);
+        const snapshot = await get(bankRef);
+        if (!snapshot.exists()) {
+            return { success: false, error: 'Bank account not found' };
+        }
+
+        const bank = snapshot.val() || {};
+        const balances = bank.balances && typeof bank.balances === 'object' ? bank.balances : null;
+
+        // Legacy records without month map are treated as single-month entries.
+        if (!balances) {
+            const legacyMonth = bank.createdMonth || null;
+            if (legacyMonth && legacyMonth !== month) {
+                return { success: true, removedMonth: false, deletedWholeRecord: false };
+            }
+            await remove(bankRef);
+            return { success: true, removedMonth: true, deletedWholeRecord: true };
+        }
+
+        if (balances[month] === undefined) {
+            return { success: true, removedMonth: false, deletedWholeRecord: false };
+        }
+
+        const remainingMonths = Object.keys(balances).filter((key) => key !== month && balances[key] !== undefined && balances[key] !== null);
+        if (remainingMonths.length === 0) {
+            await remove(bankRef);
+            return { success: true, removedMonth: true, deletedWholeRecord: true };
+        }
+
+        await update(bankRef, {
+            [`balances/${month}`]: null,
+            updatedAt: Date.now()
+        });
+
+        return { success: true, removedMonth: true, deletedWholeRecord: false };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+}
+
 // ========================================
 // CREDIT CARDS CRUD
 // ========================================
@@ -403,6 +824,12 @@ export async function addCreditCard(cardData, month) {
             type: cardData.type || 'credit-card',
             name: cardData.name,
             issuer: cardData.issuer,
+            insuranceCategory: cardData.insuranceCategory || '',
+            policyNumber: cardData.policyNumber || '',
+            insuranceStartDate: cardData.insuranceStartDate || cardData.expenseDate || '',
+            insuranceValidUpto: cardData.insuranceValidUpto || cardData.dueDate || '',
+            coverageAmount: parseFloat(cardData.coverageAmount) || 0,
+            insuranceStatus: cardData.insuranceStatus || '',
             creditLimit: parseFloat(cardData.creditLimit) || 0,
             dueDate: cardData.dueDate || '',
             isPaid: cardData.isPaid || false,
@@ -443,6 +870,12 @@ export async function updateCreditCard(cardId, updates, month) {
         if (updates.type !== undefined) updateData.type = updates.type;
         if (updates.name !== undefined) updateData.name = updates.name;
         if (updates.issuer !== undefined) updateData.issuer = updates.issuer;
+        if (updates.insuranceCategory !== undefined) updateData.insuranceCategory = updates.insuranceCategory;
+        if (updates.policyNumber !== undefined) updateData.policyNumber = updates.policyNumber;
+        if (updates.insuranceStartDate !== undefined) updateData.insuranceStartDate = updates.insuranceStartDate;
+        if (updates.insuranceValidUpto !== undefined) updateData.insuranceValidUpto = updates.insuranceValidUpto;
+        if (updates.coverageAmount !== undefined) updateData.coverageAmount = parseFloat(updates.coverageAmount) || 0;
+        if (updates.insuranceStatus !== undefined) updateData.insuranceStatus = updates.insuranceStatus;
         if (updates.creditLimit !== undefined) {
             if (month) {
                 updateData[`monthlyLimits/${month}`] = parseFloat(updates.creditLimit);
@@ -487,6 +920,58 @@ export async function deleteCreditCard(cardId) {
         const cardRef = ref(database, `users/${user.uid}/finance/creditCards/${cardId}`);
         await remove(cardRef);
         return { success: true };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Delete only the selected month's expense/insurance value for a card record.
+ * If no month balances remain, removes the whole card record.
+ */
+export async function deleteCreditCardForMonth(cardId, month) {
+    const user = await getAuthenticatedUser();
+    if (!user) return { success: false, error: 'Not authenticated' };
+    if (!month) return { success: false, error: 'Month is required' };
+
+    try {
+        const cardRef = ref(database, `users/${user.uid}/finance/creditCards/${cardId}`);
+        const snapshot = await get(cardRef);
+        if (!snapshot.exists()) {
+            return { success: false, error: 'Expense entry not found' };
+        }
+
+        const card = snapshot.val() || {};
+        const balances = card.balances && typeof card.balances === 'object' ? card.balances : null;
+
+        // Legacy records without month map are treated as single-month entries.
+        if (!balances) {
+            const legacyMonth = card.createdMonth || null;
+            if (legacyMonth && legacyMonth !== month) {
+                return { success: true, removedMonth: false, deletedWholeRecord: false };
+            }
+            await remove(cardRef);
+            return { success: true, removedMonth: true, deletedWholeRecord: true };
+        }
+
+        if (balances[month] === undefined) {
+            return { success: true, removedMonth: false, deletedWholeRecord: false };
+        }
+
+        const remainingMonths = Object.keys(balances).filter((key) => key !== month && balances[key] !== undefined && balances[key] !== null);
+        if (remainingMonths.length === 0) {
+            await remove(cardRef);
+            return { success: true, removedMonth: true, deletedWholeRecord: true };
+        }
+
+        await update(cardRef, {
+            [`balances/${month}`]: null,
+            [`monthlyLimits/${month}`]: null,
+            [`paymentStatusByMonth/${month}`]: null,
+            updatedAt: Date.now()
+        });
+
+        return { success: true, removedMonth: true, deletedWholeRecord: false };
     } catch (error) {
         return { success: false, error: error.message };
     }
@@ -617,6 +1102,85 @@ export async function getIncome(month) {
 }
 
 // ========================================
+// VIEW PREFERENCES
+// ========================================
+
+/**
+ * Get finance tracker view preferences for the current user.
+ */
+export async function getFinanceViewPreferences() {
+    const user = await getAuthenticatedUser();
+    if (!user) {
+        return { success: false, error: 'Not authenticated', preferences: cloneDefaultFinanceViewPreferences() };
+    }
+
+    try {
+        const prefRef = ref(database, `users/${user.uid}/finance/preferences/view`);
+        const snapshot = await get(prefRef);
+        const preferences = normalizeFinanceViewPreferences(snapshot.exists() ? snapshot.val() : null);
+        return { success: true, preferences };
+    } catch (error) {
+        return {
+            success: false,
+            error: error.message,
+            preferences: cloneDefaultFinanceViewPreferences()
+        };
+    }
+}
+
+/**
+ * Save finance tracker view preferences for the current user.
+ */
+export async function saveFinanceViewPreferences(preferences) {
+    const user = await getAuthenticatedUser();
+    if (!user) {
+        return { success: false, error: 'Not authenticated', preferences: cloneDefaultFinanceViewPreferences() };
+    }
+
+    try {
+        const normalizedPreferences = normalizeFinanceViewPreferences(preferences);
+        const prefRef = ref(database, `users/${user.uid}/finance/preferences/view`);
+        await set(prefRef, {
+            ...normalizedPreferences,
+            updatedAt: Date.now()
+        });
+        return { success: true, preferences: normalizedPreferences };
+    } catch (error) {
+        return {
+            success: false,
+            error: error.message,
+            preferences: cloneDefaultFinanceViewPreferences()
+        };
+    }
+}
+
+/**
+ * Get full raw finance node for the authenticated user.
+ * Useful for Firebase-compatible JSON export/import workflows.
+ */
+export async function getFinanceRawData() {
+    const user = await getAuthenticatedUser();
+    if (!user) {
+        return { success: false, error: 'Not authenticated', data: {} };
+    }
+
+    try {
+        const financeRef = ref(database, `users/${user.uid}/finance`);
+        const snapshot = await get(financeRef);
+        return {
+            success: true,
+            data: snapshot.exists() ? snapshot.val() : {}
+        };
+    } catch (error) {
+        return {
+            success: false,
+            error: error.message,
+            data: {}
+        };
+    }
+}
+
+// ========================================
 // MONTHLY SNAPSHOTS
 // ========================================
 
@@ -641,24 +1205,59 @@ export async function saveMonthlySnapshot(month, snapshotData) {
 }
 
 /**
- * Copy bank and credit card balances from previous month to a target month.
- * Does NOT overwrite existing entries for the target month.
+ * Copy selected finance sections from any source month to any target month.
+ * @param {string} sourceMonth - "YYYY-MM" format
  * @param {string} targetMonth - "YYYY-MM" format
- * @returns {Promise<Object>} result with counts of copied entries
+ * @param {Object} options - copy options
+ * @returns {Promise<Object>} copy result with section-wise counts
  */
-export async function copyPreviousMonthData(targetMonth) {
+export async function copyFinanceDataBetweenMonths(sourceMonth, targetMonth, options = {}) {
     const user = await getAuthenticatedUser();
     if (!user) return { success: false, error: 'Not authenticated' };
 
     try {
-        // Calculate previous month
-        const [year, mon] = targetMonth.split('-').map(Number);
-        const prevDate = new Date(year, mon - 2, 1);
-        const prevMonth = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
+        const normalizedSourceMonth = normalizeMonthKey(sourceMonth) || sourceMonth;
+        const normalizedTargetMonth = normalizeMonthKey(targetMonth) || targetMonth;
+
+        if (!sourceMonth || !targetMonth) {
+            return { success: false, error: 'Source and target month are required' };
+        }
+
+        if (normalizedSourceMonth === normalizedTargetMonth) {
+            return { success: false, error: 'Source and target month must be different' };
+        }
+
+        const {
+            includeCategories = true,
+            includeBanks = true,
+            includeExpenses = true,
+            includeInsurance = true,
+            includeIncome = true,
+            includeTaxes = true,
+            includeEPFO = true,
+            overwriteExisting = false,
+            replaceCategories = false,
+            replaceInsurance = false
+        } = options;
 
         const updates = {};
         let banksCopied = 0;
-        let cardsCopied = 0;
+        let expensesCopied = 0;
+        let insuranceCopied = 0;
+        let monthlyLimitsCopied = 0;
+        let paymentStatusCopied = 0;
+        let categoryItemsCopied = 0;
+        let incomeCopied = 0;
+        let taxesCopied = 0;
+        let epfoCopied = 0;
+        let categorySourceItemsFound = 0;
+        let categoryItemsSkipped = 0;
+        let categoryItemsFailed = 0;
+        let categorySourceItemsInvalid = 0;
+        const shouldReplaceCategoryItems = includeCategories && (overwriteExisting || replaceCategories);
+        const shouldReplaceInsuranceItems = includeInsurance && (overwriteExisting || replaceInsurance);
+
+        const shouldWriteTargetValue = (targetValue) => overwriteExisting || targetValue === undefined || targetValue === null;
 
         // Read current data
         const financeRef = ref(database, `users/${user.uid}/finance`);
@@ -666,105 +1265,270 @@ export async function copyPreviousMonthData(targetMonth) {
         const data = snapshot.val() || {};
 
         // Copy bank balances
-        if (data.banks) {
+        if (includeBanks && data.banks) {
             Object.entries(data.banks).forEach(([bankId, bank]) => {
-                // Only copy banks that were created in or before the previous month
-                const bankCreatedMonth = bank.createdMonth || (bank.createdAt ? getMonthFromTimestamp(bank.createdAt) : null);
-                if (bankCreatedMonth && bankCreatedMonth > prevMonth) {
-                    return; // Skip banks created after the previous month
-                }
-                
-                // Get previous month balance (with backward compat)
-                const prevBalance = bank.balances?.[prevMonth] ?? bank.balance ?? 0;
-                // Only copy if target month doesn't already have data AND previous month had data
-                const targetBalance = bank.balances?.[targetMonth];
-                const hasPrevMonthData = bank.balances?.[prevMonth] !== undefined || bank.balance !== undefined;
-                
-                if ((targetBalance === undefined || targetBalance === null) && hasPrevMonthData) {
-                    updates[`banks/${bankId}/balances/${targetMonth}`] = prevBalance;
+                const sourceBalance = bank.balances?.[normalizedSourceMonth] ?? bank.balance;
+                const hasSourceData = bank.balances?.[normalizedSourceMonth] !== undefined || (!bank.balances && bank.balance !== undefined);
+                const targetBalance = bank.balances?.[normalizedTargetMonth];
+
+                if (hasSourceData && shouldWriteTargetValue(targetBalance)) {
+                    updates[`banks/${bankId}/balances/${normalizedTargetMonth}`] = parseFloat(sourceBalance) || 0;
                     banksCopied++;
                 }
             });
         }
 
-        // Copy credit card balances
-        if (data.creditCards) {
+        // Copy expenses/insurance balances and statuses
+        if ((includeExpenses || includeInsurance) && data.creditCards) {
+            const deletedInsuranceCardIds = new Set();
+
             Object.entries(data.creditCards).forEach(([cardId, card]) => {
-                // Only copy cards that were created in or before the previous month
-                const cardCreatedMonth = card.createdMonth || (card.createdAt ? getMonthFromTimestamp(card.createdAt) : null);
-                if (cardCreatedMonth && cardCreatedMonth > prevMonth) {
-                    return; // Skip cards created after the previous month
-                }
-                
-                const prevOutstanding = card.balances?.[prevMonth] ?? card.outstandingBalance ?? 0;
-                const targetOutstanding = card.balances?.[targetMonth];
-                const hasPrevMonthData = card.balances?.[prevMonth] !== undefined || card.outstandingBalance !== undefined;
-                
-                if ((targetOutstanding === undefined || targetOutstanding === null) && hasPrevMonthData) {
-                    updates[`creditCards/${cardId}/balances/${targetMonth}`] = prevOutstanding;
-                    cardsCopied++;
+                const cardType = card.type || 'credit-card';
+                const isInsuranceCard = cardType === 'insurance';
+                if (isInsuranceCard && !includeInsurance) return;
+                if (!isInsuranceCard && !includeExpenses) return;
+
+                const cardCreatedMonth = normalizeMonthKey(card.createdMonth)
+                    || (card.createdAt ? normalizeMonthKey(getMonthFromTimestamp(card.createdAt)) : null);
+
+                const sourceOutstanding = card.balances?.[normalizedSourceMonth] ?? card.outstandingBalance;
+                const hasSourceOutstanding = card.balances?.[normalizedSourceMonth] !== undefined || (!card.balances && card.outstandingBalance !== undefined);
+                const targetOutstanding = card.balances?.[normalizedTargetMonth];
+
+                if (isInsuranceCard && shouldReplaceInsuranceItems && !hasSourceOutstanding) {
+                    const hasTargetOutstanding = targetOutstanding !== undefined;
+                    const balanceMonths = card.balances && typeof card.balances === 'object'
+                        ? Object.keys(card.balances)
+                        : [];
+                    const remainingBalanceMonths = balanceMonths
+                        .map((monthKey) => normalizeMonthKey(monthKey) || monthKey)
+                        .filter((monthKey) => monthKey && monthKey !== normalizedTargetMonth)
+                        .sort();
+
+                    const shouldDeleteInsuranceCard = (hasTargetOutstanding || cardCreatedMonth === normalizedTargetMonth)
+                        && remainingBalanceMonths.length === 0;
+
+                    if (shouldDeleteInsuranceCard) {
+                        updates[`creditCards/${cardId}`] = null;
+                        deletedInsuranceCardIds.add(cardId);
+                        return;
+                    }
+
+                    if (hasTargetOutstanding) {
+                        updates[`creditCards/${cardId}/balances/${normalizedTargetMonth}`] = null;
+                    }
+
+                    if (cardCreatedMonth === normalizedTargetMonth && remainingBalanceMonths.length > 0) {
+                        updates[`creditCards/${cardId}/createdMonth`] = remainingBalanceMonths[0];
+                    }
                 }
 
-                const prevPaymentStatus = card.paymentStatusByMonth?.[prevMonth] ?? card.isPaid ?? false;
-                const targetPaymentStatus = card.paymentStatusByMonth?.[targetMonth];
-                if ((targetPaymentStatus === undefined || targetPaymentStatus === null) && hasPrevMonthData) {
-                    updates[`creditCards/${cardId}/paymentStatusByMonth/${targetMonth}`] = Boolean(prevPaymentStatus);
+                if (isInsuranceCard && deletedInsuranceCardIds.has(cardId)) {
+                    return;
+                }
+
+                const canWriteTargetOutstanding = isInsuranceCard && shouldReplaceInsuranceItems
+                    ? hasSourceOutstanding
+                    : (hasSourceOutstanding && shouldWriteTargetValue(targetOutstanding));
+
+                if (canWriteTargetOutstanding) {
+                    updates[`creditCards/${cardId}/balances/${normalizedTargetMonth}`] = parseFloat(sourceOutstanding) || 0;
+                    if (isInsuranceCard) insuranceCopied++;
+                    else expensesCopied++;
+                }
+
+                if (!isInsuranceCard) {
+                    const sourceLimit = card.monthlyLimits?.[normalizedSourceMonth] ?? card.creditLimit;
+                    const hasSourceLimit = card.monthlyLimits?.[normalizedSourceMonth] !== undefined || card.creditLimit !== undefined;
+                    const targetLimit = card.monthlyLimits?.[normalizedTargetMonth];
+
+                    if (hasSourceLimit && shouldWriteTargetValue(targetLimit)) {
+                        updates[`creditCards/${cardId}/monthlyLimits/${normalizedTargetMonth}`] = parseFloat(sourceLimit) || 0;
+                        monthlyLimitsCopied++;
+                    }
+
+                    const sourcePaymentStatus = card.paymentStatusByMonth?.[normalizedSourceMonth] ?? card.isPaid;
+                    const hasSourcePaymentStatus = card.paymentStatusByMonth?.[normalizedSourceMonth] !== undefined || card.isPaid !== undefined;
+                    const targetPaymentStatus = card.paymentStatusByMonth?.[normalizedTargetMonth];
+
+                    if (hasSourcePaymentStatus && shouldWriteTargetValue(targetPaymentStatus)) {
+                        updates[`creditCards/${cardId}/paymentStatusByMonth/${normalizedTargetMonth}`] = Boolean(sourcePaymentStatus);
+                        paymentStatusCopied++;
+                    }
                 }
             });
         }
 
-        // Copy category items from previous month to the target month
-        let categoryItemsCopied = 0;
-        const categoryItemPromises = [];
+        // Copy category items from source month to target month
 
-        if (data.categories) {
-            Object.entries(data.categories).forEach(([catId, cat]) => {
-                if (!cat.items) return;
-                const prevItems = Object.entries(cat.items).filter(([, item]) => item.month === prevMonth);
-                const targetItems = Object.values(cat.items).filter((item) => item.month === targetMonth);
-                const targetItemSet = new Set(targetItems.map((item) => `${item.name}|${item.amount}|${item.notes || ''}`));
+        if (includeCategories && data.categories) {
+            const extractCategoryEntries = (categoryItems) => {
+                if (!categoryItems || typeof categoryItems !== 'object') return [];
 
-                prevItems.forEach(([, item]) => {
-                    const itemKey = `${item.name}|${item.amount}|${item.notes || ''}`;
-                    if (targetItemSet.has(itemKey)) return;
-                    const itemRef = push(ref(database, `users/${user.uid}/finance/categories/${catId}/items`));
-                    const copiedItem = {
-                        name: item.name,
-                        amount: item.amount || 0,
-                        month: targetMonth,
-                        date: `${targetMonth}-01`, // Set to first day of target month
-                        notes: item.notes || '',
+                const entries = [];
+                Object.entries(categoryItems).forEach(([entryKey, entryValue]) => {
+                    if (!entryValue || typeof entryValue !== 'object') return;
+
+                    const directMonth = getCategoryItemMonth(entryValue);
+                    const looksLikeItem = isCategoryItemLike(entryValue);
+                    if (directMonth || looksLikeItem) {
+                        entries.push({
+                            path: entryKey,
+                            item: normalizeCategoryItem(entryValue),
+                            month: directMonth || normalizeMonthKey(entryKey)
+                        });
+                        return;
+                    }
+
+                    const groupedMonth = normalizeMonthKey(entryKey);
+                    Object.entries(entryValue).forEach(([nestedItemId, nestedItem]) => {
+                        if (!nestedItem || typeof nestedItem !== 'object') return;
+                        const nestedMonth = normalizeMonthKey(getCategoryItemMonth(nestedItem)) || groupedMonth;
+                        entries.push({
+                            path: `${entryKey}/${nestedItemId}`,
+                            item: normalizeCategoryItem({
+                                ...nestedItem,
+                                month: nestedMonth || nestedItem.month,
+                                date: nestedItem.date || (nestedMonth ? `${nestedMonth}-01` : undefined)
+                            }),
+                            month: nestedMonth
+                        });
+                    });
+                });
+
+                return entries;
+            };
+
+            const categoryGroups = Object.entries(data.categories).reduce((groups, [catId, cat]) => {
+                if (!cat || typeof cat !== 'object') return groups;
+                const groupKey = getCategoryDisplayKey(cat) || catId;
+                if (!groups[groupKey]) {
+                    groups[groupKey] = [];
+                }
+
+                groups[groupKey].push({
+                    catId,
+                    cat,
+                    itemEntries: extractCategoryEntries(cat.items)
+                });
+
+                return groups;
+            }, {});
+
+            for (const groupEntries of Object.values(categoryGroups)) {
+                const sourceRepresentative = selectRepresentativeCategory(groupEntries, normalizedSourceMonth) || groupEntries[0];
+                const sourceEntries = sourceRepresentative?.itemEntries
+                    ? sourceRepresentative.itemEntries.filter(({ month }) => (normalizeMonthKey(month) || month) === normalizedSourceMonth)
+                    : [];
+
+                if (sourceEntries.length === 0) continue;
+                categorySourceItemsFound += sourceEntries.length;
+
+                const writableGroupEntries = groupEntries.filter(({ cat }) => typeof cat?.name === 'string' && cat.name.trim().length > 0);
+                const representativeCandidates = writableGroupEntries.length > 0 ? writableGroupEntries : groupEntries;
+                const targetRepresentative = selectRepresentativeCategory(representativeCandidates, normalizedTargetMonth) || representativeCandidates[0];
+                if (!targetRepresentative) continue;
+
+                const targetEntries = groupEntries.flatMap(({ catId, itemEntries }) => (
+                    itemEntries
+                        .filter(({ month }) => (normalizeMonthKey(month) || month) === normalizedTargetMonth)
+                        .map((entry) => ({ ...entry, catId }))
+                ));
+
+                const targetItemSet = new Set((shouldReplaceCategoryItems ? [] : targetEntries)
+                        .map(({ item }) => {
+                            const itemName = typeof item.name === 'string' ? item.name.trim() : '';
+                            const itemAmount = toNumericAmount(item.amount);
+                            if (!itemName || itemAmount === null) return null;
+                            const itemMonth = normalizeMonthKey(getCategoryItemMonth(item)) || normalizedTargetMonth;
+                            const itemDate = typeof item.date === 'string' && item.date ? item.date : `${itemMonth}-01`;
+                            const itemNotes = typeof item.notes === 'string' ? item.notes : '';
+                            return `${itemName}|${itemAmount}|${itemNotes}|${itemDate}`;
+                        })
+                        .filter(Boolean));
+
+                const preparedCopies = [];
+
+                sourceEntries.forEach(({ item }) => {
+                    const itemName = typeof item.name === 'string' ? item.name.trim() : '';
+                    const itemAmount = toNumericAmount(item.amount);
+                    if (!itemName || itemAmount === null) {
+                        categorySourceItemsInvalid++;
+                        categoryItemsSkipped++;
+                        return;
+                    }
+
+                    const itemNotes = typeof item.notes === 'string' ? item.notes : '';
+                    const itemKey = `${itemName}|${itemAmount}|${itemNotes}|${normalizedTargetMonth}-01`;
+                    if (targetItemSet.has(itemKey)) {
+                        categoryItemsSkipped++;
+                        return;
+                    }
+
+                    targetItemSet.add(itemKey);
+
+                    const newItemId = push(ref(database, `users/${user.uid}/finance/categories/${targetRepresentative.catId}/items`)).key;
+                    if (!newItemId) {
+                        categoryItemsFailed++;
+                        return;
+                    }
+
+                    const copiedItem = normalizeCategoryItem({
+                        name: itemName,
+                        amount: itemAmount,
+                        month: normalizedTargetMonth,
+                        date: `${normalizedTargetMonth}-01`,
+                        notes: itemNotes,
                         updatedAt: Date.now()
-                    };
-                    categoryItemPromises.push(set(itemRef, copiedItem));
+                    });
+
+                    preparedCopies.push({
+                        catId: targetRepresentative.catId,
+                        itemId: newItemId,
+                        item: copiedItem
+                    });
+                });
+
+                // Prevent data loss: only clear target-month entries when there is something valid to paste.
+                if (preparedCopies.length === 0) {
+                    continue;
+                }
+
+                if (shouldReplaceCategoryItems) {
+                    targetEntries.forEach(({ catId, path }) => {
+                        updates[`categories/${catId}/items/${path}`] = null;
+                    });
+                }
+
+                preparedCopies.forEach(({ catId, itemId, item: copiedItem }) => {
+                    updates[`categories/${catId}/items/${itemId}`] = copiedItem;
                     categoryItemsCopied++;
                 });
-            });
+            }
         }
 
         // Copy income
-        if (data.income?.[prevMonth] && !data.income?.[targetMonth]) {
-            updates[`income/${targetMonth}`] = {
-                ...data.income[prevMonth],
+        if (includeIncome && data.income?.[normalizedSourceMonth] && shouldWriteTargetValue(data.income?.[normalizedTargetMonth])) {
+            updates[`income/${normalizedTargetMonth}`] = {
+                ...data.income[normalizedSourceMonth],
                 updatedAt: Date.now()
             };
+            incomeCopied++;
         }
 
         // Copy taxes
-        let taxesCopied = 0;
-        if (data.taxes?.[prevMonth] && !data.taxes?.[targetMonth]) {
-            updates[`taxes/${targetMonth}`] = {
-                ...data.taxes[prevMonth],
+        if (includeTaxes && data.taxes?.[normalizedSourceMonth] && shouldWriteTargetValue(data.taxes?.[normalizedTargetMonth])) {
+            updates[`taxes/${normalizedTargetMonth}`] = {
+                ...data.taxes[normalizedSourceMonth],
                 updatedAt: Date.now()
             };
             taxesCopied++;
         }
 
         // Copy EPFO value
-        let epfoCopied = 0;
-        if (data.epfo?.[prevMonth] && !data.epfo?.[targetMonth]) {
-            updates[`epfo/${targetMonth}`] = {
-                ...data.epfo[prevMonth],
+        if (includeEPFO && data.epfo?.[normalizedSourceMonth] && shouldWriteTargetValue(data.epfo?.[normalizedTargetMonth])) {
+            updates[`epfo/${normalizedTargetMonth}`] = {
+                ...data.epfo[normalizedSourceMonth],
                 updatedAt: Date.now()
             };
             epfoCopied++;
@@ -773,22 +1537,70 @@ export async function copyPreviousMonthData(targetMonth) {
         if (Object.keys(updates).length > 0) {
             await update(financeRef, updates);
         }
-        if (categoryItemPromises.length > 0) {
-            await Promise.all(categoryItemPromises);
-        }
 
         return {
             success: true,
+            sourceMonth: normalizedSourceMonth,
+            targetMonth: normalizedTargetMonth,
             banksCopied,
-            cardsCopied,
+            expensesCopied,
+            insuranceCopied,
+            monthlyLimitsCopied,
+            paymentStatusCopied,
             taxesCopied,
             epfoCopied,
+            incomeCopied,
             categoryItemsCopied,
-            prevMonth
+            categorySourceItemsFound,
+            categoryItemsSkipped,
+            categoryItemsFailed,
+            categorySourceItemsInvalid,
+            overwriteExisting,
+            replaceCategories: shouldReplaceCategoryItems
         };
     } catch (error) {
         return { success: false, error: error.message };
     }
+}
+
+/**
+ * Copy bank and credit card balances from previous month to a target month.
+ * Does NOT overwrite existing entries for the target month.
+ * @param {string} targetMonth - "YYYY-MM" format
+ * @returns {Promise<Object>} result with counts of copied entries
+ */
+export async function copyPreviousMonthData(targetMonth) {
+    if (!targetMonth) {
+        return { success: false, error: 'Target month is required' };
+    }
+
+    const [year, mon] = targetMonth.split('-').map(Number);
+    const prevDate = new Date(year, mon - 2, 1);
+    const prevMonth = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
+
+    const result = await copyFinanceDataBetweenMonths(prevMonth, targetMonth, {
+        includeCategories: true,
+        includeBanks: true,
+        includeExpenses: true,
+        includeInsurance: true,
+        includeIncome: true,
+        includeTaxes: true,
+        includeEPFO: true,
+        overwriteExisting: false,
+        replaceCategories: false
+    });
+
+    if (!result.success) return result;
+
+    return {
+        success: true,
+        banksCopied: result.banksCopied,
+        cardsCopied: (result.expensesCopied || 0) + (result.insuranceCopied || 0),
+        taxesCopied: result.taxesCopied,
+        epfoCopied: result.epfoCopied,
+        categoryItemsCopied: result.categoryItemsCopied,
+        prevMonth
+    };
 }
 
 // ========================================
@@ -821,7 +1633,7 @@ export function listenToFinanceData(callback) {
     const cachedSnapshots = loadFromCache(CACHE_KEYS.SNAPSHOTS, userId);
     const cachedEPFO = loadFromCache(CACHE_KEYS.EPFO, userId);
 
-    const hasCache = cachedCategories || cachedBanks || cachedCards || cachedIncome || cachedTaxes || cachedEPFO;
+    const hasCache = cachedCategories || cachedBanks || cachedCards || cachedIncome || cachedTaxes || cachedSnapshots || cachedEPFO;
 
     // Data store
     const store = {
@@ -881,11 +1693,11 @@ export function listenToFinanceData(callback) {
         // Categories listener
         const catRef = ref(database, `users/${uid}/finance/categories`);
         listeners.categories = onValue(catRef, (snapshot) => {
-            const { normalizedCategories, changedItems } = normalizeCategoryItemDatesWithDiff(snapshot.val() || {});
+            const { normalizedCategories, changedCategories } = normalizeCategoryItemDatesWithDiff(snapshot.val() || {});
             store.categories = normalizedCategories;
             saveToCache(CACHE_KEYS.CATEGORIES, uid, store.categories);
-            if (changedItems.length > 0) {
-                persistNormalizedCategoryItems(uid, changedItems).catch(() => {});
+            if (changedCategories.length > 0) {
+                persistNormalizedCategoryItems(uid, changedCategories).catch(() => {});
             }
             onListenerData();
         }, () => {});
@@ -1024,7 +1836,7 @@ export async function createDefaultCategories() {
  * Bank/CC balances are read from month-specific `balances[month]` with
  * backward-compat fallback to top-level `balance`/`outstandingBalance`.
  *
- * Expenditure = Current month unpaid CC + Bank account spends
+ * Expenditure = Current month non-insurance card charges
  * Bank spends = Prev month bank total - Curr month bank total - Curr month income
  * When previous-month balances are unavailable, bank spends are estimated from income and current balance.
  */
@@ -1077,7 +1889,7 @@ export function computeFinancialSummary(data, selectedMonth) {
 
     // ── Helper: get CC outstanding ONLY if unpaid and only for credit-style liabilities ──
     function getCCOutstandingIfUnpaid(card, month) {
-        if (card.type === 'general-expense') {
+        if (card.type === 'general-expense' || card.type === 'insurance') {
             return 0; // General expenses are not treated as ongoing liabilities
         }
         if (isCardPaidForMonth(card, month)) {
@@ -1089,8 +1901,15 @@ export function computeFinancialSummary(data, selectedMonth) {
         return card.outstandingBalance || 0;
     }
 
-    // ── Helper: get CC charges for the selected month (all entered balances)
+    function isInsuranceCard(card) {
+        return (card.type || 'credit-card') === 'insurance';
+    }
+
+    // ── Helper: get CC charges for the selected month (excluding insurance)
     function getCCCharges(card, month) {
+        if (isInsuranceCard(card)) {
+            return 0;
+        }
         if (card.balances) {
             return card.balances[month] || 0;
         }
@@ -1106,7 +1925,7 @@ export function computeFinancialSummary(data, selectedMonth) {
     });
 
     // ── Credit card outstanding for selected month and previous month ──
-    // Count all charges for expenditure, but only unpaid for liabilities.
+    // Count non-insurance charges for expenditure, but only unpaid for liabilities.
     let totalCreditCardOutstanding = 0;
     let totalCreditCardCharges = 0;
     let totalPaidCharges = 0;
@@ -1166,7 +1985,7 @@ export function computeFinancialSummary(data, selectedMonth) {
     const prevMonthIncome = income[prevMonth] || { salary: 0, otherIncome: 0, totalIncome: 0 };
 
     // ── Expenditure (new formula) ──
-    // Expenditure = Current month all credit card charges + Bank account spends
+    // Expenditure = Current month non-insurance card charges
     // Bank spends = Prev month overall balance - Current month overall balance - Current month income
     // If month is empty, expenditure is 0
     const hasPreviousBankData = Object.values(banks).some(bank => bank.balances && bank.balances[prevMonth] !== undefined);

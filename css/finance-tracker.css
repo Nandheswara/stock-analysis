@@ -26,7 +26,7 @@
 .month-navigator {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
     gap: 16px;
     padding: 16px 24px;
     background: var(--bg-secondary);
@@ -34,6 +34,22 @@
     border-radius: 12px;
     margin-bottom: 24px;
     box-shadow: var(--shadow-sm);
+}
+
+.month-nav-left,
+.month-nav-right {
+    display: flex;
+    align-items: center;
+}
+
+.month-nav-left {
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.month-nav-right {
+    gap: 8px;
+    margin-left: auto;
 }
 
 .month-navigator .month-btn {
@@ -139,6 +155,31 @@
 
 .export-nav-btn {
     margin-left: 10px;
+}
+
+.view-settings-btn {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.mask-data-btn {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.view-settings-btn:hover {
+    background: var(--accent-primary);
+    color: #fff;
+    border-color: var(--accent-primary);
+    box-shadow: 0 4px 12px rgba(114, 137, 255, 0.35);
+}
+
+.mask-data-btn:hover {
+    background: var(--accent-warning);
+    color: #1a1a1a;
+    border-color: var(--accent-warning);
 }
 
 /* Savings Badge */
@@ -427,6 +468,11 @@
     color: #fff;
 }
 
+.btn-finance-warning {
+    background: var(--accent-warning);
+    color: var(--bg-primary);
+}
+
 .btn-finance-outline {
     background: transparent;
     border: 1px solid var(--border-color);
@@ -707,6 +753,12 @@
     text-align: left;
 }
 
+.finance-table thead th.insurance-premium-amount-header {
+    font-weight: 800;
+    text-transform: none;
+    letter-spacing: 0.02em;
+}
+
 .finance-table tbody td {
     padding: 14px 18px;
     border-bottom: 1px solid var(--border-color);
@@ -738,6 +790,10 @@
 
 .finance-table .amount-negative {
     color: var(--accent-danger);
+}
+
+.finance-table .amount-insurance {
+    color: var(--accent-warning);
 }
 
 .finance-table .table-actions {
@@ -841,6 +897,17 @@
     margin: 0;
 }
 
+.finance-hidden-empty-state {
+    border: 1px dashed var(--border-light);
+    border-radius: 14px;
+    background: var(--bg-secondary);
+    margin-top: 8px;
+}
+
+.finance-hidden-empty-state .btn-finance {
+    margin-top: 14px;
+}
+
 /* ========================================
    Charts Section
    ======================================== */
@@ -920,6 +987,223 @@
     box-shadow: var(--shadow-lg);
     animation: slideUp 0.3s ease;
     overflow: hidden;
+}
+
+.finance-settings-modal {
+    max-width: 640px;
+}
+
+.settings-block {
+    margin-bottom: 22px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 14px;
+    background: var(--bg-tertiary);
+}
+
+.settings-block:last-child {
+    margin-bottom: 0;
+}
+
+.settings-block-title {
+    margin: 0 0 6px;
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-heading);
+}
+
+.section-preferences-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.section-preference-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--bg-tertiary);
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.section-preference-item:hover {
+    border-color: var(--accent-primary);
+    transform: translateY(-1px);
+}
+
+.section-preference-content {
+    flex: 1;
+}
+
+.section-preference-title {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-heading);
+}
+
+.section-preference-description {
+    margin-top: 4px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.35;
+}
+
+.section-preference-switch-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.section-preference-toggle {
+    width: 48px;
+    height: 28px;
+    appearance: none;
+    -webkit-appearance: none;
+    border-radius: 999px;
+    border: 1px solid var(--border-light);
+    background: var(--bg-secondary);
+    cursor: pointer;
+    position: relative;
+    outline: none;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.section-preference-toggle::before {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease;
+}
+
+.section-preference-toggle:checked {
+    background: var(--accent-success);
+    border-color: var(--accent-success);
+}
+
+.section-preference-toggle:checked::before {
+    transform: translateX(20px);
+}
+
+.section-preference-toggle:focus-visible {
+    box-shadow: 0 0 0 3px rgba(114, 137, 255, 0.25);
+}
+
+.settings-record-grid,
+.settings-tools-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.settings-record-card,
+.settings-tool-card {
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 12px;
+    background: var(--bg-secondary);
+}
+
+.settings-record-card h5,
+.settings-tool-card h5 {
+    margin: 0 0 8px;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--text-heading);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.record-preferences-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 190px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.record-preference-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px 10px;
+    background: var(--bg-tertiary);
+}
+
+.record-preference-item input {
+    margin-top: 3px;
+}
+
+.record-preference-text {
+    flex: 1;
+    line-height: 1.35;
+    color: var(--text-primary);
+    font-size: 0.84rem;
+}
+
+.record-preference-sub {
+    display: block;
+    color: var(--text-muted);
+    font-size: 0.76rem;
+    margin-top: 2px;
+}
+
+.record-preference-empty {
+    border: 1px dashed var(--border-color);
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.settings-checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin: 10px 0;
+}
+
+.settings-checkbox-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.84rem;
+    color: var(--text-primary);
+}
+
+.settings-checkbox-overwrite {
+    margin: 2px 0 10px;
+}
+
+.settings-copy-mode-title {
+    margin-bottom: 6px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.settings-tool-card .btn-finance {
+    width: 100%;
+    justify-content: center;
 }
 
 .finance-modal-header {
@@ -1035,6 +1319,16 @@
     color: #fff;
 }
 
+.btn-finance-warning {
+    background: linear-gradient(135deg, var(--accent-warning) 0%, #f59f0b 100%);
+    color: var(--bg-primary);
+}
+
+.btn-finance-warning:hover {
+    opacity: 0.85;
+    transform: translateY(-1px);
+}
+
 .btn-finance-danger:hover {
     opacity: 0.85;
     transform: translateY(-1px);
@@ -1049,6 +1343,28 @@
 
 .btn-finance-outline:hover {
     background: var(--border-color);
+}
+
+.multi-field-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.multi-field-item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    align-items: center;
+}
+
+.multi-field-item input {
+    width: 100%;
+}
+
+.btn-multi-add {
+    width: fit-content;
 }
 
 /* Icon Selector */
@@ -1260,6 +1576,14 @@
         padding: 12px 16px;
     }
 
+    .month-nav-left {
+        gap: 10px;
+    }
+
+    .month-nav-right {
+        margin-left: auto;
+    }
+
     .month-navigator .month-display {
         min-width: auto;
         font-size: 1.1rem;
@@ -1292,6 +1616,21 @@
     .export-section {
         flex-direction: column;
     }
+
+    .section-preference-item {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .section-preference-switch-wrap {
+        align-self: flex-end;
+    }
+
+    .settings-record-grid,
+    .settings-tools-grid,
+    .settings-checkbox-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* ========================================
@@ -1311,6 +1650,26 @@ body.light-theme .month-navigator .month-btn {
 
 body.light-theme .month-navigator .month-display {
     color: #212529;
+}
+
+body.light-theme .view-settings-btn {
+    background: #f8f9fa;
+    border-color: #e9ecef;
+    color: #212529;
+}
+
+body.light-theme .mask-data-btn {
+    background: #f8f9fa;
+    border-color: #e9ecef;
+    color: #212529;
+}
+
+body.light-theme .view-settings-btn:hover {
+    color: #fff;
+}
+
+body.light-theme .mask-data-btn:hover {
+    color: #1a1a1a;
 }
 
 body.light-theme .category-card {
@@ -1385,6 +1744,11 @@ body.light-theme .chart-card-title {
     color: #212529;
 }
 
+body.light-theme .finance-hidden-empty-state {
+    background: #ffffff;
+    border-color: #d8dde3;
+}
+
 body.light-theme .finance-modal {
     background: #ffffff;
     border-color: #e9ecef;
@@ -1408,6 +1772,49 @@ body.light-theme .finance-modal-body .form-group select {
     background: #f8f9fa;
     border-color: #e9ecef;
     color: #212529;
+}
+
+body.light-theme .section-preference-item {
+    background: #f8f9fa;
+    border-color: #e9ecef;
+}
+
+body.light-theme .section-preference-item:hover {
+    border-color: #7289ff;
+}
+
+body.light-theme .section-preference-title {
+    color: #212529;
+}
+
+body.light-theme .section-preference-description {
+    color: #6c757d;
+}
+
+body.light-theme .section-preference-toggle {
+    background: #ffffff;
+    border-color: #d8dde3;
+}
+
+body.light-theme .settings-block,
+body.light-theme .settings-record-card,
+body.light-theme .settings-tool-card,
+body.light-theme .record-preference-item {
+    background: #ffffff;
+    border-color: #e9ecef;
+}
+
+body.light-theme .settings-block-title,
+body.light-theme .settings-record-card h5,
+body.light-theme .settings-tool-card h5,
+body.light-theme .record-preference-text,
+body.light-theme .settings-checkbox-item {
+    color: #212529;
+}
+
+body.light-theme .record-preference-sub,
+body.light-theme .record-preference-empty {
+    color: #6c757d;
 }
 
 body.light-theme .finance-modal-footer {

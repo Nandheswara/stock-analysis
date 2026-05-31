@@ -374,6 +374,13 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+const FEATURE_ACCESS_RULES = [
+    { settingKey: 'enableAnalysis', pagePath: 'analysis.html', featureName: 'Analysis' },
+    { settingKey: 'enableStockManager', pagePath: 'stock-manager.html', featureName: 'Stock Manager' },
+    { settingKey: 'enableNews', pagePath: 'news.html', featureName: 'News' },
+    { settingKey: 'enableFinanceTracker', pagePath: 'finance-tracker.html', featureName: 'Finance Tracker' }
+];
+
 /**
  * Check system settings and enforce restrictions
  */
@@ -391,26 +398,13 @@ async function checkSystemSettings() {
         
         if (snapshot.exists()) {
             const settings = snapshot.val();
-            
-            // Check if Analysis page is disabled
-            if (settings.enableAnalysis === false && window.location.pathname.includes('analysis.html')) {
-                showFeatureDisabledOverlay('Analysis');
-            }
-            
-            // Check if Stock Manager page is disabled
-            if (settings.enableStockManager === false && window.location.pathname.includes('stock-manager.html')) {
-                showFeatureDisabledOverlay('Stock Manager');
-            }
+            const currentPath = window.location.pathname;
 
-            // Check if News page is disabled
-            if (settings.enableNews === false && window.location.pathname.includes('news.html')) {
-                showFeatureDisabledOverlay('News');
-            }
-
-            // Check if Finance Tracker page is disabled
-            if (settings.enableFinanceTracker === false && window.location.pathname.includes('finance-tracker.html')) {
-                showFeatureDisabledOverlay('Finance Tracker');
-            }
+            FEATURE_ACCESS_RULES.forEach(({ settingKey, pagePath, featureName }) => {
+                if (settings[settingKey] === false && currentPath.includes(pagePath)) {
+                    showFeatureDisabledOverlay(featureName);
+                }
+            });
         }
     } catch (error) {
         // Error checking system settings - use defaults

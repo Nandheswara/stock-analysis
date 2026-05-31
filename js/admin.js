@@ -2418,6 +2418,15 @@ function bindEventListeners() {
         const btn = document.getElementById('confirmDeleteBtn');
         btn.disabled = e.target.value !== 'DELETE';
     });
+    document.getElementById('deleteConfirmInput')?.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+
+        const btn = document.getElementById('confirmDeleteBtn');
+        if (btn && !btn.disabled) {
+            btn.click();
+        }
+    });
     document.getElementById('confirmDeleteBtn')?.addEventListener('click', deleteUser);
     
     // Delete user data button
