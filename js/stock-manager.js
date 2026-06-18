@@ -28,7 +28,7 @@ import {
     changePassword,
     resetPassword
 } from './firebase-auth-service.js';
-import { escapeHtml } from './utils.js';
+import { escapeHtml, escapeAttribute, log } from './utils.js';
 
 /**
  * Constants for brokerage and tax calculations
@@ -480,10 +480,12 @@ class PortfolioManager {
         if (newIds !== currentIds) {
             return true;
         }
+
+        const localStocksById = new Map(this.stocks.map((stock) => [stock.id, stock]));
         
         // Check if any stock content changed (compare key fields)
         for (const firebaseStock of firebaseStocks) {
-            const localStock = this.stocks.find(s => s.id === firebaseStock.id);
+            const localStock = localStocksById.get(firebaseStock.id);
             
             if (!localStock) {
                 return true;
@@ -599,7 +601,7 @@ function renderStocksTable() {
                     ${stock.getStatus()}
                 </span>
             </td>
-            <td class="action-cell">${!stock.sellPrice ? `<button class="btn btn-info" onclick="editStock('${stock.id}')" aria-label="Edit ${stock.name}" title="Add sell price"><i class="bi bi-pencil-square"></i> Edit</button>` : ''}<button class="btn btn-danger" onclick="deleteStock('${stock.id}')" aria-label="Delete ${stock.name}"><i class="bi bi-trash"></i> Delete</button></td>
+            <td class="action-cell">${!stock.sellPrice ? `<button class="btn btn-info" onclick="editStock(decodeURIComponent('${encodeURIComponent(stock.id)}'))" aria-label="Edit ${escapeAttribute(stock.name)}" title="Add sell price"><i class="bi bi-pencil-square"></i> Edit</button>` : ''}<button class="btn btn-danger" onclick="deleteStock(decodeURIComponent('${encodeURIComponent(stock.id)}'))" aria-label="Delete ${escapeAttribute(stock.name)}"><i class="bi bi-trash"></i> Delete</button></td>
         </tr>
     `).join('');
 }
@@ -784,7 +786,6 @@ async function deleteStock(stockId) {
             updateSummaryDisplay();
             showNotification('Stock deleted successfully!');
         } catch (error) {
-            const { log } = await import('./utils.js');
             log('error', 'Error deleting stock', { error: error.message });
             showNotification('Failed to delete stock. Please try again.', 'error');
         }
@@ -1293,7 +1294,6 @@ function showAuthModal(mode) {
     // Show Bootstrap modal
     const modalElement = document.getElementById('authModal');
     if (!modalElement) {
-        const { log } = await import('./utils.js');
         log('error', 'Auth modal element not found');
         return;
     }
@@ -1305,7 +1305,6 @@ function showAuthModal(mode) {
         }
         modal.show();
     } catch (error) {
-        const { log } = await import('./utils.js');
         log('error', 'Error showing auth modal', { error: error.message });
     }
 }

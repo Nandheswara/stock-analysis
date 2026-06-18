@@ -50,6 +50,8 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  */
 const MIN_PASSWORD_LENGTH = 6;
 
+const ACCOUNT_DISABLED_ERROR = 'Your account has been disabled. Please contact an administrator for assistance.';
+
 /**
  * Primary admin email - cannot be removed from admin access
  * This is the super admin with full control
@@ -151,6 +153,15 @@ function isValidPassword(password) {
     return password && password.length >= MIN_PASSWORD_LENGTH;
 }
 
+function isUserAccessBlocked(userData) {
+    if (!userData) {
+        return false;
+    }
+
+    const normalizedStatus = String(userData.status || '').toLowerCase();
+    return userData.isDeleted === true || normalizedStatus === 'disabled' || normalizedStatus === 'deleted' || normalizedStatus === 'blocked';
+}
+
 /**
  * Check if a login operation is currently in progress
  * Useful for preventing UI interactions during login
@@ -185,18 +196,33 @@ export function initAuthListener() {
     }
     
     // Set up Firebase auth state listener
-    onAuthStateChanged(auth, (user) => {
-        currentUser = user;
+    onAuthStateChanged(auth, async (user) => {
+        let effectiveUser = user;
+
+        if (effectiveUser) {
+            try {
+                const userRef = dbRef(database, `users/${effectiveUser.uid}`);
+                const snapshot = await get(userRef);
+                if (snapshot.exists() && isUserAccessBlocked(snapshot.val())) {
+                    await signOut(auth);
+                    effectiveUser = null;
+                }
+            } catch (error) {
+                // Silent fail: auth state should still resolve even if profile lookup fails.
+            }
+        }
+
+        currentUser = effectiveUser;
         authStateResolved = true;
         
         // Cache the auth state asynchronously (don't block UI)
-        queueMicrotask(() => cacheAuthState(user));
+        queueMicrotask(() => cacheAuthState(effectiveUser));
         
         // Notify all callbacks
         if (authStateCallbacks.length > 0) {
             authStateCallbacks.forEach(callback => {
                 try {
-                    callback(user);
+                    callback(effectiveUser);
                 } catch (e) {
                     // Auth callback errors are logged silently
                 }
@@ -205,14 +231,14 @@ export function initAuthListener() {
         
         // Update UI with actual auth state only if different from cached
         const cachedUid = cachedState?.uid;
-        const currentUid = user?.uid;
+        const currentUid = effectiveUser?.uid;
         if (cachedUid !== currentUid) {
-            updateAuthUI(user);
+            updateAuthUI(effectiveUser);
         }
         
         // Resolve the auth ready promise
         if (authReadyResolve) {
-            authReadyResolve(user);
+            authReadyResolve(effectiveUser);
             authReadyResolve = null;
         }
     });
@@ -389,13 +415,13 @@ export async function signInUser(email, password) {
                 const userData = snapshot.val();
                 
                 // Check if user account is disabled
-                if (userData.status === 'disabled') {
+                if (isUserAccessBlocked(userData)) {
                     // Sign out the user immediately
                     await signOut(auth);
                     isLoginInProgress = false;
                     return { 
                         success: false, 
-                        error: 'Your account has been disabled. Please contact an administrator for assistance.' 
+                        error: ACCOUNT_DISABLED_ERROR
                     };
                 }
                 
@@ -479,13 +505,13 @@ export async function signInWithGoogle() {
                 const userData = snapshot.val();
                 
                 // Check if user account is disabled
-                if (userData.status === 'disabled') {
+                if (isUserAccessBlocked(userData)) {
                     // Sign out the user immediately
                     await signOut(auth);
                     isLoginInProgress = false;
                     return { 
                         success: false, 
-                        error: 'Your account has been disabled. Please contact an administrator for assistance.' 
+                        error: ACCOUNT_DISABLED_ERROR
                     };
                 }
                 

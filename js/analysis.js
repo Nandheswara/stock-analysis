@@ -658,10 +658,12 @@ function checkStocksDataChanged(newStocks, oldStocks) {
     if (newStockIds !== oldStockIds) {
         return true;
     }
+
+    const oldStocksById = new Map(oldStocks.map((stock) => [stock.stock_id, stock]));
     
     // Check if any stock content changed (all editable fields)
     for (const newStock of newStocks) {
-        const oldStock = oldStocks.find(s => s.stock_id === newStock.stock_id);
+        const oldStock = oldStocksById.get(newStock.stock_id);
         
         if (!oldStock) {
             return true;

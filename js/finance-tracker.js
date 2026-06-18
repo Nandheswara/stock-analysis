@@ -83,10 +83,12 @@ let unsubscribeFinance = null;
 let renderDebounceTimer = null;
 let snapshotSaveTimer = null;
 let isRendering = false;
-let lastRenderedDataJSON = ''; // Track if data actually changed
+let financeDataVersion = 0;
+let lastRenderedDataVersion = -1;
 let isInitialLoad = true;      // Prevent snapshot save on first render
 let chartRenderRAF = null;     // requestAnimationFrame handle for chart rendering
 let isAddCategorySubmitting = false;
+let isCopyOperationInProgress = false;
 const SECTION_PREFERENCE_META = Object.freeze([
     {
         key: 'financialSummary',
@@ -861,6 +863,23 @@ function getMonthAmount(record, monthKey, fallbackKey) {
     return Number(record?.[fallbackKey]) || 0;
 }
 
+function getInsuranceMonthData(card, monthKey) {
+    if (!card || !monthKey) return null;
+    const monthData = card.insuranceByMonth?.[monthKey];
+    if (!monthData || typeof monthData !== 'object' || Array.isArray(monthData)) {
+        return null;
+    }
+    return monthData;
+}
+
+function getInsuranceMonthValue(card, monthKey, fieldName, fallbackValue) {
+    const monthData = getInsuranceMonthData(card, monthKey);
+    if (monthData && Object.prototype.hasOwnProperty.call(monthData, fieldName)) {
+        return monthData[fieldName];
+    }
+    return fallbackValue;
+}
+
 function pickPreferredDuplicateEntry(existingEntry, nextEntry, amountGetter) {
     if (!existingEntry) return nextEntry;
 
@@ -897,7 +916,67 @@ function collapseMonthDuplicates(entries, getIdentityKey, amountGetter) {
 // Toast Notifications
 // ========================================
 
+function normalizeToastType(type = 'info') {
+    return type === 'danger' ? 'error' : type;
+}
+
+function simplifyToastMessage(message, type = 'info') {
+    const text = String(message || '').replace(/\s+/g, ' ').trim();
+    if (!text) {
+        return type === 'success' ? 'Done.' : 'Please try again.';
+    }
+
+    const isErrorToast = type === 'error' || type === 'danger';
+    if (isErrorToast) {
+        const lowerText = text.toLowerCase();
+
+        if (lowerText.includes('values argument contains a path') || lowerText.includes('ancestor of another path')) {
+            return 'Could not copy data right now. Please try again.';
+        }
+
+        if (
+            lowerText.includes('permission_denied') ||
+            lowerText.includes('auth/') ||
+            lowerText.includes('unauthorized') ||
+            lowerText.includes('forbidden')
+        ) {
+            return 'You do not have permission for this action.';
+        }
+
+        if (
+            lowerText.includes('network') ||
+            lowerText.includes('offline') ||
+            lowerText.includes('timeout') ||
+            lowerText.includes('timed out') ||
+            lowerText.includes('unavailable')
+        ) {
+            return 'Network issue. Please check your connection and try again.';
+        }
+
+        if (lowerText.includes('please sign in') || lowerText.includes('sign in')) {
+            return 'Please sign in and try again.';
+        }
+
+        const failedActionMatch = text.match(/^(?:failed to|unable to|could not)\s+([^.!]+)(?:[.!]|$)/i);
+        if (failedActionMatch && failedActionMatch[1]) {
+            return `Could not ${failedActionMatch[1].trim()}. Please try again.`;
+        }
+
+        const errorActionMatch = text.match(/^error\s+([^:!.]+)(?:[:.!]|$)/i);
+        if (errorActionMatch && errorActionMatch[1]) {
+            return `Could not ${errorActionMatch[1].trim()}. Please try again.`;
+        }
+
+        return 'Something went wrong. Please try again.';
+    }
+
+    return text.replace(/!+$/g, '.').replace(/\s+\./g, '.');
+}
+
 function showToast(message, type = 'info') {
+    const normalizedType = normalizeToastType(type);
+    const friendlyMessage = simplifyToastMessage(message, normalizedType);
+
     let container = document.getElementById('financeToastContainer');
     if (!container) {
         container = document.createElement('div');
@@ -905,10 +984,11 @@ function showToast(message, type = 'info') {
         container.className = 'finance-toast-container';
         document.body.appendChild(container);
     }
+
     const toast = document.createElement('div');
-    toast.className = `finance-toast ${type}`;
+    toast.className = `finance-toast ${normalizedType}`;
     const icons = { success: 'bi-check-circle', error: 'bi-x-circle', info: 'bi-info-circle', warning: 'bi-exclamation-triangle' };
-    toast.innerHTML = `<i class="bi ${icons[type] || icons.info}"></i> ${message}`;
+    toast.innerHTML = `<i class="bi ${icons[normalizedType] || icons.info}"></i> ${escapeHtml(friendlyMessage)}`;
     container.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
     return toast;
@@ -1664,9 +1744,13 @@ function renderInsurance() {
     const dedupedVisiblePolicies = collapseMonthDuplicates(
         visiblePolicies,
         (card) => {
-            const policyKey = normalizeIdentityPart(card.policyNumber);
+            const policyKey = normalizeIdentityPart(
+                getInsuranceMonthValue(card, currentMonth, 'policyNumber', card.policyNumber)
+            );
             if (policyKey) return `policy:${policyKey}`;
-            return `${normalizeIdentityPart(card.name)}|${normalizeIdentityPart(card.insuranceCategory || 'term')}`;
+            const insuranceName = getInsuranceMonthValue(card, currentMonth, 'name', card.name);
+            const insuranceCategory = getInsuranceMonthValue(card, currentMonth, 'insuranceCategory', card.insuranceCategory || 'term');
+            return `${normalizeIdentityPart(insuranceName)}|${normalizeIdentityPart(insuranceCategory)}`;
         },
         (card) => getMonthAmount(card, currentMonth, 'outstandingBalance')
     );
@@ -1686,27 +1770,33 @@ function renderInsurance() {
         const amount = card.balances
             ? (card.balances[currentMonth] || 0)
             : (card.outstandingBalance || 0);
-        const insuranceType = getInsuranceTypeLabel(card.insuranceCategory || 'term');
-        const provider = escapeHtml(card.issuer || '-');
-        const validUpto = card.insuranceValidUpto || card.dueDate || '-';
-        const policyNumber = escapeHtml(card.policyNumber || '');
-        const coverageAmount = Number.parseFloat(card.coverageAmount);
+        const insuranceName = getInsuranceMonthValue(card, currentMonth, 'name', card.name || 'Insurance');
+        const insuranceCategory = getInsuranceMonthValue(card, currentMonth, 'insuranceCategory', card.insuranceCategory || 'term');
+        const insuranceType = getInsuranceTypeLabel(insuranceCategory || 'term');
+        const providerValue = getInsuranceMonthValue(card, currentMonth, 'issuer', card.issuer || '-');
+        const provider = escapeHtml(providerValue || '-');
+        const validUpto = getInsuranceMonthValue(card, currentMonth, 'insuranceValidUpto', card.insuranceValidUpto || card.dueDate || '-');
+        const policyNumber = escapeHtml(getInsuranceMonthValue(card, currentMonth, 'policyNumber', card.policyNumber || '') || '');
+        const coverageRawValue = getInsuranceMonthValue(card, currentMonth, 'coverageAmount', card.coverageAmount);
+        const coverageAmount = Number.parseFloat(coverageRawValue);
         const coverageDisplay = Number.isFinite(coverageAmount)
             ? formatCurrency(coverageAmount)
             : '-';
         const coverageClass = Number.isFinite(coverageAmount)
             ? 'insurance-coverage-amount amount-positive'
             : 'insurance-coverage-amount';
-        const statusLabel = card.insuranceStatus || 'active';
+        const statusValue = getInsuranceMonthValue(card, currentMonth, 'insuranceStatus', card.insuranceStatus || 'active');
+        const statusLabel = typeof statusValue === 'string' && statusValue.trim() ? statusValue : 'active';
         const statusBadgeClass = getInsuranceStatusBadgeClass(statusLabel);
+        const indicatorColor = getInsuranceMonthValue(card, currentMonth, 'color', card.color || '#ffb454');
 
         return `
         <tr>
             <td>
                 <div style="display:flex;align-items:center;gap:8px;">
-                    <span style="width:8px;height:8px;border-radius:50%;background:${card.color || '#ffb454'};display:inline-block;"></span>
+                    <span style="width:8px;height:8px;border-radius:50%;background:${indicatorColor};display:inline-block;"></span>
                     <div style="display:flex;flex-direction:column;gap:4px;">
-                        <strong>${escapeHtml(card.name)}</strong>
+                        <strong>${escapeHtml(insuranceName)}</strong>
                         ${policyNumber ? `<span style="font-size:0.8rem;color:var(--text-muted);">Policy ${policyNumber}</span>` : ''}
                     </div>
                 </div>
@@ -1742,6 +1832,7 @@ function renderInsurance() {
 
 function renderCharts() {
     const currentSummary = computeFinancialSummary(financeData, currentMonth);
+    const snapshots = buildChartSnapshots();
 
     if (isWidgetEnabled('analyticsInvestmentBreakdown')) {
         renderSpendingBreakdownChart();
@@ -1751,21 +1842,21 @@ function renderCharts() {
     }
 
     if (isWidgetEnabled('analyticsNetWorthTrend')) {
-        renderNetWorthChart(currentSummary);
+        renderNetWorthChart(currentSummary, snapshots);
     } else if (charts.netWorth) {
         charts.netWorth.destroy();
         delete charts.netWorth;
     }
 
     if (isWidgetEnabled('analyticsIncomeExpense')) {
-        renderIncomeExpenseChart(currentSummary);
+        renderIncomeExpenseChart(currentSummary, snapshots);
     } else if (charts.incomeExpense) {
         charts.incomeExpense.destroy();
         delete charts.incomeExpense;
     }
 
     if (isWidgetEnabled('analyticsCategoryTrend')) {
-        renderCategoryTrendChart(currentSummary);
+        renderCategoryTrendChart(currentSummary, snapshots);
     } else if (charts.categoryTrend) {
         charts.categoryTrend.destroy();
         delete charts.categoryTrend;
@@ -1888,13 +1979,12 @@ function renderSpendingBreakdownChart() {
     });
 }
 
-function renderNetWorthChart(currentSummary) {
+function renderNetWorthChart(currentSummary, snapshots) {
     const ctx = document.getElementById('netWorthChart');
     if (!ctx) return;
 
     if (charts.netWorth) charts.netWorth.destroy();
 
-    const snapshots = buildChartSnapshots();
     const months = Object.keys(snapshots).sort();
     const chartMonths = [...new Set([...months, currentMonth])].sort();
     const last6 = chartMonths.slice(-6);
@@ -1978,13 +2068,12 @@ function renderNetWorthChart(currentSummary) {
     });
 }
 
-function renderIncomeExpenseChart(currentSummary) {
+function renderIncomeExpenseChart(currentSummary, snapshots) {
     const ctx = document.getElementById('incomeExpenseChart');
     if (!ctx) return;
 
     if (charts.incomeExpense) charts.incomeExpense.destroy();
 
-    const snapshots = buildChartSnapshots();
     const months = Object.keys(snapshots).sort();
     const chartMonths = [...new Set([...months, currentMonth])].sort();
     const last6 = chartMonths.slice(-6);
@@ -2065,13 +2154,12 @@ function renderIncomeExpenseChart(currentSummary) {
     });
 }
 
-function renderCategoryTrendChart(currentSummary) {
+function renderCategoryTrendChart(currentSummary, snapshots) {
     const ctx = document.getElementById('categoryTrendChart');
     if (!ctx) return;
 
     if (charts.categoryTrend) charts.categoryTrend.destroy();
 
-    const snapshots = buildChartSnapshots();
     const months = Object.keys(snapshots).sort();
     const chartMonths = [...new Set([...months, currentMonth])].sort();
     const last6 = chartMonths.slice(-6);
@@ -2200,10 +2288,9 @@ function renderAll() {
 function debouncedRenderAll() {
     if (renderDebounceTimer) clearTimeout(renderDebounceTimer);
     renderDebounceTimer = setTimeout(() => {
-        // Skip render if data hasn't changed (prevent redundant re-renders)
-        const dataJSON = JSON.stringify(financeData);
-        if (dataJSON === lastRenderedDataJSON) return;
-        lastRenderedDataJSON = dataJSON;
+        // Skip render if data version has not changed.
+        if (financeDataVersion === lastRenderedDataVersion) return;
+        lastRenderedDataVersion = financeDataVersion;
         renderAll();
     }, 250);
 }
@@ -2665,6 +2752,7 @@ window.submitAddCreditCard = async function() {
 window.editFinanceCreditCard = function(cardId) {
     const card = financeData.creditCards[cardId];
     if (!card) return;
+    const insuranceMonthData = getInsuranceMonthData(card, currentMonth) || {};
     const outstanding = card.balances
         ? (card.balances[currentMonth] || 0)
         : (card.outstandingBalance || 0);
@@ -2680,10 +2768,10 @@ window.editFinanceCreditCard = function(cardId) {
     document.getElementById('cardLimit').value = getCreditCardLimit(card, currentMonth) || '';
     document.getElementById('cardDueDate').value = card.dueDate || '';
     document.getElementById('cardExpenseDate').value = card.expenseDate || '';
-    document.getElementById('insuranceStartDate').value = card.insuranceStartDate || card.expenseDate || '';
-    document.getElementById('insuranceValidUpto').value = card.insuranceValidUpto || card.dueDate || '';
-    document.getElementById('insuranceCoverageAmount').value = card.coverageAmount ?? '';
-    document.getElementById('cardNotes').value = card.notes || '';
+    document.getElementById('insuranceStartDate').value = insuranceMonthData.insuranceStartDate ?? card.insuranceStartDate ?? card.expenseDate ?? '';
+    document.getElementById('insuranceValidUpto').value = insuranceMonthData.insuranceValidUpto ?? card.insuranceValidUpto ?? card.dueDate ?? '';
+    document.getElementById('insuranceCoverageAmount').value = insuranceMonthData.coverageAmount ?? card.coverageAmount ?? '';
+    document.getElementById('cardNotes').value = insuranceMonthData.notes ?? card.notes ?? '';
     if (type === 'loan') {
         document.getElementById('loanPaymentStatus').value = isCardPaidForMonth(card, currentMonth) ? 'paid' : 'unpaid';
         document.getElementById('loanDueDate').value = card.dueDate || '';
@@ -2692,10 +2780,10 @@ window.editFinanceCreditCard = function(cardId) {
         document.getElementById('generalPaymentStatus').value = isCardPaidForMonth(card, currentMonth) ? 'paid' : 'unpaid';
         document.getElementById('cardIssuerGeneral').value = card.issuer || '';
     } else if (type === 'insurance') {
-        document.getElementById('cardIssuerInsurance').value = card.issuer || '';
-        document.getElementById('insurancePolicyType').value = card.insuranceCategory || 'term';
-        document.getElementById('insurancePolicyNumber').value = card.policyNumber || '';
-        document.getElementById('insuranceStatusSelect').value = card.insuranceStatus || 'active';
+        document.getElementById('cardIssuerInsurance').value = insuranceMonthData.issuer ?? card.issuer ?? '';
+        document.getElementById('insurancePolicyType').value = insuranceMonthData.insuranceCategory ?? card.insuranceCategory ?? 'term';
+        document.getElementById('insurancePolicyNumber').value = insuranceMonthData.policyNumber ?? card.policyNumber ?? '';
+        document.getElementById('insuranceStatusSelect').value = insuranceMonthData.insuranceStatus ?? card.insuranceStatus ?? 'active';
     } else {
         document.getElementById('cardPaymentStatus').value = isCardPaidForMonth(card, currentMonth) ? 'paid' : 'unpaid';
         document.getElementById('cardIssuer').value = card.issuer || '';
@@ -2732,125 +2820,158 @@ window.deleteFinanceCreditCard = async function(cardId) {
 
 // --- Copy Previous Month ---
 window.copyFromPreviousMonth = async function() {
-    const confirmed = await showConfirmModal(
-        'Copy Previous Month',
-        `This will copy major finance data from the previous month to ${getMonthDisplay(currentMonth)}. Existing entries for this month will NOT be overwritten. Continue?`,
-        {
-            confirmText: 'Confirm',
-            confirmVariant: 'primary',
-            confirmIcon: 'bi-check-lg'
-        }
-    );
-    if (!confirmed) return;
+    if (isCopyOperationInProgress) {
+        showToast('Copy already in progress. Please wait.', 'info');
+        return;
+    }
 
-    showToast('Copying data from previous month...', 'info');
-    const result = await copyPreviousMonthData(currentMonth);
-    if (result.success) {
-        let msg = `Copied ${result.banksCopied} bank(s) and ${result.cardsCopied} card(s) from ${getMonthDisplay(result.prevMonth)}`;
-        if (result.taxesCopied) {
-            msg += `, plus ${result.taxesCopied} tax entr${result.taxesCopied === 1 ? 'y' : 'ies'}`;
+    isCopyOperationInProgress = true;
+    try {
+        const confirmed = await showConfirmModal(
+            'Copy Previous Month',
+            `This will copy major finance data from the previous month to ${getMonthDisplay(currentMonth)}. Existing entries for this month will NOT be overwritten. Continue?`,
+            {
+                confirmText: 'Confirm',
+                confirmVariant: 'primary',
+                confirmIcon: 'bi-check-lg'
+            }
+        );
+        if (!confirmed) return;
+
+        showToast('Copying from previous month.', 'info');
+        const result = await copyPreviousMonthData(currentMonth);
+        if (result.success) {
+            const copiedParts = [];
+            if ((result.banksCopied || 0) > 0) copiedParts.push(`${result.banksCopied} bank value${result.banksCopied === 1 ? '' : 's'}`);
+            if ((result.cardsCopied || 0) > 0) copiedParts.push(`${result.cardsCopied} expense value${result.cardsCopied === 1 ? '' : 's'}`);
+            if ((result.taxesCopied || 0) > 0) copiedParts.push(`${result.taxesCopied} tax value${result.taxesCopied === 1 ? '' : 's'}`);
+            if ((result.epfoCopied || 0) > 0) copiedParts.push(`${result.epfoCopied} EPFO value${result.epfoCopied === 1 ? '' : 's'}`);
+            if ((result.categoryItemsCopied || 0) > 0) copiedParts.push(`${result.categoryItemsCopied} investment item${result.categoryItemsCopied === 1 ? '' : 's'}`);
+
+            if (copiedParts.length === 0) {
+                showToast('Copy complete. No new data found to copy.', 'info');
+                return;
+            }
+
+            showToast(`Copy complete. ${copiedParts.join(', ')}.`, 'success');
+        } else {
+            showToast('Failed to copy. ' + (result.error || ''), 'error');
         }
-        if (result.epfoCopied) {
-            msg += `, plus ${result.epfoCopied} EPFO entr${result.epfoCopied === 1 ? 'y' : 'ies'}`;
-        }
-        if (result.categoryItemsCopied) {
-            msg += `, plus ${result.categoryItemsCopied} investment item(s)`;
-        }
-        showToast(msg, 'success');
-    } else {
-        showToast('Failed to copy. ' + (result.error || ''), 'error');
+    } finally {
+        isCopyOperationInProgress = false;
     }
 };
 
 window.copyFinanceDataFromSettings = async function() {
-    if (!getCurrentUser()) {
-        showToast('Please sign in to copy data.', 'warning');
+    if (isCopyOperationInProgress) {
+        showToast('Copy already in progress. Please wait.', 'info');
         return;
     }
 
-    const sourceMonth = document.getElementById('copySourceMonth')?.value;
-    const targetMonth = document.getElementById('copyTargetMonth')?.value;
-
-    if (!sourceMonth || !targetMonth) {
-        showToast('Please choose source and target month.', 'warning');
-        return;
-    }
-
-    if (sourceMonth === targetMonth) {
-        showToast('Source and target month cannot be the same.', 'warning');
-        return;
-    }
-
-    const selectedCopyMode = document.querySelector('input[name="copyModeSelection"]:checked')?.value;
-    if (!selectedCopyMode) {
-        showToast('Please select either Copy Only or Copy and Replace before continuing.', 'warning');
-        return;
-    }
-
-    const copyAndReplaceEnabled = selectedCopyMode === 'replace';
-    const selectedCopyModeLabel = copyAndReplaceEnabled ? 'Copy and Replace' : 'Copy Only';
-
-    const options = {
-        includeCategories: Boolean(document.getElementById('copySectionCategories')?.checked),
-        includeBanks: Boolean(document.getElementById('copySectionBanks')?.checked),
-        includeExpenses: Boolean(document.getElementById('copySectionExpenses')?.checked),
-        includeInsurance: Boolean(document.getElementById('copySectionInsurance')?.checked),
-        includeIncome: Boolean(document.getElementById('copySectionIncome')?.checked),
-        includeTaxes: Boolean(document.getElementById('copySectionTaxes')?.checked),
-        includeEPFO: Boolean(document.getElementById('copySectionEPFO')?.checked),
-        overwriteExisting: copyAndReplaceEnabled,
-        replaceCategories: copyAndReplaceEnabled && Boolean(document.getElementById('copySectionCategories')?.checked),
-        replaceInsurance: copyAndReplaceEnabled && Boolean(document.getElementById('copySectionInsurance')?.checked)
-    };
-
-    const hasSelectedSection = options.includeCategories
-        || options.includeBanks
-        || options.includeExpenses
-        || options.includeInsurance
-        || options.includeIncome
-        || options.includeTaxes
-        || options.includeEPFO;
-    if (!hasSelectedSection) {
-        showToast('Select at least one section to copy.', 'warning');
-        return;
-    }
-
-    const confirmed = await showConfirmModal(
-        'Copy Selected Data',
-        `Copy selected data from ${getMonthDisplay(sourceMonth)} to ${getMonthDisplay(targetMonth)} in ${selectedCopyModeLabel} mode?`,
-        {
-            confirmText: 'Confirm',
-            confirmVariant: 'primary',
-            confirmIcon: 'bi-check-lg'
+    isCopyOperationInProgress = true;
+    try {
+        if (!getCurrentUser()) {
+            showToast('Please sign in to copy data.', 'warning');
+            return;
         }
-    );
-    if (!confirmed) return;
 
-    showToast('Copying selected data...', 'info');
-    const result = await copyFinanceDataBetweenMonths(sourceMonth, targetMonth, options);
-    if (!result.success) {
-        showToast('Failed to copy selected data. ' + (result.error || ''), 'error');
-        return;
+        const sourceMonth = document.getElementById('copySourceMonth')?.value;
+        const targetMonth = document.getElementById('copyTargetMonth')?.value;
+
+        if (!sourceMonth || !targetMonth) {
+            showToast('Please choose source and target month.', 'warning');
+            return;
+        }
+
+        if (sourceMonth === targetMonth) {
+            showToast('Source and target month cannot be the same.', 'warning');
+            return;
+        }
+
+        const selectedCopyMode = document.querySelector('input[name="copyModeSelection"]:checked')?.value;
+        if (!selectedCopyMode) {
+            showToast('Choose Copy Only or Copy and Replace to continue.', 'warning');
+            return;
+        }
+
+        const copyAndReplaceEnabled = selectedCopyMode === 'replace';
+        const selectedCopyModeLabel = copyAndReplaceEnabled ? 'Copy and Replace' : 'Copy Only';
+
+        const options = {
+            includeCategories: Boolean(document.getElementById('copySectionCategories')?.checked),
+            includeBanks: Boolean(document.getElementById('copySectionBanks')?.checked),
+            includeExpenses: Boolean(document.getElementById('copySectionExpenses')?.checked),
+            includeInsurance: Boolean(document.getElementById('copySectionInsurance')?.checked),
+            includeIncome: Boolean(document.getElementById('copySectionIncome')?.checked),
+            includeTaxes: Boolean(document.getElementById('copySectionTaxes')?.checked),
+            includeEPFO: Boolean(document.getElementById('copySectionEPFO')?.checked),
+            overwriteExisting: copyAndReplaceEnabled,
+            replaceCategories: copyAndReplaceEnabled && Boolean(document.getElementById('copySectionCategories')?.checked),
+            replaceInsurance: copyAndReplaceEnabled && Boolean(document.getElementById('copySectionInsurance')?.checked)
+        };
+
+        const hasSelectedSection = options.includeCategories
+            || options.includeBanks
+            || options.includeExpenses
+            || options.includeInsurance
+            || options.includeIncome
+            || options.includeTaxes
+            || options.includeEPFO;
+        if (!hasSelectedSection) {
+            showToast('Select at least one section to copy.', 'warning');
+            return;
+        }
+
+        const confirmed = await showConfirmModal(
+            'Copy Selected Data',
+            `Copy selected data from ${getMonthDisplay(sourceMonth)} to ${getMonthDisplay(targetMonth)} in ${selectedCopyModeLabel} mode?`,
+            {
+                confirmText: 'Confirm',
+                confirmVariant: 'primary',
+                confirmIcon: 'bi-check-lg'
+            }
+        );
+        if (!confirmed) return;
+
+        showToast('Copy in progress.', 'info');
+        const result = await copyFinanceDataBetweenMonths(sourceMonth, targetMonth, options);
+        if (!result.success) {
+            showToast('Failed to copy selected data. ' + (result.error || ''), 'error');
+            return;
+        }
+
+        const summaryParts = [];
+        if ((result.categoryItemsCopied || 0) > 0) {
+            summaryParts.push(`Categories: ${result.categoryItemsCopied} item${result.categoryItemsCopied === 1 ? '' : 's'}`);
+        }
+        if ((result.banksCopied || 0) > 0) {
+            summaryParts.push(`Banks: ${result.banksCopied}`);
+        }
+        if ((result.expensesCopied || 0) > 0) {
+            summaryParts.push(`Expenses: ${result.expensesCopied}`);
+        }
+        if ((result.insuranceCopied || 0) > 0) {
+            summaryParts.push(`Insurance: ${result.insuranceCopied}`);
+        }
+        if ((result.incomeCopied || 0) > 0) {
+            summaryParts.push(`Income: ${result.incomeCopied}`);
+        }
+        if ((result.taxesCopied || 0) > 0) {
+            summaryParts.push(`Tax: ${result.taxesCopied}`);
+        }
+        if ((result.epfoCopied || 0) > 0) {
+            summaryParts.push(`EPFO: ${result.epfoCopied}`);
+        }
+
+        if (summaryParts.length === 0) {
+            showToast('Copy complete. No data found to copy.', 'info');
+            return;
+        }
+
+        showToast(`Copy complete. ${summaryParts.join(', ')}.`, 'success');
+    } finally {
+        isCopyOperationInProgress = false;
     }
-
-    const summaryParts = [];
-    if (options.includeCategories) {
-        const found = result.categorySourceItemsFound || 0;
-        const copied = result.categoryItemsCopied || 0;
-        const skipped = result.categoryItemsSkipped || 0;
-        const failed = result.categoryItemsFailed || 0;
-        const invalid = result.categorySourceItemsInvalid || 0;
-        summaryParts.push(`${copied} investment item(s) copied (source: ${found}, skipped: ${skipped}, failed: ${failed}, invalid: ${invalid})`);
-    }
-    if (options.includeBanks) summaryParts.push(`${result.banksCopied || 0} bank account value(s)`);
-    if (options.includeExpenses) summaryParts.push(`${result.expensesCopied || 0} expense entr${(result.expensesCopied || 0) === 1 ? 'y' : 'ies'}`);
-    if (options.includeInsurance) summaryParts.push(`${result.insuranceCopied || 0} insurance entr${(result.insuranceCopied || 0) === 1 ? 'y' : 'ies'}`);
-    if (options.includeIncome) summaryParts.push(`${result.incomeCopied || 0} income entr${(result.incomeCopied || 0) === 1 ? 'y' : 'ies'}`);
-    if (options.includeTaxes) summaryParts.push(`${result.taxesCopied || 0} tax entr${(result.taxesCopied || 0) === 1 ? 'y' : 'ies'}`);
-    if (options.includeEPFO) summaryParts.push(`${result.epfoCopied || 0} EPFO entr${(result.epfoCopied || 0) === 1 ? 'y' : 'ies'}`);
-
-    const summaryText = summaryParts.length > 0 ? summaryParts.join(', ') : 'No data copied';
-    showToast(`Copy completed: ${summaryText}`, 'success');
 };
 
 function getMonthsBetween(fromMonth, toMonth) {
@@ -3769,7 +3890,8 @@ function setupAuth() {
 
             // Reset state for new user session
             isInitialLoad = true;
-            lastRenderedDataJSON = '';
+            financeDataVersion = 0;
+            lastRenderedDataVersion = -1;
             financeViewPreferences = createDefaultSectionPreferences();
             applySectionPreferences();
             loadSectionPreferences().catch(() => {
@@ -3781,6 +3903,7 @@ function setupAuth() {
             if (unsubscribeFinance) unsubscribeFinance();
             unsubscribeFinance = listenToFinanceData((data) => {
                 financeData = data;
+                financeDataVersion += 1;
                 renderRecordPreferenceOptions();
                 debouncedRenderAll();
             });
@@ -3795,7 +3918,8 @@ function setupAuth() {
             if (unsubscribeFinance) { unsubscribeFinance(); unsubscribeFinance = null; }
             // Reset state on logout
             isInitialLoad = true;
-            lastRenderedDataJSON = '';
+            financeDataVersion = 0;
+            lastRenderedDataVersion = -1;
             financeViewPreferences = createDefaultSectionPreferences();
             applySectionPreferences();
             renderRecordPreferenceOptions();
@@ -3818,7 +3942,7 @@ function setupAuth() {
                 if (modal) modal.hide();
             } else {
                 const container = document.getElementById('authAlertContainer');
-                if (container) container.innerHTML = `<div class="alert alert-danger">${result.error}</div>`;
+                if (container) container.innerHTML = `<div class="alert alert-danger">${escapeHtml(result.error || 'Sign-in failed.')}</div>`;
             }
         });
     }
@@ -3841,7 +3965,7 @@ function setupAuth() {
                 const modal = bootstrap.Modal.getInstance(document.getElementById('authModal'));
                 if (modal) modal.hide();
             } else {
-                document.getElementById('authAlertContainer').innerHTML = `<div class="alert alert-danger">${result.error}</div>`;
+                document.getElementById('authAlertContainer').innerHTML = `<div class="alert alert-danger">${escapeHtml(result.error || 'Sign-up failed.')}</div>`;
             }
         });
     }
@@ -3854,7 +3978,7 @@ function setupAuth() {
             const modal = bootstrap.Modal.getInstance(document.getElementById('authModal'));
             if (modal) modal.hide();
         } else {
-            document.getElementById('authAlertContainer').innerHTML = `<div class="alert alert-danger">${result.error}</div>`;
+            document.getElementById('authAlertContainer').innerHTML = `<div class="alert alert-danger">${escapeHtml(result.error || 'Google sign-in failed.')}</div>`;
         }
     });
 
@@ -3925,9 +4049,9 @@ function setupAuth() {
         const result = await resetPassword(email);
         const container = document.getElementById('authAlertContainer');
         if (result.success) {
-            container.innerHTML = `<div class="alert alert-success">${result.message}</div>`;
+            container.innerHTML = `<div class="alert alert-success">${escapeHtml(result.message || 'Reset email sent.')}</div>`;
         } else {
-            container.innerHTML = `<div class="alert alert-danger">${result.error}</div>`;
+            container.innerHTML = `<div class="alert alert-danger">${escapeHtml(result.error || 'Password reset failed.')}</div>`;
         }
     });
 
@@ -3953,10 +4077,10 @@ function setupAuth() {
             const result = await changePassword(current, newPw);
             const container = document.getElementById('profileAlertContainer');
             if (result.success) {
-                container.innerHTML = `<div class="alert alert-success">${result.message}</div>`;
+                container.innerHTML = `<div class="alert alert-success">${escapeHtml(result.message || 'Password updated.')}</div>`;
                 changePwForm.reset();
             } else {
-                container.innerHTML = `<div class="alert alert-danger">${result.error}</div>`;
+                container.innerHTML = `<div class="alert alert-danger">${escapeHtml(result.error || 'Unable to change password.')}</div>`;
             }
         });
     }

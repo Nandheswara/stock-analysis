@@ -614,7 +614,7 @@ async function loadUsers() {
                 ...data,
                 createdAt: normalizeTimestamp(data.createdAt) || normalizeTimestamp(data.metadata?.createdAt) || null,
                 lastActive: normalizeTimestamp(data.lastActive) || normalizeTimestamp(data.metadata?.lastLogin) || null
-            }));
+            })).filter((user) => !Boolean(user.isDeleted));
             
             // Sort by creation date (newest first)
             allUsers.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
@@ -1026,98 +1026,94 @@ async function addUser(event) {
         showToast('Password must be at least 6 characters', 'warning');
         return;
     }
-    
+
+    showToast('Creating user... Please wait, you will be briefly signed out.', 'info');
+
+    const adminEmail = currentUser.email;
+    const adminUid = currentUser.uid;
+    const now = Date.now();
+    let newUser = null;
+
     try {
-        showToast('Creating user... Please wait, you will be briefly signed out.', 'info');
-        
-        // Store current admin credentials
-        const adminEmail = currentUser.email;
-        const adminUid = currentUser.uid;
-        
-        // Create new user in Firebase Auth
-        // This will sign out the current admin temporarily
+        // This signs in as the newly created user.
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const newUser = userCredential.user;
-        
-        // Create user data in database using the actual Firebase Auth UID
-        const userRef = ref(database, `users/${newUser.uid}`);
-        await set(userRef, {
-            email: email,
-            displayName: displayName || null,
-            role: role,
-            status: 'active',
-            createdAt: Date.now(),
-            createdBy: adminUid,
-            lastActive: Date.now(),
-            requirePasswordChange: true,
-            metadata: {
-                createdAt: Date.now(),
-                lastLogin: null
+        newUser = userCredential.user;
+
+        const rootRef = ref(database);
+        const batchedUpdates = {
+            [`users/${newUser.uid}`]: {
+                email,
+                displayName: displayName || null,
+                role,
+                status: 'active',
+                createdAt: now,
+                createdBy: adminUid,
+                lastActive: now,
+                requirePasswordChange: true,
+                metadata: {
+                    createdAt: now,
+                    lastLogin: null
+                }
             }
-        });
-        
-        // If role is admin, add to adminUsers list as well
+        };
+
         if (role === 'admin') {
             const adminRef = push(ref(database, 'adminUsers'));
-            await set(adminRef, {
-                email: email,
+            batchedUpdates[`adminUsers/${adminRef.key}`] = {
+                email,
                 addedBy: adminUid,
                 addedByEmail: adminEmail,
-                addedAt: Date.now(),
+                addedAt: now,
                 notes: 'Added during user creation',
                 active: true
-            });
+            };
         }
-        
-        // Log action (using stored admin info since we're now signed in as new user)
+
         const logRef = push(ref(database, 'adminLogs'));
-        await set(logRef, {
-            timestamp: Date.now(),
+        batchedUpdates[`adminLogs/${logRef.key}`] = {
+            timestamp: now,
             adminId: adminUid,
-            adminEmail: adminEmail,
+            adminEmail,
             action: 'user_created',
             targetUserId: newUser.uid,
             details: `Created user: ${email}${role === 'admin' ? ' (with admin access)' : ''}`
-        });
-        
-        // Queue welcome email if requested
+        };
+
         if (sendWelcome) {
             const emailRef = push(ref(database, 'emailQueue'));
-            await set(emailRef, {
+            batchedUpdates[`emailQueue/${emailRef.key}`] = {
                 recipients: 'single',
                 recipientEmails: [email],
                 recipientCount: 1,
                 subject: 'Welcome to Equity Labs',
                 body: `Hello${displayName ? ' ' + displayName : ''},\n\nYour account has been created.\n\nEmail: ${email}\nTemporary Password: ${password}\n\nPlease login and change your password.\n\nBest regards,\nEquity Labs`,
-                createdAt: Date.now(),
+                createdAt: now,
                 createdBy: adminUid,
                 createdByEmail: adminEmail,
                 status: 'pending',
                 type: 'welcome'
-            });
+            };
         }
-        
-        // Sign out the newly created user
-        await auth.signOut();
-        
-        // Close modal
-        bootstrap.Modal.getInstance(document.getElementById('addUserModal'))?.hide();
-        
-        // Reset form
-        document.getElementById('addUserForm').reset();
-        
-        // Show success message with instructions to re-login
-        showToast(`User ${email} created successfully! Please login again as admin.`, 'success');
-        
-        // Redirect to login after a delay
-        setTimeout(() => {
-            window.location.reload();
-        }, 2000);
-        
+
+        await update(rootRef, batchedUpdates);
     } catch (error) {
-        // Error:('Error creating user:', error);
+        // Roll back partially created auth account if DB writes fail after auth creation.
+        if (newUser) {
+            try {
+                await firebaseDeleteUser(newUser);
+            } catch (rollbackError) {
+                // Best effort rollback.
+            }
+
+            try {
+                await remove(ref(database, `users/${newUser.uid}`));
+            } catch (cleanupError) {
+                // Best effort cleanup.
+            }
+        }
+
         let errorMessage = error.message;
-        
+
         if (error.code === 'auth/email-already-in-use') {
             errorMessage = 'This email is already registered. Use a different email.';
         } else if (error.code === 'auth/invalid-email') {
@@ -1125,9 +1121,25 @@ async function addUser(event) {
         } else if (error.code === 'auth/weak-password') {
             errorMessage = 'Password is too weak. Use at least 6 characters.';
         }
-        
+
         showToast(`Error creating user: ${errorMessage}`, 'danger');
+        return;
     }
+
+    try {
+        await auth.signOut();
+    } catch (signOutError) {
+        log('warn', 'New user created but sign-out failed', { error: signOutError.message });
+    }
+
+    bootstrap.Modal.getInstance(document.getElementById('addUserModal'))?.hide();
+    document.getElementById('addUserForm').reset();
+
+    showToast(`User ${email} created successfully! Please login again as admin.`, 'success');
+
+    setTimeout(() => {
+        window.location.reload();
+    }, 2000);
 }
 
 /**
@@ -1210,8 +1222,20 @@ async function deleteUser() {
     }
     
     try {
-        // Delete user data from database
-        await remove(ref(database, `users/${selectedUserId}`));
+        const deletedAt = Date.now();
+        const userRef = ref(database, `users/${selectedUserId}`);
+
+        // Soft-delete account metadata so login can still be blocked reliably.
+        await update(userRef, {
+            status: 'disabled',
+            isDeleted: true,
+            deletedAt,
+            deletedBy: currentUser.uid,
+            deletedByEmail: currentUser.email || '',
+            updatedAt: deletedAt,
+            finance: null
+        });
+
         await remove(ref(database, `stocks/${selectedUserId}`));
         await remove(ref(database, `portfolio/${selectedUserId}`));
         
@@ -2839,9 +2863,60 @@ function generatePassword() {
  * @param {string} message - Toast message
  * @param {string} type - Toast type (success, danger, warning, info)
  */
+function simplifyToastMessage(message, type = 'info') {
+    const text = String(message || '').replace(/\s+/g, ' ').trim();
+    if (!text) {
+        return type === 'success' ? 'Done.' : 'Please try again.';
+    }
+
+    const isErrorToast = type === 'danger' || type === 'error';
+    if (!isErrorToast) {
+        return text.replace(/!+$/g, '.').replace(/\s+\./g, '.');
+    }
+
+    const lowerText = text.toLowerCase();
+
+    if (lowerText.includes('values argument contains a path') || lowerText.includes('ancestor of another path')) {
+        return 'Could not save the update right now. Please try again.';
+    }
+
+    if (
+        lowerText.includes('permission_denied') ||
+        lowerText.includes('auth/') ||
+        lowerText.includes('unauthorized') ||
+        lowerText.includes('forbidden')
+    ) {
+        return 'You do not have permission for this action.';
+    }
+
+    if (
+        lowerText.includes('network') ||
+        lowerText.includes('offline') ||
+        lowerText.includes('timeout') ||
+        lowerText.includes('timed out') ||
+        lowerText.includes('unavailable')
+    ) {
+        return 'Network issue. Please check your connection and try again.';
+    }
+
+    const failedActionMatch = text.match(/^(?:failed to|unable to|could not)\s+([^.!]+)(?:[.!]|$)/i);
+    if (failedActionMatch && failedActionMatch[1]) {
+        return `Could not ${failedActionMatch[1].trim()}. Please try again.`;
+    }
+
+    const errorActionMatch = text.match(/^error\s+([^:!.]+)(?:[:.!]|$)/i);
+    if (errorActionMatch && errorActionMatch[1]) {
+        return `Could not ${errorActionMatch[1].trim()}. Please try again.`;
+    }
+
+    return 'Something went wrong. Please try again.';
+}
+
 function showToast(message, type = 'info') {
     const container = document.getElementById('toastContainer');
     if (!container) return;
+
+    const friendlyMessage = simplifyToastMessage(message, type);
     
     const toastId = `toast-${Date.now()}`;
     const bgClass = {
@@ -2859,7 +2934,7 @@ function showToast(message, type = 'info') {
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>
             <div class="toast-body">
-                ${escapeHtml(message)}
+                ${escapeHtml(friendlyMessage)}
             </div>
         </div>
     `;

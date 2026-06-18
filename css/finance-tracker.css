@@ -796,6 +796,10 @@
     color: var(--accent-warning);
 }
 
+.finance-table .insurance-coverage-amount {
+    font-weight: 700;
+}
+
 .finance-table .table-actions {
     display: flex;
     gap: 6px;

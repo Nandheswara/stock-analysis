@@ -248,15 +248,47 @@
                         </div>
                     </div>
 
-                    <!-- Change Password Section -->
-                    <div class="card profile-card mb-4">
+                    <!-- Linked Accounts Section -->
+                    <div class="card profile-card mb-4" id="linkedAccountsCard">
                         <div class="card-header">
-                            <h5 class="mb-0"><i class="bi bi-shield-lock"></i> Change Password</h5>
+                            <h5 class="mb-0"><i class="bi bi-link-45deg"></i> Linked Accounts</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="linkedAccountsAlert"></div>
+                            
+                            <!-- Email & Password Provider -->
+                            <div class="d-flex align-items-center justify-content-between mb-3 pb-3 border-bottom">
+                                <div>
+                                    <h6 class="mb-1"><i class="bi bi-envelope-at"></i> Email & Password</h6>
+                                    <small class="text-muted">Sign in using your email address and password.</small>
+                                </div>
+                                <span class="badge bg-secondary" id="emailPasswordBadge">Checking...</span>
+                            </div>
+                            
+                            <!-- Google SSO Provider -->
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <h6 class="mb-1"><i class="bi bi-google"></i> Google Account</h6>
+                                    <small class="text-muted" id="googleConnectionEmail">Checking status...</small>
+                                </div>
+                                <div id="googleActionContainer">
+                                    <button class="btn btn-outline-primary btn-sm" id="connectGoogleBtn" disabled>
+                                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Loading...
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Change Password Section -->
+                    <div class="card profile-card mb-4" id="passwordCard">
+                        <div class="card-header">
+                            <h5 class="mb-0" id="passwordCardHeader"><i class="bi bi-shield-lock"></i> Change Password</h5>
                         </div>
                         <div class="card-body">
                             <div id="passwordAlert"></div>
                             <form id="changePasswordForm">
-                                <div class="mb-3">
+                                <div class="mb-3" id="currentPasswordGroup">
                                     <label for="currentPassword" class="form-label">Current Password</label>
                                     <div class="input-group">
                                         <input type="password" class="form-control" id="currentPassword" required>
@@ -339,10 +371,24 @@
                         <li>Delete your analysis history</li>
                         <li>Remove your profile information</li>
                     </ul>
-                    <p>To confirm, please enter your password:</p>
-                    <div class="mb-3">
-                        <label for="deleteConfirmPassword" class="form-label">Password</label>
-                        <input type="password" class="form-control" id="deleteConfirmPassword" required>
+                    <!-- For Password Users -->
+                    <div id="deletePasswordReauthContainer" style="display: none;">
+                        <p>To confirm, please enter your password:</p>
+                        <div class="mb-3">
+                            <label for="deleteConfirmPassword" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="deleteConfirmPassword">
+                        </div>
+                    </div>
+                    
+                    <!-- For Google-only Users -->
+                    <div id="deleteGoogleReauthContainer" style="display: none;" class="text-center my-3">
+                        <p>To confirm deletion, please reauthenticate with your Google account:</p>
+                        <button type="button" class="btn btn-outline-danger w-100 mb-2" id="reauthenticateGoogleBtn">
+                            <i class="bi bi-google"></i> Reauthenticate with Google
+                        </button>
+                        <div id="googleReauthSuccessBadge" class="text-success mt-2" style="display: none;">
+                            <i class="bi bi-check-circle-fill"></i> Reauthenticated successfully! You can now permanently delete your account.
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">

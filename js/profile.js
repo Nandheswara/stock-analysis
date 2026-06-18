@@ -29,6 +29,22 @@ import {
     sendVerificationEmail
 } from './firebase-auth-service.js';
 
+import { 
+    unlink,
+    linkWithPopup,
+    linkWithCredential,
+    reauthenticateWithCredential,
+    reauthenticateWithPopup,
+    deleteUser,
+    EmailAuthProvider,
+    GoogleAuthProvider
+} from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+import {
+    ref,
+    remove
+} from "https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js";
+import { database } from './firebase-config.js';
+
 /* ========================================
    Global Variables
    ======================================== */
@@ -38,6 +54,10 @@ let currentPhoneNumber = null;
 let profileModal = null;
 let deleteAccountModal = null;
 let authModal = null;
+
+let compatAuth = null;
+let compatDb = null;
+let isGoogleReauthenticated = false;
 
 /* ========================================
    Initialization
@@ -55,9 +75,35 @@ document.addEventListener('DOMContentLoaded', () => {
     // Listen for auth state changes
     onAuthStateChange((user) => {
         if (user) {
+            // Apply compat-style method wrappers onto the modular user object only if they do not exist (prevents infinite recursion)
+            if (typeof user.unlink !== 'function') user.unlink = (providerId) => unlink(user, providerId);
+            if (typeof user.linkWithPopup !== 'function') user.linkWithPopup = (provider) => linkWithPopup(user, provider);
+            if (typeof user.linkWithCredential !== 'function') user.linkWithCredential = (credential) => linkWithCredential(user, credential);
+            if (typeof user.reauthenticateWithCredential !== 'function') user.reauthenticateWithCredential = (credential) => reauthenticateWithCredential(user, credential);
+            if (typeof user.reauthenticateWithPopup !== 'function') user.reauthenticateWithPopup = (provider) => reauthenticateWithPopup(user, provider);
+            if (typeof user.delete !== 'function') user.delete = () => deleteUser(user);
+
+            // Set up compat SDK reference objects
+            compatAuth = { currentUser: user };
+            compatDb = {
+                ref: (path) => ({
+                    remove: () => remove(ref(database, path))
+                })
+            };
+
+            // Set up global firebase helper for credential creation
+            window.firebase = {
+                auth: {
+                    EmailAuthProvider: EmailAuthProvider,
+                    GoogleAuthProvider: GoogleAuthProvider
+                }
+            };
+
             currentUserData = getUserDetails();
             showProfileContent();
             populateUserData();
+            updateLinkedAccountsUI();
+            updatePasswordCardUI();
         } else {
             currentUserData = null;
             showAuthRequired();
@@ -124,8 +170,10 @@ function setupEventListeners() {
     if (deleteAccountBtn) {
         deleteAccountBtn.addEventListener('click', () => {
             if (deleteAccountModal) {
-                document.getElementById('deleteConfirmPassword').value = '';
+                const passwordInput = document.getElementById('deleteConfirmPassword');
+                if (passwordInput) passwordInput.value = '';
                 document.getElementById('deleteAccountAlert').innerHTML = '';
+                updateDeletionModalUI();
                 deleteAccountModal.show();
             }
         });
@@ -135,6 +183,12 @@ function setupEventListeners() {
     const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
     if (confirmDeleteBtn) {
         confirmDeleteBtn.addEventListener('click', handleDeleteAccount);
+    }
+
+    // Google reauthentication
+    const reauthenticateGoogleBtn = document.getElementById('reauthenticateGoogleBtn');
+    if (reauthenticateGoogleBtn) {
+        reauthenticateGoogleBtn.addEventListener('click', handleGoogleReauthentication);
     }
 
     const deleteConfirmPasswordInput = document.getElementById('deleteConfirmPassword');
@@ -415,9 +469,162 @@ async function handlePhoneUpdate(e) {
  * Handle password change
  * @param {Event} e - Submit event
  */
+/**
+ * Update Linked Accounts UI connection status and action buttons
+ */
+function updateLinkedAccountsUI() {
+    const user = compatAuth ? compatAuth.currentUser : null;
+    if (!user) return;
+
+    const hasPassword = user.providerData.some(p => p.providerId === 'password');
+    const googleProviderData = user.providerData.find(p => p.providerId === 'google.com');
+    const hasGoogle = !!googleProviderData;
+
+    // 1. Email & Password Badge
+    const emailPasswordBadge = document.getElementById('emailPasswordBadge');
+    if (emailPasswordBadge) {
+        if (hasPassword) {
+            emailPasswordBadge.className = 'badge bg-success';
+            emailPasswordBadge.textContent = 'Enabled';
+        } else {
+            emailPasswordBadge.className = 'badge bg-warning text-dark';
+            emailPasswordBadge.textContent = 'Disabled (Google Sign-In Only)';
+        }
+    }
+
+    // 2. Google Connection Info
+    const googleConnectionEmail = document.getElementById('googleConnectionEmail');
+    if (googleConnectionEmail) {
+        if (hasGoogle) {
+            googleConnectionEmail.textContent = `Connected (${googleProviderData.email || user.email})`;
+        } else {
+            googleConnectionEmail.textContent = 'Not Connected';
+        }
+    }
+
+    // 3. Google Action Button
+    const googleActionContainer = document.getElementById('googleActionContainer');
+    if (googleActionContainer) {
+        googleActionContainer.innerHTML = '';
+        if (hasGoogle) {
+            if (hasPassword) {
+                const disconnectBtn = document.createElement('button');
+                disconnectBtn.className = 'btn btn-outline-danger btn-sm';
+                disconnectBtn.id = 'disconnectGoogleBtn';
+                disconnectBtn.innerHTML = '<i class="bi bi-link-45deg"></i> Disconnect Google';
+                disconnectBtn.addEventListener('click', handleDisconnectGoogle);
+                googleActionContainer.appendChild(disconnectBtn);
+            }
+        } else {
+            const connectBtn = document.createElement('button');
+            connectBtn.className = 'btn btn-outline-primary btn-sm';
+            connectBtn.id = 'connectGoogleBtn';
+            connectBtn.innerHTML = '<i class="bi bi-google"></i> Connect Google Account';
+            connectBtn.addEventListener('click', handleConnectGoogle);
+            googleActionContainer.appendChild(connectBtn);
+        }
+    }
+}
+
+/**
+ * Update Password Card UI based on provider status
+ */
+function updatePasswordCardUI() {
+    const user = compatAuth ? compatAuth.currentUser : null;
+    if (!user) return;
+
+    const hasPassword = user.providerData.some(p => p.providerId === 'password');
+    const currentPasswordGroup = document.getElementById('currentPasswordGroup');
+    const currentPasswordInput = document.getElementById('currentPassword');
+    const passwordCardHeader = document.getElementById('passwordCardHeader');
+    const changePasswordBtn = document.getElementById('changePasswordBtn');
+
+    if (hasPassword) {
+        if (currentPasswordGroup) currentPasswordGroup.style.display = 'block';
+        if (currentPasswordInput) currentPasswordInput.required = true;
+        if (passwordCardHeader) passwordCardHeader.innerHTML = '<i class="bi bi-shield-lock"></i> Change Password';
+        if (changePasswordBtn) {
+            changePasswordBtn.innerHTML = '<i class="bi bi-shield-check"></i> Update Password';
+        }
+    } else {
+        if (currentPasswordGroup) currentPasswordGroup.style.display = 'none';
+        if (currentPasswordInput) {
+            currentPasswordInput.required = false;
+            currentPasswordInput.value = '';
+        }
+        if (passwordCardHeader) passwordCardHeader.innerHTML = '<i class="bi bi-shield-lock"></i> Set Account Password';
+        if (changePasswordBtn) {
+            changePasswordBtn.innerHTML = '<i class="bi bi-shield-check"></i> Create Password Login';
+        }
+    }
+}
+
+/**
+ * Handle Google Account connection linking
+ */
+async function handleConnectGoogle() {
+    const alertContainer = document.getElementById('linkedAccountsAlert');
+    const btn = document.getElementById('connectGoogleBtn');
+    if (!btn || !compatAuth.currentUser) return;
+
+    const originalBtnText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Connecting...';
+    showAlert(alertContainer, 'Connecting to Google...', 'info');
+
+    try {
+        const googleProvider = new window.firebase.auth.GoogleAuthProvider();
+        await compatAuth.currentUser.linkWithPopup(googleProvider);
+        showAlert(alertContainer, 'Google Account linked successfully!', 'success');
+        updateLinkedAccountsUI();
+        updatePasswordCardUI();
+        updateDeletionModalUI();
+    } catch (error) {
+        showAlert(alertContainer, error.message || 'Failed to link Google account.', 'danger');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalBtnText;
+        }
+    }
+}
+
+/**
+ * Handle Google Account disconnection unlinking
+ */
+async function handleDisconnectGoogle() {
+    const alertContainer = document.getElementById('linkedAccountsAlert');
+    const btn = document.getElementById('disconnectGoogleBtn');
+    if (!btn || !compatAuth.currentUser) return;
+
+    const originalBtnText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Disconnecting...';
+    showAlert(alertContainer, 'Disconnecting Google...', 'info');
+
+    try {
+        await compatAuth.currentUser.unlink('google.com');
+        showAlert(alertContainer, 'Google Account disconnected successfully!', 'success');
+        updateLinkedAccountsUI();
+        updatePasswordCardUI();
+        updateDeletionModalUI();
+    } catch (error) {
+        showAlert(alertContainer, error.message || 'Failed to disconnect Google account.', 'danger');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalBtnText;
+        }
+    }
+}
+
 async function handlePasswordChange(e) {
     e.preventDefault();
 
+    const user = compatAuth ? compatAuth.currentUser : null;
+    if (!user) return;
+
+    const hasPassword = user.providerData.some(p => p.providerId === 'password');
     const currentPassword = document.getElementById('currentPassword').value;
     const newPassword = document.getElementById('newPassword').value;
     const confirmPassword = document.getElementById('confirmNewPassword').value;
@@ -425,7 +632,11 @@ async function handlePasswordChange(e) {
     const alertContainer = document.getElementById('passwordAlert');
 
     // Validate
-    if (!currentPassword || !newPassword || !confirmPassword) {
+    if (hasPassword && !currentPassword) {
+        showAlert(alertContainer, 'Please enter your current password', 'danger');
+        return;
+    }
+    if (!newPassword || !confirmPassword) {
         showAlert(alertContainer, 'Please fill in all password fields', 'danger');
         return;
     }
@@ -440,7 +651,7 @@ async function handlePasswordChange(e) {
         return;
     }
 
-    if (currentPassword === newPassword) {
+    if (hasPassword && currentPassword === newPassword) {
         showAlert(alertContainer, 'New password must be different from current password', 'danger');
         return;
     }
@@ -448,22 +659,30 @@ async function handlePasswordChange(e) {
     // Show loading state
     const originalBtnText = submitBtn.innerHTML;
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Updating...';
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
 
     try {
-        const result = await changePassword(currentPassword, newPassword);
-
-        if (result.success) {
-            showAlert(alertContainer, result.message, 'success');
-            document.getElementById('changePasswordForm').reset();
-            
-            // Hide password strength
-            document.getElementById('passwordStrength').style.display = 'none';
+        if (hasPassword) {
+            const result = await changePassword(currentPassword, newPassword);
+            if (result.success) {
+                showAlert(alertContainer, result.message, 'success');
+                document.getElementById('changePasswordForm').reset();
+                document.getElementById('passwordStrength').style.display = 'none';
+            } else {
+                showAlert(alertContainer, result.error, 'danger');
+            }
         } else {
-            showAlert(alertContainer, result.error, 'danger');
+            const credential = window.firebase.auth.EmailAuthProvider.credential(user.email, newPassword);
+            await user.linkWithCredential(credential);
+            showAlert(alertContainer, 'Password login created successfully!', 'success');
+            document.getElementById('changePasswordForm').reset();
+            document.getElementById('passwordStrength').style.display = 'none';
+            updateLinkedAccountsUI();
+            updatePasswordCardUI();
+            updateDeletionModalUI();
         }
     } catch (error) {
-        showAlert(alertContainer, 'An unexpected error occurred. Please try again.', 'danger');
+        showAlert(alertContainer, error.message || 'Failed to save password. Please try again.', 'danger');
     } finally {
         submitBtn.disabled = false;
         submitBtn.innerHTML = originalBtnText;
@@ -500,33 +719,129 @@ async function handleSendVerification() {
 /**
  * Handle delete account
  */
+/**
+ * Update Deletion Modal UI based on provider status
+ */
+function updateDeletionModalUI() {
+    const user = compatAuth ? compatAuth.currentUser : null;
+    if (!user) return;
+
+    const hasPassword = user.providerData.some(p => p.providerId === 'password');
+    const passwordContainer = document.getElementById('deletePasswordReauthContainer');
+    const googleContainer = document.getElementById('deleteGoogleReauthContainer');
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+    const googleReauthSuccessBadge = document.getElementById('googleReauthSuccessBadge');
+
+    // Reset reauth state
+    isGoogleReauthenticated = false;
+    if (googleReauthSuccessBadge) googleReauthSuccessBadge.style.display = 'none';
+
+    if (hasPassword) {
+        if (passwordContainer) passwordContainer.style.display = 'block';
+        if (googleContainer) googleContainer.style.display = 'none';
+        if (confirmDeleteBtn) confirmDeleteBtn.disabled = false;
+    } else {
+        if (passwordContainer) passwordContainer.style.display = 'none';
+        if (googleContainer) googleContainer.style.display = 'block';
+        if (confirmDeleteBtn) confirmDeleteBtn.disabled = true;
+    }
+}
+
+/**
+ * Handle Google reauthentication popup flow
+ */
+async function handleGoogleReauthentication() {
+    const alertContainer = document.getElementById('deleteAccountAlert');
+    const btn = document.getElementById('reauthenticateGoogleBtn');
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+    const successBadge = document.getElementById('googleReauthSuccessBadge');
+    const user = compatAuth ? compatAuth.currentUser : null;
+
+    if (!btn || !user) return;
+
+    const originalBtnText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Reauthenticating...';
+    showAlert(alertContainer, 'Please sign in to Google in the popup window...', 'info');
+
+    try {
+        const googleProvider = new window.firebase.auth.GoogleAuthProvider();
+        await user.reauthenticateWithPopup(googleProvider);
+        
+        isGoogleReauthenticated = true;
+        if (successBadge) successBadge.style.display = 'block';
+        if (confirmDeleteBtn) confirmDeleteBtn.disabled = false;
+        showAlert(alertContainer, 'Reauthentication successful! You can now permanently delete your account.', 'success');
+    } catch (error) {
+        showAlert(alertContainer, error.message || 'Google reauthentication failed.', 'danger');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalBtnText;
+        }
+    }
+}
+
 async function handleDeleteAccount() {
-    const password = document.getElementById('deleteConfirmPassword').value;
     const btn = document.getElementById('confirmDeleteBtn');
     const alertContainer = document.getElementById('deleteAccountAlert');
+    const user = compatAuth ? compatAuth.currentUser : null;
+    const db = compatDb;
 
-    if (!password) {
-        showAlert(alertContainer, 'Please enter your password to confirm', 'danger');
+    if (!user || !db) {
+        showAlert(alertContainer, 'Auth context not ready', 'danger');
         return;
     }
 
+    const hasPassword = user.providerData.some(p => p.providerId === 'password');
+
+    // 1. Reauthenticate if Password user
+    if (hasPassword) {
+        const password = document.getElementById('deleteConfirmPassword').value;
+        if (!password) {
+            showAlert(alertContainer, 'Please enter your password to confirm', 'danger');
+            return;
+        }
+
+        const originalBtnText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Deleting...';
+
+        try {
+            const credential = window.firebase.auth.EmailAuthProvider.credential(user.email, password);
+            await user.reauthenticateWithCredential(credential);
+        } catch (error) {
+            showAlert(alertContainer, error.message || 'Incorrect password.', 'danger');
+            btn.disabled = false;
+            btn.innerHTML = originalBtnText;
+            return;
+        }
+    } else {
+        if (!isGoogleReauthenticated) {
+            showAlert(alertContainer, 'Please reauthenticate with Google first.', 'danger');
+            return;
+        }
+    }
+
+    // 2. Perform DB deletion and User Deletion
     const originalBtnText = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Deleting...';
 
     try {
-        const result = await deleteUserAccount(password);
+        // Remove the user records from the Realtime Database
+        await db.ref("users/" + user.uid).remove();
 
-        if (result.success) {
-            if (deleteAccountModal) deleteAccountModal.hide();
-            // Redirect to home page
-            window.location.href = '../index.html';
-        } else {
-            showAlert(alertContainer, result.error, 'danger');
-        }
+        // Delete the auth user
+        await user.delete();
+
+        // Clear cache
+        sessionStorage.removeItem('authStateCache');
+
+        if (deleteAccountModal) deleteAccountModal.hide();
+        window.location.href = '../index.html';
     } catch (error) {
-        showAlert(alertContainer, 'Failed to delete account. Please try again.', 'danger');
-    } finally {
+        showAlert(alertContainer, error.message || 'Failed to delete account. Please try again.', 'danger');
         btn.disabled = false;
         btn.innerHTML = originalBtnText;
     }
