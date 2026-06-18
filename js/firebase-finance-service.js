@@ -820,6 +820,7 @@ export async function addCreditCard(cardData, month) {
     try {
         const cardsRef = ref(database, `users/${user.uid}/finance/creditCards`);
         const newRef = push(cardsRef);
+        const parsedCoverageAmount = parseFloat(cardData.coverageAmount) || 0;
         const data = {
             type: cardData.type || 'credit-card',
             name: cardData.name,
@@ -828,7 +829,7 @@ export async function addCreditCard(cardData, month) {
             policyNumber: cardData.policyNumber || '',
             insuranceStartDate: cardData.insuranceStartDate || cardData.expenseDate || '',
             insuranceValidUpto: cardData.insuranceValidUpto || cardData.dueDate || '',
-            coverageAmount: parseFloat(cardData.coverageAmount) || 0,
+            coverageAmount: parsedCoverageAmount,
             insuranceStatus: cardData.insuranceStatus || '',
             creditLimit: parseFloat(cardData.creditLimit) || 0,
             dueDate: cardData.dueDate || '',
@@ -842,13 +843,28 @@ export async function addCreditCard(cardData, month) {
             updatedAt: Date.now(),
             balances: {},
             monthlyLimits: {},
-            paymentStatusByMonth: {}
+            paymentStatusByMonth: {},
+            insuranceByMonth: {}
         };
         // Store outstanding and month-specific limit under the specified month
         if (month) {
             data.balances[month] = parseFloat(cardData.outstandingBalance) || 0;
             data.monthlyLimits[month] = parseFloat(cardData.creditLimit) || 0;
             data.paymentStatusByMonth[month] = Boolean(cardData.isPaid);
+            if (data.type === 'insurance') {
+                data.insuranceByMonth[month] = {
+                    name: data.name || '',
+                    issuer: data.issuer || '',
+                    insuranceCategory: data.insuranceCategory || '',
+                    policyNumber: data.policyNumber || '',
+                    insuranceStartDate: data.insuranceStartDate || '',
+                    insuranceValidUpto: data.insuranceValidUpto || '',
+                    coverageAmount: parsedCoverageAmount,
+                    insuranceStatus: data.insuranceStatus || '',
+                    notes: data.notes || '',
+                    color: data.color || '#ff6b6b'
+                };
+            }
         }
         await set(newRef, data);
         return { success: true, id: newRef.key };
@@ -866,35 +882,69 @@ export async function updateCreditCard(cardId, updates, month) {
 
     try {
         const updateData = { updatedAt: Date.now() };
+        const isInsuranceUpdate = updates.type === 'insurance';
+        const monthInsurancePath = month && isInsuranceUpdate ? `insuranceByMonth/${month}` : null;
+
         // Copy non-balance fields
         if (updates.type !== undefined) updateData.type = updates.type;
-        if (updates.name !== undefined) updateData.name = updates.name;
-        if (updates.issuer !== undefined) updateData.issuer = updates.issuer;
-        if (updates.insuranceCategory !== undefined) updateData.insuranceCategory = updates.insuranceCategory;
-        if (updates.policyNumber !== undefined) updateData.policyNumber = updates.policyNumber;
-        if (updates.insuranceStartDate !== undefined) updateData.insuranceStartDate = updates.insuranceStartDate;
-        if (updates.insuranceValidUpto !== undefined) updateData.insuranceValidUpto = updates.insuranceValidUpto;
-        if (updates.coverageAmount !== undefined) updateData.coverageAmount = parseFloat(updates.coverageAmount) || 0;
-        if (updates.insuranceStatus !== undefined) updateData.insuranceStatus = updates.insuranceStatus;
-        if (updates.creditLimit !== undefined) {
+        if (updates.name !== undefined) {
+            if (monthInsurancePath) updateData[`${monthInsurancePath}/name`] = updates.name;
+            else updateData.name = updates.name;
+        }
+        if (updates.issuer !== undefined) {
+            if (monthInsurancePath) updateData[`${monthInsurancePath}/issuer`] = updates.issuer;
+            else updateData.issuer = updates.issuer;
+        }
+        if (updates.insuranceCategory !== undefined) {
+            if (monthInsurancePath) updateData[`${monthInsurancePath}/insuranceCategory`] = updates.insuranceCategory;
+            else updateData.insuranceCategory = updates.insuranceCategory;
+        }
+        if (updates.policyNumber !== undefined) {
+            if (monthInsurancePath) updateData[`${monthInsurancePath}/policyNumber`] = updates.policyNumber;
+            else updateData.policyNumber = updates.policyNumber;
+        }
+        if (updates.insuranceStartDate !== undefined) {
+            if (monthInsurancePath) updateData[`${monthInsurancePath}/insuranceStartDate`] = updates.insuranceStartDate;
+            else updateData.insuranceStartDate = updates.insuranceStartDate;
+        }
+        if (updates.insuranceValidUpto !== undefined) {
+            if (monthInsurancePath) updateData[`${monthInsurancePath}/insuranceValidUpto`] = updates.insuranceValidUpto;
+            else updateData.insuranceValidUpto = updates.insuranceValidUpto;
+        }
+        if (updates.coverageAmount !== undefined) {
+            const parsedCoverageAmount = parseFloat(updates.coverageAmount) || 0;
+            if (monthInsurancePath) updateData[`${monthInsurancePath}/coverageAmount`] = parsedCoverageAmount;
+            else updateData.coverageAmount = parsedCoverageAmount;
+        }
+        if (updates.insuranceStatus !== undefined) {
+            if (monthInsurancePath) updateData[`${monthInsurancePath}/insuranceStatus`] = updates.insuranceStatus;
+            else updateData.insuranceStatus = updates.insuranceStatus;
+        }
+        if (updates.creditLimit !== undefined && !isInsuranceUpdate) {
             if (month) {
                 updateData[`monthlyLimits/${month}`] = parseFloat(updates.creditLimit);
             } else {
                 updateData.creditLimit = parseFloat(updates.creditLimit);
             }
         }
-        if (updates.dueDate !== undefined) updateData.dueDate = updates.dueDate;
-        if (updates.isPaid !== undefined) {
+        if (updates.dueDate !== undefined && !isInsuranceUpdate) updateData.dueDate = updates.dueDate;
+        if (updates.isPaid !== undefined && !isInsuranceUpdate) {
             if (month) {
                 updateData[`paymentStatusByMonth/${month}`] = Boolean(updates.isPaid);
             } else {
                 updateData.isPaid = Boolean(updates.isPaid);
             }
         }
-        if (updates.interestRate !== undefined) updateData.interestRate = parseFloat(updates.interestRate);
-        if (updates.expenseDate !== undefined) updateData.expenseDate = updates.expenseDate;
-        if (updates.notes !== undefined) updateData.notes = updates.notes;
-        if (updates.color !== undefined) updateData.color = updates.color;
+        if (updates.interestRate !== undefined && !isInsuranceUpdate) updateData.interestRate = parseFloat(updates.interestRate);
+        if (updates.expenseDate !== undefined && !isInsuranceUpdate) updateData.expenseDate = updates.expenseDate;
+        if (updates.notes !== undefined) {
+            if (monthInsurancePath) updateData[`${monthInsurancePath}/notes`] = updates.notes;
+            else updateData.notes = updates.notes;
+        }
+        if (updates.color !== undefined) {
+            if (monthInsurancePath) updateData[`${monthInsurancePath}/color`] = updates.color;
+            else updateData.color = updates.color;
+        }
 
         // Store outstanding under the specific month
         if (updates.outstandingBalance !== undefined && month) {
@@ -968,6 +1018,7 @@ export async function deleteCreditCardForMonth(cardId, month) {
             [`balances/${month}`]: null,
             [`monthlyLimits/${month}`]: null,
             [`paymentStatusByMonth/${month}`]: null,
+            [`insuranceByMonth/${month}`]: null,
             updatedAt: Date.now()
         });
 

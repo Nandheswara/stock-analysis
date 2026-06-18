@@ -24,7 +24,7 @@ import {
     signOutUser,
     signInWithGoogle
 } from './firebase-auth-service.js';
-import { escapeHtml } from './utils.js';
+import { escapeHtml, escapeAttribute } from './utils.js';
 import { log } from './utils.js';
 
 log('info', 'News module initialized.');
@@ -131,6 +131,21 @@ const TRENDING_KEYWORDS = [
     // Companies (major)
     'reliance', 'tcs', 'infosys', 'hdfc', 'icici', 'sbi', 'airtel', 'adani', 'tata'
 ];
+
+const SENTIMENT_POSITIVE_KEYWORDS = [
+    'surge', 'rally', 'gain', 'high', 'bullish', 'rise', 'up', 'soar',
+    'jump', 'climb', 'advance', 'positive', 'growth', 'profit', 'boom',
+    'record', 'strong', 'optimistic', 'recovery', 'breakthrough'
+];
+
+const SENTIMENT_NEGATIVE_KEYWORDS = [
+    'fall', 'drop', 'loss', 'low', 'bearish', 'decline', 'down', 'crash',
+    'plunge', 'sink', 'slump', 'negative', 'weak', 'fear', 'crisis',
+    'concern', 'worry', 'risk', 'volatile', 'correction'
+];
+
+const SENTIMENT_POSITIVE_REGEXES = SENTIMENT_POSITIVE_KEYWORDS.map((keyword) => new RegExp(`\\b${keyword}\\b`, 'gi'));
+const SENTIMENT_NEGATIVE_REGEXES = SENTIMENT_NEGATIVE_KEYWORDS.map((keyword) => new RegExp(`\\b${keyword}\\b`, 'gi'));
 
 /* ========================================
    Market Stats Configuration
@@ -278,7 +293,6 @@ async function initializeNewsPage() {
         startMarketStatsRefresh();
         
     } catch (error) {
-        const { log } = await import('./utils.js');
         log('error', 'Error initializing news page', { error: error.message });
         // Ensure trending topics are rendered even on error
         initializeTrendingTopics();
@@ -306,6 +320,40 @@ function initializeEventListeners() {
     filterBtns.forEach(btn => {
         btn.addEventListener('click', handleCategoryFilter);
     });
+
+    const newsContent = document.getElementById('newsFlowContent');
+    if (newsContent) {
+        newsContent.addEventListener('click', (event) => {
+            const newsItem = event.target.closest('.news-item[data-news-url]');
+            if (newsItem) {
+                openNewsUrl(newsItem.dataset.newsUrl || '#');
+                return;
+            }
+
+            const trendingItem = event.target.closest('.trending-item[data-topic]');
+            if (trendingItem) {
+                searchTopic(trendingItem.dataset.topic || '');
+            }
+        });
+    }
+
+    const ticker = document.getElementById('newsTicker');
+    if (ticker) {
+        ticker.addEventListener('click', (event) => {
+            const tickerItem = event.target.closest('.ticker-item[data-news-url]');
+            if (!tickerItem) return;
+            openNewsUrl(tickerItem.dataset.newsUrl || '#');
+        });
+    }
+
+    const trendingTopics = document.getElementById('trendingTopics');
+    if (trendingTopics) {
+        trendingTopics.addEventListener('click', (event) => {
+            const topicItem = event.target.closest('.trending-item[data-topic]');
+            if (!topicItem) return;
+            searchTopic(topicItem.dataset.topic || '');
+        });
+    }
 }
 
 /* ========================================
@@ -348,7 +396,6 @@ async function loadNewsData() {
         updateTrendingTopics();
         
     } catch (error) {
-        const { log } = await import('./utils.js');
         log('error', 'Error loading news', { error: error.message });
         newsState.allNews = [];
         filterNews(newsState.currentCategory);
@@ -722,14 +769,17 @@ function renderNewsItems() {
 function createNewsItemHTML(news, isFeatured = false) {
     const timeAgo = getTimeAgo(news.time);
     const categoryIcon = getCategoryIcon(news.category);
+    const safeNewsUrl = normalizeExternalUrl(news.url);
+    const safeImageUrl = normalizeExternalUrl(news.image);
+    const safeTitle = news.title || 'News image';
     
     return `
         <article class="news-item ${isFeatured || news.featured ? 'featured' : ''}" 
-                 onclick="openNewsUrl('${news.url}')"
-                 data-category="${news.category}">
+                 data-news-url="${escapeAttribute(safeNewsUrl)}"
+                 data-category="${escapeAttribute(news.category || 'stocks')}">
             <div class="news-item-image">
-                ${news.image 
-                    ? `<img src="${news.image}" alt="${news.title}" loading="lazy">`
+                ${safeImageUrl !== '#'
+                    ? `<img src="${escapeAttribute(safeImageUrl)}" alt="${escapeAttribute(safeTitle)}" loading="lazy">`
                     : `<div class="placeholder-image"><i class="bi bi-newspaper"></i></div>`
                 }
             </div>
@@ -830,7 +880,7 @@ function updateNewsTicker() {
     
     // Duplicate items for seamless loop
     const tickerHTML = [...headlines, ...headlines].map(news => `
-        <span class="ticker-item" onclick="openNewsUrl('${news.url}')">
+        <span class="ticker-item" data-news-url="${escapeAttribute(normalizeExternalUrl(news.url))}">
             <span class="ticker-separator">●</span>
             <span class="ticker-time">${getTimeAgo(news.time)}</span>
             ${escapeHtml(news.title)}
@@ -911,32 +961,17 @@ function calculateMarketSentiment() {
     }
     
     // 2. Calculate news sentiment score
-    const positiveKeywords = [
-        'surge', 'rally', 'gain', 'high', 'bullish', 'rise', 'up', 'soar',
-        'jump', 'climb', 'advance', 'positive', 'growth', 'profit', 'boom',
-        'record', 'strong', 'optimistic', 'recovery', 'breakthrough'
-    ];
-    const negativeKeywords = [
-        'fall', 'drop', 'loss', 'low', 'bearish', 'decline', 'down', 'crash',
-        'plunge', 'sink', 'slump', 'negative', 'weak', 'fear', 'crisis',
-        'concern', 'worry', 'risk', 'volatile', 'correction'
-    ];
-
-    // Pre-compile regex patterns for performance
-    const positiveRegexes = positiveKeywords.map(kw => new RegExp(`\\b${kw}\\b`, 'gi'));
-    const negativeRegexes = negativeKeywords.map(kw => new RegExp(`\\b${kw}\\b`, 'gi'));
-
     let positiveCount = 0;
     let negativeCount = 0;
 
     newsState.allNews.forEach(news => {
         const text = (news.title + ' ' + news.description).toLowerCase();
-        positiveRegexes.forEach(regex => {
+        SENTIMENT_POSITIVE_REGEXES.forEach(regex => {
             regex.lastIndex = 0;
             const matches = text.match(regex);
             if (matches) positiveCount += matches.length;
         });
-        negativeRegexes.forEach(regex => {
+        SENTIMENT_NEGATIVE_REGEXES.forEach(regex => {
             regex.lastIndex = 0;
             const matches = text.match(regex);
             if (matches) negativeCount += matches.length;
@@ -1055,7 +1090,7 @@ function updateTrendingTopics() {
     }
     
     const trendingHTML = trendingTopics.slice(0, 5).map((topic, index) => `
-        <div class="trending-item" onclick="searchTopic('${escapeHtml(topic.keyword)}')">
+        <div class="trending-item" data-topic="${escapeAttribute(topic.keyword)}">
             <span class="trending-rank">${index + 1}</span>
             <span class="trending-text">${escapeHtml(capitalizeFirst(topic.keyword))}</span>
             <span class="trending-count">${topic.count} news</span>
@@ -1424,9 +1459,25 @@ function handleCategoryFilter(event) {
  * @param {string} url - URL to open
  */
 function openNewsUrl(url) {
-    if (url && url !== '#') {
-        window.open(url, '_blank', 'noopener,noreferrer');
+    const safeUrl = normalizeExternalUrl(url);
+    if (safeUrl === '#') return;
+    window.open(safeUrl, '_blank', 'noopener,noreferrer');
+}
+
+function normalizeExternalUrl(url) {
+    const value = String(url || '').trim();
+    if (!value || value === '#') return '#';
+
+    try {
+        const parsed = new URL(value, window.location.origin);
+        if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+            return parsed.href;
+        }
+    } catch (error) {
+        return '#';
     }
+
+    return '#';
 }
 
 /**
@@ -1664,7 +1715,6 @@ async function loadMoreNews() {
             }
         }
     } catch (error) {
-        const { log } = await import('./utils.js');
         log('error', 'Error loading more news', { error: error.message });
         showNoMoreNewsMessage();
     } finally {
