@@ -33,6 +33,9 @@ const CACHE_KEYS = {
     CATEGORIES: 'financeCategories',
     BANKS: 'financeBanks',
     CREDIT_CARDS: 'financeCreditCards',
+    LOANS: 'financeLoans',
+    EXPENSES: 'financeExpenses',
+    INSURANCE: 'financeInsurance',
     INCOME: 'financeIncome',
     TAXES: 'financeTaxes',
     SNAPSHOTS: 'financeSnapshots',
@@ -44,6 +47,8 @@ const FINANCE_VIEW_SECTION_KEYS = Object.freeze([
     'netWorth',
     'investmentCategories',
     'bankAccounts',
+    'creditCards',
+    'loans',
     'expenses',
     'insurance',
     'analytics'
@@ -810,6 +815,30 @@ export async function deleteBankForMonth(bankId, month) {
 // CREDIT CARDS CRUD
 // ========================================
 
+// ── Database Path Helpers ──
+function getSectionDbPath(type, uid, cardId = '') {
+    let pathSegment = 'creditCards';
+    if (type === 'loan') pathSegment = 'loans';
+    else if (type === 'general-expense') pathSegment = 'expenses';
+    else if (type === 'insurance') pathSegment = 'insurance';
+    
+    return cardId 
+        ? `users/${uid}/finance/${pathSegment}/${cardId}`
+        : `users/${uid}/finance/${pathSegment}`;
+}
+
+async function findCardRefAndData(uid, cardId) {
+    const paths = ['creditCards', 'loans', 'expenses', 'insurance'];
+    for (const p of paths) {
+        const cardRef = ref(database, `users/${uid}/finance/${p}/${cardId}`);
+        const snapshot = await get(cardRef);
+        if (snapshot.exists()) {
+            return { ref: cardRef, card: snapshot.val(), pathSegment: p };
+        }
+    }
+    return null;
+}
+
 /**
  * Add a credit card (with month-specific outstanding)
  */
@@ -818,40 +847,73 @@ export async function addCreditCard(cardData, month) {
     if (!user) return { success: false, error: 'Not authenticated' };
 
     try {
-        const cardsRef = ref(database, `users/${user.uid}/finance/creditCards`);
+        const type = cardData.type || 'credit-card';
+        const cardsRef = ref(database, getSectionDbPath(type, user.uid));
         const newRef = push(cardsRef);
-        const parsedCoverageAmount = parseFloat(cardData.coverageAmount) || 0;
-        const data = {
-            type: cardData.type || 'credit-card',
-            name: cardData.name,
-            issuer: cardData.issuer,
-            insuranceCategory: cardData.insuranceCategory || '',
-            policyNumber: cardData.policyNumber || '',
-            insuranceStartDate: cardData.insuranceStartDate || cardData.expenseDate || '',
-            insuranceValidUpto: cardData.insuranceValidUpto || cardData.dueDate || '',
-            coverageAmount: parsedCoverageAmount,
-            insuranceStatus: cardData.insuranceStatus || '',
-            creditLimit: parseFloat(cardData.creditLimit) || 0,
-            dueDate: cardData.dueDate || '',
-            isPaid: cardData.isPaid || false,
-            interestRate: parseFloat(cardData.interestRate) || 0,
-            expenseDate: cardData.expenseDate || '',
-            notes: cardData.notes || '',
+        
+        const baseData = {
+            type,
+            name: cardData.name || '',
+            issuer: cardData.issuer || '',
             color: cardData.color || '#ff6b6b',
+            notes: cardData.notes || '',
             createdAt: Date.now(),
             createdMonth: month || new Date().toISOString().slice(0, 7),
-            updatedAt: Date.now(),
-            balances: {},
-            monthlyLimits: {},
-            paymentStatusByMonth: {},
-            insuranceByMonth: {}
+            updatedAt: Date.now()
         };
+
+        let data = {};
+        if (type === 'credit-card') {
+            data = {
+                ...baseData,
+                creditLimit: parseFloat(cardData.creditLimit) || 0,
+                dueDate: cardData.dueDate || '',
+                balances: {},
+                monthlyLimits: {},
+                paymentStatusByMonth: {}
+            };
+        } else if (type === 'loan') {
+            data = {
+                ...baseData,
+                totalLoanAmount: parseFloat(cardData.totalLoanAmount) || 0,
+                interestRate: parseFloat(cardData.interestRate) || 0,
+                tenure: parseInt(cardData.tenure) || 0,
+                loanStartMonth: cardData.loanStartMonth || '',
+                processingFee: parseFloat(cardData.processingFee) || 0,
+                dueDate: cardData.dueDate || '',
+                loanType: cardData.loanType || 'credit-card-emi',
+                balances: {},
+                paymentStatusByMonth: {},
+                monthlyEmis: {}
+            };
+        } else if (type === 'general-expense') {
+            data = {
+                ...baseData,
+                expenseDate: cardData.expenseDate || '',
+                balances: {},
+                paymentStatusByMonth: {}
+            };
+        } else if (type === 'insurance') {
+            data = {
+                ...baseData,
+                insuranceCategory: cardData.insuranceCategory || '',
+                policyNumber: cardData.policyNumber || '',
+                insuranceStartDate: cardData.insuranceStartDate || cardData.expenseDate || '',
+                insuranceValidUpto: cardData.insuranceValidUpto || cardData.dueDate || '',
+                coverageAmount: parseFloat(cardData.coverageAmount) || 0,
+                insuranceStatus: cardData.insuranceStatus || '',
+                balances: {},
+                insuranceByMonth: {}
+            };
+        }
+
         // Store outstanding and month-specific limit under the specified month
         if (month) {
-            data.balances[month] = parseFloat(cardData.outstandingBalance) || 0;
-            data.monthlyLimits[month] = parseFloat(cardData.creditLimit) || 0;
-            data.paymentStatusByMonth[month] = Boolean(cardData.isPaid);
-            if (data.type === 'insurance') {
+            if (data.balances) data.balances[month] = parseFloat(cardData.outstandingBalance) || 0;
+            if (data.monthlyLimits) data.monthlyLimits[month] = parseFloat(cardData.creditLimit) || 0;
+            if (data.paymentStatusByMonth) data.paymentStatusByMonth[month] = Boolean(cardData.isPaid);
+            if (data.monthlyEmis) data.monthlyEmis[month] = parseFloat(cardData.emiAmount) || 0;
+            if (type === 'insurance') {
                 data.insuranceByMonth[month] = {
                     name: data.name || '',
                     issuer: data.issuer || '',
@@ -859,7 +921,7 @@ export async function addCreditCard(cardData, month) {
                     policyNumber: data.policyNumber || '',
                     insuranceStartDate: data.insuranceStartDate || '',
                     insuranceValidUpto: data.insuranceValidUpto || '',
-                    coverageAmount: parsedCoverageAmount,
+                    coverageAmount: data.coverageAmount || 0,
                     insuranceStatus: data.insuranceStatus || '',
                     notes: data.notes || '',
                     color: data.color || '#ff6b6b'
@@ -881,8 +943,13 @@ export async function updateCreditCard(cardId, updates, month) {
     if (!user) return { success: false, error: 'Not authenticated' };
 
     try {
+        const result = await findCardRefAndData(user.uid, cardId);
+        if (!result) return { success: false, error: 'Item not found' };
+
+        const { ref: cardRef, card } = result;
         const updateData = { updatedAt: Date.now() };
-        const isInsuranceUpdate = updates.type === 'insurance';
+        const type = card.type || updates.type || 'credit-card';
+        const isInsuranceUpdate = type === 'insurance';
         const monthInsurancePath = month && isInsuranceUpdate ? `insuranceByMonth/${month}` : null;
 
         // Copy non-balance fields
@@ -927,7 +994,29 @@ export async function updateCreditCard(cardId, updates, month) {
                 updateData.creditLimit = parseFloat(updates.creditLimit);
             }
         }
+        if (updates.totalLoanAmount !== undefined && !isInsuranceUpdate) {
+            updateData.totalLoanAmount = parseFloat(updates.totalLoanAmount) || 0;
+        }
+        if (updates.emiAmount !== undefined && !isInsuranceUpdate) {
+            if (month) {
+                updateData[`monthlyEmis/${month}`] = parseFloat(updates.emiAmount) || 0;
+            } else {
+                updateData.emiAmount = parseFloat(updates.emiAmount) || 0;
+            }
+        }
+        if (updates.tenure !== undefined && !isInsuranceUpdate) {
+            updateData.tenure = parseInt(updates.tenure) || 0;
+        }
+        if (updates.loanStartMonth !== undefined && !isInsuranceUpdate) {
+            updateData.loanStartMonth = updates.loanStartMonth;
+        }
+        if (updates.processingFee !== undefined && !isInsuranceUpdate) {
+            updateData.processingFee = parseFloat(updates.processingFee) || 0;
+        }
         if (updates.dueDate !== undefined && !isInsuranceUpdate) updateData.dueDate = updates.dueDate;
+        if (updates.loanType !== undefined && !isInsuranceUpdate) {
+            updateData.loanType = updates.loanType;
+        }
         if (updates.isPaid !== undefined && !isInsuranceUpdate) {
             if (month) {
                 updateData[`paymentStatusByMonth/${month}`] = Boolean(updates.isPaid);
@@ -951,7 +1040,6 @@ export async function updateCreditCard(cardId, updates, month) {
             updateData[`balances/${month}`] = parseFloat(updates.outstandingBalance);
         }
 
-        const cardRef = ref(database, `users/${user.uid}/finance/creditCards/${cardId}`);
         await update(cardRef, updateData);
         return { success: true };
     } catch (error) {
@@ -967,8 +1055,9 @@ export async function deleteCreditCard(cardId) {
     if (!user) return { success: false, error: 'Not authenticated' };
 
     try {
-        const cardRef = ref(database, `users/${user.uid}/finance/creditCards/${cardId}`);
-        await remove(cardRef);
+        const result = await findCardRefAndData(user.uid, cardId);
+        if (!result) return { success: false, error: 'Item not found' };
+        await remove(result.ref);
         return { success: true };
     } catch (error) {
         return { success: false, error: error.message };
@@ -985,13 +1074,10 @@ export async function deleteCreditCardForMonth(cardId, month) {
     if (!month) return { success: false, error: 'Month is required' };
 
     try {
-        const cardRef = ref(database, `users/${user.uid}/finance/creditCards/${cardId}`);
-        const snapshot = await get(cardRef);
-        if (!snapshot.exists()) {
-            return { success: false, error: 'Expense entry not found' };
-        }
+        const result = await findCardRefAndData(user.uid, cardId);
+        if (!result) return { success: false, error: 'Expense entry not found' };
 
-        const card = snapshot.val() || {};
+        const { ref: cardRef, card } = result;
         const balances = card.balances && typeof card.balances === 'object' ? card.balances : null;
 
         // Legacy records without month map are treated as single-month entries.
@@ -1281,6 +1367,8 @@ export async function copyFinanceDataBetweenMonths(sourceMonth, targetMonth, opt
         const {
             includeCategories = true,
             includeBanks = true,
+            includeCreditCards = true,
+            includeLoans = true,
             includeExpenses = true,
             includeInsurance = true,
             includeIncome = true,
@@ -1329,16 +1417,19 @@ export async function copyFinanceDataBetweenMonths(sourceMonth, targetMonth, opt
             });
         }
 
-        // Copy expenses/insurance balances and statuses
-        if ((includeExpenses || includeInsurance) && data.creditCards) {
-            const deletedInsuranceCardIds = new Set();
+        // Copy expenses/insurance/loans/creditCards balances and statuses
+        const financeCollections = [
+            { key: 'creditCards', type: 'credit-card', include: includeCreditCards },
+            { key: 'loans', type: 'loan', include: includeLoans },
+            { key: 'expenses', type: 'general-expense', include: includeExpenses },
+            { key: 'insurance', type: 'insurance', include: includeInsurance }
+        ];
 
-            Object.entries(data.creditCards).forEach(([cardId, card]) => {
-                const cardType = card.type || 'credit-card';
+        financeCollections.forEach(({ key: dbKey, type: cardType, include }) => {
+            if (!include || !data[dbKey]) return;
+
+            Object.entries(data[dbKey]).forEach(([cardId, card]) => {
                 const isInsuranceCard = cardType === 'insurance';
-                if (isInsuranceCard && !includeInsurance) return;
-                if (!isInsuranceCard && !includeExpenses) return;
-
                 const cardCreatedMonth = normalizeMonthKey(card.createdMonth)
                     || (card.createdAt ? normalizeMonthKey(getMonthFromTimestamp(card.createdAt)) : null);
 
@@ -1347,35 +1438,9 @@ export async function copyFinanceDataBetweenMonths(sourceMonth, targetMonth, opt
                 const targetOutstanding = card.balances?.[normalizedTargetMonth];
 
                 if (isInsuranceCard && shouldReplaceInsuranceItems && !hasSourceOutstanding) {
-                    const hasTargetOutstanding = targetOutstanding !== undefined;
-                    const balanceMonths = card.balances && typeof card.balances === 'object'
-                        ? Object.keys(card.balances)
-                        : [];
-                    const remainingBalanceMonths = balanceMonths
-                        .map((monthKey) => normalizeMonthKey(monthKey) || monthKey)
-                        .filter((monthKey) => monthKey && monthKey !== normalizedTargetMonth)
-                        .sort();
-
-                    const shouldDeleteInsuranceCard = (hasTargetOutstanding || cardCreatedMonth === normalizedTargetMonth)
-                        && remainingBalanceMonths.length === 0;
-
-                    if (shouldDeleteInsuranceCard) {
-                        updates[`creditCards/${cardId}`] = null;
-                        deletedInsuranceCardIds.add(cardId);
-                        return;
+                    if (targetOutstanding !== undefined) {
+                        updates[`${dbKey}/${cardId}/balances/${normalizedTargetMonth}`] = null;
                     }
-
-                    if (hasTargetOutstanding) {
-                        updates[`creditCards/${cardId}/balances/${normalizedTargetMonth}`] = null;
-                    }
-
-                    if (cardCreatedMonth === normalizedTargetMonth && remainingBalanceMonths.length > 0) {
-                        updates[`creditCards/${cardId}/createdMonth`] = remainingBalanceMonths[0];
-                    }
-                }
-
-                if (isInsuranceCard && deletedInsuranceCardIds.has(cardId)) {
-                    return;
                 }
 
                 const canWriteTargetOutstanding = isInsuranceCard && shouldReplaceInsuranceItems
@@ -1383,7 +1448,32 @@ export async function copyFinanceDataBetweenMonths(sourceMonth, targetMonth, opt
                     : (hasSourceOutstanding && shouldWriteTargetValue(targetOutstanding));
 
                 if (canWriteTargetOutstanding) {
-                    updates[`creditCards/${cardId}/balances/${normalizedTargetMonth}`] = parseFloat(sourceOutstanding) || 0;
+                    let nextOutstanding = parseFloat(sourceOutstanding) || 0;
+                    if (cardType === 'loan' && card.loanStartMonth && card.tenure) {
+                        const monthIndex = getMonthsDifference(card.loanStartMonth, normalizedTargetMonth) + 1;
+                        if (monthIndex >= 1 && monthIndex <= (parseInt(card.tenure) || 0)) {
+                            const schedule = calculateAmortizationSchedule(
+                                parseFloat(card.totalLoanAmount) || 0,
+                                parseFloat(card.interestRate) || 0,
+                                parseInt(card.tenure) || 0,
+                                parseFloat(card.processingFee) || 0,
+                                card.loanType
+                            );
+                            const record = schedule[monthIndex - 1];
+                            nextOutstanding = record ? record.startBalance : 0;
+                        } else {
+                            nextOutstanding = 0;
+                        }
+                    } else if (cardType === 'loan') {
+                        const wasPaid = card.paymentStatusByMonth?.[normalizedSourceMonth] !== undefined
+                            ? Boolean(card.paymentStatusByMonth[normalizedSourceMonth])
+                            : Boolean(card.isPaid);
+                        const sourceEmi = card.monthlyEmis?.[normalizedSourceMonth] ?? card.emiAmount ?? 0;
+                        if (wasPaid) {
+                            nextOutstanding = Math.max(0, nextOutstanding - parseFloat(sourceEmi));
+                        }
+                    }
+                    updates[`${dbKey}/${cardId}/balances/${normalizedTargetMonth}`] = nextOutstanding;
                     if (isInsuranceCard) insuranceCopied++;
                     else expensesCopied++;
                 }
@@ -1394,7 +1484,7 @@ export async function copyFinanceDataBetweenMonths(sourceMonth, targetMonth, opt
                     const targetLimit = card.monthlyLimits?.[normalizedTargetMonth];
 
                     if (hasSourceLimit && shouldWriteTargetValue(targetLimit)) {
-                        updates[`creditCards/${cardId}/monthlyLimits/${normalizedTargetMonth}`] = parseFloat(sourceLimit) || 0;
+                        updates[`${dbKey}/${cardId}/monthlyLimits/${normalizedTargetMonth}`] = parseFloat(sourceLimit) || 0;
                         monthlyLimitsCopied++;
                     }
 
@@ -1403,12 +1493,21 @@ export async function copyFinanceDataBetweenMonths(sourceMonth, targetMonth, opt
                     const targetPaymentStatus = card.paymentStatusByMonth?.[normalizedTargetMonth];
 
                     if (hasSourcePaymentStatus && shouldWriteTargetValue(targetPaymentStatus)) {
-                        updates[`creditCards/${cardId}/paymentStatusByMonth/${normalizedTargetMonth}`] = Boolean(sourcePaymentStatus);
+                        updates[`${dbKey}/${cardId}/paymentStatusByMonth/${normalizedTargetMonth}`] = false;
                         paymentStatusCopied++;
+                    }
+
+                    if (cardType === 'loan') {
+                        const sourceEmi = card.monthlyEmis?.[normalizedSourceMonth] ?? card.emiAmount;
+                        const hasSourceEmi = card.monthlyEmis?.[normalizedSourceMonth] !== undefined || card.emiAmount !== undefined;
+                        const targetEmi = card.monthlyEmis?.[normalizedTargetMonth];
+                        if (hasSourceEmi && shouldWriteTargetValue(targetEmi)) {
+                            updates[`${dbKey}/${cardId}/monthlyEmis/${normalizedTargetMonth}`] = parseFloat(sourceEmi) || 0;
+                        }
                     }
                 }
             });
-        }
+        });
 
         // Copy category items from source month to target month
 
@@ -1632,6 +1731,8 @@ export async function copyPreviousMonthData(targetMonth) {
     const result = await copyFinanceDataBetweenMonths(prevMonth, targetMonth, {
         includeCategories: true,
         includeBanks: true,
+        includeCreditCards: true,
+        includeLoans: true,
         includeExpenses: true,
         includeInsurance: true,
         includeIncome: true,
@@ -1671,7 +1772,7 @@ export function listenToFinanceData(callback) {
     unsubscribeAll();
 
     if (!userId) {
-        callback({ categories: {}, banks: {}, creditCards: {}, income: {}, taxes: {}, snapshots: {} });
+        callback({ categories: {}, banks: {}, creditCards: {}, loans: {}, expenses: {}, insurance: {}, income: {}, taxes: {}, snapshots: {}, epfo: {} });
         return () => {};
     }
 
@@ -1679,18 +1780,24 @@ export function listenToFinanceData(callback) {
     const cachedCategories = loadFromCache(CACHE_KEYS.CATEGORIES, userId);
     const cachedBanks = loadFromCache(CACHE_KEYS.BANKS, userId);
     const cachedCards = loadFromCache(CACHE_KEYS.CREDIT_CARDS, userId);
+    const cachedLoans = loadFromCache(CACHE_KEYS.LOANS, userId);
+    const cachedExpenses = loadFromCache(CACHE_KEYS.EXPENSES, userId);
+    const cachedInsurance = loadFromCache(CACHE_KEYS.INSURANCE, userId);
     const cachedIncome = loadFromCache(CACHE_KEYS.INCOME, userId);
     const cachedTaxes = loadFromCache(CACHE_KEYS.TAXES, userId);
     const cachedSnapshots = loadFromCache(CACHE_KEYS.SNAPSHOTS, userId);
     const cachedEPFO = loadFromCache(CACHE_KEYS.EPFO, userId);
 
-    const hasCache = cachedCategories || cachedBanks || cachedCards || cachedIncome || cachedTaxes || cachedSnapshots || cachedEPFO;
+    const hasCache = cachedCategories || cachedBanks || cachedCards || cachedLoans || cachedExpenses || cachedInsurance || cachedIncome || cachedTaxes || cachedSnapshots || cachedEPFO;
 
     // Data store
     const store = {
         categories: cachedCategories || {},
         banks: cachedBanks || {},
         creditCards: cachedCards || {},
+        loans: cachedLoans || {},
+        expenses: cachedExpenses || {},
+        insurance: cachedInsurance || {},
         income: cachedIncome || {},
         taxes: cachedTaxes || {},
         snapshots: cachedSnapshots || {},
@@ -1703,6 +1810,9 @@ export function listenToFinanceData(callback) {
             categories: normalizedCategories,
             banks: cachedBanks || {},
             creditCards: cachedCards || {},
+            loans: cachedLoans || {},
+            expenses: cachedExpenses || {},
+            insurance: cachedInsurance || {},
             income: cachedIncome || {},
             taxes: cachedTaxes || {},
             snapshots: cachedSnapshots || {},
@@ -1711,10 +1821,10 @@ export function listenToFinanceData(callback) {
         store.categories = normalizedCategories;
     }
 
-    // Track initial listener fires — all 5 listeners fire once on attach.
+    // Track initial listener fires — all 9 listeners fire once on attach.
     // If we served cached data we can skip these initial fires entirely;
-    // otherwise we batch them into a single callback after all 5 have reported.
-    const TOTAL_LISTENERS = 6;
+    // otherwise we batch them into a single callback after all 9 have reported.
+    const TOTAL_LISTENERS = 9;
     let initialFiringCount = 0;
     let initialLoadDone = hasCache; // if cache was served, initial load is "done"
     let debounceTimer = null;
@@ -1761,11 +1871,65 @@ export function listenToFinanceData(callback) {
             onListenerData();
         }, () => {});
 
-        // Credit Cards listener
+        // Credit Cards listener (with live auto-migration)
         const cardsRef = ref(database, `users/${uid}/finance/creditCards`);
         listeners.creditCards = onValue(cardsRef, (snapshot) => {
-            store.creditCards = snapshot.val() || {};
-            saveToCache(CACHE_KEYS.CREDIT_CARDS, uid, store.creditCards);
+            const rawCards = snapshot.val() || {};
+            const creditCards = {};
+            let needsMigration = false;
+            const migrationUpdates = {};
+
+            Object.entries(rawCards).forEach(([cardId, card]) => {
+                const type = card.type || 'credit-card';
+                if (type === 'credit-card') {
+                    creditCards[cardId] = card;
+                } else {
+                    needsMigration = true;
+                    migrationUpdates[`creditCards/${cardId}`] = null;
+                    if (type === 'loan') {
+                        migrationUpdates[`loans/${cardId}`] = card;
+                    } else if (type === 'general-expense') {
+                        migrationUpdates[`expenses/${cardId}`] = card;
+                    } else if (type === 'insurance') {
+                        migrationUpdates[`insurance/${cardId}`] = card;
+                    }
+                }
+            });
+
+            if (needsMigration) {
+                console.log(`Live migration triggered for user ${uid}`);
+                const financeRef = ref(database, `users/${uid}/finance`);
+                update(financeRef, migrationUpdates).catch(err => {
+                    console.error("Migration update failed:", err);
+                });
+            } else {
+                store.creditCards = rawCards;
+                saveToCache(CACHE_KEYS.CREDIT_CARDS, uid, store.creditCards);
+                onListenerData();
+            }
+        }, () => {});
+
+        // Loans listener
+        const loansRef = ref(database, `users/${uid}/finance/loans`);
+        listeners.loans = onValue(loansRef, (snapshot) => {
+            store.loans = snapshot.val() || {};
+            saveToCache(CACHE_KEYS.LOANS, uid, store.loans);
+            onListenerData();
+        }, () => {});
+
+        // Expenses listener
+        const expensesRef = ref(database, `users/${uid}/finance/expenses`);
+        listeners.expenses = onValue(expensesRef, (snapshot) => {
+            store.expenses = snapshot.val() || {};
+            saveToCache(CACHE_KEYS.EXPENSES, uid, store.expenses);
+            onListenerData();
+        }, () => {});
+
+        // Insurance listener
+        const insuranceRef = ref(database, `users/${uid}/finance/insurance`);
+        listeners.insurance = onValue(insuranceRef, (snapshot) => {
+            store.insurance = snapshot.val() || {};
+            saveToCache(CACHE_KEYS.INSURANCE, uid, store.insurance);
             onListenerData();
         }, () => {});
 
@@ -1806,14 +1970,7 @@ export function listenToFinanceData(callback) {
         }).catch(() => {});
     }
 
-    // If cached user, wait for auth then setup
-    if (user && user._fromCache) {
-        waitForAuthReady().then((confirmedUser) => {
-            if (confirmedUser) {
-                setupListeners(confirmedUser.uid);
-            }
-        });
-    } else if (user) {
+    if (user) {
         setupListeners(user.uid);
     }
 
@@ -1892,7 +2049,24 @@ export async function createDefaultCategories() {
  * When previous-month balances are unavailable, bank spends are estimated from income and current balance.
  */
 export function computeFinancialSummary(data, selectedMonth) {
-    const { categories, banks, creditCards, income, taxes, snapshots } = data;
+    const { 
+        categories = {}, 
+        banks = {}, 
+        creditCards = {}, 
+        loans = {}, 
+        expenses = {}, 
+        insurance = {}, 
+        income = {}, 
+        taxes = {}, 
+        snapshots = {} 
+    } = data;
+
+    // Merge creditCards, loans, expenses, insurance into a single list for processing
+    const allCards = [];
+    Object.entries(creditCards).forEach(([id, item]) => allCards.push({ ...item, id, type: item.type || 'credit-card' }));
+    Object.entries(loans).forEach(([id, item]) => allCards.push({ ...item, id, type: 'loan' }));
+    Object.entries(expenses).forEach(([id, item]) => allCards.push({ ...item, id, type: 'general-expense' }));
+    Object.entries(insurance).forEach(([id, item]) => allCards.push({ ...item, id, type: 'insurance' }));
 
     // Parse previous month
     const [year, mon] = selectedMonth.split('-').map(Number);
@@ -1920,6 +2094,20 @@ export function computeFinancialSummary(data, selectedMonth) {
 
     const investedThisMonth = monthCategoryTotal;
 
+    function getLoanAmortizationRecord(card, month) {
+        if (!card.loanStartMonth || !card.tenure) return null;
+        const monthIndex = getMonthsDifference(card.loanStartMonth, month) + 1;
+        if (monthIndex < 1 || monthIndex > card.tenure) return null;
+        const schedule = calculateAmortizationSchedule(
+            parseFloat(card.totalLoanAmount) || 0,
+            parseFloat(card.interestRate) || 0,
+            parseInt(card.tenure) || 0,
+            parseFloat(card.processingFee) || 0,
+            card.loanType
+        );
+        return schedule[monthIndex - 1] || null;
+    }
+
     // ── Helper: get bank balance for a given month ──
     // If the new monthly format (balances obj) exists, return that month's value or 0.
     // Only fall back to old top-level `balance` for truly legacy data (no balances obj).
@@ -1930,8 +2118,19 @@ export function computeFinancialSummary(data, selectedMonth) {
         return bank.balance || 0;
     }
 
+    function isCardActiveInMonth(card, month) {
+        const createdMonth = card.createdMonth || (card.createdAt ? getMonthFromTimestamp(card.createdAt) : null);
+        return createdMonth ? month >= createdMonth : true;
+    }
+
     // ── Helper: get CC outstanding for a given month ──
     function getCCOutstanding(card, month) {
+        if (!isCardActiveInMonth(card, month)) return 0;
+        if (card.type === 'loan') {
+            const record = getLoanAmortizationRecord(card, month);
+            if (!record) return 0;
+            return isCardPaidForMonth(card, month) ? record.endBalance : record.startBalance;
+        }
         if (card.balances) {
             return card.balances[month] || 0;
         }
@@ -1940,8 +2139,14 @@ export function computeFinancialSummary(data, selectedMonth) {
 
     // ── Helper: get CC outstanding ONLY if unpaid and only for credit-style liabilities ──
     function getCCOutstandingIfUnpaid(card, month) {
+        if (!isCardActiveInMonth(card, month)) return 0;
         if (card.type === 'general-expense' || card.type === 'insurance') {
             return 0; // General expenses are not treated as ongoing liabilities
+        }
+        if (card.type === 'loan') {
+            const record = getLoanAmortizationRecord(card, month);
+            if (!record) return 0;
+            return isCardPaidForMonth(card, month) ? record.endBalance : record.startBalance;
         }
         if (isCardPaidForMonth(card, month)) {
             return 0; // Exclude paid liabilities from liabilities
@@ -1958,8 +2163,13 @@ export function computeFinancialSummary(data, selectedMonth) {
 
     // ── Helper: get CC charges for the selected month (excluding insurance)
     function getCCCharges(card, month) {
+        if (!isCardActiveInMonth(card, month)) return 0;
         if (isInsuranceCard(card)) {
             return 0;
+        }
+        if (card.type === 'loan') {
+            const record = getLoanAmortizationRecord(card, month);
+            return record ? record.totalOutflow : 0;
         }
         if (card.balances) {
             return card.balances[month] || 0;
@@ -1982,7 +2192,7 @@ export function computeFinancialSummary(data, selectedMonth) {
     let totalPaidCharges = 0;
     let totalUnpaidCharges = 0;
     let prevMonthCCOutstanding = 0;
-    Object.values(creditCards).forEach(card => {
+    allCards.forEach(card => {
         const charges = getCCCharges(card, selectedMonth);
         const isPaidForSelectedMonth = isCardPaidForMonth(card, selectedMonth);
         totalCreditCardCharges += charges;
@@ -2002,7 +2212,7 @@ export function computeFinancialSummary(data, selectedMonth) {
     const hasMonthlyBankData = Object.values(banks).some(bank =>
         bank.balances && bank.balances[selectedMonth] !== undefined
     );
-    const hasMonthlyCCData = Object.values(creditCards).some(card =>
+    const hasMonthlyCCData = allCards.some(card =>
         card.balances && card.balances[selectedMonth] !== undefined
     );
     const hasMonthlyIncome = !!(income[selectedMonth]);
@@ -2088,4 +2298,54 @@ export function computeFinancialSummary(data, selectedMonth) {
         prevMonth,
         isEmptyMonth
     };
+}
+
+export function calculateAmortizationSchedule(principal, annualRate, tenureMonths, processingFee = 0, loanType = 'credit-card-emi') {
+    const monthlyRate = (annualRate / 12) / 100;
+    const isCcEmi = loanType !== 'personal-loan';
+    
+    // EMI Formula: [P x R x (1+R)^N] / [((1+R)^N) - 1]
+    let emi = 0;
+    if (monthlyRate > 0 && tenureMonths > 0) {
+        emi = (principal * monthlyRate * Math.pow(1 + monthlyRate, tenureMonths)) / (Math.pow(1 + monthlyRate, tenureMonths) - 1);
+    } else {
+        emi = tenureMonths > 0 ? (principal / tenureMonths) : 0;
+    }
+    
+    const schedule = [];
+    let remainingPrincipal = principal;
+    
+    for (let i = 1; i <= tenureMonths; i++) {
+        const interest = remainingPrincipal * monthlyRate;
+        const gst = isCcEmi ? (interest * 0.18) : 0;
+        const principalPaid = Math.min(remainingPrincipal, emi - interest);
+        const startBalance = remainingPrincipal;
+        remainingPrincipal = Math.max(0, remainingPrincipal - principalPaid);
+        
+        let extraCharges = 0;
+        if (i === 1) {
+            extraCharges = isCcEmi 
+                ? (processingFee + (processingFee * 0.18))
+                : processingFee;
+        }
+        
+        schedule.push({
+            monthIndex: i,
+            startBalance,
+            emi,
+            principalPaid,
+            interestPaid: interest,
+            gstOnInterest: gst,
+            endBalance: remainingPrincipal,
+            totalOutflow: emi + gst + extraCharges
+        });
+    }
+    return schedule;
+}
+
+export function getMonthsDifference(startMonth, targetMonth) {
+    if (!startMonth || !targetMonth) return -1;
+    const [startYear, startMon] = startMonth.split('-').map(Number);
+    const [targetYear, targetMon] = targetMonth.split('-').map(Number);
+    return (targetYear - startYear) * 12 + (targetMon - startMon);
 }

@@ -266,8 +266,16 @@
             </div>
         </div>
 
+        <!-- Loader / Spinner (shown during initial auth state detection) -->
+        <div id="authLoadingSpinner" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="text-muted mt-3">Verifying session...</p>
+        </div>
+
         <!-- Login Prompt (shown when not logged in) -->
-        <div id="loginPrompt" class="text-center py-5">
+        <div id="loginPrompt" class="text-center py-5" style="display:none;">
             <i class="bi bi-lock" style="font-size: 4rem; color: var(--text-muted); display:block; margin-bottom: 16px;"></i>
             <h3 style="color: var(--text-heading);">Sign in to access Finance Tracker</h3>
             <p style="color: var(--text-secondary);">Your financial data is securely stored in the cloud and synced across devices.</p>
@@ -406,14 +414,79 @@
                 </div>
             </div>
 
+            <!-- Credit Cards -->
+            <div class="finance-section" id="creditCardsSection" data-section-preference="creditCards">
+                <div class="finance-section-header">
+                    <h2 class="finance-section-title">
+                        <i class="bi bi-credit-card-2-back" style="color:var(--accent-danger);"></i> Credit Cards
+                    </h2>
+                    <div class="finance-section-actions">
+                        <button class="btn-finance btn-finance-danger" onclick="openAddCreditCardModal()">
+                            <i class="bi bi-plus-lg"></i> Add Credit Card
+                        </button>
+                    </div>
+                </div>
+                <div class="finance-table-wrapper">
+                    <table class="finance-table">
+                        <thead>
+                            <tr>
+                                <th>Card Name</th>
+                                <th>Issuer</th>
+                                <th>Outstanding Balance</th>
+                                <th>Credit Limit</th>
+                                <th>Due Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="creditCardsTableBody">
+                            <!-- Dynamic content -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Loans -->
+            <div class="finance-section" id="loansSection" data-section-preference="loans">
+                <div class="finance-section-header">
+                    <h2 class="finance-section-title">
+                        <i class="bi bi-cash" style="color:var(--accent-warning);"></i> Loans
+                    </h2>
+                    <div class="finance-section-actions">
+                        <button class="btn-finance btn-finance-warning" onclick="openAddLoanModal()">
+                            <i class="bi bi-plus-lg"></i> Add Loan
+                        </button>
+                    </div>
+                </div>
+                <div class="finance-table-wrapper">
+                    <table class="finance-table">
+                        <thead>
+                            <tr>
+                                <th>Loan Name</th>
+                                <th>Lender</th>
+                                <th>Loan Amount</th>
+                                <th>Outstanding Amount</th>
+                                <th>EMI Amount</th>
+                                <th>Due Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="loansTableBody">
+                            <!-- Dynamic content -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <!-- Expenses -->
             <div class="finance-section" id="expensesSection" data-section-preference="expenses">
                 <div class="finance-section-header">
                     <h2 class="finance-section-title">
-                        <i class="bi bi-wallet2" style="color:var(--accent-danger);"></i> Expenses
+                        <i class="bi bi-wallet2" style="color:var(--accent-primary);"></i> Expenses
                     </h2>
                     <div class="finance-section-actions">
-                        <button class="btn-finance btn-finance-danger" onclick="openAddCreditCardModal()">
+                        <button class="btn-finance btn-finance-primary" onclick="openAddExpenseModal()">
                             <i class="bi bi-plus-lg"></i> Add Expense
                         </button>
                     </div>
@@ -422,16 +495,15 @@
                     <table class="finance-table">
                         <thead>
                             <tr>
-                                <th>Expense</th>
-                                <th>Type</th>
-                                <th>Outstanding / Amount</th>
-                                <th>Limit / Rate</th>
-                                <th>Due / Date</th>
+                                <th>Expense Name</th>
+                                <th>Category / Vendor</th>
+                                <th>Amount</th>
+                                <th>Date</th>
                                 <th>Status</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody id="creditCardsTableBody">
+                        <tbody id="expensesTableBody">
                             <!-- Dynamic content -->
                         </tbody>
                     </table>
@@ -595,6 +667,8 @@
                             <div class="settings-checkbox-grid">
                                 <label class="settings-checkbox-item"><input type="checkbox" id="copySectionCategories" checked> Investment categories</label>
                                 <label class="settings-checkbox-item"><input type="checkbox" id="copySectionBanks" checked> Bank accounts</label>
+                                <label class="settings-checkbox-item"><input type="checkbox" id="copySectionCreditCards" checked> Credit cards</label>
+                                <label class="settings-checkbox-item"><input type="checkbox" id="copySectionLoans" checked> Loans</label>
                                 <label class="settings-checkbox-item"><input type="checkbox" id="copySectionExpenses" checked> Expenses</label>
                                 <label class="settings-checkbox-item"><input type="checkbox" id="copySectionInsurance" checked> Insurance</label>
                                 <label class="settings-checkbox-item"><input type="checkbox" id="copySectionIncome" checked> Income</label>
@@ -935,15 +1009,7 @@
             <div class="finance-modal-body">
                 <form id="addCreditCardForm">
                     <input type="hidden" id="editCardId">
-                    <div class="form-group non-insurance-fields">
-                        <label for="expenseTypeSelect">Expense Type *</label>
-                        <select id="expenseTypeSelect" onchange="onExpenseTypeChange()">
-                            <option value="credit-card">Credit Card</option>
-                            <option value="loan">Loan</option>
-                            <option value="general-expense">General Expense</option>
-                            <option value="insurance">Insurance</option>
-                        </select>
-                    </div>
+                    <input type="hidden" id="expenseTypeSelect">
                     <div class="form-group non-insurance-fields">
                         <label for="cardName">Expense Name *</label>
                         <input type="text" id="cardName" placeholder="e.g., HDFC Regalia" required>
@@ -955,6 +1021,13 @@
                     <div class="form-group expense-field loan-fields" style="display:none;">
                         <label for="cardIssuerLoan">Lender / Institution</label>
                         <input type="text" id="cardIssuerLoan" placeholder="e.g., SBI Home Loan">
+                    </div>
+                    <div class="form-group expense-field loan-fields" style="display:none;">
+                        <label for="cardLoanType">Loan Type</label>
+                        <select id="cardLoanType">
+                            <option value="credit-card-emi">Credit Card EMI</option>
+                            <option value="personal-loan">Personal Loan</option>
+                        </select>
                     </div>
                     <div class="form-group expense-field general-fields" style="display:none;">
                         <label for="cardIssuerGeneral">Vendor / Category</label>
@@ -973,8 +1046,28 @@
                         </select>
                     </div>
                     <div class="form-group expense-field non-insurance-fields">
-                        <label for="cardOutstanding">Amount (₹)</label>
+                        <label for="cardOutstanding">Outstanding Balance / Amount (₹)</label>
                         <input type="number" id="cardOutstanding" placeholder="0" min="0" step="0.01">
+                    </div>
+                    <div class="form-group expense-field loan-fields" style="display:none;">
+                        <label for="cardTotalLoanAmount">Total Loan Amount (₹) *</label>
+                        <input type="number" id="cardTotalLoanAmount" placeholder="e.g., 120000" min="0" step="0.01">
+                    </div>
+                    <div class="form-group expense-field loan-fields" style="display:none;">
+                        <label for="cardInterestRate">Interest Rate (Annual %) *</label>
+                        <input type="number" id="cardInterestRate" placeholder="e.g., 15.99" min="0" step="0.01">
+                    </div>
+                    <div class="form-group expense-field loan-fields" style="display:none;">
+                        <label for="cardTenure">Tenure (Months) *</label>
+                        <input type="number" id="cardTenure" placeholder="e.g., 12" min="1" step="1">
+                    </div>
+                    <div class="form-group expense-field loan-fields" style="display:none;">
+                        <label for="cardLoanStartMonth">Loan Start Month *</label>
+                        <input type="month" id="cardLoanStartMonth">
+                    </div>
+                    <div class="form-group expense-field loan-fields" style="display:none;">
+                        <label for="cardProcessingFee">One-time Processing Fee (₹)</label>
+                        <input type="number" id="cardProcessingFee" placeholder="e.g., 299" min="0" step="0.01">
                     </div>
                     <div class="form-group expense-field insurance-fields" style="display:none;">
                         <label for="insurancePremiumAmount">Premium Amount (₹)</label>

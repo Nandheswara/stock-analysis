@@ -42,6 +42,7 @@ import {
     deleteBankForMonth,
     addCreditCard,
     updateCreditCard,
+    deleteCreditCard,
     deleteCreditCardForMonth,
     saveIncome,
     saveTax,
@@ -56,7 +57,9 @@ import {
     copyPreviousMonthData,
     getFinanceViewPreferences,
     saveFinanceViewPreferences,
-    getFinanceRawData
+    getFinanceRawData,
+    calculateAmortizationSchedule,
+    getMonthsDifference
 } from '../js/firebase-finance-service.js';
 
 import { log } from './utils.js';
@@ -73,6 +76,9 @@ let financeData = {
     categories: {},
     banks: {},
     creditCards: {},
+    loans: {},
+    expenses: {},
+    insurance: {},
     income: {},
     taxes: {},
     snapshots: {},
@@ -115,10 +121,22 @@ const SECTION_PREFERENCE_META = Object.freeze([
         description: 'Bank account table and monthly balances.'
     },
     {
+        key: 'creditCards',
+        sectionId: 'creditCardsSection',
+        label: 'Credit Cards',
+        description: 'Credit card outstandings and limits table.'
+    },
+    {
+        key: 'loans',
+        sectionId: 'loansSection',
+        label: 'Loans',
+        description: 'Loan tracking table with EMI progress.'
+    },
+    {
         key: 'expenses',
         sectionId: 'expensesSection',
         label: 'Expenses',
-        description: 'Credit cards, loans and general expense tracking table.'
+        description: 'General expense tracking table.'
     },
     {
         key: 'insurance',
@@ -537,19 +555,22 @@ function buildRecordPreferenceRows(itemType) {
     }
 
     if (itemType === 'expenses') {
-        return Object.entries(financeData.creditCards || {})
-            .filter(([, card]) => (card.type || 'credit-card') !== 'insurance')
+        const merged = [
+            ...Object.entries(financeData.creditCards || {}),
+            ...Object.entries(financeData.loans || {}),
+            ...Object.entries(financeData.expenses || {})
+        ];
+        return merged
             .map(([id, card]) => ({
                 id,
-                label: card.name || 'Unnamed Expense',
-                sub: card.issuer || card.type || 'Expense'
+                label: card.name || 'Unnamed Item',
+                sub: card.issuer || card.type || 'Item'
             }))
             .sort((a, b) => a.label.localeCompare(b.label));
     }
 
     if (itemType === 'insurance') {
-        return Object.entries(financeData.creditCards || {})
-            .filter(([, card]) => (card.type || 'credit-card') === 'insurance')
+        return Object.entries(financeData.insurance || {})
             .map(([id, card]) => ({
                 id,
                 label: card.name || 'Unnamed Policy',
@@ -859,6 +880,13 @@ function normalizeIdentityPart(value) {
 function getMonthAmount(record, monthKey, fallbackKey) {
     if (record?.balances && record.balances[monthKey] !== undefined) {
         return Number(record.balances[monthKey]) || 0;
+    }
+    if (record?.type === 'insurance') {
+        const createdMonth = record.createdMonth || (record.createdAt ? getMonthFromTimestamp(record.createdAt) : null);
+        if (monthKey === createdMonth) {
+            return Number(record?.[fallbackKey]) || 0;
+        }
+        return 0;
     }
     return Number(record?.[fallbackKey]) || 0;
 }
@@ -1582,22 +1610,23 @@ function renderBanks() {
 
 function renderCreditCards() {
     const container = document.getElementById('creditCardsTableBody');
+    if (!container) return;
     const cards = financeData.creditCards;
 
     if (!cards || Object.keys(cards).length === 0) {
         container.innerHTML = `
             <tr>
                 <td colspan="7" style="text-align:center;padding:30px;">
-                    <i class="bi bi-wallet2" style="font-size:2rem;display:block;margin-bottom:8px;opacity:0.4;"></i>
-                    <span style="color:var(--text-muted);">No expenses added yet</span>
+                    <i class="bi bi-credit-card-2-back" style="font-size:2rem;display:block;margin-bottom:8px;opacity:0.4;"></i>
+                    <span style="color:var(--text-muted);">No credit cards added yet</span>
                 </td>
             </tr>`;
         return;
     }
 
-    // Expenses visibility is section-level only, but still month-aware.
+    // Filter for credit cards only
     const visibleCards = Object.entries(cards).filter(([cardId, card]) => {
-        if ((card.type || 'credit-card') === 'insurance') {
+        if ((card.type || 'credit-card') !== 'credit-card') {
             return false;
         }
         const hasBalanceForMonth = card.balances && card.balances[currentMonth] !== undefined;
@@ -1608,7 +1637,7 @@ function renderCreditCards() {
 
     const dedupedVisibleCards = collapseMonthDuplicates(
         visibleCards,
-        (card) => `${normalizeIdentityPart(card.name)}|${normalizeIdentityPart(card.type || 'credit-card')}`,
+        (card) => `${normalizeIdentityPart(card.name)}|credit-card`,
         (card) => getMonthAmount(card, currentMonth, 'outstandingBalance')
     );
 
@@ -1616,8 +1645,8 @@ function renderCreditCards() {
         container.innerHTML = `
             <tr>
                 <td colspan="7" style="text-align:center;padding:30px;">
-                    <i class="bi bi-wallet2" style="font-size:2rem;display:block;margin-bottom:8px;opacity:0.4;"></i>
-                    <span style="color:var(--text-muted);">No expenses for ${getMonthDisplay(currentMonth)}</span>
+                    <i class="bi bi-credit-card-2-back" style="font-size:2rem;display:block;margin-bottom:8px;opacity:0.4;"></i>
+                    <span style="color:var(--text-muted);">No credit cards for ${getMonthDisplay(currentMonth)}</span>
                 </td>
             </tr>`;
         return;
@@ -1626,41 +1655,14 @@ function renderCreditCards() {
     const today = new Date();
 
     container.innerHTML = dedupedVisibleCards.map(([cardId, card]) => {
-        // New format: show month-specific outstanding, or 0 if not entered yet
-        // Old format (no balances obj): use global outstandingBalance
         const outstanding = card.balances
             ? (card.balances[currentMonth] || 0)
             : (card.outstandingBalance || 0);
 
         const limit = getCreditCardLimit(card, currentMonth);
-        const utilization = limit > 0 ? ((outstanding / limit) * 100).toFixed(1) : 0;
-        const utilClass = utilization <= 30 ? 'low' : utilization <= 70 ? 'medium' : 'high';
-        
-        // Due date warning
-        let dueDateHtml = '-';
-        if (card.dueDate) {
-            const due = new Date(card.dueDate);
-            const daysUntilDue = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
-            let warningIcon = '';
-            if (daysUntilDue < 0) {
-                warningIcon = '<i class="bi bi-exclamation-circle-fill due-overdue" title="Overdue!"></i>';
-            } else if (daysUntilDue <= 7) {
-                warningIcon = '<i class="bi bi-exclamation-triangle-fill due-warning" title="Due soon!"></i>';
-            }
-            dueDateHtml = `<div class="due-date-cell">${warningIcon} ${card.dueDate}</div>`;
-        }
 
-        const expenseType = card.type || 'credit-card';
-        const typeLabel = expenseType === 'loan' ? 'Loan' : expenseType === 'general-expense' ? 'General' : 'Credit Card';
         const typeMeta = escapeHtml(card.issuer || '-');
-        const limitOrRate = expenseType === 'loan'
-            ? (card.interestRate ? `${card.interestRate}%` : '-')
-            : expenseType === 'credit-card'
-                ? formatCurrency(limit)
-                : '-';
-        const dueLabel = expenseType === 'general-expense'
-            ? (card.expenseDate || '-')
-            : (card.dueDate || '-');
+        const limitOrRate = limit > 0 ? formatCurrency(limit) : '-';
         const isPaidForCurrentMonth = isCardPaidForMonth(card, currentMonth);
         const statusLabel = isPaidForCurrentMonth ? 'Paid' : 'Unpaid';
 
@@ -1674,13 +1676,195 @@ function renderCreditCards() {
             </td>
             <td>
                 <div style="display:flex;flex-direction:column;gap:4px;">
-                    <span class="badge bg-secondary text-uppercase">${typeLabel}</span>
                     <span>${typeMeta}</span>
                 </div>
             </td>
             <td class="amount-cell amount-negative">${formatCurrency(outstanding)}</td>
             <td class="amount-cell">${limitOrRate}</td>
-            <td>${dueLabel}</td>
+            <td>${card.dueDate || '-'}</td>
+            <td>${statusLabel}</td>
+            <td>
+                <div class="table-actions">
+                    <button onclick="editFinanceCreditCard('${cardId}')" title="Edit"><i class="bi bi-pencil"></i></button>
+                    <button class="delete-row-btn" onclick="deleteFinanceCreditCard('${cardId}')" title="Delete"><i class="bi bi-trash"></i></button>
+                </div>
+            </td>
+        </tr>
+        `;
+    }).join('');
+}
+
+function renderLoans() {
+    const container = document.getElementById('loansTableBody');
+    if (!container) return;
+    const cards = financeData.loans;
+
+    if (!cards || Object.keys(cards).length === 0) {
+        container.innerHTML = `
+            <tr>
+                <td colspan="7" style="text-align:center;padding:30px;">
+                    <i class="bi bi-cash" style="font-size:2rem;display:block;margin-bottom:8px;opacity:0.4;"></i>
+                    <span style="color:var(--text-muted);">No loans added yet</span>
+                </td>
+            </tr>`;
+        return;
+    }
+
+    // Filter for loans only
+    const visibleCards = Object.entries(cards).filter(([cardId, card]) => {
+        if ((card.type || 'credit-card') !== 'loan') {
+            return false;
+        }
+        const hasBalanceForMonth = card.balances && card.balances[currentMonth] !== undefined;
+        const createdMonth = card.createdMonth || (card.createdAt ? getMonthFromTimestamp(card.createdAt) : null);
+        const wasCreatedThisMonth = createdMonth === currentMonth;
+        return hasBalanceForMonth || wasCreatedThisMonth;
+    });
+
+    const dedupedVisibleCards = collapseMonthDuplicates(
+        visibleCards,
+        (card) => `${normalizeIdentityPart(card.name)}|loan`,
+        (card) => getMonthAmount(card, currentMonth, 'outstandingBalance')
+    );
+
+    if (dedupedVisibleCards.length === 0) {
+        container.innerHTML = `
+            <tr>
+                <td colspan="7" style="text-align:center;padding:30px;">
+                    <i class="bi bi-cash" style="font-size:2rem;display:block;margin-bottom:8px;opacity:0.4;"></i>
+                    <span style="color:var(--text-muted);">No loans for ${getMonthDisplay(currentMonth)}</span>
+                </td>
+            </tr>`;
+        return;
+    }
+
+    container.innerHTML = dedupedVisibleCards.map(([cardId, card]) => {
+        const totalLoanAmount = parseFloat(card.totalLoanAmount) || 0;
+        const annualRate = parseFloat(card.interestRate) || 0;
+        const tenure = parseInt(card.tenure) || 0;
+        const processingFee = parseFloat(card.processingFee) || 0;
+        const startMonth = card.loanStartMonth;
+        
+        let displayOutstanding = totalLoanAmount;
+        let emiDisplay = 0;
+        
+        const isPaidForCurrentMonth = isCardPaidForMonth(card, currentMonth);
+        const statusLabel = isPaidForCurrentMonth ? 'Paid' : 'Unpaid';
+        
+        if (startMonth && tenure > 0) {
+            const monthIndex = getMonthsDifference(startMonth, currentMonth) + 1;
+            if (monthIndex >= 1 && monthIndex <= tenure) {
+                const schedule = calculateAmortizationSchedule(totalLoanAmount, annualRate, tenure, processingFee, card.loanType);
+                const record = schedule[monthIndex - 1];
+                if (record) {
+                    displayOutstanding = isPaidForCurrentMonth ? record.endBalance : record.startBalance;
+                    emiDisplay = record.emi + record.gstOnInterest;
+                    if (monthIndex === 1 && processingFee > 0) {
+                        emiDisplay = record.totalOutflow;
+                    }
+                }
+            } else if (monthIndex > tenure) {
+                displayOutstanding = 0;
+                emiDisplay = 0;
+            }
+        }
+
+        const lender = escapeHtml(card.issuer || '-');
+        const isPFMonth = startMonth && (getMonthsDifference(startMonth, currentMonth) + 1) === 1 && processingFee > 0;
+
+        return `
+        <tr>
+            <td>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <span style="width:8px;height:8px;border-radius:50%;background:${card.color || '#ffb454'};display:inline-block;"></span>
+                    <strong>${escapeHtml(card.name)}</strong>
+                </div>
+            </td>
+            <td>${lender}</td>
+            <td class="amount-cell amount-positive">${formatCurrency(totalLoanAmount)}</td>
+            <td class="amount-cell amount-negative">${formatCurrency(displayOutstanding)}</td>
+            <td class="amount-cell">
+                ${formatCurrency(emiDisplay)}
+                ${isPFMonth ? `<br><small class="text-muted" style="font-size:0.75rem;">(Incl. PF + GST)</small>` : ''}
+            </td>
+            <td>${card.dueDate || '-'}</td>
+            <td>${statusLabel}</td>
+            <td>
+                <div class="table-actions">
+                    <button onclick="editFinanceCreditCard('${cardId}')" title="Edit"><i class="bi bi-pencil"></i></button>
+                    <button class="delete-row-btn" onclick="deleteFinanceCreditCard('${cardId}')" title="Delete"><i class="bi bi-trash"></i></button>
+                </div>
+            </td>
+        </tr>
+        `;
+    }).join('');
+}
+
+function renderExpenses() {
+    const container = document.getElementById('expensesTableBody');
+    if (!container) return;
+    const cards = financeData.expenses;
+
+    if (!cards || Object.keys(cards).length === 0) {
+        container.innerHTML = `
+            <tr>
+                <td colspan="6" style="text-align:center;padding:30px;">
+                    <i class="bi bi-wallet2" style="font-size:2rem;display:block;margin-bottom:8px;opacity:0.4;"></i>
+                    <span style="color:var(--text-muted);">No expenses added yet</span>
+                </td>
+            </tr>`;
+        return;
+    }
+
+    // Filter for general expenses only
+    const visibleCards = Object.entries(cards).filter(([cardId, card]) => {
+        if ((card.type || 'credit-card') !== 'general-expense') {
+            return false;
+        }
+        const hasBalanceForMonth = card.balances && card.balances[currentMonth] !== undefined;
+        const createdMonth = card.createdMonth || (card.createdAt ? getMonthFromTimestamp(card.createdAt) : null);
+        const wasCreatedThisMonth = createdMonth === currentMonth;
+        return hasBalanceForMonth || wasCreatedThisMonth;
+    });
+
+    const dedupedVisibleCards = collapseMonthDuplicates(
+        visibleCards,
+        (card) => `${normalizeIdentityPart(card.name)}|general-expense`,
+        (card) => getMonthAmount(card, currentMonth, 'outstandingBalance')
+    );
+
+    if (dedupedVisibleCards.length === 0) {
+        container.innerHTML = `
+            <tr>
+                <td colspan="6" style="text-align:center;padding:30px;">
+                    <i class="bi bi-wallet2" style="font-size:2rem;display:block;margin-bottom:8px;opacity:0.4;"></i>
+                    <span style="color:var(--text-muted);">No expenses for ${getMonthDisplay(currentMonth)}</span>
+                </td>
+            </tr>`;
+        return;
+    }
+
+    container.innerHTML = dedupedVisibleCards.map(([cardId, card]) => {
+        const amount = card.balances
+            ? (card.balances[currentMonth] || 0)
+            : (card.outstandingBalance || 0);
+
+        const category = escapeHtml(card.issuer || '-');
+        const date = card.expenseDate || '-';
+        const isPaidForCurrentMonth = isCardPaidForMonth(card, currentMonth);
+        const statusLabel = isPaidForCurrentMonth ? 'Paid' : 'Unpaid';
+
+        return `
+        <tr>
+            <td>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <span style="width:8px;height:8px;border-radius:50%;background:${card.color || '#3ddc84'};display:inline-block;"></span>
+                    <strong>${escapeHtml(card.name)}</strong>
+                </div>
+            </td>
+            <td>${category}</td>
+            <td class="amount-cell amount-negative">${formatCurrency(amount)}</td>
+            <td>${date}</td>
             <td>${statusLabel}</td>
             <td>
                 <div class="table-actions">
@@ -1717,7 +1901,7 @@ function renderInsurance() {
     const container = document.getElementById('insuranceTableBody');
     if (!container) return;
 
-    const cards = financeData.creditCards;
+    const cards = financeData.insurance;
 
     if (!cards || Object.keys(cards).length === 0) {
         container.innerHTML = `
@@ -1730,7 +1914,6 @@ function renderInsurance() {
         return;
     }
 
-    // Insurance visibility is section-level only, but still month-aware.
     const visiblePolicies = Object.entries(cards).filter(([cardId, card]) => {
         if ((card.type || 'credit-card') !== 'insurance') {
             return false;
@@ -1767,9 +1950,7 @@ function renderInsurance() {
     }
 
     container.innerHTML = dedupedVisiblePolicies.map(([cardId, card]) => {
-        const amount = card.balances
-            ? (card.balances[currentMonth] || 0)
-            : (card.outstandingBalance || 0);
+        const amount = getMonthAmount(card, currentMonth, 'outstandingBalance');
         const insuranceName = getInsuranceMonthValue(card, currentMonth, 'name', card.name || 'Insurance');
         const insuranceCategory = getInsuranceMonthValue(card, currentMonth, 'insuranceCategory', card.insuranceCategory || 'term');
         const insuranceType = getInsuranceTypeLabel(insuranceCategory || 'term');
@@ -2259,7 +2440,9 @@ function renderAll() {
         }
         if (isSectionEnabled('investmentCategories')) renderCategories();
         if (isSectionEnabled('bankAccounts')) renderBanks();
-        if (isSectionEnabled('expenses')) renderCreditCards();
+        if (isSectionEnabled('creditCards')) renderCreditCards();
+        if (isSectionEnabled('loans')) renderLoans();
+        if (isSectionEnabled('expenses')) renderExpenses();
         if (isSectionEnabled('insurance')) renderInsurance();
 
         // Defer chart rendering to next animation frame to avoid blocking UI.
@@ -2634,12 +2817,17 @@ window.setExpenseFormFields = function(type) {
     const generalFields = document.querySelectorAll('.general-fields');
     const insuranceFields = document.querySelectorAll('.insurance-fields');
     const nonInsuranceFields = document.querySelectorAll('.non-insurance-fields');
+    const outstandingField = document.getElementById('cardOutstanding')?.closest('.form-group');
 
     creditFields.forEach(el => el.style.display = type === 'credit-card' ? '' : 'none');
     loanFields.forEach(el => el.style.display = type === 'loan' ? '' : 'none');
     generalFields.forEach(el => el.style.display = type === 'general-expense' ? '' : 'none');
     insuranceFields.forEach(el => el.style.display = type === 'insurance' ? '' : 'none');
     nonInsuranceFields.forEach(el => el.style.display = type === 'insurance' ? 'none' : '');
+    
+    if (outstandingField) {
+        outstandingField.style.display = (type === 'loan' || type === 'insurance') ? 'none' : '';
+    }
 };
 
 window.onExpenseTypeChange = function() {
@@ -2654,6 +2842,28 @@ window.openAddCreditCardModal = function() {
     document.getElementById('insurancePolicyType').value = 'term';
     document.getElementById('insuranceStatusSelect').value = 'active';
     setExpenseFormFields('credit-card');
+    document.getElementById('addCreditCardModalTitle').textContent = 'Add Credit Card';
+    openModal('addCreditCardModal');
+};
+
+window.openAddLoanModal = function() {
+    document.getElementById('addCreditCardForm').reset();
+    document.getElementById('editCardId').value = '';
+    document.getElementById('expenseTypeSelect').value = 'loan';
+    document.getElementById('insurancePolicyType').value = 'term';
+    document.getElementById('insuranceStatusSelect').value = 'active';
+    setExpenseFormFields('loan');
+    document.getElementById('addCreditCardModalTitle').textContent = 'Add Loan';
+    openModal('addCreditCardModal');
+};
+
+window.openAddExpenseModal = function() {
+    document.getElementById('addCreditCardForm').reset();
+    document.getElementById('editCardId').value = '';
+    document.getElementById('expenseTypeSelect').value = 'general-expense';
+    document.getElementById('insurancePolicyType').value = 'term';
+    document.getElementById('insuranceStatusSelect').value = 'active';
+    setExpenseFormFields('general-expense');
     document.getElementById('addCreditCardModalTitle').textContent = 'Add Expense';
     openModal('addCreditCardModal');
 };
@@ -2689,6 +2899,12 @@ window.submitAddCreditCard = async function() {
         ? `${insuranceTypeLabel} - ${insuranceProvider}`
         : `${insuranceTypeLabel} Insurance`;
 
+    const totalLoanAmount = type === 'loan' ? parseFloat(document.getElementById('cardTotalLoanAmount').value) || 0 : 0;
+    const interestRate = type === 'loan' ? parseFloat(document.getElementById('cardInterestRate').value) || 0 : 0;
+    const tenure = type === 'loan' ? parseInt(document.getElementById('cardTenure').value) || 0 : 0;
+    const loanStartMonth = type === 'loan' ? document.getElementById('cardLoanStartMonth').value : '';
+    const processingFee = type === 'loan' ? parseFloat(document.getElementById('cardProcessingFee').value) || 0 : 0;
+
     const data = {
         type,
         name: type === 'insurance'
@@ -2703,18 +2919,27 @@ window.submitAddCreditCard = async function() {
                 : document.getElementById('cardIssuer').value.trim(),
         outstandingBalance: type === 'insurance'
             ? (parseFloat(document.getElementById('insurancePremiumAmount').value) || 0)
-            : (parseFloat(document.getElementById('cardOutstanding').value) || 0),
+            : type === 'loan'
+                ? totalLoanAmount
+                : (parseFloat(document.getElementById('cardOutstanding').value) || 0),
         creditLimit: type === 'credit-card' ? parseFloat(document.getElementById('cardLimit').value) || 0 : 0,
+        totalLoanAmount,
+        interestRate,
+        tenure,
+        loanStartMonth,
+        processingFee,
+        loanType: type === 'loan' ? document.getElementById('cardLoanType').value : '',
         dueDate: type === 'loan'
             ? document.getElementById('loanDueDate').value
             : type === 'insurance'
                 ? document.getElementById('insuranceValidUpto').value
             : document.getElementById('cardDueDate').value,
         isPaid: type === 'insurance' ? false : paymentStatus === 'paid',
-        interestRate: 0, // Removed for all
         expenseDate: type === 'insurance'
             ? (document.getElementById('insuranceStartDate')?.value || '')
-            : (document.getElementById('cardExpenseDate')?.value || ''),
+            : type === 'loan'
+                ? (loanStartMonth ? `${loanStartMonth}-01` : '')
+                : (document.getElementById('cardExpenseDate')?.value || ''),
         notes: document.getElementById('cardNotes')?.value.trim() || '',
         insuranceCategory: type === 'insurance' ? document.getElementById('insurancePolicyType').value : '',
         policyNumber: type === 'insurance' ? document.getElementById('insurancePolicyNumber').value.trim() : '',
@@ -2750,7 +2975,7 @@ window.submitAddCreditCard = async function() {
 };
 
 window.editFinanceCreditCard = function(cardId) {
-    const card = financeData.creditCards[cardId];
+    const card = financeData.creditCards[cardId] || financeData.loans[cardId] || financeData.expenses[cardId] || financeData.insurance[cardId];
     if (!card) return;
     const insuranceMonthData = getInsuranceMonthData(card, currentMonth) || {};
     const outstanding = card.balances
@@ -2766,6 +2991,11 @@ window.editFinanceCreditCard = function(cardId) {
     document.getElementById('cardOutstanding').value = outstanding || '';
     document.getElementById('insurancePremiumAmount').value = outstanding || '';
     document.getElementById('cardLimit').value = getCreditCardLimit(card, currentMonth) || '';
+    document.getElementById('cardTotalLoanAmount').value = card.totalLoanAmount || '';
+    document.getElementById('cardInterestRate').value = card.interestRate || '';
+    document.getElementById('cardTenure').value = card.tenure || '';
+    document.getElementById('cardLoanStartMonth').value = card.loanStartMonth || '';
+    document.getElementById('cardProcessingFee').value = card.processingFee || '';
     document.getElementById('cardDueDate').value = card.dueDate || '';
     document.getElementById('cardExpenseDate').value = card.expenseDate || '';
     document.getElementById('insuranceStartDate').value = insuranceMonthData.insuranceStartDate ?? card.insuranceStartDate ?? card.expenseDate ?? '';
@@ -2776,6 +3006,7 @@ window.editFinanceCreditCard = function(cardId) {
         document.getElementById('loanPaymentStatus').value = isCardPaidForMonth(card, currentMonth) ? 'paid' : 'unpaid';
         document.getElementById('loanDueDate').value = card.dueDate || '';
         document.getElementById('cardIssuerLoan').value = card.issuer || '';
+        document.getElementById('cardLoanType').value = card.loanType || 'credit-card-emi';
     } else if (type === 'general-expense') {
         document.getElementById('generalPaymentStatus').value = isCardPaidForMonth(card, currentMonth) ? 'paid' : 'unpaid';
         document.getElementById('cardIssuerGeneral').value = card.issuer || '';
@@ -2793,6 +3024,29 @@ window.editFinanceCreditCard = function(cardId) {
 };
 
 window.deleteFinanceCreditCard = async function(cardId) {
+    const card = financeData.creditCards[cardId] || financeData.loans[cardId] || financeData.expenses[cardId] || financeData.insurance[cardId];
+    if (!card) return;
+
+    const type = card.type || 'credit-card';
+    const isLoanOrInsurance = type === 'loan' || type === 'insurance';
+
+    if (isLoanOrInsurance) {
+        const itemLabel = type === 'loan' ? 'loan account' : 'insurance policy';
+        const confirmed = await showConfirmModal(
+            `Delete ${type === 'loan' ? 'Loan' : 'Insurance'}`,
+            `Are you sure you want to delete this ${itemLabel} entirely? This will remove all its history.`
+        );
+        if (!confirmed) return;
+
+        const result = await deleteCreditCard(cardId);
+        if (result.success) {
+            showToast(`${type === 'loan' ? 'Loan' : 'Insurance'} deleted successfully.`, 'success');
+        } else {
+            showToast('Failed to delete. ' + (result.error || ''), 'error');
+        }
+        return;
+    }
+
     const monthLabel = getMonthDisplay(currentMonth);
     const confirmed = await showConfirmModal(
         'Delete Expense Value',
@@ -2900,6 +3154,8 @@ window.copyFinanceDataFromSettings = async function() {
         const options = {
             includeCategories: Boolean(document.getElementById('copySectionCategories')?.checked),
             includeBanks: Boolean(document.getElementById('copySectionBanks')?.checked),
+            includeCreditCards: Boolean(document.getElementById('copySectionCreditCards')?.checked),
+            includeLoans: Boolean(document.getElementById('copySectionLoans')?.checked),
             includeExpenses: Boolean(document.getElementById('copySectionExpenses')?.checked),
             includeInsurance: Boolean(document.getElementById('copySectionInsurance')?.checked),
             includeIncome: Boolean(document.getElementById('copySectionIncome')?.checked),
@@ -2912,6 +3168,8 @@ window.copyFinanceDataFromSettings = async function() {
 
         const hasSelectedSection = options.includeCategories
             || options.includeBanks
+            || options.includeCreditCards
+            || options.includeLoans
             || options.includeExpenses
             || options.includeInsurance
             || options.includeIncome
@@ -3241,8 +3499,13 @@ function buildExportData(months) {
     // EXPENSE BREAKDOWN
     // ========================================
     const expenseBreakdown = [['EXPENSE BREAKDOWN']];
-    expenseBreakdown.push(['Credit Card', 'Month', 'Outstanding (₹)', 'Utilization %', 'Status']);
-    Object.values(financeData.creditCards).forEach(card => {
+    expenseBreakdown.push(['Credit Card / Loan / Expense', 'Month', 'Outstanding / Amount (₹)', 'Utilization %', 'Status']);
+    const mergedExpenses = [
+        ...Object.values(financeData.creditCards || {}),
+        ...Object.values(financeData.loans || {}),
+        ...Object.values(financeData.expenses || {})
+    ];
+    mergedExpenses.forEach(card => {
         months.forEach(month => {
             const outstanding = card.balances ? (card.balances[month] || 0) : 0;
             const limit = card.creditLimit || 0;
@@ -3872,6 +4135,7 @@ function setupSelectors() {
 // ========================================
 
 function setupAuth() {
+    let lastLoadedUid = null;
     initAuthListener();
 
     onAuthStateChange((user) => {
@@ -3880,6 +4144,9 @@ function setupAuth() {
         const userEmail = document.getElementById('userEmail');
         const mainContent = document.getElementById('financeMainContent');
         const loginPrompt = document.getElementById('loginPrompt');
+        const authLoadingSpinner = document.getElementById('authLoadingSpinner');
+
+        if (authLoadingSpinner) authLoadingSpinner.style.display = 'none';
 
         if (user) {
             if (authButtons) authButtons.style.setProperty('display', 'none', 'important');
@@ -3887,6 +4154,11 @@ function setupAuth() {
             if (userEmail) userEmail.textContent = user.displayName || user.email;
             if (mainContent) mainContent.style.display = '';
             if (loginPrompt) loginPrompt.style.display = 'none';
+
+            if (lastLoadedUid === user.uid) {
+                return;
+            }
+            lastLoadedUid = user.uid;
 
             // Reset state for new user session
             isInitialLoad = true;
@@ -3911,6 +4183,7 @@ function setupAuth() {
             // Create default categories for new users (delayed to avoid racing with listeners)
             setTimeout(() => createDefaultCategories(), 1500);
         } else {
+            lastLoadedUid = null;
             if (authButtons) authButtons.style.setProperty('display', 'flex', 'important');
             if (userProfile) userProfile.style.setProperty('display', 'none', 'important');
             if (mainContent) mainContent.style.display = 'none';
