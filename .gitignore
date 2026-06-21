@@ -45,3 +45,4 @@ build/
 # Testing
 coverage/
 .nyc_output/
+/.claude-plugin*
