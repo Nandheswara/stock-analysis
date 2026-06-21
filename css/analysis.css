@@ -287,11 +287,11 @@ body.light-theme .analysis-table tbody tr:hover {
 
 body.light-theme .analysis-table td strong,
 body.light-theme .analysis-table td {
-    color: var(--text-primary) !important;
+    color: var(--text-primary);
 }
 
 body.light-theme .analysis-table td small.text-muted {
-    color: var(--text-muted) !important;
+    color: var(--text-muted);
 }
 
 body.light-theme .metric-category {
@@ -305,19 +305,19 @@ body.light-theme .stock-row:hover {
 
 /* Value colors - Light Theme (maintain good contrast) */
 body.light-theme .good-value {
-    color: var(--accent-success);
+    color: var(--accent-success) !important;
 }
 
 body.light-theme .bad-value {
-    color: var(--accent-danger);
+    color: var(--accent-danger) !important;
 }
 
 body.light-theme .neutral-value {
-    color: var(--text-muted);
+    color: var(--text-muted) !important;
 }
 
 body.light-theme .stock-symbol {
-    color: var(--accent-primary);
+    color: var(--accent-primary) !important;
 }
 
 /* Sticky first column - Light Theme */
@@ -374,5 +374,18 @@ body.light-theme .analysis-table tbody tr td[colspan="18"] .text-muted {
     #stocksTable th,
     #stocksTable td {
         padding: 6px 8px;
+    }
+
+    .card-header {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 12px;
+    }
+
+    .card-header-actions {
+        width: 100%;
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
     }
 }

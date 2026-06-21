@@ -369,26 +369,4 @@ body.light-theme .offline-badge {
     box-shadow: var(--shadow-md);
 }
 
-/* User Dropdown - Light Theme */
-body.light-theme #userProfile .dropdown-menu {
-    background-color: var(--bg-secondary);
-    border-color: var(--border-color);
-    box-shadow: var(--shadow-lg);
-}
-
-body.light-theme #userProfile .dropdown-item {
-    color: var(--text-primary);
-}
-
-body.light-theme #userProfile .dropdown-item:hover {
-    background-color: var(--bg-primary);
-}
-
-body.light-theme #userProfile .dropdown-item.active {
-    background-color: var(--bg-tertiary);
-    color: var(--text-primary);
-}
-
-body.light-theme #userProfile .dropdown-divider {
-    border-color: var(--border-color);
-}
+/* Dropdown overrides removed to inherit from global.css */

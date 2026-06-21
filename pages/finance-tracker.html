@@ -79,33 +79,33 @@
                             <i class="bi bi-piggy-bank"></i> Finance Tracker
                         </a>
                     </li>
-                    <li class="nav-item d-flex align-items-center ms-2">
-                        <button class="btn btn-sm btn-outline-light" id="themeToggle" title="Toggle theme" aria-label="Toggle dark/light theme">
+                    <li class="nav-item d-flex align-items-center ms-lg-2 user-actions-row">
+                        <!-- Auth Buttons -->
+                        <div class="d-flex align-items-center" id="authButtons" style="gap: 0.5rem;">
+                            <button type="button" class="btn btn-sm btn-outline-light" id="loginBtn">
+                                <i class="bi bi-box-arrow-in-right"></i> Login
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-light" id="signupBtn">
+                                <i class="bi bi-person-plus"></i> Sign Up
+                            </button>
+                        </div>
+                        <!-- User Profile -->
+                        <div class="d-flex align-items-center" id="userProfile" style="display: none !important;">
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-person-circle"></i> <span id="userEmail">User</span>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="profile.html" id="profileBtn"><i class="bi bi-person-gear"></i> Profile</a></li>
+                                    <li><a class="dropdown-item" href="admin.html" id="adminPanelLink" style="display: none;"><i class="bi bi-shield-check"></i> Admin Panel</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="#" id="logoutBtn"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <button class="btn btn-sm btn-outline-light ms-2" id="themeToggle" title="Toggle theme" aria-label="Toggle dark/light theme">
                             <i class="bi bi-moon-fill" id="themeIcon"></i>
                         </button>
-                    </li>
-                    <!-- Auth Buttons -->
-                    <li class="nav-item d-flex align-items-center ms-2" id="authButtons">
-                        <button type="button" class="btn btn-sm btn-outline-light me-2" id="loginBtn">
-                            <i class="bi bi-box-arrow-in-right"></i> Login
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-light" id="signupBtn">
-                            <i class="bi bi-person-plus"></i> Sign Up
-                        </button>
-                    </li>
-                    <!-- User Profile -->
-                    <li class="nav-item d-flex align-items-center ms-2" id="userProfile" style="display: none !important;">
-                        <div class="dropdown">
-                            <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="bi bi-person-circle"></i> <span id="userEmail">User</span>
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="profile.html" id="profileBtn"><i class="bi bi-person-gear"></i> Profile</a></li>
-                                <li><a class="dropdown-item" href="admin.html" id="adminPanelLink" style="display: none;"><i class="bi bi-shield-check"></i> Admin Panel</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#" id="logoutBtn"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
-                            </ul>
-                        </div>
                     </li>
                 </ul>
             </div>

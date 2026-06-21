@@ -433,6 +433,7 @@
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
+    margin-left: auto;
 }
 
 .btn-finance {
@@ -1563,11 +1564,51 @@
 
 @media (max-width: 768px) {
     .financial-summary-bar {
-        grid-template-columns: 1fr;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 12px;
     }
 
     .networth-cards {
-        grid-template-columns: 1fr;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 12px;
+    }
+
+    .summary-metric {
+        width: calc(33.33% - 8px);
+        min-width: 90px;
+        padding: 12px 8px !important;
+    }
+
+    .networth-card {
+        width: calc(33.33% - 8px);
+        min-width: 90px;
+        padding: 16px 12px !important;
+    }
+
+    .summary-metric .metric-icon {
+        font-size: 1.2rem !important;
+        margin-bottom: 4px !important;
+    }
+
+    .networth-card .nw-icon {
+        font-size: 1.6rem !important;
+        margin-bottom: 6px !important;
+    }
+
+    .summary-metric .metric-label {
+        font-size: 0.72rem !important;
+    }
+
+    .networth-card .nw-label {
+        font-size: 0.78rem !important;
+    }
+
+    .summary-metric .metric-sub {
+        font-size: 0.65rem !important;
     }
 
     .categories-grid {
@@ -1575,22 +1616,51 @@
     }
 
     .month-navigator {
-        flex-wrap: wrap;
-        gap: 10px;
-        padding: 12px 16px;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+        padding: 16px;
     }
 
     .month-nav-left {
+        width: 100%;
+        display: grid;
+        grid-template-columns: auto 1fr auto;
         gap: 10px;
+        align-items: center;
+    }
+
+    #monthPrevBtn {
+        grid-column: 1;
+    }
+
+    #monthDisplay {
+        grid-column: 2;
+        text-align: center;
+        width: 100%;
+        min-width: auto;
+        font-size: 1.1rem;
+    }
+
+    #monthNextBtn {
+        grid-column: 3;
+    }
+
+    #monthCurrentBtn {
+        grid-column: 1 / span 3;
+        width: 100%;
+        margin-top: 4px;
+        padding: 10px !important;
+        text-align: center;
     }
 
     .month-nav-right {
-        margin-left: auto;
-    }
-
-    .month-navigator .month-display {
-        min-width: auto;
-        font-size: 1.1rem;
+        margin: 0 auto;
+        justify-content: center;
+        gap: 16px;
+        width: 100%;
+        border-top: 1px solid var(--border-color);
+        padding-top: 12px;
     }
 
     .income-form {
@@ -1598,11 +1668,11 @@
     }
 
     .summary-metric .metric-value {
-        font-size: 1.4rem;
+        font-size: 1.1rem;
     }
 
     .networth-card .nw-value {
-        font-size: 1.5rem;
+        font-size: 1.2rem;
     }
 
     .chart-container {
@@ -1642,30 +1712,30 @@
    ======================================== */
 
 body.light-theme .month-navigator {
-    background: #ffffff;
-    border-color: #e9ecef;
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
 }
 
 body.light-theme .month-navigator .month-btn {
-    background: #f8f9fa;
-    border-color: #e9ecef;
-    color: #212529;
+    background: var(--bg-tertiary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
 }
 
 body.light-theme .month-navigator .month-display {
-    color: #212529;
+    color: var(--text-heading);
 }
 
 body.light-theme .view-settings-btn {
-    background: #f8f9fa;
-    border-color: #e9ecef;
-    color: #212529;
+    background: var(--bg-tertiary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
 }
 
 body.light-theme .mask-data-btn {
-    background: #f8f9fa;
-    border-color: #e9ecef;
-    color: #212529;
+    background: var(--bg-tertiary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
 }
 
 body.light-theme .view-settings-btn:hover {
@@ -1673,139 +1743,139 @@ body.light-theme .view-settings-btn:hover {
 }
 
 body.light-theme .mask-data-btn:hover {
-    color: #1a1a1a;
+    color: var(--text-primary);
 }
 
 body.light-theme .category-card {
-    background: #ffffff;
-    border-color: #e9ecef;
+    background: var(--bg-card);
+    border-color: var(--border-color);
 }
 
 body.light-theme .category-card-header {
-    border-bottom-color: #e9ecef;
+    border-bottom-color: var(--border-color);
 }
 
 body.light-theme .category-card-name {
-    color: #212529;
+    color: var(--text-heading);
 }
 
 body.light-theme .category-action-btn {
-    background: #f8f9fa;
-    border-color: #e9ecef;
-    color: #495057;
+    background: var(--bg-tertiary);
+    border-color: var(--border-color);
+    color: var(--text-secondary);
 }
 
 body.light-theme .category-item {
-    border-bottom-color: #f0f0f0;
+    border-bottom-color: var(--border-color);
 }
 
 body.light-theme .category-item-name {
-    color: #212529;
+    color: var(--text-primary);
 }
 
 body.light-theme .add-item-form input {
-    background: #f8f9fa;
-    border-color: #e9ecef;
-    color: #212529;
+    background: var(--bg-tertiary);
+    border-color: var(--border-color);
+    color: var(--text-heading);
 }
 
 body.light-theme .finance-table-wrapper {
-    background: #ffffff;
-    border-color: #e9ecef;
+    background: var(--bg-card);
+    border-color: var(--border-color);
 }
 
 body.light-theme .finance-table thead th {
-    background: #f8f9fa;
-    color: #495057;
-    border-bottom-color: #e9ecef;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border-bottom-color: var(--border-color);
 }
 
 body.light-theme .finance-table tbody td {
-    border-bottom-color: #f0f0f0;
-    color: #212529;
+    border-bottom-color: var(--border-color);
+    color: var(--text-primary);
 }
 
 body.light-theme .finance-table tbody tr:hover {
-    background: #f8f9fa;
+    background: var(--bg-tertiary);
 }
 
 body.light-theme .finance-table .table-actions button {
-    background: #f8f9fa;
-    border-color: #e9ecef;
-    color: #495057;
+    background: var(--bg-tertiary);
+    border-color: var(--border-color);
+    color: var(--text-secondary);
 }
 
 body.light-theme .utilization-bar {
-    background: #e9ecef;
+    background: var(--border-color);
 }
 
 body.light-theme .chart-card {
-    background: #ffffff;
-    border-color: #e9ecef;
+    background: var(--bg-card);
+    border-color: var(--border-color);
 }
 
 body.light-theme .chart-card-title {
-    color: #212529;
+    color: var(--text-heading);
 }
 
 body.light-theme .finance-hidden-empty-state {
-    background: #ffffff;
-    border-color: #d8dde3;
+    background: var(--bg-card);
+    border-color: var(--border-color);
 }
 
 body.light-theme .finance-modal {
-    background: #ffffff;
-    border-color: #e9ecef;
+    background: var(--bg-card);
+    border-color: var(--border-color);
 }
 
 body.light-theme .finance-modal-header {
-    border-bottom-color: #e9ecef;
+    border-bottom-color: var(--border-color);
 }
 
 body.light-theme .finance-modal-header h3 {
-    color: #212529;
+    color: var(--text-heading);
 }
 
 body.light-theme .finance-modal-close {
-    background: #f8f9fa;
-    color: #495057;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
 }
 
 body.light-theme .finance-modal-body .form-group input,
 body.light-theme .finance-modal-body .form-group select {
-    background: #f8f9fa;
-    border-color: #e9ecef;
-    color: #212529;
+    background: var(--bg-tertiary);
+    border-color: var(--border-color);
+    color: var(--text-heading);
 }
 
 body.light-theme .section-preference-item {
-    background: #f8f9fa;
-    border-color: #e9ecef;
+    background: var(--bg-tertiary);
+    border-color: var(--border-color);
 }
 
 body.light-theme .section-preference-item:hover {
-    border-color: #7289ff;
+    border-color: var(--accent-primary);
 }
 
 body.light-theme .section-preference-title {
-    color: #212529;
+    color: var(--text-heading);
 }
 
 body.light-theme .section-preference-description {
-    color: #6c757d;
+    color: var(--text-muted);
 }
 
 body.light-theme .section-preference-toggle {
-    background: #ffffff;
-    border-color: #d8dde3;
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
 }
 
 body.light-theme .settings-block,
 body.light-theme .settings-record-card,
 body.light-theme .settings-tool-card,
 body.light-theme .record-preference-item {
-    background: #ffffff;
-    border-color: #e9ecef;
+    background: var(--bg-card);
+    border-color: var(--border-color);
 }
 
 body.light-theme .settings-block-title,
@@ -1813,22 +1883,22 @@ body.light-theme .settings-record-card h5,
 body.light-theme .settings-tool-card h5,
 body.light-theme .record-preference-text,
 body.light-theme .settings-checkbox-item {
-    color: #212529;
+    color: var(--text-heading);
 }
 
 body.light-theme .record-preference-sub,
 body.light-theme .record-preference-empty {
-    color: #6c757d;
+    color: var(--text-muted);
 }
 
 body.light-theme .finance-modal-footer {
-    border-top-color: #e9ecef;
+    border-top-color: var(--border-color);
 }
 
 body.light-theme .icon-option {
-    border-color: #e9ecef;
-    background: #f8f9fa;
-    color: #495057;
+    border-color: var(--border-color);
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
 }
 
 body.light-theme .summary-metric.income-metric {
