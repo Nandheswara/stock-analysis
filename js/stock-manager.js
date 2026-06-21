@@ -600,8 +600,12 @@ function renderStocksTable() {
                 <span class="status-badge ${stock.getStatus().toLowerCase()}">
                     ${stock.getStatus()}
                 </span>
+            <td class="action-cell">
+                <div class="table-actions">
+                    ${!stock.sellPrice ? `<button class="btn-table-action btn-table-edit" onclick="editStock(decodeURIComponent('${encodeURIComponent(stock.id)}'))" aria-label="Edit ${escapeAttribute(stock.name)}" title="Add sell price"><i class="bi bi-pencil-square"></i> Edit</button>` : ''}
+                    <button class="btn-table-action btn-table-delete" onclick="deleteStock(decodeURIComponent('${encodeURIComponent(stock.id)}'))" aria-label="Delete ${escapeAttribute(stock.name)}"><i class="bi bi-trash"></i> Delete</button>
+                </div>
             </td>
-            <td class="action-cell">${!stock.sellPrice ? `<button class="btn btn-info" onclick="editStock(decodeURIComponent('${encodeURIComponent(stock.id)}'))" aria-label="Edit ${escapeAttribute(stock.name)}" title="Add sell price"><i class="bi bi-pencil-square"></i> Edit</button>` : ''}<button class="btn btn-danger" onclick="deleteStock(decodeURIComponent('${encodeURIComponent(stock.id)}'))" aria-label="Delete ${escapeAttribute(stock.name)}"><i class="bi bi-trash"></i> Delete</button></td>
         </tr>
     `).join('');
 }

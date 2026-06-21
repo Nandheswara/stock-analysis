@@ -261,18 +261,15 @@ main .btn-danger:hover {
     min-width: 1200px;
 }
 
-.stocks-table thead {
-    background: var(--header-gradient);
-    color: white;
-}
-
-.stocks-table th {
-    padding: 1rem;
-    text-align: left;
-    font-weight: 600;
-    font-size: 0.9rem;
+.stocks-table thead th {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.06em;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .stocks-table tbody tr {
@@ -281,7 +278,11 @@ main .btn-danger:hover {
 }
 
 .stocks-table tbody tr:hover {
-    background-color: var(--bg-card-header);
+    background-color: var(--bg-tertiary);
+}
+
+.stocks-table tbody tr:last-child {
+    border-bottom: none;
 }
 
 .stocks-table tbody tr.no-data {
@@ -295,14 +296,54 @@ main .btn-danger:hover {
 }
 
 .stocks-table td {
-    padding: 1rem;
-    font-size: 0.95rem;
-    color: var(--text-secondary);
+    padding: 12px 16px;
+    font-size: 0.9rem;
+    color: var(--text-primary);
     vertical-align: middle;
 }
 
 .stocks-table .action-cell {
     white-space: nowrap;
+}
+
+.stocks-table .table-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.btn-table-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    width: auto !important;
+}
+
+.btn-table-edit {
+    background: var(--accent-primary-muted);
+    color: var(--accent-info);
+}
+
+.btn-table-edit:hover {
+    background: var(--accent-primary);
+    color: #fff;
+}
+
+.btn-table-delete {
+    background: rgba(231, 76, 60, 0.1);
+    color: var(--accent-danger);
+}
+
+.btn-table-delete:hover {
+    background: var(--accent-danger);
+    color: #fff;
 }
 
 .stocks-table .stock-name {
@@ -353,22 +394,32 @@ main .btn-danger:hover {
     }
 
     .summary-cards {
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+    }
+
+    .summary-card {
+        padding: 12px 8px !important;
+    }
+
+    .summary-card h4 {
+        font-size: 0.72rem !important;
     }
 
     .summary-card .value {
-        font-size: 1.5rem;
+        font-size: 1.1rem !important;
     }
 
     .summary-card .value.highlight {
-        font-size: 1.7rem;
+        font-size: 1.2rem !important;
     }
 
     .form-actions {
         flex-direction: column;
     }
 
-    .btn {
+    main .btn,
+    .modal-content .btn {
         width: 100%;
     }
 
@@ -394,10 +445,6 @@ main .btn-danger:hover {
 
     .page-header h2 {
         font-size: 1.5rem;
-    }
-
-    .summary-cards {
-        grid-template-columns: 1fr;
     }
 
     .stocks-table th,
@@ -624,60 +671,14 @@ body.light-theme .summary-card .value {
     color: var(--text-heading);
 }
 
-body.light-theme .stocks-table-section {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    box-shadow: var(--shadow-sm);
+body.light-theme .btn-table-edit {
+    background: var(--accent-primary-muted);
+    color: var(--accent-primary);
 }
 
-body.light-theme .stocks-table-section h3 {
-    color: var(--text-heading);
-}
-
-body.light-theme .stocks-table tbody tr {
-    border-bottom: 1px solid var(--border-color);
-}
-
-body.light-theme .stocks-table tbody tr:hover {
-    background-color: var(--bg-tertiary);
-}
-
-body.light-theme .stocks-table tbody tr.no-data td {
-    color: var(--text-muted);
-}
-
-body.light-theme .stocks-table td {
-    color: var(--text-secondary);
-}
-
-body.light-theme .stocks-table .stock-name {
-    color: var(--text-heading);
-}
-
-/* Light theme for stocks table header */
-body.light-theme .stocks-table thead th {
-    background-color: var(--bg-tertiary);
-    color: var(--text-heading);
-    border-bottom-color: var(--border-color);
-}
-
-/* Light theme for table actions (edit/delete buttons) */
-body.light-theme .stocks-table .btn-info {
+body.light-theme .btn-table-edit:hover {
     background: var(--accent-primary);
     color: #ffffff;
-}
-
-body.light-theme .stocks-table .btn-info:hover {
-    background: var(--accent-primary-hover);
-}
-
-body.light-theme .stocks-table .btn-danger {
-    background: var(--accent-danger);
-    color: #ffffff;
-}
-
-body.light-theme .stocks-table .btn-danger:hover {
-    background: var(--accent-danger-hover);
 }
 
 /* Light theme Google button */
