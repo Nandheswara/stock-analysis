@@ -263,6 +263,14 @@ export function waitForAuthReady() {
  */
 export function onAuthStateChange(callback) {
     authStateCallbacks.push(callback);
+    const cachedUser = getCurrentUser();
+    if (cachedUser) {
+        try {
+            callback(cachedUser);
+        } catch (e) {
+            // silent fail
+        }
+    }
 }
 
 /**
