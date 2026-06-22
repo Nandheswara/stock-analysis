@@ -1785,7 +1785,6 @@ function renderLoans() {
             <td class="amount-cell amount-negative">${formatCurrency(displayOutstanding)}</td>
             <td class="amount-cell">
                 ${formatCurrency(emiDisplay)}
-                ${isPFMonth ? `<br><small class="text-muted" style="font-size:0.75rem;">(Incl. PF + GST)</small>` : ''}
             </td>
             <td>${card.dueDate || '-'}</td>
             <td>${statusLabel}</td>
@@ -4382,4 +4381,29 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeAmountMasking();
     applySectionPreferences();
     setupAuth();
+
+    // Accordion togglers for mobile viewports (tables and category cards)
+    document.addEventListener('click', (e) => {
+        // 1. Table row accordion
+        const row = e.target.closest('.finance-table tbody tr');
+        if (row && window.innerWidth <= 768) {
+            if (e.target.closest('button') || e.target.closest('a') || e.target.closest('input') || e.target.closest('select')) {
+                return;
+            }
+            row.classList.toggle('expanded');
+            return;
+        }
+
+        // 2. Category card accordion
+        const catHeader = e.target.closest('.category-card-header');
+        if (catHeader && window.innerWidth <= 768) {
+            if (e.target.closest('button') || e.target.closest('a') || e.target.closest('input')) {
+                return;
+            }
+            const card = catHeader.closest('.category-card');
+            if (card) {
+                card.classList.toggle('expanded');
+            }
+        }
+    });
 });
