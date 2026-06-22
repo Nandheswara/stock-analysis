@@ -1407,9 +1407,18 @@ body.light-theme .select2-container--default .select2-selection--single .select2
    ======================================== */
 
 @media (max-width: 768px) {
+    /* Layout Spacing overrides */
+    main.container-fluid,
+    .container-fluid {
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+    }
+
     /* Header Section - Mobile */
     .header-section {
-        padding: 20px;
+        padding: 16px 20px !important;
+        margin-bottom: 20px !important;
+        border-radius: 12px !important;
         text-align: center;
     }
     
@@ -1423,14 +1432,101 @@ body.light-theme .select2-container--default .select2-selection--single .select2
     }
     
     .header-section .col-md-4 {
-        margin-top: 15px;
+        margin-top: 12px;
     }
     
     .header-section h1 {
-        font-size: 1.5rem;
+        font-size: 1.4rem !important;
+        margin-bottom: 4px !important;
     }
     
     .header-section p {
-        font-size: 0.9rem;
+        font-size: 0.8rem !important;
+        line-height: 1.35;
+    }
+
+    /* Cards - Mobile */
+    .card {
+        border-radius: 12px !important;
+        margin-bottom: 16px !important;
+    }
+    
+    .card-body {
+        padding: 16px !important;
+    }
+    
+    .card-header {
+        padding: 12px 16px !important;
+    }
+
+    /* Forms - Mobile */
+    .form-control, 
+    .form-select {
+        padding: 8px 12px !important;
+        font-size: 0.9rem !important;
+    }
+
+    /* Buttons - Mobile */
+    .btn {
+        padding: 8px 16px !important;
+        font-size: 0.9rem !important;
+        border-radius: 8px !important;
+    }
+
+    /* Navbar - Mobile Collapse Menu */
+    .navbar-collapse {
+        margin-top: 8px;
+        border-top: 1px solid var(--border-color);
+        padding-top: 8px;
+    }
+    
+    .navbar-nav .nav-link {
+        padding: 8px 12px !important;
+        border-radius: 8px;
+    }
+    
+    .navbar-nav .nav-link:hover {
+        background-color: var(--bg-tertiary);
+    }
+
+    /* Alerts - Mobile */
+    .alert {
+        padding: 12px 16px !important;
+        font-size: 0.85rem !important;
+        margin-bottom: 16px !important;
+    }
+
+    /* Modals - Mobile */
+    .modal-dialog {
+        margin: 12px !important;
+        max-width: calc(100% - 24px) !important;
+    }
+    
+    .modal-content {
+        border-radius: 14px !important;
+    }
+    
+    .modal-header {
+        padding: 14px 16px !important;
+    }
+    
+    .modal-body {
+        padding: 16px !important;
+    }
+    
+    .modal-footer {
+        padding: 12px 16px !important;
     }
 }
+
+/* Centered loading states in the viewport */
+#loadingState,
+#authLoadingSpinner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 200px);
+    width: 100%;
+}
+
