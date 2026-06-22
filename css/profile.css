@@ -308,6 +308,25 @@
     .profile-initials {
         font-size: 2.5rem;
     }
+
+    /* Stack list items vertically on mobile to prevent clipping and text wrapping */
+    #linkedAccountsCard .d-flex.justify-content-between,
+    .profile-card.border-danger .card-body .d-flex.justify-content-between {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 10px;
+    }
+
+    #linkedAccountsCard .btn,
+    .profile-card.border-danger .card-body .btn {
+        width: 100%;
+        justify-content: center;
+        margin-top: 4px;
+    }
+
+    #linkedAccountsCard .badge {
+        align-self: flex-start;
+    }
 }
 
 /* ========================================

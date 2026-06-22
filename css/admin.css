@@ -790,18 +790,46 @@
     .admin-card-header {
         flex-direction: column;
         align-items: flex-start;
+        gap: 0.75rem;
     }
     
     .header-actions {
+        display: flex;
+        gap: 0.5rem;
         width: 100%;
+    }
+
+    .header-actions .btn,
+    .header-actions .form-select {
+        flex: 1;
+        width: auto !important;
     }
     
     .quick-actions-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
     }
     
     .user-actions-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+
+    .action-btn {
+        padding: 0.75rem 1rem;
+    }
+
+    .action-btn i {
+        font-size: 1.1rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .action-btn span {
+        font-size: 0.8rem;
+    }
+
+    .action-btn small {
+        display: none;
     }
     
     .stats-card {
@@ -821,6 +849,61 @@
     .impersonation-banner .container-fluid {
         flex-direction: column;
         text-align: center;
+    }
+
+    /* Table Mobile Optimizations */
+    .table th, .table td {
+        padding: 0.6rem 0.5rem !important;
+        font-size: 0.8rem !important;
+    }
+
+    .user-cell {
+        gap: 0.5rem;
+    }
+
+    .user-avatar {
+        width: 32px !important;
+        height: 32px !important;
+        font-size: 0.75rem !important;
+    }
+
+    .user-info .name {
+        font-size: 0.8rem !important;
+    }
+
+    .user-info .email {
+        font-size: 0.7rem !important;
+        max-width: 120px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        display: block;
+    }
+
+    .badge {
+        font-size: 0.7rem !important;
+        padding: 0.25em 0.5em !important;
+    }
+
+    /* Horizontal scroll for User Data tabs on mobile */
+    .nav-tabs {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        -webkit-overflow-scrolling: touch;
+        border-bottom: 1px solid var(--border-color);
+        margin-bottom: 1rem;
+    }
+
+    .nav-tabs .nav-item {
+        flex: 0 0 auto !important;
+    }
+
+    .nav-tabs .nav-link {
+        padding: 0.5rem 0.75rem !important;
+        font-size: 0.8rem !important;
+        white-space: nowrap;
     }
 }
 

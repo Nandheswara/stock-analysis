@@ -26,7 +26,8 @@ import {
     updatePhoneNumber,
     getPhoneNumber,
     deleteUserAccount,
-    sendVerificationEmail
+    sendVerificationEmail,
+    waitForAuthReady
 } from './firebase-auth-service.js';
 
 import { 
@@ -72,19 +73,21 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
     setupAuthHandlers();
     
-    // Listen for auth state changes
-    onAuthStateChange((user) => {
-        if (user) {
+    onAuthStateChange(async (user) => {
+        // Wait for the real Firebase auth state to resolve to prevent flashing cached/mock details
+        const resolvedUser = await waitForAuthReady();
+        
+        if (resolvedUser) {
             // Apply compat-style method wrappers onto the modular user object only if they do not exist (prevents infinite recursion)
-            if (typeof user.unlink !== 'function') user.unlink = (providerId) => unlink(user, providerId);
-            if (typeof user.linkWithPopup !== 'function') user.linkWithPopup = (provider) => linkWithPopup(user, provider);
-            if (typeof user.linkWithCredential !== 'function') user.linkWithCredential = (credential) => linkWithCredential(user, credential);
-            if (typeof user.reauthenticateWithCredential !== 'function') user.reauthenticateWithCredential = (credential) => reauthenticateWithCredential(user, credential);
-            if (typeof user.reauthenticateWithPopup !== 'function') user.reauthenticateWithPopup = (provider) => reauthenticateWithPopup(user, provider);
-            if (typeof user.delete !== 'function') user.delete = () => deleteUser(user);
+            if (typeof resolvedUser.unlink !== 'function') resolvedUser.unlink = (providerId) => unlink(resolvedUser, providerId);
+            if (typeof resolvedUser.linkWithPopup !== 'function') resolvedUser.linkWithPopup = (provider) => linkWithPopup(resolvedUser, provider);
+            if (typeof resolvedUser.linkWithCredential !== 'function') resolvedUser.linkWithCredential = (credential) => linkWithCredential(resolvedUser, credential);
+            if (typeof resolvedUser.reauthenticateWithCredential !== 'function') resolvedUser.reauthenticateWithCredential = (credential) => reauthenticateWithCredential(resolvedUser, credential);
+            if (typeof resolvedUser.reauthenticateWithPopup !== 'function') resolvedUser.reauthenticateWithPopup = (provider) => reauthenticateWithPopup(resolvedUser, provider);
+            if (typeof resolvedUser.delete !== 'function') resolvedUser.delete = () => deleteUser(resolvedUser);
 
             // Set up compat SDK reference objects
-            compatAuth = { currentUser: user };
+            compatAuth = { currentUser: resolvedUser };
             compatDb = {
                 ref: (path) => ({
                     remove: () => remove(ref(database, path))
@@ -100,8 +103,8 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             currentUserData = getUserDetails();
+            await populateUserData();
             showProfileContent();
-            populateUserData();
             updateLinkedAccountsUI();
             updatePasswordCardUI();
         } else {
