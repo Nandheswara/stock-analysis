@@ -983,6 +983,8 @@
 }
 
 .finance-modal {
+    display: flex;
+    flex-direction: column;
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
     border-radius: 16px;
@@ -1188,13 +1190,92 @@
 .settings-checkbox-item {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     font-size: 0.84rem;
     color: var(--text-primary);
+    cursor: pointer;
+    user-select: none;
+}
+
+.settings-checkbox-item input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--border-color);
+    border-radius: 4px;
+    outline: none;
+    cursor: pointer;
+    background-color: var(--bg-secondary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.settings-checkbox-item input[type="checkbox"]:hover {
+    border-color: var(--accent-primary);
+}
+
+.settings-checkbox-item input[type="checkbox"]:checked {
+    background-color: var(--accent-success);
+    border-color: var(--accent-success);
+}
+
+.settings-checkbox-item input[type="checkbox"]:checked::after {
+    content: '';
+    position: absolute;
+    width: 5px;
+    height: 9px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+    top: 2px;
+    left: 5px;
+}
+
+.settings-checkbox-item input[type="radio"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--border-color);
+    border-radius: 50%;
+    outline: none;
+    cursor: pointer;
+    background-color: var(--bg-secondary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.settings-checkbox-item input[type="radio"]:hover {
+    border-color: var(--accent-primary);
+}
+
+.settings-checkbox-item input[type="radio"]:checked {
+    border-color: var(--accent-success);
+}
+
+.settings-checkbox-item input[type="radio"]:checked::after {
+    content: '';
+    width: 8px;
+    height: 8px;
+    background-color: var(--accent-success);
+    border-radius: 50%;
+    position: absolute;
 }
 
 .settings-checkbox-overwrite {
-    margin: 2px 0 10px;
+    margin: 12px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .settings-copy-mode-title {
@@ -1253,7 +1334,8 @@
 .finance-modal-body {
     padding: 24px;
     overflow-y: auto;
-    max-height: calc(90vh - 140px); /* Adjust based on header/footer height */
+    flex: 1;
+    min-height: 0;
 }
 
 .finance-modal-body .form-group {
@@ -1268,8 +1350,7 @@
     margin-bottom: 6px;
 }
 
-.finance-modal-body .form-group input,
-.finance-modal-body .form-group select {
+.finance-modal-body .form-group input {
     width: 100%;
     padding: 10px 14px;
     background: var(--bg-tertiary);
@@ -1278,6 +1359,24 @@
     color: var(--text-heading);
     font-size: 0.95rem;
     transition: border-color 0.2s ease;
+}
+
+.finance-modal-body .form-group select {
+    width: 100%;
+    padding: 10px 40px 10px 14px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-heading);
+    font-size: 0.95rem;
+    transition: border-color 0.2s ease;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23a0aec0'%3E%3Cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 14px 10px;
+    cursor: pointer;
 }
 
 .finance-modal-body .form-group input:focus,
@@ -1692,18 +1791,68 @@
     }
 
     .section-preference-item {
-        align-items: flex-start;
-        flex-direction: column;
+        align-items: center;
+        flex-direction: row;
+        gap: 12px;
     }
 
     .section-preference-switch-wrap {
-        align-self: flex-end;
+        align-self: center;
     }
 
     .settings-record-grid,
-    .settings-tools-grid,
-    .settings-checkbox-grid {
+    .settings-tools-grid {
         grid-template-columns: 1fr;
+    }
+
+    .settings-checkbox-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 8px;
+    }
+
+    @media (max-width: 576px) {
+        .finance-modal {
+            width: 95%;
+            margin: 10px;
+        }
+
+        .finance-modal-header {
+            padding: 14px 16px;
+        }
+
+        .finance-modal-header h3 {
+            font-size: 1rem;
+        }
+
+        .finance-modal-body {
+            padding: 16px;
+        }
+
+        .settings-block {
+            padding: 10px;
+            margin-bottom: 16px;
+        }
+
+        .finance-modal-footer {
+            padding: 12px 16px;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .finance-modal-footer .btn-finance {
+            width: 100%;
+            justify-content: center;
+            padding: 8px 16px;
+            font-size: 0.85rem;
+        }
+
+        .settings-tools-grid {
+            gap: 10px;
+        }
+
+        .settings-tool-card {
+            padding: 10px;
+        }
     }
 }
 
@@ -1841,11 +1990,17 @@ body.light-theme .finance-modal-close {
     color: var(--text-secondary);
 }
 
-body.light-theme .finance-modal-body .form-group input,
+body.light-theme .finance-modal-body .form-group input {
+    background: var(--bg-tertiary);
+    border-color: var(--border-color);
+    color: var(--text-heading);
+}
+
 body.light-theme .finance-modal-body .form-group select {
     background: var(--bg-tertiary);
     border-color: var(--border-color);
     color: var(--text-heading);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%234a5568'%3E%3Cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
 }
 
 body.light-theme .section-preference-item {
