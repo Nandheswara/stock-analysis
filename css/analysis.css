@@ -224,20 +224,57 @@ body:not(.light-theme) #stockName[readonly] {
     background-color: var(--accent-danger-hover);
 }
 
-/* ========================================
-   Empty State
-   ======================================== */
-
 .empty-state {
     text-align: center;
-    padding: 60px 20px;
-    color: var(--text-secondary);
+    padding: 80px 40px;
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.4) 0%, rgba(3, 7, 18, 0.2) 100%);
+    border: 1px dashed var(--border-color);
+    border-radius: var(--radius-lg);
+    margin: 30px auto;
+    max-width: 600px;
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    box-shadow: var(--shadow-sm);
+    transition: all var(--transition-base);
 }
 
-.empty-state i {
-    font-size: 4rem;
-    margin-bottom: 20px;
-    color: var(--border-light);
+.empty-state:hover {
+    border-color: rgba(129, 140, 248, 0.35);
+    box-shadow: var(--shadow-md), 0 0 25px rgba(129, 140, 248, 0.08);
+}
+
+.empty-state > i {
+    font-size: 3rem;
+    margin-bottom: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(129, 140, 248, 0.1);
+    color: var(--accent-primary);
+    box-shadow: 0 0 30px rgba(129, 140, 248, 0.15);
+    transition: transform var(--transition-base);
+}
+
+.empty-state:hover > i {
+    transform: scale(1.08) rotate(5deg);
+}
+
+.empty-state h4 {
+    color: var(--text-heading);
+    font-size: 1.35rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+}
+
+.empty-state p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    max-width: 380px;
+    margin: 0 auto 24px auto;
+    line-height: 1.5;
 }
 
 /* No results state (when filters don't match) */
@@ -370,10 +407,22 @@ body.light-theme .filter-select-modal:focus {
 
 /* Empty State - Light Theme */
 body.light-theme .empty-state {
-    color: var(--text-muted);
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-color: var(--border-color);
+    box-shadow: var(--shadow-sm);
 }
 
-body.light-theme .empty-state i {
+body.light-theme .empty-state > i {
+    background: rgba(52, 152, 219, 0.1);
+    color: var(--accent-primary);
+    box-shadow: 0 0 20px rgba(52, 152, 219, 0.1);
+}
+
+body.light-theme .empty-state h4 {
+    color: var(--text-heading);
+}
+
+body.light-theme .empty-state p {
     color: var(--text-secondary);
 }
 
@@ -423,6 +472,29 @@ body.light-theme .analysis-table tbody tr td[colspan="18"] .text-muted {
         border-radius: 0;
         box-shadow: none;
         padding: 0 0 8px 0;
+    }
+
+    /* Empty State responsive overrides */
+    .empty-state {
+        padding: 50px 20px;
+        margin: 20px 10px;
+    }
+    
+    .empty-state > i {
+        font-size: 2.5rem;
+        width: 70px;
+        height: 70px;
+        margin-bottom: 18px;
+    }
+    
+    .empty-state h4 {
+        font-size: 1.2rem;
+    }
+    
+    .empty-state p {
+        font-size: 0.88rem;
+        margin-bottom: 18px;
+        padding: 0 10px;
     }
 
     /* Stack all table elements as block so CSS can take over layout */
@@ -794,3 +866,4 @@ body.light-theme .analysis-table tbody tr td[colspan="18"] .text-muted {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(231, 76, 60, 0.2) !important;
 }
+

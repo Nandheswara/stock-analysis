@@ -1105,7 +1105,6 @@ async function updateAuthUI(user) {
     const authButtons = document.getElementById('authButtons');
     const userProfile = document.getElementById('userProfile');
     const userEmail = document.getElementById('userEmail');
-    const analysisContent = document.getElementById('analysisContent');
     const authPrompt = document.getElementById('authPrompt');
     const adminPanelLink = document.getElementById('adminPanelLink');
     
@@ -1123,9 +1122,6 @@ async function updateAuthUI(user) {
             userEmail.textContent = user.displayName || user.email;
         }
         
-        if (analysisContent) {
-            analysisContent.style.display = 'block';
-        }
         if (authPrompt) {
             authPrompt.style.display = 'none';
         }
@@ -1145,9 +1141,6 @@ async function updateAuthUI(user) {
             userProfile.style.setProperty('display', 'none', 'important');
         }
         
-        if (analysisContent) {
-            analysisContent.style.display = 'none';
-        }
         if (authPrompt) {
             authPrompt.style.display = 'block';
         }
