@@ -1407,6 +1407,22 @@ body.light-theme .select2-container--default .select2-selection--single .select2
    ======================================== */
 
 @media (max-width: 768px) {
+    /* Global Typography Scaling */
+    html {
+        font-size: 14px !important; /* scale all rem-based typography down by 12.5% */
+    }
+    
+    body {
+        font-size: 0.9rem !important; /* slightly smaller body copy */
+    }
+
+    h1, .h1 { font-size: 1.5rem !important; }
+    h2, .h2 { font-size: 1.35rem !important; }
+    h3, .h3 { font-size: 1.2rem !important; }
+    h4, .h4 { font-size: 1.05rem !important; }
+    h5, .h5 { font-size: 0.95rem !important; }
+    h6, .h6 { font-size: 0.85rem !important; }
+
     /* Layout Spacing overrides */
     main.container-fluid,
     .container-fluid {
