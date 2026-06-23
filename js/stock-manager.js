@@ -569,14 +569,25 @@ function renderStocksTable() {
     const stocks = portfolioManager.getAllStocks();
 
     if (stocks.length === 0) {
-        // Hide the table section when no stocks
         if (tableSection) {
-            tableSection.style.display = 'none';
+            tableSection.style.display = 'block';
+        }
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr class="no-data">
+                    <td colspan="13">
+                        <div class="empty-state py-5 text-center">
+                            <i class="bi bi-wallet2" style="font-size: 3rem; opacity: 0.5; color: var(--text-muted);"></i>
+                            <h5 class="mt-3">No Stocks Tracked Yet</h5>
+                            <p class="text-muted">Click "Add Transaction" to start building your portfolio.</p>
+                        </div>
+                    </td>
+                </tr>
+            `;
         }
         return;
     }
 
-    // Show the table section when stocks exist
     if (tableSection) {
         tableSection.style.display = 'block';
     }
@@ -650,6 +661,15 @@ async function handleFormSubmit(event) {
 
         event.target.reset();
         showNotification('Stock added successfully!');
+
+        // Hide addStockModal if open
+        const addStockModalEl = document.getElementById('addStockModal');
+        if (addStockModalEl) {
+            const modal = bootstrap.Modal.getInstance(addStockModalEl);
+            if (modal) {
+                modal.hide();
+            }
+        }
     } catch (error) {
         showNotification('Failed to add stock. Please try again.', 'error');
     }
@@ -1569,3 +1589,16 @@ document.addEventListener('keydown', (event) => {
         }
     }
 });
+
+// Accordion toggler for mobile viewports (stocksTable rows)
+document.addEventListener('click', (e) => {
+    const row = e.target.closest('#stocksTable tbody tr');
+    if (row && window.innerWidth <= 768) {
+        // Ignore click if it's on a button or link or input inside the row
+        if (e.target.closest('button') || e.target.closest('a') || e.target.closest('input')) {
+            return;
+        }
+        row.classList.toggle('expanded');
+    }
+});
+

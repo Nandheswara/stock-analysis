@@ -282,6 +282,74 @@
         </div>
     </div>
 
+    <!-- Add Stock Modal -->
+    <div class="modal fade" id="addStockModal" tabindex="-1" aria-labelledby="addStockModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addStockModalTitle"><i class="bi bi-plus-circle"></i> Add New Stock Transaction</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="stockForm" class="stock-form">
+                        <div class="mb-3">
+                            <label for="stockName" class="form-label">Stock Name *</label>
+                            <input 
+                                type="text" 
+                                class="form-control"
+                                id="stockName" 
+                                name="stockName" 
+                                required 
+                                placeholder="e.g., TCS, Reliance"
+                            >
+                        </div>
+                        <div class="mb-3">
+                            <label for="quantity" class="form-label">Quantity *</label>
+                            <input 
+                                type="number" 
+                                class="form-control"
+                                id="quantity" 
+                                name="quantity" 
+                                required 
+                                min="1"
+                                placeholder="Number of shares"
+                            >
+                        </div>
+                        <div class="mb-3">
+                            <label for="buyPrice" class="form-label">Buy Price (₹) *</label>
+                            <input 
+                                type="number" 
+                                class="form-control"
+                                id="buyPrice" 
+                                name="buyPrice" 
+                                required 
+                                min="0" 
+                                step="0.01"
+                                placeholder="0.00"
+                            >
+                        </div>
+                        <div class="mb-3">
+                            <label for="sellPrice" class="form-label">Sell Price (₹)</label>
+                            <input 
+                                type="number" 
+                                class="form-control"
+                                id="sellPrice" 
+                                name="sellPrice" 
+                                min="0" 
+                                step="0.01"
+                                placeholder="Leave empty if not sold"
+                            >
+                        </div>
+                        <div class="modal-footer px-0 pb-0 pt-3">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Add Stock</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <main class="container-fluid">
         <div class="header-section">
             <div class="row align-items-center">
@@ -296,104 +364,73 @@
                 </div>
             </div>
         </div>
-
         <section class="portfolio-summary">
             <h3>Portfolio Summary</h3>
             <div class="summary-cards">
                 <div class="summary-card">
-                    <h4>Total Investment</h4>
-                    <p class="value" id="totalInvestment">₹0.00</p>
+                    <div class="card-icon-wrapper text-primary-glow">
+                        <i class="bi bi-cash-stack"></i>
+                    </div>
+                    <div class="card-details">
+                        <h4>Total Investment</h4>
+                        <p class="value" id="totalInvestment">₹0.00</p>
+                    </div>
                 </div>
                 <div class="summary-card">
-                    <h4>Current Value</h4>
-                    <p class="value" id="currentValue">₹0.00</p>
+                    <div class="card-icon-wrapper text-info-glow">
+                        <i class="bi bi-graph-up"></i>
+                    </div>
+                    <div class="card-details">
+                        <h4>Current Value</h4>
+                        <p class="value" id="currentValue">₹0.00</p>
+                    </div>
                 </div>
                 <div class="summary-card">
-                    <h4>Total Profit/Loss</h4>
-                    <p class="value" id="totalProfitLoss">₹0.00</p>
+                    <div class="card-icon-wrapper text-profit-loss">
+                        <i class="bi bi-activity"></i>
+                    </div>
+                    <div class="card-details">
+                        <h4>Total Profit/Loss</h4>
+                        <p class="value" id="totalProfitLoss">₹0.00</p>
+                    </div>
                 </div>
                 <div class="summary-card">
-                    <h4>Total Brokerage</h4>
-                    <p class="value" id="totalBrokerage">₹0.00</p>
+                    <div class="card-icon-wrapper text-warning-glow">
+                        <i class="bi bi-receipt"></i>
+                    </div>
+                    <div class="card-details">
+                        <h4>Total Brokerage</h4>
+                        <p class="value" id="totalBrokerage">₹0.00</p>
+                    </div>
                 </div>
                 <div class="summary-card">
-                    <h4>Total Tax</h4>
-                    <p class="value" id="totalTax">₹0.00</p>
+                    <div class="card-icon-wrapper text-danger-glow">
+                        <i class="bi bi-shield-shaded"></i>
+                    </div>
+                    <div class="card-details">
+                        <h4>Total Tax</h4>
+                        <p class="value" id="totalTax">₹0.00</p>
+                    </div>
                 </div>
-                <div class="summary-card">
-                    <h4>Net Worth</h4>
-                    <p class="value highlight" id="netWorth">₹0.00</p>
+                <div class="summary-card highlight-card">
+                    <div class="card-icon-wrapper text-gold-glow">
+                        <i class="bi bi-trophy"></i>
+                    </div>
+                    <div class="card-details">
+                        <h4>Net Worth</h4>
+                        <p class="value highlight" id="netWorth">₹0.00</p>
+                    </div>
                 </div>
             </div>
         </section>
 
-        <section class="add-stock-section">
-            <h3>Add New Stock Transaction</h3>
-            <form id="stockForm" class="stock-form">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="stockName">Stock Name *</label>
-                        <input 
-                            type="text" 
-                            id="stockName" 
-                            name="stockName" 
-                            required 
-                            placeholder="e.g., TCS, Reliance"
-                            aria-required="true"
-                        >
-                    </div>
-
-                    <div class="form-group">
-                        <label for="quantity">Quantity *</label>
-                        <input 
-                            type="number" 
-                            id="quantity" 
-                            name="quantity" 
-                            required 
-                            min="1"
-                            placeholder="Number of shares"
-                            aria-required="true"
-                        >
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="buyPrice">Buy Price (₹) *</label>
-                        <input 
-                            type="number" 
-                            id="buyPrice" 
-                            name="buyPrice" 
-                            required 
-                            min="0" 
-                            step="0.01"
-                            placeholder="0.00"
-                            aria-required="true"
-                        >
-                    </div>
-
-                    <div class="form-group">
-                        <label for="sellPrice">Sell Price (₹)</label>
-                        <input 
-                            type="number" 
-                            id="sellPrice" 
-                            name="sellPrice" 
-                            min="0" 
-                            step="0.01"
-                            placeholder="Leave empty if not sold"
-                        >
-                    </div>
-                </div>
-
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">Add Stock</button>
-                    <button type="reset" class="btn btn-secondary">Reset</button>
-                </div>
-            </form>
-        </section>
-
-        <section id="stocksTableSection" class="stocks-table-section" style="display: none;">
-            <h3>Your Stock Portfolio</h3>
+        <section id="stocksTableSection" class="stocks-table-section">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-3">
+                <h3 class="mb-0">Your Stock Portfolio</h3>
+                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addStockModal">
+                    <i class="bi bi-plus-circle"></i> Add Transaction
+                </button>
+            </div>
             <div class="table-container">
                 <table id="stocksTable" class="stocks-table">
                     <thead>

@@ -25,7 +25,46 @@ main {
     padding: 0 20px;
 }
 
-/* Note: Header section styles are in global.css for consistency */
+/* Header Section Premium Styling */
+.header-section {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.6) 0%, rgba(3, 7, 18, 0.45) 100%) !important;
+    border: 1px solid var(--border-color) !important;
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    box-shadow: var(--shadow-lg), 0 0 20px rgba(255, 255, 255, 0.02) !important;
+    transition: all var(--transition-base);
+}
+
+.header-section:hover {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    box-shadow: var(--shadow-lg), 0 0 25px rgba(255, 255, 255, 0.04) !important;
+}
+
+body.light-theme .header-section {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+    border: 1px solid var(--border-color) !important;
+    box-shadow: var(--shadow-sm) !important;
+}
+
+body.light-theme .header-section h1 {
+    color: var(--text-heading) !important;
+}
+
+body.light-theme .header-section p {
+    color: var(--text-secondary) !important;
+}
+
+body.light-theme .header-section .btn-info {
+    background: var(--bg-secondary) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-primary) !important;
+}
+
+body.light-theme .header-section .btn-info:hover {
+    background: var(--bg-tertiary) !important;
+    border-color: var(--border-light) !important;
+    color: var(--text-heading) !important;
+}
 
 /* Add Stock Section */
 .add-stock-section {
@@ -190,42 +229,98 @@ main .btn-danger:hover {
 
 .summary-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 1.5rem;
 }
 
 .summary-card {
-    background: var(--bg-card);
-    padding: 1.5rem;
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-sm);
-    text-align: center;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    padding: 1.25rem;
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base);
     border: 1px solid var(--border-color);
 }
 
 .summary-card:hover {
-    transform: translateY(-5px);
-    box-shadow: var(--glow-primary);
+    transform: translateY(-4px);
+    border-color: rgba(129, 140, 248, 0.3);
+    box-shadow: var(--shadow-lg), var(--glow-primary);
+}
+
+.card-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    flex-shrink: 0;
+}
+
+/* Individual Icon Colors & Glows */
+.text-primary-glow {
+    background: rgba(129, 140, 248, 0.12);
+    color: var(--accent-primary);
+}
+.text-info-glow {
+    background: rgba(34, 211, 238, 0.12);
+    color: var(--accent-info);
+}
+.text-profit-loss {
+    background: rgba(52, 211, 153, 0.12);
+    color: var(--accent-success);
+}
+.text-warning-glow {
+    background: rgba(251, 191, 36, 0.12);
+    color: var(--accent-warning);
+}
+.text-danger-glow {
+    background: rgba(248, 113, 113, 0.12);
+    color: var(--accent-danger);
+}
+.text-gold-glow {
+    background: rgba(251, 191, 36, 0.2);
+    color: #fbbf24;
+}
+
+.highlight-card {
+    background: linear-gradient(135deg, rgba(129, 140, 248, 0.1) 0%, rgba(99, 102, 241, 0.04) 100%) !important;
+    border: 1px solid rgba(129, 140, 248, 0.3) !important;
+}
+
+.highlight-card:hover {
+    border-color: var(--accent-primary) !important;
+}
+
+.card-details {
+    flex: 1;
 }
 
 .summary-card h4 {
     color: var(--text-secondary);
-    font-size: 0.9rem;
-    margin-bottom: 0.5rem;
+    font-size: 0.82rem;
+    margin-bottom: 0.25rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    font-weight: 600;
 }
 
 .summary-card .value {
-    font-size: 1.8rem;
+    font-size: 1.45rem;
     font-weight: 700;
     color: var(--text-primary);
+    margin: 0;
 }
 
 .summary-card .value.highlight {
-    color: var(--accent-primary);
-    font-size: 2rem;
+    color: var(--text-heading);
+    font-size: 1.6rem;
 }
 
 .summary-card .value.positive {
@@ -394,24 +489,32 @@ main .btn-danger:hover {
     }
 
     .summary-cards {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 10px;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
     }
 
     .summary-card {
-        padding: 12px 8px !important;
+        padding: 12px 10px !important;
+        gap: 8px !important;
+    }
+
+    .card-icon-wrapper {
+        width: 36px;
+        height: 36px;
+        font-size: 1.1rem;
     }
 
     .summary-card h4 {
         font-size: 0.72rem !important;
+        margin-bottom: 2px !important;
     }
 
     .summary-card .value {
-        font-size: 1.1rem !important;
+        font-size: 1rem !important;
     }
 
     .summary-card .value.highlight {
-        font-size: 1.2rem !important;
+        font-size: 1.15rem !important;
     }
 
     .form-actions {
@@ -428,13 +531,175 @@ main .btn-danger:hover {
         padding: 1.5rem;
     }
 
+    /* Transform table into card layout on mobile */
+    .stocks-table, 
+    .stocks-table thead, 
+    .stocks-table tbody, 
+    .stocks-table th, 
+    .stocks-table td, 
+    .stocks-table tr {
+        display: block;
+    }
+    
     .stocks-table {
-        font-size: 0.85rem;
+        min-width: 100% !important;
+        font-size: 0.9rem;
     }
 
-    .stocks-table th,
+    .stocks-table thead tr {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+    }
+
+    .stocks-table tbody tr {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        margin-bottom: 1.25rem;
+        padding: 1rem;
+        box-shadow: var(--shadow-sm);
+        position: relative;
+        padding-right: 36px !important;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .stocks-table tbody tr:hover {
+        background-color: var(--bg-card);
+    }
+
+    .stocks-table tbody tr::after {
+        content: "\F282";
+        font-family: "bootstrap-icons";
+        position: absolute;
+        right: 16px;
+        top: 16px;
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        transition: transform 0.3s ease;
+    }
+
+    .stocks-table tbody tr.expanded::after {
+        transform: rotate(180deg);
+    }
+
     .stocks-table td {
-        padding: 0.75rem 0.5rem;
+        display: none;
+        border: none;
+        position: relative;
+        padding-left: 45% !important;
+        text-align: right;
+        padding-top: 6px !important;
+        padding-bottom: 6px !important;
+        border-bottom: none;
+        color: var(--text-primary);
+        font-size: 0.88rem;
+    }
+
+    /* Style Stock Name as Header */
+    .stocks-table td:nth-of-type(1) {
+        display: block;
+        padding-left: 0 !important;
+        text-align: left;
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: var(--text-heading);
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 10px !important;
+        margin-bottom: 8px;
+    }
+
+    .stocks-table td:nth-of-type(1)::before {
+        display: none !important;
+    }
+
+    /* Style Profit/Loss as standard indicator row */
+    .stocks-table td:nth-of-type(11) {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-left: 0 !important;
+        text-align: right;
+        font-weight: 700;
+        border-top: 1px dashed var(--border-color);
+        padding-top: 10px !important;
+        margin-top: 6px;
+    }
+
+    .stocks-table td:nth-of-type(11)::before {
+        position: static;
+        width: auto;
+        text-transform: capitalize;
+        font-weight: 600;
+    }
+
+    /* Actions buttons section spacing */
+    .stocks-table td:nth-of-type(13) {
+        border-top: 1px solid var(--border-color);
+        padding-top: 12px !important;
+        margin-top: 8px;
+        padding-left: 0 !important;
+    }
+
+    .stocks-table td:nth-of-type(13)::before {
+        display: none !important;
+    }
+
+    /* When expanded, show all cells */
+    .stocks-table tbody tr.expanded td {
+        display: block;
+    }
+
+    .stocks-table tbody tr.expanded td:nth-of-type(11) {
+        display: flex; /* keep flex alignment */
+    }
+
+    .stocks-table td::before {
+        position: absolute;
+        top: 6px;
+        left: 0;
+        width: 40%;
+        padding-right: 10px;
+        white-space: nowrap;
+        text-align: left;
+        font-weight: 500;
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        text-transform: capitalize;
+    }
+
+    .stocks-table td:nth-of-type(2)::before { content: "Quantity"; }
+    .stocks-table td:nth-of-type(3)::before { content: "Buy Price"; }
+    .stocks-table td:nth-of-type(4)::before { content: "Sell Price"; }
+    .stocks-table td:nth-of-type(5)::before { content: "Buy Brokerage"; }
+    .stocks-table td:nth-of-type(6)::before { content: "Buy Tax"; }
+    .stocks-table td:nth-of-type(7)::before { content: "Sell Brokerage"; }
+    .stocks-table td:nth-of-type(8)::before { content: "Sell Tax"; }
+    .stocks-table td:nth-of-type(9)::before { content: "Total Cost"; }
+    .stocks-table td:nth-of-type(10)::before { content: "Total Revenue"; }
+    .stocks-table td:nth-of-type(11)::before { content: "Profit / Loss"; }
+    .stocks-table td:nth-of-type(12)::before { content: "Status"; }
+
+    .stocks-table .table-actions {
+        justify-content: center;
+        width: 100%;
+        gap: 12px;
+    }
+
+    .stocks-table .table-actions .btn-table-action {
+        flex: 1;
+        justify-content: center;
+        padding: 8px 16px;
+    }
+
+    .stocks-table tbody tr.no-data td {
+        padding-left: 12px !important;
+        text-align: center;
+        border-bottom: none;
+    }
+    .stocks-table tbody tr.no-data td::before {
+        display: none;
     }
 }
 
@@ -445,12 +710,6 @@ main .btn-danger:hover {
 
     .page-header h2 {
         font-size: 1.5rem;
-    }
-
-    .stocks-table th,
-    .stocks-table td {
-        padding: 0.5rem 0.25rem;
-        font-size: 0.8rem;
     }
 }
 
@@ -654,13 +913,42 @@ body.light-theme .portfolio-summary h3 {
 }
 
 body.light-theme .summary-card {
-    background: var(--bg-card);
+    background: #ffffff;
     border: 1px solid var(--border-color);
-    box-shadow: var(--shadow-sm);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
 }
 
 body.light-theme .summary-card:hover {
-    box-shadow: var(--shadow-md);
+    border-color: var(--accent-primary);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+body.light-theme .highlight-card {
+    background: linear-gradient(135deg, rgba(129, 140, 248, 0.08) 0%, rgba(99, 102, 241, 0.03) 100%) !important;
+    border-color: rgba(129, 140, 248, 0.25) !important;
+}
+
+body.light-theme .highlight-card:hover {
+    border-color: var(--accent-primary) !important;
+}
+
+body.light-theme .card-icon-wrapper.text-primary-glow {
+    background: rgba(129, 140, 248, 0.1);
+}
+body.light-theme .card-icon-wrapper.text-info-glow {
+    background: rgba(34, 211, 238, 0.1);
+}
+body.light-theme .card-icon-wrapper.text-profit-loss {
+    background: rgba(52, 211, 153, 0.1);
+}
+body.light-theme .card-icon-wrapper.text-warning-glow {
+    background: rgba(251, 191, 36, 0.1);
+}
+body.light-theme .card-icon-wrapper.text-danger-glow {
+    background: rgba(248, 113, 113, 0.1);
+}
+body.light-theme .card-icon-wrapper.text-gold-glow {
+    background: rgba(251, 191, 36, 0.15);
 }
 
 body.light-theme .summary-card h4 {

@@ -128,121 +128,267 @@
     </nav>
 
     <!-- Main Content -->
-    <main class="container-fluid py-4">
+    <!-- Main Content -->
+    <main class="container-fluid py-5">
         <div class="container">
-            <!-- Hero Section -->
-            <div class="header-section">
-                <div class="row align-items-center">
-                    <div class="col-md-8">
-                        <h1 class="mb-2"><i class="bi bi-flask"></i> Equity Labs</h1>
-                        <p class="mb-0">Add stocks and analyze their fundamental metrics with manual data entry.</p>
+            <!-- Hero Terminal Section -->
+            <div class="header-section mb-5 py-4 py-md-5 px-3 px-md-4 position-relative overflow-hidden border border-primary-muted rounded-4">
+                <div class="row align-items-center mt-3 mt-md-4">
+                    <div class="col-lg-6 text-center text-lg-start mb-4 mb-lg-0">
+                        <h1 class="display-6 fw-extrabold mb-3 text-heading mt-2">
+                            <i class="bi bi-terminal text-primary me-2"></i>Equity Labs Workspace
+                        </h1>
+                        <p class="lead text-secondary mb-4" style="font-size: 0.95rem; line-height: 1.6;">
+                            Supercharge your stock analysis and personal finance tracking. Enter equity details manually for complete client-side privacy or synchronize your ledger securely to the cloud.
+                        </p>
+                        <div class="d-flex flex-wrap justify-content-center justify-content-lg-start gap-2 gap-md-3">
+                            <a href="pages/analysis.html" class="btn btn-cta px-4 py-2 py-md-3">
+                                <i class="bi bi-bar-chart-line me-2"></i>Launch Stock Terminal
+                            </a>
+                            <a href="pages/finance-tracker.html" class="btn btn-outline-light px-4 py-2 py-md-3 border-secondary" style="border-radius: 8px;">
+                                <i class="bi bi-piggy-bank me-2 text-success"></i>Open Finance Tracker
+                            </a>
+                        </div>
                     </div>
-                    <div class="col-md-4 text-md-end">
-                        <a href="pages/analysis.html" class="btn btn-cta">
-                            <i class="bi bi-bar-chart-line"></i> Start Analysis
-                        </a>
+                    <div class="col-lg-6">
+                        <!-- Horizontal Scrollable Stock Ticker Preview -->
+                        <div class="d-flex gap-2 overflow-x-auto pb-3 justify-content-start justify-content-lg-end mb-3 ticker-container" style="scrollbar-width: none; -ms-overflow-style: none;">
+                            <div class="p-2 bg-dark-subtle border border-light-subtle rounded-3 text-center flex-shrink-0" style="min-width: 110px;">
+                                <span class="d-block text-muted small fw-bold">RELIANCE</span>
+                                <span class="text-success small fw-bold"><i class="bi bi-caret-up-fill"></i> +1.4%</span>
+                            </div>
+                            <div class="p-2 bg-dark-subtle border border-light-subtle rounded-3 text-center flex-shrink-0" style="min-width: 110px;">
+                                <span class="d-block text-muted small fw-bold">TCS</span>
+                                <span class="text-success small fw-bold"><i class="bi bi-caret-up-fill"></i> +0.8%</span>
+                            </div>
+                            <div class="p-2 bg-dark-subtle border border-light-subtle rounded-3 text-center flex-shrink-0" style="min-width: 110px;">
+                                <span class="d-block text-muted small fw-bold">HDFC BANK</span>
+                                <span class="text-danger small fw-bold"><i class="bi bi-caret-down-fill"></i> -0.5%</span>
+                            </div>
+                            <div class="p-2 bg-dark-subtle border border-light-subtle rounded-3 text-center flex-shrink-0" style="min-width: 110px;">
+                                <span class="d-block text-muted small fw-bold">INFY</span>
+                                <span class="text-success small fw-bold"><i class="bi bi-caret-up-fill"></i> +2.1%</span>
+                            </div>
+                        </div>
+                        <!-- Mini terminal console inside Hero as visual layout enhancement -->
+                        <div class="card border border-dark-subtle rounded-3 overflow-hidden shadow-sm" style="background-color: #0f141c; font-family: 'Courier New', Courier, monospace; border-color: var(--border-color) !important; text-align: left;">
+                            <div class="card-header border-0 py-2 d-flex align-items-center gap-2" style="background-color: #1a1f29;">
+                                <span style="width: 8px; height: 8px; background-color: #ff5f56; border-radius: 50%;"></span>
+                                <span style="width: 8px; height: 8px; background-color: #ffbd2e; border-radius: 50%;"></span>
+                                <span style="width: 8px; height: 8px; background-color: #27c93f; border-radius: 50%;"></span>
+                                <span class="text-secondary" style="font-size: 0.75rem;">live-feed.py</span>
+                            </div>
+                            <div class="card-body p-3 text-secondary" style="font-size: 0.8rem; line-height: 1.5;">
+                                <p class="mb-1 text-success"><i class="bi bi-check-circle-fill me-1"></i> WebSocket connected to NSE feed</p>
+                                <p class="mb-1 text-muted">> Fetching live quotes... [OK]</p>
+                                <p class="mb-0 text-primary">> Listening to local ledger triggers...</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Market Movers Section - Top Gainers & Losers (TOP OF PAGE) -->
-            <section class="market-movers-section mb-4" aria-label="Market Movers - Top Gainers and Losers">
-                <div class="section-title">
-                    <h4>
-                        <i class="bi bi-bar-chart-line-fill text-primary"></i>
-                        Today's Market Movers
-                    </h4>
-                    <button class="btn btn-outline-primary btn-sm" id="refreshMarketMovers" title="Refresh market data" aria-label="Refresh market movers data">
-                        <i class="bi bi-arrow-clockwise"></i> Refresh
-                    </button>
-                </div>
-                <div id="marketMoversContainer">
-                    <!-- Dynamic content will be loaded here -->
-                    <div class="text-center py-5">
-                        <div class="spinner-border text-primary mb-3" role="status">
-                            <span class="visually-hidden">Loading market data...</span>
+            <!-- Showcase Overview Section -->
+            <section class="feature-showcase-section mb-5" aria-label="Equity Labs Showcase">
+                <div class="row align-items-center mb-5">
+                    <div class="col-lg-6 mb-4 mb-lg-0">
+                        <div class="pe-lg-4">
+                            <span class="badge bg-primary-muted text-primary mb-2 px-3 py-2 fw-semibold" style="background-color: var(--accent-primary-muted);">Integrated Suite</span>
+                            <h2 class="display-6 fw-bold mb-3 text-heading">Professional Grade Analysis</h2>
+                            <p class="text-secondary leading-relaxed">
+                                Equity Labs is a clean, modern workspace designed for Indian retail investors. 
+                                We combine robust fundamental analysis tools with custom transaction tracking 
+                                and personal savings calculators, helping you optimize your net worth without complex subscription models.
+                            </p>
+                            <div class="d-flex flex-column gap-3 mt-4">
+                                <div class="d-flex align-items-start gap-3">
+                                    <div class="icon-box bg-primary-muted text-primary p-2 rounded-circle" style="background-color: var(--accent-primary-muted); width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                        <i class="bi bi-shield-check" style="font-size: 1.2rem;"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1 fw-bold text-heading">100% Client-Side Synced Data</h6>
+                                        <p class="text-muted small mb-0">Your financial figures are synced securely to your private cloud database.</p>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-start gap-3">
+                                    <div class="icon-box bg-success-muted text-success p-2 rounded-circle" style="background-color: var(--accent-success-muted); width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                        <i class="bi bi-calculator-fill" style="font-size: 1.1rem; color: var(--accent-success);"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1 fw-bold text-heading">True Brokerage & Tax Calculator</h6>
+                                        <p class="text-muted small mb-0">Calculate accurate Buy/Sell costs including STT, GST, SEBI, and DP charges.</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <p class="text-muted">Loading market data...</p>
+                    </div>
+                    <div class="col-lg-6">
+                        <!-- Mock Screener Preview Card -->
+                        <div class="card border-0 shadow-lg overflow-hidden rounded-4" style="background-color: var(--bg-card);">
+                            <div class="card-header border-0 py-3 d-flex justify-content-between align-items-center" style="background-color: var(--bg-card-header);">
+                                <h6 class="mb-0 fw-bold text-heading"><i class="bi bi-display me-2 text-primary"></i> Fundamental Screener Preview</h6>
+                                <span class="badge bg-success-muted text-success" style="background-color: var(--accent-success-muted); color: var(--accent-success) !important;">Live Sample</span>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0" style="font-size: 0.85rem; --bs-table-bg: var(--bg-card); color: var(--text-primary);">
+                                    <thead>
+                                        <tr style="border-bottom: 2px solid var(--border-color);">
+                                            <th class="py-3 px-3">Stock</th>
+                                            <th class="py-3">P/E Ratio</th>
+                                            <th class="py-3">ROE</th>
+                                            <th class="py-3">Debt/Eq</th>
+                                            <th class="py-3 px-3">Valuation</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr style="border-bottom: 1px solid var(--border-color);">
+                                            <td class="py-3 px-3"><strong>TCS</strong> <span class="text-muted text-uppercase d-block" style="font-size: 0.7rem;">IT Sector</span></td>
+                                            <td class="py-3">28.1x</td>
+                                            <td class="py-3 text-success fw-bold">38.6%</td>
+                                            <td class="py-3">0.02</td>
+                                            <td class="py-3 px-3"><span class="badge bg-success">Excellent</span></td>
+                                        </tr>
+                                        <tr style="border-bottom: 1px solid var(--border-color);">
+                                            <td class="py-3 px-3"><strong>RELIANCE</strong> <span class="text-muted text-uppercase d-block" style="font-size: 0.7rem;">Energy / Retail</span></td>
+                                            <td class="py-3">24.5x</td>
+                                            <td class="py-3">10.2%</td>
+                                            <td class="py-3">0.38</td>
+                                            <td class="py-3 px-3"><span class="badge bg-warning text-dark">Fair Value</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="py-3 px-3"><strong>HDFC BANK</strong> <span class="text-muted text-uppercase d-block" style="font-size: 0.7rem;">Banking / Finance</span></td>
+                                            <td class="py-3">18.2x</td>
+                                            <td class="py-3">16.4%</td>
+                                            <td class="py-3">0.85</td>
+                                            <td class="py-3 px-3"><span class="badge bg-info text-dark">Good Buy</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
 
-            <!-- Features Section -->
+            <!-- Product Suite Cards -->
             <div class="row mb-5">
                 <div class="col-md-4 mb-4">
-                    <div class="card feature-card">
-                        <div class="card-body text-center p-4">
-                            <div class="feature-icon blue">
-                                <i class="bi bi-plus-circle"></i>
+                    <div class="card feature-card border border-light-subtle h-100">
+                        <div class="card-body p-4 d-flex flex-column justify-content-between" style="background-color: var(--bg-card);">
+                            <div>
+                                <div class="feature-icon mb-3" style="font-size: 2.2rem; color: var(--accent-primary);">
+                                    <i class="bi bi-graph-up-arrow"></i>
+                                </div>
+                                <h4 class="fw-bold text-heading">13 Key Ratios</h4>
+                                <p class="text-secondary small">Compare major Indian equities side-by-side using Debt/Equity, Quick Ratio, ROE, Promoters Holdings, and more.</p>
                             </div>
-                            <h4>Add Stocks</h4>
-                            <p class="text-muted">Easily add stocks by entering their symbol and company name on the analysis page.</p>
-                            <a href="pages/analysis.html" class="btn btn-primary btn-sm mt-2">
-                                Go to Analysis
+                            <a href="pages/analysis.html" class="btn btn-outline-primary btn-sm mt-3 w-100 py-2" style="border-radius: 6px;">
+                                Analyze Stocks
                             </a>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-4 mb-4">
-                    <div class="card feature-card">
-                        <div class="card-body text-center p-4">
-                            <div class="feature-icon green">
-                                <i class="bi bi-pencil-square"></i>
+                    <div class="card feature-card border border-light-subtle h-100">
+                        <div class="card-body p-4 d-flex flex-column justify-content-between" style="background-color: var(--bg-card);">
+                            <div>
+                                <div class="feature-icon mb-3" style="font-size: 2.2rem; color: var(--accent-success);">
+                                    <i class="bi bi-wallet2"></i>
+                                </div>
+                                <h4 class="fw-bold text-heading">True Net Worth Ledger</h4>
+                                <p class="text-secondary small">Log buy/sell transactions with precise tax breakdowns (STT, GST, SEBI), brokerage fees, and DP charges.</p>
                             </div>
-                            <h4>Manual Data Entry</h4>
-                            <p class="text-muted">Enter stock information and price data manually for accurate tracking and analysis.</p>
+                            <a href="pages/stock-manager.html" class="btn btn-outline-success btn-sm mt-3 w-100 py-2" style="border-radius: 6px; color: var(--accent-success); border-color: var(--accent-success);">
+                                Manage Portfolio
+                            </a>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-4 mb-4">
-                    <div class="card feature-card">
-                        <div class="card-body text-center p-4">
-                            <div class="feature-icon orange">
-                                <i class="bi bi-lightning-charge"></i>
+                    <div class="card feature-card border border-light-subtle h-100">
+                        <div class="card-body p-4 d-flex flex-column justify-content-between" style="background-color: var(--bg-card);">
+                            <div>
+                                <div class="feature-icon mb-3" style="font-size: 2.2rem; color: var(--accent-warning);">
+                                    <i class="bi bi-piggy-bank"></i>
+                                </div>
+                                <h4 class="fw-bold text-heading">Personal Ledger</h4>
+                                <p class="text-secondary small">Track credit card spending, bank account deposits, loan payments, and calculate savings rates in one dashboard.</p>
                             </div>
-                            <h4>Real-time Analysis</h4>
-                            <p class="text-muted">Analyze stocks side-by-side with comprehensive fundamental metrics.</p>
+                            <a href="pages/finance-tracker.html" class="btn btn-outline-warning btn-sm mt-3 w-100 py-2" style="border-radius: 6px; color: var(--accent-warning); border-color: var(--accent-warning);">
+                                Track Finance
+                            </a>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Metrics Preview -->
-            <div class="metrics-preview">
-                <h4 class="text-center mb-4"><i class="bi bi-list-check"></i> 13 Key Fundamental Metrics</h4>
-                <div class="text-center">
-                    <span class="metric-badge"><i class="bi bi-droplet"></i> Liquidity</span>
-                    <span class="metric-badge"><i class="bi bi-speedometer2"></i> Quick Ratio</span>
-                    <span class="metric-badge"><i class="bi bi-bank"></i> Debt/Equity</span>
-                    <span class="metric-badge"><i class="bi bi-percent"></i> ROE</span>
-                    <span class="metric-badge"><i class="bi bi-graph-up"></i> Growth Ratio</span>
-                    <span class="metric-badge"><i class="bi bi-box"></i> ROA</span>
-                    <span class="metric-badge"><i class="bi bi-cash-stack"></i> EBITDA</span>
-                    <span class="metric-badge"><i class="bi bi-gift"></i> Dividend Yield</span>
-                    <span class="metric-badge"><i class="bi bi-calculator"></i> P/E Ratio</span>
-                    <span class="metric-badge"><i class="bi bi-book"></i> P/B Ratio</span>
-                    <span class="metric-badge"><i class="bi bi-cart"></i> P/S Ratio</span>
-                    <span class="metric-badge"><i class="bi bi-activity"></i> Beta</span>
-                    <span class="metric-badge"><i class="bi bi-people"></i> Promoter Holdings</span>
+            <!-- Categorized Metrics Visualizer -->
+            <div class="metrics-preview p-4 rounded-4 mb-5" style="background-color: var(--bg-card); border: 1px solid var(--border-color);">
+                <h4 class="text-center mb-4 text-heading"><i class="bi bi-check-circle-fill text-success me-2"></i> 13 Valuation & Solvency Metrics</h4>
+                <div class="row g-4">
+                    <div class="col-sm-6 col-md-3">
+                        <div class="p-3 bg-dark-subtle border border-light-subtle rounded-3 h-100" style="background-color: var(--bg-card-header) !important;">
+                            <h6 class="fw-bold text-primary mb-2">Liquidity & Solvency</h6>
+                            <div class="d-flex flex-column gap-1 text-secondary small">
+                                <span>• Debt / Equity</span>
+                                <span>• Quick Ratio</span>
+                                <span>• Current Ratio</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-md-3">
+                        <div class="p-3 bg-dark-subtle border border-light-subtle rounded-3 h-100" style="background-color: var(--bg-card-header) !important;">
+                            <h6 class="fw-bold text-success mb-2">Valuation Multiples</h6>
+                            <div class="d-flex flex-column gap-1 text-secondary small">
+                                <span>• P/E Ratio</span>
+                                <span>• P/B Ratio</span>
+                                <span>• P/S Ratio</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-md-3">
+                        <div class="p-3 bg-dark-subtle border border-light-subtle rounded-3 h-100" style="background-color: var(--bg-card-header) !important;">
+                            <h6 class="fw-bold text-warning mb-2">Return on Capital</h6>
+                            <div class="d-flex flex-column gap-1 text-secondary small">
+                                <span>• ROE (Return on Equity)</span>
+                                <span>• ROA (Return on Assets)</span>
+                                <span>• EBITDA margins</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-md-3">
+                        <div class="p-3 bg-dark-subtle border border-light-subtle rounded-3 h-100" style="background-color: var(--bg-card-header) !important;">
+                            <h6 class="fw-bold text-danger mb-2">Holdings & Risk</h6>
+                            <div class="d-flex flex-column gap-1 text-secondary small">
+                                <span>• Promoter Holdings</span>
+                                <span>• Beta (Volatility)</span>
+                                <span>• Dividend Yield</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Quick Start -->
-            <div class="row mt-5">
-                <div class="col-md-6 offset-md-3">
-                    <div class="card">
-                        <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0"><i class="bi bi-rocket-takeoff"></i> Quick Start</h5>
+            <!-- Terminal Style Quick Start Console -->
+            <div class="row">
+                <div class="col-lg-8 offset-lg-2">
+                    <div class="card terminal-console-card rounded-3 overflow-hidden">
+                        <div class="card-header border-0 py-2 d-flex align-items-center gap-2">
+                            <span style="width: 10px; height: 10px; background-color: #ff5f56; border-radius: 50%;"></span>
+                            <span style="width: 10px; height: 10px; background-color: #ffbd2e; border-radius: 50%;"></span>
+                            <span style="width: 10px; height: 10px; background-color: #27c93f; border-radius: 50%;"></span>
+                            <span class="text-secondary small ms-2">equity-labs-init.sh</span>
                         </div>
-                        <div class="card-body">
-                            <ol class="mb-0">
-                                <li class="mb-2">Click on <strong>"Start Analysis"</strong> above or <strong>"Fundamental Analysis"</strong> in the menu</li>
-                                <li class="mb-2">Enter an Indian stock symbol (e.g., <code>RELIANCE</code>, <code>TCS</code>, <code>INFY</code>)</li>
-                                <li class="mb-2">Click <strong>"Add Stock"</strong> to add it to your analysis</li>
-                                <li class="mb-2">Click <strong>"Edit"</strong> to enter fundamental data manually</li>
-                                <li class="mb-2">Add more stocks to compare them side by side</li>
-                                <li>Remove stocks you don't need with the <strong>"Delete"</strong> button</li>
-                            </ol>
+                        <div class="card-body p-4 text-secondary" style="font-size: 0.85rem; line-height: 1.6;">
+                            <p class="mb-1 text-primary">$ npm run launch --terminal-mode</p>
+                            <p class="mb-3 text-muted">> Initializing local storage nodes... [OK]</p>
+                            
+                            <p class="mb-1 text-warning">> QUICK START GUIDE:</p>
+                            <p class="mb-1"><span class="text-success">[1]</span> Go to "Fundamental Analysis" to compare Indian equities.</p>
+                            <p class="mb-1"><span class="text-success">[2]</span> Enter transaction details in "Stock Manager" to see tax breakdowns.</p>
+                            <p class="mb-3"><span class="text-success">[3]</span> Head to "Finance Tracker" to build bank, card, and asset logs.</p>
+                            
+                            <p class="mb-0 text-success">> Equity Terminal ready. Welcome back, investor.</p>
                         </div>
                     </div>
                 </div>
@@ -432,6 +578,5 @@
     <script src="js/loading-optimizations.js" defer></script>
     <script src="js/global.js" defer></script>
     <script type="module" src="js/home.js"></script>
-    <script type="module" src="js/market-movers.js"></script>
 </body>
 </html>
