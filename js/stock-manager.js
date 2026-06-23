@@ -942,10 +942,6 @@ function loadCachedDataInstantly() {
  * Set up authentication UI handlers
  */
 function setupAuthUI() {
-    const loginBtn = document.getElementById('loginBtn');
-    const signupBtn = document.getElementById('signupBtn');
-    const logoutBtn = document.getElementById('logoutBtn');
-
     onAuthStateChanged((user) => {
         if (user && portfolioManager) {
             portfolioManager.setupFirebaseSync();
@@ -956,40 +952,52 @@ function setupAuthUI() {
         }
     });
 
-    if (loginBtn) {
-        loginBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            showAuthModal('login');
-        });
-    }
+    const bindNavbarElements = () => {
+        const loginBtn = document.getElementById('loginBtn');
+        const signupBtn = document.getElementById('signupBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
 
-    if (signupBtn) {
-        signupBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            showAuthModal('signup');
-        });
-    }
+        if (loginBtn) {
+            loginBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                showAuthModal('login');
+            });
+        }
 
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            try {
-                await logoutUser();
-                showNotification('Logged out successfully!');
+        if (signupBtn) {
+            signupBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                showAuthModal('signup');
+            });
+        }
+
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 
-                if (unsubscribePortfolio) {
-                    unsubscribePortfolio();
-                    unsubscribePortfolio = null;
+                try {
+                    await logoutUser();
+                    showNotification('Logged out successfully!');
+                    
+                    if (unsubscribePortfolio) {
+                        unsubscribePortfolio();
+                        unsubscribePortfolio = null;
+                    }
+                    location.reload();
+                } catch (error) {
+                    showNotification('Failed to logout', 'error');
                 }
-                location.reload();
-            } catch (error) {
-                showNotification('Failed to logout', 'error');
-            }
-        });
+            });
+        }
+    };
+
+    if (document.getElementById('loginBtn')) {
+        bindNavbarElements();
+    } else {
+        document.addEventListener('layoutReady', bindNavbarElements);
     }
 
     // Profile button now navigates to profile.html page directly via href
@@ -1079,6 +1087,17 @@ function setupAuthModalHandlers() {
 
     const handleGoogleAuth = async (e) => {
         e.preventDefault();
+        const btn = e.currentTarget;
+        const originalHtml = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Connecting to Google...';
+        }
+        const otherBtn = btn?.id === 'googleSignInBtn' ? googleSignUpBtn : googleSignInBtn;
+        if (otherBtn) {
+            otherBtn.disabled = true;
+        }
+
         try {
             const result = await signInWithGoogle();
             if (result.success) {
@@ -1089,6 +1108,14 @@ function setupAuthModalHandlers() {
             }
         } catch (error) {
             showAuthAlert(error.message || 'Google sign-in failed', 'danger');
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+            if (otherBtn) {
+                otherBtn.disabled = false;
+            }
         }
     };
 

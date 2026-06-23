@@ -131,10 +131,17 @@ function initAdminLoginForm() {
             const email = document.getElementById('adminLoginEmail').value.trim();
             const password = document.getElementById('adminLoginPassword').value;
             const alertContainer = document.getElementById('adminAuthAlertContainer');
+            const submitBtn = loginForm.querySelector('button[type="submit"]');
+            const originalBtnText = submitBtn?.innerHTML;
             
             // Clear previous errors
             if (alertContainer) {
                 alertContainer.innerHTML = '';
+            }
+
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Signing in...';
             }
             
             try {
@@ -143,12 +150,23 @@ function initAdminLoginForm() {
             } catch (error) {
                 // Error:('Login error:', error);
                 showAdminAuthError(getAuthErrorMessage(error.code));
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnText;
+                }
             }
         });
     }
     
     if (googleSignInBtn) {
-        googleSignInBtn.addEventListener('click', async () => {
+        googleSignInBtn.addEventListener('click', async (e) => {
+            const btn = e.currentTarget;
+            const originalHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Connecting to Google...';
+            }
             const alertContainer = document.getElementById('adminAuthAlertContainer');
             
             // Clear previous errors
@@ -164,6 +182,11 @@ function initAdminLoginForm() {
             } catch (error) {
                 // Error:('Google login error:', error);
                 showAdminAuthError(getAuthErrorMessage(error.code));
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                }
             }
         });
     }
@@ -344,6 +367,7 @@ function showAdminPanel() {
     const overlay = document.getElementById('accessDeniedOverlay');
     const content = document.getElementById('adminContent');
     const userProfile = document.getElementById('userProfile');
+    const authButtons = document.getElementById('authButtons');
     const footer = document.getElementById('adminFooter');
     
     if (overlay) {
@@ -356,7 +380,10 @@ function showAdminPanel() {
         footer.style.display = 'block';
     }
     
-    // Ensure user profile is visible in navbar
+    // Ensure user profile is visible in navbar and auth buttons are hidden
+    if (authButtons) {
+        authButtons.style.setProperty('display', 'none', 'important');
+    }
     if (userProfile) {
         userProfile.style.setProperty('display', 'flex', 'important');
     }
@@ -2202,6 +2229,7 @@ async function deleteAnnouncement(announcementId) {
     
     try {
         await remove(ref(database, `announcements/${announcementId}`));
+        localStorage.removeItem('announcements_cache');
         await logAuditAction('announcement_deleted', null, `Deleted announcement: ${announcementId}`);
         showToast('Announcement deleted successfully', 'success');
         loadActiveAnnouncements(); // Refresh the list
@@ -2238,6 +2266,7 @@ async function createAnnouncement(event) {
             active: true
         });
         
+        localStorage.removeItem('announcements_cache');
         await logAuditAction('announcement_created', null, `Created announcement: ${title}`);
         
         bootstrap.Modal.getInstance(document.getElementById('announcementModal')).hide();
@@ -2278,6 +2307,7 @@ async function saveSystemSettings(event) {
     
     try {
         await set(ref(database, 'systemSettings'), settings);
+        localStorage.removeItem('system_settings_cache');
         
         await logAuditAction('settings_updated', null, 'Updated system settings');
         
@@ -2311,6 +2341,7 @@ async function saveMaintenanceMode(event) {
             updatedBy: currentUser.uid
         });
         
+        localStorage.removeItem('maintenance_mode_cache');
         await logAuditAction('maintenance_mode', null, `Maintenance mode ${enabled ? 'enabled' : 'disabled'}`);
         
         bootstrap.Modal.getInstance(document.getElementById('maintenanceModal')).hide();
@@ -2473,15 +2504,22 @@ function bindEventListeners() {
     document.getElementById('maintenanceForm')?.addEventListener('submit', saveMaintenanceMode);
     
     // Logout button
-    document.getElementById('logoutBtn')?.addEventListener('click', async (e) => {
-        e.preventDefault();
-        try {
-            await auth.signOut();
-            window.location.href = '../index.html';
-        } catch (error) {
-            // Error:('Error signing out:', error);
-        }
-    });
+    const bindLogout = () => {
+        document.getElementById('logoutBtn')?.addEventListener('click', async (e) => {
+            e.preventDefault();
+            try {
+                await auth.signOut();
+                window.location.href = '../index.html';
+            } catch (error) {
+                // Error:('Error signing out:', error);
+            }
+        });
+    };
+    if (document.getElementById('logoutBtn')) {
+        bindLogout();
+    } else {
+        document.addEventListener('layoutReady', bindLogout);
+    }
     
     // Audit log filter
     document.getElementById('auditLogFilter')?.addEventListener('change', filterAuditLogs);
@@ -2954,4 +2992,11 @@ function showToast(message, type = 'info') {
 window.addEventListener('beforeunload', () => {
     if (unsubscribeAuditLogs) unsubscribeAuditLogs();
     if (unsubscribeRecentActivity) unsubscribeRecentActivity();
+});
+
+// Update UI when layout components finish loading dynamically
+document.addEventListener('layoutReady', () => {
+    if (currentUser && isAdmin) {
+        showAdminPanel();
+    }
 });

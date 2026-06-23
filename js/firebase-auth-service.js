@@ -229,12 +229,8 @@ export function initAuthListener() {
             });
         }
         
-        // Update UI with actual auth state only if different from cached
-        const cachedUid = cachedState?.uid;
-        const currentUid = effectiveUser?.uid;
-        if (cachedUid !== currentUid) {
-            updateAuthUI(effectiveUser);
-        }
+        // Always update UI with actual auth state to ensure dynamic navbar is correctly styled
+        updateAuthUI(effectiveUser);
         
         // Resolve the auth ready promise
         if (authReadyResolve) {
@@ -1162,3 +1158,15 @@ async function updateAuthUI(user) {
         }
     }
 }
+
+// Update UI when layout components finish loading dynamically
+document.addEventListener('layoutReady', () => {
+    if (authStateResolved) {
+        updateAuthUI(currentUser);
+    } else {
+        const cachedState = getCachedAuthState();
+        if (cachedState) {
+            updateAuthUI(cachedState);
+        }
+    }
+});

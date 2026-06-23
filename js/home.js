@@ -66,13 +66,22 @@ class AuthModalManager {
      * @returns {void}
      */
     bindEvents() {
-        this.bindModalTriggers();
         this.bindFormSwitchers();
         this.bindFormSubmissions();
         this.bindGoogleAuth();
         this.bindPasswordReset();
-        this.bindLogout();
-        this.bindProfile();
+
+        const bindNavbarElements = () => {
+            this.bindModalTriggers();
+            this.bindLogout();
+            this.bindProfile();
+        };
+
+        if (document.getElementById('loginBtn')) {
+            bindNavbarElements();
+        } else {
+            document.addEventListener('layoutReady', bindNavbarElements);
+        }
     }
 
     /**
@@ -175,13 +184,34 @@ class AuthModalManager {
         const googleSignInBtn = document.getElementById('googleSignInBtn');
         const googleSignUpBtn = document.getElementById('googleSignUpBtn');
 
-        const handleGoogleAuth = async () => {
-            const result = await signInWithGoogle();
-            if (result.success) {
-                this.showAlert('Signed in successfully!', 'success');
-                this.modal.hide();
-            } else {
-                this.showAlert(result.error, 'danger');
+        const handleGoogleAuth = async (e) => {
+            const btn = e ? e.currentTarget : null;
+            const originalHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Connecting to Google...';
+            }
+            const otherBtn = btn?.id === 'googleSignInBtn' ? googleSignUpBtn : googleSignInBtn;
+            if (otherBtn) {
+                otherBtn.disabled = true;
+            }
+
+            try {
+                const result = await signInWithGoogle();
+                if (result.success) {
+                    this.showAlert('Signed in successfully!', 'success');
+                    this.modal.hide();
+                } else {
+                    this.showAlert(result.error, 'danger');
+                }
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                }
+                if (otherBtn) {
+                    otherBtn.disabled = false;
+                }
             }
         };
 
@@ -453,6 +483,7 @@ class AuthModalManager {
         const email = document.getElementById('signupEmail')?.value;
         const password = document.getElementById('signupPassword')?.value;
         const confirmPassword = document.getElementById('signupConfirmPassword')?.value;
+        const submitBtn = this.forms.signup?.querySelector('button[type="submit"]');
 
         if (!name || !email || !password || !confirmPassword) {
             this.showAlert('Please fill in all fields', 'danger');
@@ -469,6 +500,12 @@ class AuthModalManager {
             return;
         }
 
+        const originalBtnText = submitBtn?.innerHTML;
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Creating account...';
+        }
+
         try {
             const result = await signUpUser(email, password, name);
             if (result.success) {
@@ -480,6 +517,11 @@ class AuthModalManager {
             }
         } catch (error) {
             this.showAlert(error.message || 'An unexpected error occurred. Please try again.', 'danger');
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnText;
+            }
         }
     }
 

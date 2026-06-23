@@ -371,11 +371,15 @@ function setupAuthHandlers() {
         e.preventDefault();
         
         const $btn = $(this);
+        const $otherBtn = $(this.id === 'googleSignInBtn' ? '#googleSignUpBtn' : '#googleSignInBtn');
+        
         showButtonLoading($btn, $btn.html());
+        $otherBtn.prop('disabled', true);
         
         const result = await signInWithGoogle();
         
         hideButtonLoading($btn);
+        $otherBtn.prop('disabled', false);
         
         if (result.success) {
             showAuthAlert('success', 'Signed in with Google successfully!');
@@ -865,6 +869,15 @@ async function addStock() {
             : `Stock ${symbol || name} added! Click "Edit" button to enter details.`;
         showAlert('success', message);
         
+        // Close modal if open
+        const modalElement = document.getElementById('addStockModal');
+        if (modalElement) {
+            const modalInstance = bootstrap.Modal.getInstance(modalElement);
+            if (modalInstance) {
+                modalInstance.hide();
+            }
+        }
+        
         // No need to update stock ID since we pass the same ID to Firebase
         // The optimistic stock and Firebase stock now share the same ID
     } else {
@@ -1009,7 +1022,7 @@ function renderTableInternal() {
             
             row.innerHTML = `
                 <td class="text-center"><strong>${index + 1}</strong></td>
-                <td class="text-muted"><strong>${escapeAttribute(stock.name)}</strong><br><small class="text-primary">${escapeAttribute(displaySymbol)}</small></td>
+                <td class="text-muted"><strong>${index + 1}. ${escapeAttribute(stock.name)}</strong><br><small class="text-primary">${escapeAttribute(displaySymbol)}</small></td>
                 <td class="text-center">${formatValue('liquidity', stock.liquidity)}</td>
                 <td class="text-center">${formatValue('quick_ratio', stock.quick_ratio)}</td>
                 <td class="text-center">${formatValue('debt_to_equity', stock.debt_to_equity)}</td>
@@ -1541,3 +1554,20 @@ async function fetchAllStocks() {
         showAlert('warning', `Fetch complete: ${successCount} succeeded, ${failCount} failed. Check console for details.`);
     }
 }
+
+// ========================================
+// Mobile Accordion Row Toggle
+// Tap any row on <=768px to expand/collapse metric details
+// Matches the stock-manager and finance-tracker pattern
+// ========================================
+
+document.addEventListener('click', (e) => {
+    const row = e.target.closest('#stocksTable tbody tr');
+    if (row && window.innerWidth <= 768) {
+        // Ignore taps directly on action buttons, links or inputs
+        if (e.target.closest('button') || e.target.closest('a') || e.target.closest('input')) {
+            return;
+        }
+        row.classList.toggle('expanded');
+    }
+});

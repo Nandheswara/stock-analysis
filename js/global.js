@@ -122,34 +122,36 @@ async function checkMaintenanceMode() {
     }
     
     try {
-        const { database, auth, ref, get, set } = await getFirebaseModules();
+        const cacheKey = 'maintenance_mode_cache';
+        const cacheTsKey = 'maintenance_mode_cache_ts';
+        const cached = localStorage.getItem(cacheKey);
+        const cachedTs = localStorage.getItem(cacheTsKey);
+        const ttl = 5 * 60 * 1000; // 5 minutes
         
-        // Check maintenance mode setting
-        const maintenanceRef = ref(database, 'maintenanceMode');
-        const snapshot = await get(maintenanceRef);
+        let maintenance;
+        if (cached && cachedTs && (Date.now() - parseInt(cachedTs) < ttl)) {
+            maintenance = JSON.parse(cached);
+        } else {
+            const { database, ref, get } = await getFirebaseModules();
+            const maintenanceRef = ref(database, 'maintenanceMode');
+            const snapshot = await get(maintenanceRef);
+            if (snapshot.exists()) {
+                maintenance = snapshot.val();
+                localStorage.setItem(cacheKey, JSON.stringify(maintenance));
+                localStorage.setItem(cacheTsKey, Date.now().toString());
+            }
+        }
         
-        if (snapshot.exists()) {
-            const maintenance = snapshot.val();
-            
+        if (maintenance) {
             if (maintenance.enabled === true) {
                 // Check if estimated end time has passed - auto-disable maintenance
                 if (maintenance.estimatedEndTime && Date.now() > maintenance.estimatedEndTime) {
-                    // Maintenance period has ended, auto-disable it
-                    try {
-                        await set(maintenanceRef, {
-                            ...maintenance,
-                            enabled: false,
-                            autoDisabledAt: Date.now(),
-                            autoDisabledReason: 'Estimated end time reached'
-                        });
-                        return; // Maintenance is now disabled, allow access
-                    } catch (updateError) {
-                        // If we can't update, still allow access since time has passed
-                        return;
-                    }
+                    localStorage.removeItem(cacheKey);
+                    return; // Maintenance is now disabled, allow access
                 }
                 
                 // Check if current user is admin (exempt from maintenance)
+                const { auth } = await getFirebaseModules();
                 const currentUser = auth.currentUser;
                 
                 if (currentUser) {
@@ -158,6 +160,7 @@ async function checkMaintenanceMode() {
                         return; // Primary admin is exempt
                     }
                     
+                    const { database, ref, get } = await getFirebaseModules();
                     // Check if user is in admin list
                     const adminsRef = ref(database, 'adminUsers');
                     const adminsSnapshot = await get(adminsRef);
@@ -253,13 +256,27 @@ function showMaintenanceOverlay(message, estimatedEndTime) {
  */
 async function checkAnnouncements() {
     try {
-        const { database, ref, get } = await getFirebaseModules();
-
-        const announcementsRef = ref(database, 'announcements');
-        const snapshot = await get(announcementsRef);
+        const cacheKey = 'announcements_cache';
+        const cacheTsKey = 'announcements_cache_ts';
+        const cached = localStorage.getItem(cacheKey);
+        const cachedTs = localStorage.getItem(cachedTsKey);
+        const ttl = 5 * 60 * 1000; // 5 minutes
         
-        if (snapshot.exists()) {
-            const announcements = snapshot.val();
+        let announcements;
+        if (cached && cachedTs && (Date.now() - parseInt(cachedTs) < ttl)) {
+            announcements = JSON.parse(cached);
+        } else {
+            const { database, ref, get } = await getFirebaseModules();
+            const announcementsRef = ref(database, 'announcements');
+            const snapshot = await get(announcementsRef);
+            if (snapshot.exists()) {
+                announcements = snapshot.val();
+                localStorage.setItem(cacheKey, JSON.stringify(announcements));
+                localStorage.setItem(cacheTsKey, Date.now().toString());
+            }
+        }
+        
+        if (announcements) {
             const now = Date.now();
             
             // Find active, non-expired announcements
@@ -391,13 +408,27 @@ async function checkSystemSettings() {
     }
     
     try {
-        const { database, ref, get } = await getFirebaseModules();
-
-        const settingsRef = ref(database, 'systemSettings');
-        const snapshot = await get(settingsRef);
+        const cacheKey = 'system_settings_cache';
+        const cacheTsKey = 'system_settings_cache_ts';
+        const cached = localStorage.getItem(cacheKey);
+        const cachedTs = localStorage.getItem(cacheTsKey);
+        const ttl = 5 * 60 * 1000; // 5 minutes
         
-        if (snapshot.exists()) {
-            const settings = snapshot.val();
+        let settings;
+        if (cached && cachedTs && (Date.now() - parseInt(cachedTs) < ttl)) {
+            settings = JSON.parse(cached);
+        } else {
+            const { database, ref, get } = await getFirebaseModules();
+            const settingsRef = ref(database, 'systemSettings');
+            const snapshot = await get(settingsRef);
+            if (snapshot.exists()) {
+                settings = snapshot.val();
+                localStorage.setItem(cacheKey, JSON.stringify(settings));
+                localStorage.setItem(cacheTsKey, Date.now().toString());
+            }
+        }
+        
+        if (settings) {
             const currentPath = window.location.pathname;
 
             FEATURE_ACCESS_RULES.forEach(({ settingKey, pagePath, featureName }) => {
@@ -575,11 +606,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize theme
     initTheme();
     
-    // Add event listener to theme toggle button
-    const themeToggle = document.getElementById('themeToggle');
-    if (themeToggle) {
-        themeToggle.addEventListener('click', toggleTheme);
-    }
+    // Add event listener to theme toggle button using event delegation
+    document.addEventListener('click', function(e) {
+        const themeToggle = e.target.closest('#themeToggle');
+        if (themeToggle) {
+            toggleTheme();
+        }
+    });
     
     // Check impersonation immediately
     checkImpersonation();
