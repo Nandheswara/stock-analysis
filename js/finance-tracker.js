@@ -4415,11 +4415,36 @@ function setupAuth() {
     });
 }
 
+function initEncryptionBanner() {
+    const banner = document.getElementById('encryptionBanner');
+    const closeBtn = document.getElementById('closeEncryptionBanner');
+    if (!banner || !closeBtn) return;
+
+    // Check if dismissed
+    try {
+        if (sessionStorage.getItem('encryptionBannerDismissed') === '1') {
+            banner.style.display = 'none';
+        }
+    } catch (e) {
+        // Ignore sessionStorage error
+    }
+
+    closeBtn.addEventListener('click', () => {
+        banner.style.display = 'none';
+        try {
+            sessionStorage.setItem('encryptionBannerDismissed', '1');
+        } catch (e) {
+            // Ignore sessionStorage error
+        }
+    });
+}
+
 // ========================================
 // Init
 // ========================================
 
 document.addEventListener('DOMContentLoaded', () => {
+    initEncryptionBanner();
     initMonthNavigator();
     initIncomeSection();
     setupSelectors();
