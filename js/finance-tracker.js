@@ -1578,9 +1578,7 @@ function renderBanks() {
     container.innerHTML = dedupedVisibleBanks.map(([bankId, bank]) => {
         // New format: show month-specific balance, or 0 if not entered yet
         // Old format (no balances obj): use global balance
-        const balance = bank.balances
-            ? (bank.balances[currentMonth] || 0)
-            : (bank.balance || 0);
+        const balance = getMonthAmount(bank, currentMonth, 'balance');
 
         return `
         <tr>
@@ -1655,9 +1653,7 @@ function renderCreditCards() {
     const today = new Date();
 
     container.innerHTML = dedupedVisibleCards.map(([cardId, card]) => {
-        const outstanding = card.balances
-            ? (card.balances[currentMonth] || 0)
-            : (card.outstandingBalance || 0);
+        const outstanding = getMonthAmount(card, currentMonth, 'outstandingBalance');
 
         const limit = getCreditCardLimit(card, currentMonth);
 
@@ -1844,9 +1840,7 @@ function renderExpenses() {
     }
 
     container.innerHTML = dedupedVisibleCards.map(([cardId, card]) => {
-        const amount = card.balances
-            ? (card.balances[currentMonth] || 0)
-            : (card.outstandingBalance || 0);
+        const amount = getMonthAmount(card, currentMonth, 'outstandingBalance');
 
         const category = escapeHtml(card.issuer || '-');
         const date = card.expenseDate || '-';
@@ -3506,7 +3500,7 @@ function buildExportData(months) {
     ];
     mergedExpenses.forEach(card => {
         months.forEach(month => {
-            const outstanding = card.balances ? (card.balances[month] || 0) : 0;
+            const outstanding = getMonthAmount(card, month, 'outstandingBalance');
             const limit = card.creditLimit || 0;
             const util = limit > 0 ? ((outstanding / limit) * 100).toFixed(1) : 0;
             const isPaidForMonth = isCardPaidForMonth(card, month);
@@ -3586,7 +3580,7 @@ function buildExportData(months) {
     // Credit Card analysis
     Object.values(financeData.creditCards).forEach(card => {
         const latestMonth = months[months.length - 1];
-        const outstanding = card.balances ? (card.balances[latestMonth] || 0) : 0;
+        const outstanding = getMonthAmount(card, latestMonth, 'outstandingBalance');
         const limit = card.creditLimit || 0;
         const util = limit > 0 ? (outstanding / limit) * 100 : 0;
         
@@ -3673,7 +3667,7 @@ function buildExportData(months) {
         const pdfRow = [bank.name, bank.bankName, bank.accountType];
         let total = 0;
         months.forEach(month => {
-            const balance = bank.balances ? (bank.balances[month] || 0) : (month === months[months.length - 1] ? (bank.balance || 0) : 0);
+            const balance = getMonthAmount(bank, month, 'balance');
             row.push(balance);
             pdfRow.push(balance);
             total += balance;
@@ -3693,7 +3687,7 @@ function buildExportData(months) {
         const pdfRow = [card.name, card.issuer];
         let total = 0;
         months.forEach(month => {
-            const outstanding = card.balances ? (card.balances[month] || 0) : (month === months[months.length - 1] ? (card.outstandingBalance || 0) : 0);
+            const outstanding = getMonthAmount(card, month, 'outstandingBalance');
             row.push(outstanding);
             pdfRow.push(outstanding);
             total += outstanding;

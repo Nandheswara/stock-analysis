@@ -30,6 +30,9 @@ export async function addCreditCard(cardData, month) {
         const cardsRef = ref(database, getSectionDbPath(type, user.uid));
         const newRef = push(cardsRef);
         
+        const balanceVal = cardData.balance !== undefined ? cardData.balance : cardData.outstandingBalance;
+        const parsedBalance = parseFloat(balanceVal) || 0;
+
         const baseData = {
             type,
             name: cardData.name || '',
@@ -40,13 +43,15 @@ export async function addCreditCard(cardData, month) {
             createdMonth: month || new Date().toISOString().slice(0, 7),
             updatedAt: Date.now(),
             balances: {},
-            paymentStatusByMonth: {}
+            paymentStatusByMonth: {},
+            outstandingBalance: parsedBalance
         };
 
         const isInsurance = type === 'insurance';
 
         if (!isInsurance) {
             baseData.dueDate = cardData.dueDate || '';
+            baseData.expenseDate = cardData.expenseDate || '';
             
             // Check for loan-specific fields
             if (type === 'loan') {
@@ -55,6 +60,7 @@ export async function addCreditCard(cardData, month) {
                 baseData.interestRate = parseFloat(cardData.interestRate) || 0;
                 baseData.loanType = cardData.loanType || 'credit-card-emi';
                 baseData.processingFee = parseFloat(cardData.processingFee) || 0;
+                baseData.totalLoanAmount = parseFloat(cardData.totalLoanAmount) || 0;
             } else {
                 baseData.creditLimit = parseFloat(cardData.creditLimit) || 0;
             }
@@ -64,7 +70,7 @@ export async function addCreditCard(cardData, month) {
         }
 
         if (month) {
-            baseData.balances[month] = parseFloat(cardData.balance) || 0;
+            baseData.balances[month] = parsedBalance;
             baseData.paymentStatusByMonth[month] = cardData.isPaid || false;
         }
 
@@ -97,6 +103,7 @@ export async function updateCreditCard(cardId, updates, month) {
         if (updates.issuer !== undefined) updateData.issuer = updates.issuer;
         if (updates.color !== undefined) updateData.color = updates.color;
         if (updates.notes !== undefined) updateData.notes = updates.notes;
+        if (updates.expenseDate !== undefined) updateData.expenseDate = updates.expenseDate;
         
         if (!isInsuranceUpdate) {
             if (updates.creditLimit !== undefined) updateData.creditLimit = parseFloat(updates.creditLimit) || 0;
@@ -121,9 +128,17 @@ export async function updateCreditCard(cardId, updates, month) {
         if (updates.processingFee !== undefined && !isInsuranceUpdate) {
             updateData.processingFee = parseFloat(updates.processingFee) || 0;
         }
+        if (updates.totalLoanAmount !== undefined && !isInsuranceUpdate) {
+            updateData.totalLoanAmount = parseFloat(updates.totalLoanAmount) || 0;
+        }
 
-        if (updates.balance !== undefined && month) {
-            updateData[`balances/${month}`] = parseFloat(updates.balance);
+        const balanceVal = updates.balance !== undefined ? updates.balance : updates.outstandingBalance;
+        if (balanceVal !== undefined) {
+            const parsedBalance = parseFloat(balanceVal) || 0;
+            if (month) {
+                updateData[`balances/${month}`] = parsedBalance;
+            }
+            updateData.outstandingBalance = parsedBalance;
         }
         if (updates.isPaid !== undefined && month) {
             updateData[`paymentStatusByMonth/${month}`] = Boolean(updates.isPaid);
