@@ -132,16 +132,40 @@
     z-index: 5;
 }
 
-/* ========================================
-   Table Container
-   ======================================== */
-
 .table-container {
     overflow-x: auto;
     max-height: 70vh;
     background-color: var(--bg-card);
     border-radius: var(--radius-sm);
     border: 1px solid var(--border-color);
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Custom modern scrollbar for table container */
+.table-container::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
+}
+.table-container::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+}
+.table-container::-webkit-scrollbar-thumb {
+    background: var(--border-light);
+    border-radius: var(--radius-sm);
+}
+.table-container::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-primary);
+}
+
+/* Sticky column shadow separation for visual distinction when scrolling */
+#stocksTable th:first-child,
+#stocksTable td:first-child {
+    box-shadow: 4px 0 10px -4px rgba(0, 0, 0, 0.4);
+}
+
+body.light-theme #stocksTable th:first-child,
+body.light-theme #stocksTable td:first-child {
+    box-shadow: 4px 0 10px -4px rgba(0, 0, 0, 0.15);
 }
 
 /* ========================================
@@ -200,20 +224,57 @@ body:not(.light-theme) #stockName[readonly] {
     background-color: var(--accent-danger-hover);
 }
 
-/* ========================================
-   Empty State
-   ======================================== */
-
 .empty-state {
     text-align: center;
-    padding: 60px 20px;
-    color: var(--text-secondary);
+    padding: 80px 40px;
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.4) 0%, rgba(3, 7, 18, 0.2) 100%);
+    border: 1px dashed var(--border-color);
+    border-radius: var(--radius-lg);
+    margin: 30px auto;
+    max-width: 600px;
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    box-shadow: var(--shadow-sm);
+    transition: all var(--transition-base);
 }
 
-.empty-state i {
-    font-size: 4rem;
-    margin-bottom: 20px;
-    color: var(--border-light);
+.empty-state:hover {
+    border-color: rgba(129, 140, 248, 0.35);
+    box-shadow: var(--shadow-md), 0 0 25px rgba(129, 140, 248, 0.08);
+}
+
+.empty-state > i {
+    font-size: 3rem;
+    margin-bottom: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(129, 140, 248, 0.1);
+    color: var(--accent-primary);
+    box-shadow: 0 0 30px rgba(129, 140, 248, 0.15);
+    transition: transform var(--transition-base);
+}
+
+.empty-state:hover > i {
+    transform: scale(1.08) rotate(5deg);
+}
+
+.empty-state h4 {
+    color: var(--text-heading);
+    font-size: 1.35rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+}
+
+.empty-state p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    max-width: 380px;
+    margin: 0 auto 24px auto;
+    line-height: 1.5;
 }
 
 /* No results state (when filters don't match) */
@@ -346,10 +407,22 @@ body.light-theme .filter-select-modal:focus {
 
 /* Empty State - Light Theme */
 body.light-theme .empty-state {
-    color: var(--text-muted);
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-color: var(--border-color);
+    box-shadow: var(--shadow-sm);
 }
 
-body.light-theme .empty-state i {
+body.light-theme .empty-state > i {
+    background: rgba(52, 152, 219, 0.1);
+    color: var(--accent-primary);
+    box-shadow: 0 0 20px rgba(52, 152, 219, 0.1);
+}
+
+body.light-theme .empty-state h4 {
+    color: var(--text-heading);
+}
+
+body.light-theme .empty-state p {
     color: var(--text-secondary);
 }
 
@@ -366,16 +439,6 @@ body.light-theme .analysis-table tbody tr td[colspan="18"] .text-muted {
    ======================================== */
 
 @media (max-width: 768px) {
-    /* Mobile adjustments for table */
-    .analysis-table {
-        font-size: 0.75rem;
-    }
-    
-    #stocksTable th,
-    #stocksTable td {
-        padding: 6px 8px;
-    }
-
     .card-header {
         flex-direction: column;
         align-items: flex-start !important;
@@ -385,7 +448,422 @@ body.light-theme .analysis-table tbody tr td[colspan="18"] .text-muted {
     .card-header-actions {
         width: 100%;
         display: flex;
-        justify-content: flex-end;
+        justify-content: flex-start;
+        align-items: center;
         gap: 8px;
+        flex-wrap: nowrap !important;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 4px;
+    }
+
+    .card-header-actions::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* ---- Card-based mobile table layout ---- */
+
+    /* Remove the scrollable table container; become a plain div */
+    .table-container {
+        overflow: visible;
+        max-height: none;
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        padding: 0 0 8px 0;
+    }
+
+    /* Empty State responsive overrides */
+    .empty-state {
+        padding: 50px 20px;
+        margin: 20px 10px;
+    }
+    
+    .empty-state > i {
+        font-size: 2.5rem;
+        width: 70px;
+        height: 70px;
+        margin-bottom: 18px;
+    }
+    
+    .empty-state h4 {
+        font-size: 1.2rem;
+    }
+    
+    .empty-state p {
+        font-size: 0.88rem;
+        margin-bottom: 18px;
+        padding: 0 10px;
+    }
+
+    /* Stack all table elements as block so CSS can take over layout */
+    .analysis-table,
+    .analysis-table thead,
+    .analysis-table tbody,
+    .analysis-table th,
+    .analysis-table td,
+    .analysis-table tr {
+        display: block;
+    }
+
+    /* Remove table-wide min-width constraints */
+    .analysis-table {
+        min-width: 100% !important;
+        font-size: 0.88rem;
+        border: none;
+        background: transparent;
+    }
+
+    /* Visually hide the header row (keep it in DOM for accessibility) */
+    .analysis-table thead tr {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+    }
+
+    /* Each row becomes a card */
+    .analysis-table tbody tr {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        margin-bottom: 1rem;
+        padding: 1rem;
+        box-shadow: var(--shadow-sm);
+        position: relative;
+        padding-right: 40px !important;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .analysis-table tbody tr:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-1px);
+    }
+
+    /* Chevron indicator — collapsed */
+    .analysis-table tbody tr::after {
+        content: "\F282";
+        font-family: "bootstrap-icons";
+        position: absolute;
+        right: 14px;
+        top: 14px;
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        transition: transform 0.3s ease;
+    }
+
+    /* Chevron indicator — expanded */
+    .analysis-table tbody tr.expanded::after {
+        transform: rotate(180deg);
+    }
+
+    /* Hide all cells by default */
+    .analysis-table td {
+        display: none;
+        border: none;
+        position: relative;
+        padding-left: 48% !important;
+        text-align: right;
+        padding-top: 6px !important;
+        padding-bottom: 6px !important;
+        white-space: normal;
+        color: var(--text-primary);
+        font-size: 0.85rem;
+    }
+
+    /* ── Row 1: S.No — hide (folded into row 2 header display) */
+    .analysis-table td:nth-of-type(1) {
+        display: none !important;
+    }
+
+    /* ── Row 2: Stock Name — always visible as card header */
+    .analysis-table td:nth-of-type(2) {
+        display: block;
+        padding-left: 0 !important;
+        padding-right: 90px !important; /* Prevent text overlap with score badge and chevron */
+        text-align: left;
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--text-heading);
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 10px !important;
+        margin-bottom: 4px;
+    }
+
+    .analysis-table td:nth-of-type(2)::before {
+        display: none !important;
+    }
+
+    /* ── Overall Performance — positioned at the top right of the card ── */
+    .analysis-table td:nth-of-type(17) {
+        display: block !important;
+        position: absolute !important;
+        right: 38px;
+        top: 14px;
+        padding: 3px 7px !important;
+        border: 1px solid var(--border-color) !important;
+        border-radius: 6px;
+        background-color: var(--bg-secondary) !important;
+        font-size: 0.75rem !important;
+        font-weight: 700 !important;
+        z-index: 2;
+        margin: 0 !important;
+        width: auto !important;
+        height: auto !important;
+    }
+
+    .analysis-table td:nth-of-type(17)::before {
+        display: none !important;
+    }
+
+    /* ── Action row — hidden when collapsed, visible at bottom when expanded ── */
+    .analysis-table td:nth-of-type(18) {
+        display: none; /* Hidden by default when collapsed */
+        padding-left: 0 !important;
+        border-top: 1px solid var(--border-color);
+        padding-top: 12px !important;
+        margin-top: 8px;
+        white-space: nowrap;
+    }
+
+    .analysis-table td:nth-of-type(18)::before {
+        display: none !important;
+    }
+
+    /* When a row is expanded, reveal all hidden cells */
+    .analysis-table tbody tr.expanded td {
+        display: block;
+    }
+
+    /* Keep S.No always hidden even when expanded */
+    .analysis-table tbody tr.expanded td:nth-of-type(1) {
+        display: none !important;
+    }
+
+    /* Show action row as a centered flexbox when expanded */
+    .analysis-table tbody tr.expanded td:nth-of-type(18) {
+        display: flex !important;
+        justify-content: center;
+        align-items: center;
+        gap: 12px;
+    }
+
+    /* ── Label pseudo-elements for each metric cell */
+    .analysis-table td::before {
+        position: absolute;
+        top: 6px;
+        left: 0;
+        width: 44%;
+        padding-right: 8px;
+        white-space: nowrap;
+        text-align: left;
+        font-weight: 500;
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+
+    .analysis-table td:nth-of-type(3)::before  { content: "Liquidity"; }
+    .analysis-table td:nth-of-type(4)::before  { content: "Quick Ratio"; }
+    .analysis-table td:nth-of-type(5)::before  { content: "Debt / Equity"; }
+    .analysis-table td:nth-of-type(6)::before  { content: "ROE (%)"; }
+    .analysis-table td:nth-of-type(7)::before  { content: "ROA (%)"; }
+    .analysis-table td:nth-of-type(8)::before  { content: "EBITDA Latest"; }
+    .analysis-table td:nth-of-type(9)::before  { content: "EBITDA Prev"; }
+    .analysis-table td:nth-of-type(10)::before { content: "Div Yield (%)"; }
+    .analysis-table td:nth-of-type(11)::before { content: "Stock PE"; }
+    .analysis-table td:nth-of-type(12)::before { content: "Industry PE"; }
+    .analysis-table td:nth-of-type(13)::before { content: "P/B"; }
+    .analysis-table td:nth-of-type(14)::before { content: "P/S YoY"; }
+    .analysis-table td:nth-of-type(15)::before { content: "BETA"; }
+    .analysis-table td:nth-of-type(16)::before { content: "Promoter %"; }
+    .analysis-table td:nth-of-type(17)::before { content: "Performance"; }
+
+    /* Action buttons: compact & premium pill styling for mobile cards */
+    .analysis-table td:nth-of-type(18) .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        padding: 5px 8px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        border-radius: 6px;
+        border: none;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        margin: 0;
+        box-shadow: var(--shadow-sm);
+        white-space: nowrap;
+        flex: 1;
+        max-width: 31%;
+    }
+    
+    .analysis-table td:nth-of-type(18) .btn i {
+        font-size: 0.9rem !important;
+        margin: 0 !important;
+    }
+
+    /* Premium translucent backgrounds and color themes for mobile cards */
+    .analysis-table td:nth-of-type(18) .btn-success {
+        background-color: rgba(46, 204, 113, 0.12) !important;
+        color: #2ecc71 !important;
+    }
+    .analysis-table td:nth-of-type(18) .btn-success:hover,
+    .analysis-table td:nth-of-type(18) .btn-success:active {
+        background-color: #2ecc71 !important;
+        color: #ffffff !important;
+    }
+
+    .analysis-table td:nth-of-type(18) .btn-primary {
+        background-color: rgba(52, 152, 219, 0.12) !important;
+        color: #3498db !important;
+    }
+    .analysis-table td:nth-of-type(18) .btn-primary:hover,
+    .analysis-table td:nth-of-type(18) .btn-primary:active {
+        background-color: #3498db !important;
+        color: #ffffff !important;
+    }
+
+    .analysis-table td:nth-of-type(18) .btn-danger {
+        background-color: rgba(231, 76, 60, 0.12) !important;
+        color: #e74c3c !important;
+    }
+    .analysis-table td:nth-of-type(18) .btn-danger:hover,
+    .analysis-table td:nth-of-type(18) .btn-danger:active {
+        background-color: #e74c3c !important;
+        color: #ffffff !important;
+    }
+
+    /* No results / empty filter row */
+    .analysis-table tbody tr td[colspan="18"] {
+        padding-left: 12px !important;
+        text-align: center;
+        border-bottom: none;
+    }
+    .analysis-table tbody tr td[colspan="18"]::before {
+        display: none;
+    }
+
+    /* Light theme card styles */
+    body.light-theme .analysis-table tbody tr {
+        background: var(--bg-card);
+        border-color: var(--border-color);
+        box-shadow: var(--shadow-sm);
+    }
+
+    /* Remove sticky column shadow that's only needed on desktop scroll */
+    #stocksTable th:first-child,
+    #stocksTable td:first-child {
+        box-shadow: none;
     }
 }
+
+@media (max-width: 480px) {
+    .analysis-table td {
+        padding-left: 50% !important;
+        font-size: 0.82rem;
+    }
+
+    .analysis-table td::before {
+        width: 46%;
+        font-size: 0.74rem;
+    }
+
+    /* Ensure action buttons remain in a single line with text on extra small mobile screens */
+    .analysis-table td:nth-of-type(18) .btn {
+        padding: 4px 6px;
+        font-size: 0.68rem;
+    }
+}
+
+/* ========================================
+   Card Header Actions Buttons (Toolbar)
+   ======================================== */
+
+.card-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.card-header-actions .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 14px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: var(--shadow-sm);
+    white-space: nowrap;
+}
+
+/* Add Stock Button (Primary Action) */
+#openAddStockModalBtn {
+    background-color: var(--accent-primary) !important;
+    color: #ffffff !important;
+    border-color: var(--accent-primary) !important;
+}
+
+#openAddStockModalBtn:hover,
+#openAddStockModalBtn:active {
+    background-color: var(--accent-primary-hover) !important;
+    border-color: var(--accent-primary-hover) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px var(--accent-primary-muted) !important;
+}
+
+/* Fetch All Button (Success Theme) */
+#fetchAllBtn {
+    background-color: rgba(46, 204, 113, 0.1) !important;
+    color: #2ecc71 !important;
+    border-color: rgba(46, 204, 113, 0.2) !important;
+}
+
+#fetchAllBtn:hover,
+#fetchAllBtn:active {
+    background-color: #2ecc71 !important;
+    color: #ffffff !important;
+    border-color: #2ecc71 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(46, 204, 113, 0.2) !important;
+}
+
+/* Filter Button (Info/Primary Outline Theme) */
+#filterBtn {
+    background-color: rgba(52, 152, 219, 0.1) !important;
+    color: #3498db !important;
+    border-color: rgba(52, 152, 219, 0.2) !important;
+}
+
+#filterBtn:hover,
+#filterBtn:active {
+    background-color: #3498db !important;
+    color: #ffffff !important;
+    border-color: #3498db !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.2) !important;
+}
+
+/* Clear All Button (Danger Theme) */
+#clearAllBtn {
+    background-color: rgba(231, 76, 60, 0.1) !important;
+    color: #e74c3c !important;
+    border-color: rgba(231, 76, 60, 0.2) !important;
+}
+
+#clearAllBtn:hover,
+#clearAllBtn:active {
+    background-color: #e74c3c !important;
+    color: #ffffff !important;
+    border-color: #e74c3c !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.2) !important;
+}
+

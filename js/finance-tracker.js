@@ -4208,13 +4208,26 @@ function setupAuth() {
             e.preventDefault();
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
-            const result = await signInUser(email, password);
-            if (result.success) {
-                const modal = bootstrap.Modal.getInstance(document.getElementById('authModal'));
-                if (modal) modal.hide();
-            } else {
-                const container = document.getElementById('authAlertContainer');
-                if (container) container.innerHTML = `<div class="alert alert-danger">${escapeHtml(result.error || 'Sign-in failed.')}</div>`;
+            const submitBtn = loginForm.querySelector('button[type="submit"]');
+            const originalBtnText = submitBtn?.innerHTML;
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Signing in...';
+            }
+            try {
+                const result = await signInUser(email, password);
+                if (result.success) {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('authModal'));
+                    if (modal) modal.hide();
+                } else {
+                    const container = document.getElementById('authAlertContainer');
+                    if (container) container.innerHTML = `<div class="alert alert-danger">${escapeHtml(result.error || 'Sign-in failed.')}</div>`;
+                }
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnText;
+                }
             }
         });
     }
@@ -4232,61 +4245,104 @@ function setupAuth() {
                 document.getElementById('authAlertContainer').innerHTML = '<div class="alert alert-danger">Passwords do not match</div>';
                 return;
             }
-            const result = await signUpUser(email, password, name);
-            if (result.success) {
-                const modal = bootstrap.Modal.getInstance(document.getElementById('authModal'));
-                if (modal) modal.hide();
-            } else {
-                document.getElementById('authAlertContainer').innerHTML = `<div class="alert alert-danger">${escapeHtml(result.error || 'Sign-up failed.')}</div>`;
+            const submitBtn = signupForm.querySelector('button[type="submit"]');
+            const originalBtnText = submitBtn?.innerHTML;
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Creating account...';
+            }
+            try {
+                const result = await signUpUser(email, password, name);
+                if (result.success) {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('authModal'));
+                    if (modal) modal.hide();
+                } else {
+                    document.getElementById('authAlertContainer').innerHTML = `<div class="alert alert-danger">${escapeHtml(result.error || 'Sign-up failed.')}</div>`;
+                }
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnText;
+                }
             }
         });
     }
 
     // Google sign in
     const googleBtn = document.getElementById('googleSignInBtn');
-    if (googleBtn) googleBtn.addEventListener('click', async () => {
-        const result = await signInWithGoogle();
-        if (result.success) {
-            const modal = bootstrap.Modal.getInstance(document.getElementById('authModal'));
-            if (modal) modal.hide();
-        } else {
-            document.getElementById('authAlertContainer').innerHTML = `<div class="alert alert-danger">${escapeHtml(result.error || 'Google sign-in failed.')}</div>`;
-        }
-    });
-
     const googleUpBtn = document.getElementById('googleSignUpBtn');
-    if (googleUpBtn) googleUpBtn.addEventListener('click', async () => {
-        const result = await signInWithGoogle();
-        if (result.success) {
-            const modal = bootstrap.Modal.getInstance(document.getElementById('authModal'));
-            if (modal) modal.hide();
-        }
-    });
 
-    // Login/Signup btn triggers
-    document.getElementById('loginBtn')?.addEventListener('click', () => {
-        if (typeof bootstrap === 'undefined') {
-            console.error('Bootstrap not loaded yet');
-            return;
+    const handleGoogleAuth = async (e) => {
+        const btn = e ? e.currentTarget : null;
+        const originalHtml = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Connecting to Google...';
         }
-        document.getElementById('loginForm').style.display = 'block';
-        document.getElementById('signupForm').style.display = 'none';
-        document.getElementById('forgotPasswordForm').style.display = 'none';
-        document.getElementById('authModalTitle').textContent = 'Sign In';
-        new bootstrap.Modal(document.getElementById('authModal')).show();
-    });
+        const otherBtn = btn?.id === 'googleSignInBtn' ? googleUpBtn : googleBtn;
+        if (otherBtn) {
+            otherBtn.disabled = true;
+        }
+        try {
+            const result = await signInWithGoogle();
+            if (result.success) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('authModal'));
+                if (modal) modal.hide();
+            } else {
+                document.getElementById('authAlertContainer').innerHTML = `<div class="alert alert-danger">${escapeHtml(result.error || 'Google sign-in failed.')}</div>`;
+            }
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+            if (otherBtn) {
+                otherBtn.disabled = false;
+            }
+        }
+    };
 
-    document.getElementById('signupBtn')?.addEventListener('click', () => {
-        if (typeof bootstrap === 'undefined') {
-            console.error('Bootstrap not loaded yet');
-            return;
-        }
-        document.getElementById('loginForm').style.display = 'none';
-        document.getElementById('signupForm').style.display = 'block';
-        document.getElementById('forgotPasswordForm').style.display = 'none';
-        document.getElementById('authModalTitle').textContent = 'Create Account';
-        new bootstrap.Modal(document.getElementById('authModal')).show();
-    });
+    if (googleBtn) googleBtn.addEventListener('click', handleGoogleAuth);
+    if (googleUpBtn) googleUpBtn.addEventListener('click', handleGoogleAuth);
+
+    // Login/Signup/Logout navbar triggers wrapped for layoutReady compatibility
+    const bindNavbarElements = () => {
+        document.getElementById('loginBtn')?.addEventListener('click', () => {
+            if (typeof bootstrap === 'undefined') {
+                console.error('Bootstrap not loaded yet');
+                return;
+            }
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('signupForm').style.display = 'none';
+            document.getElementById('forgotPasswordForm').style.display = 'none';
+            document.getElementById('authModalTitle').textContent = 'Sign In';
+            new bootstrap.Modal(document.getElementById('authModal')).show();
+        });
+
+        document.getElementById('signupBtn')?.addEventListener('click', () => {
+            if (typeof bootstrap === 'undefined') {
+                console.error('Bootstrap not loaded yet');
+                return;
+            }
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('signupForm').style.display = 'block';
+            document.getElementById('forgotPasswordForm').style.display = 'none';
+            document.getElementById('authModalTitle').textContent = 'Create Account';
+            new bootstrap.Modal(document.getElementById('authModal')).show();
+        });
+
+        document.getElementById('logoutBtn')?.addEventListener('click', async (e) => {
+            e.preventDefault();
+            await signOutUser();
+            showToast('Logged out successfully', 'info');
+        });
+    };
+
+    if (document.getElementById('loginBtn')) {
+        bindNavbarElements();
+    } else {
+        document.addEventListener('layoutReady', bindNavbarElements);
+    }
 
     document.getElementById('showSignupForm')?.addEventListener('click', (e) => {
         e.preventDefault();
@@ -4328,11 +4384,7 @@ function setupAuth() {
     });
 
     // Logout
-    document.getElementById('logoutBtn')?.addEventListener('click', async (e) => {
-        e.preventDefault();
-        await signOutUser();
-        showToast('Logged out successfully', 'info');
-    });
+
 
     // Change password
     const changePwForm = document.getElementById('changePasswordForm');

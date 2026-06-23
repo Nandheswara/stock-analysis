@@ -433,13 +433,17 @@ function initSelect2(select) {
         return null;
     };
 
-    $(select).select2({
+    const $select = $(select);
+    const modalParent = $select.closest('.modal');
+
+    $select.select2({
         placeholder: 'Search or select a stock...',
         width: '100%',
         matcher: customMatcher,
         allowClear: true,
         dropdownAutoWidth: false,
         minimumInputLength: 0,
+        dropdownParent: modalParent.length ? modalParent : $(document.body),
         language: {
             noResults: function() {
                 return 'No stocks found';

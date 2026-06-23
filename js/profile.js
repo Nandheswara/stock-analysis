@@ -71,7 +71,12 @@ document.addEventListener('DOMContentLoaded', () => {
     initAuthListener();
     initModals();
     setupEventListeners();
-    setupAuthHandlers();
+    
+    if (document.getElementById('loginBtn')) {
+        setupAuthHandlers();
+    } else {
+        document.addEventListener('layoutReady', setupAuthHandlers);
+    }
     
     onAuthStateChange(async (user) => {
         // Wait for the real Firebase auth state to resolve to prevent flashing cached/mock details
@@ -1183,8 +1188,20 @@ async function handleSignup() {
 /**
  * Handle Google authentication
  */
-async function handleGoogleAuth() {
+async function handleGoogleAuth(e) {
     const alertContainer = document.getElementById('authAlertContainer');
+    const btn = e ? e.currentTarget : null;
+    const originalHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Connecting to Google...';
+    }
+    const googleSignInBtn = document.getElementById('googleSignInBtn');
+    const googleSignUpBtn = document.getElementById('googleSignUpBtn');
+    const otherBtn = btn?.id === 'googleSignInBtn' ? googleSignUpBtn : googleSignInBtn;
+    if (otherBtn) {
+        otherBtn.disabled = true;
+    }
 
     try {
         const result = await signInWithGoogle();
@@ -1199,6 +1216,14 @@ async function handleGoogleAuth() {
         }
     } catch (error) {
         showAlert(alertContainer, error.message || 'Google sign in failed', 'danger');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
+        if (otherBtn) {
+            otherBtn.disabled = false;
+        }
     }
 }
 
