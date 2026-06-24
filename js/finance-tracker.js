@@ -15,8 +15,8 @@
  * @module finance-tracker
  */
 
-import { auth, database } from '../js/firebase-config.js';
-import { escapeHtml } from '../js/utils.js';
+import { auth, database } from './firebase-config.js';
+import { escapeHtml } from './utils.js';
 import { 
     initAuthListener, 
     getCurrentUser, 
@@ -28,7 +28,7 @@ import {
     signOutUser,
     resetPassword,
     changePassword
-} from '../js/firebase-auth-service.js';
+} from './firebase-auth-service.js';
 
 import {
     addCategory,
@@ -39,6 +39,7 @@ import {
     deleteCategoryItem,
     addBank,
     updateBank,
+    deleteBank,
     deleteBankForMonth,
     addCreditCard,
     updateCreditCard,
@@ -60,7 +61,7 @@ import {
     getFinanceRawData,
     calculateAmortizationSchedule,
     getMonthsDifference
-} from '../js/firebase-finance-service.js';
+} from './firebase-finance-service.js';
 
 import { log } from './utils.js';
 
@@ -1550,12 +1551,10 @@ function renderBanks() {
         return;
     }
 
-    // Bank account visibility is section-level only, but still month-aware.
+    // Require explicit balance entry — no auto carry-forward
     const visibleBanks = Object.entries(banks).filter(([bankId, bank]) => {
         const hasBalanceForMonth = bank.balances && bank.balances[currentMonth] !== undefined;
-        const createdMonth = bank.createdMonth || (bank.createdAt ? getMonthFromTimestamp(bank.createdAt) : null);
-        const wasCreatedThisMonth = createdMonth === currentMonth;
-        return hasBalanceForMonth || wasCreatedThisMonth;
+        return hasBalanceForMonth;
     });
 
     const dedupedVisibleBanks = collapseMonthDuplicates(
@@ -1622,15 +1621,14 @@ function renderCreditCards() {
         return;
     }
 
-    // Filter for credit cards only
+    // Filter for credit cards only — require explicit balance entry, no auto carry-forward
     const visibleCards = Object.entries(cards).filter(([cardId, card]) => {
         if ((card.type || 'credit-card') !== 'credit-card') {
             return false;
         }
+        const isDeleted = card.deletedMonths && card.deletedMonths[currentMonth];
         const hasBalanceForMonth = card.balances && card.balances[currentMonth] !== undefined;
-        const createdMonth = card.createdMonth || (card.createdAt ? getMonthFromTimestamp(card.createdAt) : null);
-        const wasCreatedThisMonth = createdMonth === currentMonth;
-        return hasBalanceForMonth || wasCreatedThisMonth;
+        return hasBalanceForMonth && !isDeleted;
     });
 
     const dedupedVisibleCards = collapseMonthDuplicates(
@@ -1706,16 +1704,16 @@ function renderLoans() {
         return;
     }
 
-    // Filter for loans only
+    // Filter for loans only — loan must have an explicit balance entry for this month (no auto carry-forward)
     const visibleCards = Object.entries(cards).filter(([cardId, card]) => {
         if ((card.type || 'credit-card') !== 'loan') {
             return false;
         }
+        const isDeleted = card.deletedMonths && card.deletedMonths[currentMonth];
         const hasBalanceForMonth = card.balances && card.balances[currentMonth] !== undefined;
-        const createdMonth = card.createdMonth || (card.createdAt ? getMonthFromTimestamp(card.createdAt) : null);
-        const wasCreatedThisMonth = createdMonth === currentMonth;
-        return hasBalanceForMonth || wasCreatedThisMonth;
+        return hasBalanceForMonth && !isDeleted;
     });
+
 
     const dedupedVisibleCards = collapseMonthDuplicates(
         visibleCards,
@@ -1811,15 +1809,14 @@ function renderExpenses() {
         return;
     }
 
-    // Filter for general expenses only
+    // Filter for general expenses only — require explicit balance entry, no auto carry-forward
     const visibleCards = Object.entries(cards).filter(([cardId, card]) => {
         if ((card.type || 'credit-card') !== 'general-expense') {
             return false;
         }
+        const isDeleted = card.deletedMonths && card.deletedMonths[currentMonth];
         const hasBalanceForMonth = card.balances && card.balances[currentMonth] !== undefined;
-        const createdMonth = card.createdMonth || (card.createdAt ? getMonthFromTimestamp(card.createdAt) : null);
-        const wasCreatedThisMonth = createdMonth === currentMonth;
-        return hasBalanceForMonth || wasCreatedThisMonth;
+        return hasBalanceForMonth && !isDeleted;
     });
 
     const dedupedVisibleCards = collapseMonthDuplicates(
@@ -1911,11 +1908,20 @@ function renderInsurance() {
         if ((card.type || 'credit-card') !== 'insurance') {
             return false;
         }
+        if (card.deletedMonths && card.deletedMonths[currentMonth] === true) {
+            return false;
+        }
+        // Require explicit data for the month — no auto carry-forward
         const hasBalanceForMonth = card.balances && card.balances[currentMonth] !== undefined;
+        const hasInsuranceMonthData = card.insuranceByMonth && card.insuranceByMonth[currentMonth] !== undefined;
         const createdMonth = card.createdMonth || (card.createdAt ? getMonthFromTimestamp(card.createdAt) : null);
         const wasCreatedThisMonth = createdMonth === currentMonth;
-        return hasBalanceForMonth || wasCreatedThisMonth;
+        return hasBalanceForMonth || hasInsuranceMonthData || wasCreatedThisMonth;
     });
+
+
+
+
 
     const dedupedVisiblePolicies = collapseMonthDuplicates(
         visiblePolicies,
@@ -3021,26 +3027,52 @@ window.deleteFinanceCreditCard = async function(cardId) {
     if (!card) return;
 
     const type = card.type || 'credit-card';
-    const isLoanOrInsurance = type === 'loan' || type === 'insurance';
+    const monthLabel = getMonthDisplay(currentMonth);
 
-    if (isLoanOrInsurance) {
-        const itemLabel = type === 'loan' ? 'loan account' : 'insurance policy';
+    if (type === 'loan') {
         const confirmed = await showConfirmModal(
-            `Delete ${type === 'loan' ? 'Loan' : 'Insurance'}`,
-            `Are you sure you want to delete this ${itemLabel} entirely? This will remove all its history.`
+            'Delete Loan Entry',
+            `Are you sure you want to delete this loan entry for ${monthLabel}? Other months will be kept.`
         );
         if (!confirmed) return;
-
-        const result = await deleteCreditCard(cardId);
+        const result = await deleteCreditCardForMonth(cardId, currentMonth);
         if (result.success) {
-            showToast(`${type === 'loan' ? 'Loan' : 'Insurance'} deleted successfully.`, 'success');
+            showToast(
+                result.deletedWholeRecord
+                    ? 'Loan deleted (no entries left).'
+                    : `Loan entry deleted for ${monthLabel}.`,
+                'success'
+            );
         } else {
             showToast('Failed to delete. ' + (result.error || ''), 'error');
         }
         return;
     }
 
-    const monthLabel = getMonthDisplay(currentMonth);
+    if (type === 'insurance') {
+        const confirmed = await showConfirmModal(
+            'Delete Insurance Value',
+            `Delete this insurance policy value for ${monthLabel}? Other months will be kept.`
+        );
+        if (!confirmed) return;
+        const result = await deleteCreditCardForMonth(cardId, currentMonth);
+        if (!result.success) {
+            showToast('Failed. ' + (result.error || ''), 'error');
+            return;
+        }
+        if (!result.removedMonth) {
+            showToast(`No insurance policy value exists for ${monthLabel}.`, 'info');
+            return;
+        }
+        showToast(
+            result.deletedWholeRecord
+                ? 'Insurance policy deleted (no values left).'
+                : `Insurance policy value deleted for ${monthLabel}.`,
+            'success'
+        );
+        return;
+    }
+
     const confirmed = await showConfirmModal(
         'Delete Expense Value',
         `Delete this expense value for ${monthLabel}? Other months will be kept.`
@@ -3059,7 +3091,7 @@ window.deleteFinanceCreditCard = async function(cardId) {
 
     showToast(
         result.deletedWholeRecord
-            ? `Expense deleted (no values left after removing ${monthLabel}).`
+            ? 'Expense deleted (no values left).'
             : `Expense value deleted for ${monthLabel}.`,
         'success'
     );

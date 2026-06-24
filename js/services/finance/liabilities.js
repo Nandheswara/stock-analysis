@@ -6,7 +6,6 @@ import { database } from '../../firebase-config.js';
 import { 
     ref, 
     set, 
-    get, 
     update, 
     remove, 
     push 
@@ -14,8 +13,7 @@ import {
 import { 
     getAuthenticatedUser,
     getSectionDbPath,
-    findCardRefAndData,
-    normalizeMonthKey
+    findCardRefAndData
 } from './helpers.js';
 
 /**
@@ -131,12 +129,14 @@ export async function updateCreditCard(cardId, updates, month) {
         } else {
             if (updates.premiumTerm !== undefined) updateData.premiumTerm = updates.premiumTerm;
             if (updates.dueDate !== undefined) updateData.dueDate = updates.dueDate;
-            if (updates.insuranceCategory !== undefined) updateData.insuranceCategory = updates.insuranceCategory;
-            if (updates.policyNumber !== undefined) updateData.policyNumber = updates.policyNumber;
-            if (updates.insuranceStartDate !== undefined) updateData.insuranceStartDate = updates.insuranceStartDate;
-            if (updates.insuranceValidUpto !== undefined) updateData.insuranceValidUpto = updates.insuranceValidUpto;
-            if (updates.coverageAmount !== undefined) updateData.coverageAmount = parseFloat(updates.coverageAmount) || 0;
-            if (updates.insuranceStatus !== undefined) updateData.insuranceStatus = updates.insuranceStatus;
+            if (!month) {
+                if (updates.insuranceCategory !== undefined) updateData.insuranceCategory = updates.insuranceCategory;
+                if (updates.policyNumber !== undefined) updateData.policyNumber = updates.policyNumber;
+                if (updates.insuranceStartDate !== undefined) updateData.insuranceStartDate = updates.insuranceStartDate;
+                if (updates.insuranceValidUpto !== undefined) updateData.insuranceValidUpto = updates.insuranceValidUpto;
+                if (updates.coverageAmount !== undefined) updateData.coverageAmount = parseFloat(updates.coverageAmount) || 0;
+                if (updates.insuranceStatus !== undefined) updateData.insuranceStatus = updates.insuranceStatus;
+            }
         }
 
         if (updates.loanStartMonth !== undefined && !isInsuranceUpdate) {
@@ -165,6 +165,9 @@ export async function updateCreditCard(cardId, updates, month) {
                 updateData[`balances/${month}`] = parsedBalance;
             }
             updateData.outstandingBalance = parsedBalance;
+        }
+        if (month) {
+            updateData[`deletedMonths/${month}`] = null;
         }
         if (updates.isPaid !== undefined && month) {
             updateData[`paymentStatusByMonth/${month}`] = Boolean(updates.isPaid);
@@ -224,9 +227,15 @@ export async function deleteCreditCardForMonth(cardId, month) {
 
         const { ref: cardRef, card } = record;
         const balances = card.balances && typeof card.balances === 'object' ? card.balances : null;
+        const insuranceByMonth = card.insuranceByMonth && typeof card.insuranceByMonth === 'object' ? card.insuranceByMonth : null;
+        const monthlyEmis = card.monthlyEmis && typeof card.monthlyEmis === 'object' ? card.monthlyEmis : null;
+
+        const hasBalance = balances && balances[month] !== undefined;
+        const hasInsuranceMonth = insuranceByMonth && insuranceByMonth[month] !== undefined;
+        const hasEmi = monthlyEmis && monthlyEmis[month] !== undefined;
 
         // Legacy record handling
-        if (!balances) {
+        if (!balances && !insuranceByMonth && !monthlyEmis) {
             const legacyMonth = card.createdMonth || null;
             if (legacyMonth && legacyMonth !== month) {
                 return { success: true, removedMonth: false, deletedWholeRecord: false };
@@ -235,11 +244,24 @@ export async function deleteCreditCardForMonth(cardId, month) {
             return { success: true, removedMonth: true, deletedWholeRecord: true };
         }
 
-        if (balances[month] === undefined) {
+        if (!hasBalance && !hasInsuranceMonth && !hasEmi) {
+            if (card.type === 'insurance') {
+                const updates = {
+                    [`deletedMonths/${month}`]: true,
+                    updatedAt: Date.now()
+                };
+                await update(cardRef, updates);
+                return { success: true, removedMonth: true, deletedWholeRecord: false };
+            }
             return { success: true, removedMonth: false, deletedWholeRecord: false };
         }
 
-        const remainingMonths = Object.keys(balances).filter((key) => key !== month && balances[key] !== undefined && balances[key] !== null);
+        const allMonths = new Set([
+            ...Object.keys(balances || {}),
+            ...Object.keys(insuranceByMonth || {}),
+            ...Object.keys(monthlyEmis || {})
+        ]);
+        const remainingMonths = Array.from(allMonths).filter((key) => key !== month);
         if (remainingMonths.length === 0) {
             await remove(cardRef);
             return { success: true, removedMonth: true, deletedWholeRecord: true };
@@ -248,8 +270,16 @@ export async function deleteCreditCardForMonth(cardId, month) {
         const updates = {
             [`balances/${month}`]: null,
             [`paymentStatusByMonth/${month}`]: null,
+            [`deletedMonths/${month}`]: true,
             updatedAt: Date.now()
         };
+
+        if (card.type === 'insurance') {
+            updates[`insuranceByMonth/${month}`] = null;
+        }
+        if (card.type === 'loan') {
+            updates[`monthlyEmis/${month}`] = null;
+        }
 
         const legacyMonth = card.createdMonth || null;
         if (legacyMonth === month && remainingMonths.length > 0) {
@@ -292,7 +322,7 @@ export function calculateAmortizationSchedule(principal, annualRate, tenureMonth
         if (i === 1) {
             extraCharges = isCcEmi 
                 ? (processingFee + (processingFee * 0.18))
-                : processingFee;
+                : 0;
         }
         
         schedule.push({
