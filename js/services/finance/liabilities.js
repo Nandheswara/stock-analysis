@@ -67,11 +67,31 @@ export async function addCreditCard(cardData, month) {
         } else {
             baseData.premiumTerm = cardData.premiumTerm || 'yearly';
             baseData.dueDate = cardData.dueDate || '';
+            baseData.insuranceCategory = cardData.insuranceCategory || '';
+            baseData.policyNumber = cardData.policyNumber || '';
+            baseData.insuranceStartDate = cardData.insuranceStartDate || '';
+            baseData.insuranceValidUpto = cardData.insuranceValidUpto || '';
+            baseData.coverageAmount = parseFloat(cardData.coverageAmount) || 0;
+            baseData.insuranceStatus = cardData.insuranceStatus || '';
         }
 
         if (month) {
             baseData.balances[month] = parsedBalance;
             baseData.paymentStatusByMonth[month] = cardData.isPaid || false;
+            if (isInsurance) {
+                baseData.insuranceByMonth = {
+                    [month]: {
+                        insuranceCategory: cardData.insuranceCategory || '',
+                        policyNumber: cardData.policyNumber || '',
+                        insuranceStartDate: cardData.insuranceStartDate || '',
+                        insuranceValidUpto: cardData.insuranceValidUpto || '',
+                        coverageAmount: parseFloat(cardData.coverageAmount) || 0,
+                        insuranceStatus: cardData.insuranceStatus || '',
+                        notes: cardData.notes || '',
+                        issuer: cardData.issuer || ''
+                    }
+                };
+            }
         }
 
         await set(newRef, baseData);
@@ -111,6 +131,12 @@ export async function updateCreditCard(cardId, updates, month) {
         } else {
             if (updates.premiumTerm !== undefined) updateData.premiumTerm = updates.premiumTerm;
             if (updates.dueDate !== undefined) updateData.dueDate = updates.dueDate;
+            if (updates.insuranceCategory !== undefined) updateData.insuranceCategory = updates.insuranceCategory;
+            if (updates.policyNumber !== undefined) updateData.policyNumber = updates.policyNumber;
+            if (updates.insuranceStartDate !== undefined) updateData.insuranceStartDate = updates.insuranceStartDate;
+            if (updates.insuranceValidUpto !== undefined) updateData.insuranceValidUpto = updates.insuranceValidUpto;
+            if (updates.coverageAmount !== undefined) updateData.coverageAmount = parseFloat(updates.coverageAmount) || 0;
+            if (updates.insuranceStatus !== undefined) updateData.insuranceStatus = updates.insuranceStatus;
         }
 
         if (updates.loanStartMonth !== undefined && !isInsuranceUpdate) {
@@ -142,6 +168,17 @@ export async function updateCreditCard(cardId, updates, month) {
         }
         if (updates.isPaid !== undefined && month) {
             updateData[`paymentStatusByMonth/${month}`] = Boolean(updates.isPaid);
+        }
+
+        if (isInsuranceUpdate && month) {
+            if (updates.insuranceCategory !== undefined) updateData[`insuranceByMonth/${month}/insuranceCategory`] = updates.insuranceCategory;
+            if (updates.policyNumber !== undefined) updateData[`insuranceByMonth/${month}/policyNumber`] = updates.policyNumber;
+            if (updates.insuranceStartDate !== undefined) updateData[`insuranceByMonth/${month}/insuranceStartDate`] = updates.insuranceStartDate;
+            if (updates.insuranceValidUpto !== undefined) updateData[`insuranceByMonth/${month}/insuranceValidUpto`] = updates.insuranceValidUpto;
+            if (updates.coverageAmount !== undefined) updateData[`insuranceByMonth/${month}/coverageAmount`] = parseFloat(updates.coverageAmount) || 0;
+            if (updates.insuranceStatus !== undefined) updateData[`insuranceByMonth/${month}/insuranceStatus`] = updates.insuranceStatus;
+            if (updates.notes !== undefined) updateData[`insuranceByMonth/${month}/notes`] = updates.notes;
+            if (updates.issuer !== undefined) updateData[`insuranceByMonth/${month}/issuer`] = updates.issuer;
         }
 
         await update(cardRef, updateData);

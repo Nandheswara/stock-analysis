@@ -784,7 +784,7 @@ export async function copyFinanceDataBetweenMonths(sourceMonth, targetMonth, opt
         if (includeBanks && data.banks) {
             Object.entries(data.banks).forEach(([bankId, bank]) => {
                 const sourceBalance = bank.balances?.[normalizedSourceMonth] ?? bank.balance;
-                const hasSourceData = bank.balances?.[normalizedSourceMonth] !== undefined || (!bank.balances && bank.balance !== undefined);
+                const hasSourceData = true;
                 const targetBalance = bank.balances?.[normalizedTargetMonth];
 
                 if (hasSourceData && shouldWriteTargetValue(targetBalance)) {
@@ -811,12 +811,13 @@ export async function copyFinanceDataBetweenMonths(sourceMonth, targetMonth, opt
                     || (card.createdAt ? normalizeMonthKey(getMonthFromTimestamp(card.createdAt)) : null);
 
                 const sourceOutstanding = card.balances?.[normalizedSourceMonth] ?? card.outstandingBalance;
-                const hasSourceOutstanding = card.balances?.[normalizedSourceMonth] !== undefined || (!card.balances && card.outstandingBalance !== undefined);
+                const hasSourceOutstanding = true;
                 const targetOutstanding = card.balances?.[normalizedTargetMonth];
 
                 if (isInsuranceCard && shouldReplaceInsuranceItems && !hasSourceOutstanding) {
                     if (targetOutstanding !== undefined) {
                         updates[`${dbKey}/${cardId}/balances/${normalizedTargetMonth}`] = null;
+                        updates[`${dbKey}/${cardId}/insuranceByMonth/${normalizedTargetMonth}`] = null;
                     }
                 }
 
@@ -851,13 +852,28 @@ export async function copyFinanceDataBetweenMonths(sourceMonth, targetMonth, opt
                         }
                     }
                     updates[`${dbKey}/${cardId}/balances/${normalizedTargetMonth}`] = nextOutstanding;
-                    if (isInsuranceCard) insuranceCopied++;
-                    else expensesCopied++;
+                    
+                    if (isInsuranceCard) {
+                        const sourceInsuranceData = card.insuranceByMonth?.[normalizedSourceMonth];
+                        updates[`${dbKey}/${cardId}/insuranceByMonth/${normalizedTargetMonth}`] = {
+                            insuranceCategory: sourceInsuranceData?.insuranceCategory ?? card.insuranceCategory ?? '',
+                            policyNumber: sourceInsuranceData?.policyNumber ?? card.policyNumber ?? '',
+                            insuranceStartDate: sourceInsuranceData?.insuranceStartDate ?? card.insuranceStartDate ?? card.expenseDate ?? '',
+                            insuranceValidUpto: sourceInsuranceData?.insuranceValidUpto ?? card.insuranceValidUpto ?? card.dueDate ?? '',
+                            coverageAmount: parseFloat(sourceInsuranceData?.coverageAmount ?? card.coverageAmount) || 0,
+                            insuranceStatus: sourceInsuranceData?.insuranceStatus ?? card.insuranceStatus ?? 'active',
+                            notes: sourceInsuranceData?.notes ?? card.notes ?? '',
+                            issuer: sourceInsuranceData?.issuer ?? card.issuer ?? ''
+                        };
+                        insuranceCopied++;
+                    } else {
+                        expensesCopied++;
+                    }
                 }
 
                 if (!isInsuranceCard) {
                     const sourceLimit = card.monthlyLimits?.[normalizedSourceMonth] ?? card.creditLimit;
-                    const hasSourceLimit = card.monthlyLimits?.[normalizedSourceMonth] !== undefined || card.creditLimit !== undefined;
+                    const hasSourceLimit = true;
                     const targetLimit = card.monthlyLimits?.[normalizedTargetMonth];
 
                     if (hasSourceLimit && shouldWriteTargetValue(targetLimit)) {
@@ -866,7 +882,7 @@ export async function copyFinanceDataBetweenMonths(sourceMonth, targetMonth, opt
                     }
 
                     const sourcePaymentStatus = card.paymentStatusByMonth?.[normalizedSourceMonth] ?? card.isPaid;
-                    const hasSourcePaymentStatus = card.paymentStatusByMonth?.[normalizedSourceMonth] !== undefined || card.isPaid !== undefined;
+                    const hasSourcePaymentStatus = true;
                     const targetPaymentStatus = card.paymentStatusByMonth?.[normalizedTargetMonth];
 
                     if (hasSourcePaymentStatus && shouldWriteTargetValue(targetPaymentStatus)) {
@@ -876,7 +892,7 @@ export async function copyFinanceDataBetweenMonths(sourceMonth, targetMonth, opt
 
                     if (cardType === 'loan') {
                         const sourceEmi = card.monthlyEmis?.[normalizedSourceMonth] ?? card.emiAmount;
-                        const hasSourceEmi = card.monthlyEmis?.[normalizedSourceMonth] !== undefined || card.emiAmount !== undefined;
+                        const hasSourceEmi = true;
                         const targetEmi = card.monthlyEmis?.[normalizedTargetMonth];
                         if (hasSourceEmi && shouldWriteTargetValue(targetEmi)) {
                             updates[`${dbKey}/${cardId}/monthlyEmis/${normalizedTargetMonth}`] = parseFloat(sourceEmi) || 0;
