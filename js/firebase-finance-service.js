@@ -1659,3 +1659,259 @@ export function getMonthsDifference(startMonth, targetMonth) {
     const [targetYear, targetMon] = targetMonth.split('-').map(Number);
     return (targetYear - startYear) * 12 + (targetMon - startMon);
 }
+
+/**
+ * Save annual budget goals for a year
+ * @param {string} year - "YYYY" format
+ * @param {Object} budgetData - { incomeGoal, savingsGoalRate, monthlyBudgets }
+ */
+export async function saveAnnualBudget(year, budgetData) {
+    const user = await getAuthenticatedUser();
+    if (!user) return { success: false, error: 'Not authenticated' };
+
+    try {
+        const budgetRef = ref(database, `users/${user.uid}/finance/annualBudget/${year}`);
+        const data = {
+            incomeGoal: parseFloat(budgetData.incomeGoal) || 0,
+            savingsGoalRate: parseFloat(budgetData.savingsGoalRate) || 0,
+            monthlyBudgets: budgetData.monthlyBudgets || {},
+            incomeMode: budgetData.incomeMode || 'fetch',
+            manualIncomeValue: parseFloat(budgetData.manualIncomeValue) || 0,
+            expenseMode: budgetData.expenseMode || 'fetch',
+            manualExpenseValue: parseFloat(budgetData.manualExpenseValue) || 0,
+            updatedAt: Date.now()
+        };
+        await set(budgetRef, data);
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get annual budget goals for a year
+ * @param {string} year - "YYYY" format
+ */
+export async function getAnnualBudget(year) {
+    const user = await getAuthenticatedUser();
+    if (!user) return null;
+
+    try {
+        const budgetRef = ref(database, `users/${user.uid}/finance/annualBudget/${year}`);
+        const snapshot = await get(budgetRef);
+        return snapshot.exists() ? snapshot.val() : null;
+    } catch (error) {
+        console.error("Error getting annual budget:", error);
+        return null;
+    }
+}
+
+/**
+ * Save or update an annual event
+ * @param {string} year - "YYYY" format
+ * @param {string|null} eventId - Firebase key, or null to create new
+ * @param {Object} eventData - { name, month, estimatedCost, actualCost, category, status }
+ */
+export async function saveAnnualEvent(year, eventId, eventData) {
+    const user = await getAuthenticatedUser();
+    if (!user) return { success: false, error: 'Not authenticated' };
+
+    try {
+        let eventRef;
+        let id = eventId;
+        if (!id) {
+            const listRef = ref(database, `users/${user.uid}/finance/annualEvents/${year}`);
+            const newRef = push(listRef);
+            eventRef = newRef;
+            id = newRef.key;
+        } else {
+            eventRef = ref(database, `users/${user.uid}/finance/annualEvents/${year}/${id}`);
+        }
+
+        const data = {
+            id,
+            name: eventData.name || '',
+            month: eventData.month || '',
+            estimatedCost: parseFloat(eventData.estimatedCost) || 0,
+            actualCost: parseFloat(eventData.actualCost) || 0,
+            category: eventData.category || '',
+            status: eventData.status || 'Planned',
+            updatedAt: Date.now()
+        };
+        await set(eventRef, data);
+        return { success: true, id };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Delete an annual event
+ * @param {string} year - "YYYY" format
+ * @param {string} eventId - Firebase key
+ */
+export async function deleteAnnualEvent(year, eventId) {
+    const user = await getAuthenticatedUser();
+    if (!user) return { success: false, error: 'Not authenticated' };
+
+    try {
+        const eventRef = ref(database, `users/${user.uid}/finance/annualEvents/${year}/${eventId}`);
+        await set(eventRef, null);
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get all annual events for a year
+ * @param {string} year - "YYYY" format
+ */
+export async function getAnnualEvents(year) {
+    const user = await getAuthenticatedUser();
+    if (!user) return {};
+
+    try {
+        const eventsRef = ref(database, `users/${user.uid}/finance/annualEvents/${year}`);
+        const snapshot = await get(eventsRef);
+        return snapshot.exists() ? snapshot.val() : {};
+    } catch (error) {
+        console.error("Error getting annual events:", error);
+        return {};
+    }
+}
+
+/**
+ * Listen to annual budget, events, and goals data for real-time synchronization
+ * @param {string} year - "YYYY" format
+ * @param {Function} callback - Callback function receiving { budget, events, goals }
+ * @returns {Function} Unsubscribe function
+ */
+export function listenToAnnualData(year, callback) {
+    let user = getCurrentUser();
+    const userId = user?.uid;
+
+    if (!userId) {
+        callback({ budget: null, events: {}, goals: {} });
+        return () => {};
+    }
+
+    const budgetRef = ref(database, `users/${userId}/finance/annualBudget/${year}`);
+    const eventsRef = ref(database, `users/${userId}/finance/annualEvents/${year}`);
+    const goalsRef = ref(database, `users/${userId}/finance/annualGoals/${year}`);
+
+    let budgetData = null;
+    let eventsData = {};
+    let goalsData = {};
+    
+    let budgetLoaded = false;
+    let eventsLoaded = false;
+    let goalsLoaded = false;
+
+    function handleUpdate() {
+        if (budgetLoaded && eventsLoaded && goalsLoaded) {
+            callback({ budget: budgetData, events: eventsData, goals: goalsData });
+        }
+    }
+
+    const unsubBudget = onValue(budgetRef, (snapshot) => {
+        budgetData = snapshot.exists() ? snapshot.val() : null;
+        budgetLoaded = true;
+        handleUpdate();
+    });
+
+    const unsubEvents = onValue(eventsRef, (snapshot) => {
+        eventsData = snapshot.exists() ? snapshot.val() : {};
+        eventsLoaded = true;
+        handleUpdate();
+    });
+
+    const unsubGoals = onValue(goalsRef, (snapshot) => {
+        goalsData = snapshot.exists() ? snapshot.val() : {};
+        goalsLoaded = true;
+        handleUpdate();
+    });
+
+    return () => {
+        unsubBudget();
+        unsubEvents();
+        unsubGoals();
+    };
+}
+
+/**
+ * Listen to monthly snapshots for real-time synchronization
+ * @param {Function} callback - Callback function receiving snapshots object
+ * @returns {Function} Unsubscribe function
+ */
+export function listenToMonthlySnapshots(callback) {
+    let user = getCurrentUser();
+    const userId = user?.uid;
+
+    if (!userId) {
+        callback({});
+        return () => {};
+    }
+
+    const snapshotsRef = ref(database, `users/${userId}/finance/monthlySnapshots`);
+    return onValue(snapshotsRef, (snapshot) => {
+        callback(snapshot.exists() ? snapshot.val() : {});
+    });
+}
+
+/**
+ * Save or update an annual goal
+ * @param {string} year - "YYYY" format
+ * @param {string|null} goalId - Firebase key, or null to create new
+ * @param {Object} goalData - { name, targetAmount, currentAmount, category, status }
+ */
+export async function saveAnnualGoal(year, goalId, goalData) {
+    const user = await getAuthenticatedUser();
+    if (!user) return { success: false, error: 'Not authenticated' };
+
+    try {
+        let goalRef;
+        let id = goalId;
+        if (!id) {
+            const listRef = ref(database, `users/${user.uid}/finance/annualGoals/${year}`);
+            const newRef = push(listRef);
+            goalRef = newRef;
+            id = newRef.key;
+        } else {
+            goalRef = ref(database, `users/${user.uid}/finance/annualGoals/${year}/${id}`);
+        }
+
+        const data = {
+            id,
+            name: goalData.name || '',
+            targetAmount: parseFloat(goalData.targetAmount) || 0,
+            currentAmount: parseFloat(goalData.currentAmount) || 0,
+            category: goalData.category || 'Savings',
+            status: goalData.status || 'In Progress',
+            updatedAt: Date.now()
+        };
+        await set(goalRef, data);
+        return { success: true, id };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Delete an annual goal
+ * @param {string} year - "YYYY" format
+ * @param {string} goalId - Firebase key
+ */
+export async function deleteAnnualGoal(year, goalId) {
+    const user = await getAuthenticatedUser();
+    if (!user) return { success: false, error: 'Not authenticated' };
+
+    try {
+        const goalRef = ref(database, `users/${user.uid}/finance/annualGoals/${year}/${goalId}`);
+        await set(goalRef, null);
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+}
+

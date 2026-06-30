@@ -48,7 +48,8 @@
             'analysis.html': 'navAnalysisLink',
             'stock-manager.html': 'navStockManagerLink',
             'news.html': 'navNewsLink',
-            'finance-tracker.html': 'navFinanceTrackerLink'
+            'finance-tracker.html': 'navFinanceTrackerLink',
+            'budget-planner.html': 'navBudgetPlannerLink'
         };
 
         const activeId = pageIdMap[currentPage];

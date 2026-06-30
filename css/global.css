@@ -230,107 +230,130 @@ main .container {
 }
 
 @media (max-width: 991.98px) {
-    .navbar-collapse {
-        background: var(--bg-card);
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-md);
-        padding: 15px;
-        margin-top: 15px;
+    /* Position collapse off-screen by default */
+    .navbar.navbar-expand-lg .navbar-collapse {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        right: -300px;
+        width: 300px;
+        max-width: 85%;
+        height: 100vh !important;
+        background-color: var(--bg-card);
+        border-left: 1px solid var(--border-color);
+        padding: 80px 24px 24px 24px;
+        margin: 0;
+        z-index: 1045;
+        display: block;
+        visibility: hidden;
+        transition: right 0.3s ease-in-out, visibility 0.3s ease-in-out;
         box-shadow: var(--shadow-lg);
-        backdrop-filter: var(--glass-blur);
-        -webkit-backdrop-filter: var(--glass-blur);
-        animation: slideDownMenu var(--transition-base) forwards;
+        overflow-y: auto;
     }
     
-    @keyframes slideDownMenu {
-        from {
-            opacity: 0;
-            transform: translateY(-10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
+    /* Slide in from right when shown */
+    .navbar.navbar-expand-lg .navbar-collapse.show {
+        right: 0;
+        visibility: visible;
     }
     
-    .navbar-nav {
+    /* Keep horizontal slide transition when collapsing */
+    .navbar.navbar-expand-lg .navbar-collapse.collapsing {
+        right: -300px;
+        height: 100vh !important;
+        transition: right 0.3s ease-in-out, visibility 0.3s ease-in-out;
+        display: block;
+        visibility: visible;
+    }
+
+    /* Force vertical layout for nav items inside drawer */
+    .navbar.navbar-expand-lg .navbar-collapse .navbar-nav {
+        flex-direction: column;
         gap: 8px;
     }
 
-    .navbar-nav .nav-link {
-        padding: 10px 15px !important;
+    .navbar.navbar-expand-lg .navbar-collapse .navbar-nav .nav-item {
+        width: 100%;
+        margin-left: 0;
+    }
+
+    .navbar.navbar-expand-lg .navbar-collapse .navbar-nav .nav-link {
+        padding: 10px 15px;
         border-radius: var(--radius-sm);
+        display: block;
+        width: 100%;
         transition: all var(--transition-base);
     }
-
-    .navbar-nav .nav-link:hover,
-    .navbar-nav .nav-link.active {
-        background: var(--accent-primary-muted) !important;
-        color: var(--accent-info) !important;
-        padding-left: 20px !important;
+    
+    .navbar.navbar-expand-lg .navbar-collapse .navbar-nav .nav-link:hover,
+    .navbar.navbar-expand-lg .navbar-collapse .navbar-nav .nav-link.active {
+        background: var(--accent-primary-muted);
+        color: var(--accent-info);
+        padding-left: 20px;
     }
     
-    body.light-theme .navbar-nav .nav-link:hover,
-    body.light-theme .navbar-nav .nav-link.active {
-        background: var(--accent-primary-muted) !important;
-        color: var(--accent-primary) !important;
+    body.light-theme .navbar.navbar-expand-lg .navbar-collapse .navbar-nav .nav-link:hover,
+    body.light-theme .navbar.navbar-expand-lg .navbar-collapse .navbar-nav .nav-link.active {
+        background: var(--accent-primary-muted);
+        color: var(--accent-primary);
     }
-
-    .navbar-nav .nav-item.d-flex {
-        margin-left: 0 !important;
-        padding: 5px 15px !important;
-        align-items: center;
+    
+    /* Render profile dropdowns inline in drawer */
+    .navbar.navbar-expand-lg .navbar-collapse .dropdown-menu {
+        position: static;
+        float: none;
+        background-color: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        box-shadow: none;
+        margin-top: 8px;
+        margin-left: 10px;
+        width: calc(100% - 10px);
+        padding: 5px 0;
     }
-
-    /* Inline mobile dropdown menu */
-    .navbar-nav .dropdown-menu {
-        position: static !important;
-        float: none !important;
-        background-color: var(--bg-tertiary) !important;
-        border: 1px solid var(--border-color) !important;
-        box-shadow: none !important;
-        margin-top: 5px !important;
-        margin-left: 10px !important;
-        width: calc(100% - 10px) !important;
-        padding: 5px 0 !important;
-    }
-
-    .navbar-nav .dropdown-item {
-        padding: 10px 15px !important;
-        color: var(--text-primary) !important;
+    
+    .navbar.navbar-expand-lg .navbar-collapse .dropdown-item {
+        padding: 10px 15px;
+        color: var(--text-primary);
         border-radius: var(--radius-sm);
         transition: all var(--transition-fast);
     }
-
-    .navbar-nav .dropdown-item:hover {
-        background-color: var(--accent-primary-muted) !important;
-        color: var(--accent-info) !important;
-        padding-left: 20px !important;
+    
+    .navbar.navbar-expand-lg .navbar-collapse .dropdown-item:hover {
+        background-color: var(--accent-primary-muted);
+        color: var(--accent-info);
+        padding-left: 20px;
     }
-
-    .navbar-nav .user-actions-row {
+    
+    body.light-theme .navbar.navbar-expand-lg .navbar-collapse .dropdown-item:hover {
+        background-color: var(--accent-primary-muted);
+        color: var(--accent-primary);
+    }
+    
+    .navbar.navbar-expand-lg .navbar-collapse .user-actions-row {
         margin-top: 10px;
         border-top: 1px solid var(--border-color);
-        padding-top: 15px !important;
+        padding-top: 15px;
         width: 100%;
-        display: flex !important;
+        display: flex;
         align-items: center;
         justify-content: space-between;
     }
     
-    body.light-theme .navbar-collapse {
-        background: rgba(255, 255, 255, 0.98);
+    body.light-theme .navbar.navbar-expand-lg .navbar-collapse {
+        background-color: rgba(255, 255, 255, 0.98);
         border-color: var(--border-color);
     }
 
-    body.light-theme .navbar-nav .dropdown-menu {
-        background-color: var(--bg-secondary) !important;
-        border-color: var(--border-color) !important;
+    body.light-theme .navbar.navbar-expand-lg .navbar-collapse .dropdown-menu {
+        background-color: var(--bg-secondary);
+        border-color: var(--border-color);
     }
-
-    body.light-theme .navbar-nav .dropdown-item:hover {
-        background-color: var(--accent-primary-muted) !important;
-        color: var(--accent-primary) !important;
+    
+    /* Keep toggler and brand above the drawer */
+    .navbar.navbar-expand-lg .navbar-toggler,
+    .navbar.navbar-expand-lg .navbar-brand {
+        position: relative;
+        z-index: 1055;
     }
 }
 
@@ -1402,9 +1425,7 @@ body.light-theme .select2-container--default .select2-selection--single .select2
     color: var(--accent-danger);
 }
 
-/* ========================================
-   Responsive Design
-   ======================================== */
+
 
 @media (max-width: 768px) {
     /* Global Typography Scaling */

@@ -1153,7 +1153,7 @@ async function updateAuthUI(user) {
 }
 
 // Update UI when layout components finish loading dynamically
-document.addEventListener('layoutReady', () => {
+const initAuthUIPosition = () => {
     if (authStateResolved) {
         updateAuthUI(currentUser);
     } else {
@@ -1162,4 +1162,10 @@ document.addEventListener('layoutReady', () => {
             updateAuthUI(cachedState);
         }
     }
-});
+};
+
+if (document.getElementById('authButtons') || document.getElementById('userProfile')) {
+    initAuthUIPosition();
+} else {
+    document.addEventListener('layoutReady', initAuthUIPosition);
+}
