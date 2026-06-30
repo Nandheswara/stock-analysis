@@ -1,0 +1,647 @@
+/**
+ * Annual Personal Budget Planning & Events Dashboard Styles
+ * 
+ * Styled specifically for Equity Labs' electric design theme.
+ * Seamlessly integrates dark/light mode variables.
+ */
+
+/* ========================================
+   Container & Grid Layouts
+   ======================================== */
+
+.budget-planner-grid {
+    display: grid;
+    grid-template-columns: 2.2fr 1fr;
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+@media (max-width: 1200px) {
+    .budget-planner-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ========================================
+   Glassmorphic Widget Cards
+   ======================================== */
+
+.budget-widget-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    box-shadow: var(--shadow-md);
+    position: relative;
+    overflow: hidden;
+    transition: transform var(--transition-base), border-color var(--transition-base), box-shadow var(--transition-base);
+}
+
+.budget-widget-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--border-light);
+    box-shadow: var(--glow-primary), var(--shadow-lg);
+}
+
+/* ========================================
+   Colored Widget Card Accents (Themed)
+   ======================================== */
+
+.budget-widget-card.widget-primary {
+    border-left: 4px solid var(--accent-primary) !important;
+    background: linear-gradient(135deg, var(--bg-card) 0%, var(--accent-primary-muted) 180%);
+}
+.budget-widget-card.widget-primary:hover {
+    box-shadow: 0 0 20px rgba(129, 140, 248, 0.25), var(--shadow-lg) !important;
+    border-color: var(--accent-primary) !important;
+}
+
+.budget-widget-card.widget-info {
+    border-left: 4px solid var(--accent-info) !important;
+    background: linear-gradient(135deg, var(--bg-card) 0%, var(--accent-info-muted) 180%);
+}
+.budget-widget-card.widget-info:hover {
+    box-shadow: 0 0 20px rgba(34, 211, 238, 0.25), var(--shadow-lg) !important;
+    border-color: var(--accent-info) !important;
+}
+
+.budget-widget-card.widget-success {
+    border-left: 4px solid var(--accent-success) !important;
+    background: linear-gradient(135deg, var(--bg-card) 0%, var(--accent-success-muted) 180%);
+}
+.budget-widget-card.widget-success:hover {
+    box-shadow: 0 0 20px rgba(52, 211, 153, 0.25), var(--shadow-lg) !important;
+    border-color: var(--accent-success) !important;
+}
+
+.budget-widget-card.widget-warning {
+    border-left: 4px solid var(--accent-warning) !important;
+    background: linear-gradient(135deg, var(--bg-card) 0%, var(--accent-warning-muted) 180%);
+}
+.budget-widget-card.widget-warning:hover {
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.25), var(--shadow-lg) !important;
+    border-color: var(--accent-warning) !important;
+}
+
+.budget-widget-card.widget-danger {
+    border-left: 4px solid var(--accent-danger) !important;
+    background: linear-gradient(135deg, var(--bg-card) 0%, var(--accent-danger-muted) 180%);
+}
+.budget-widget-card.widget-danger:hover {
+    box-shadow: 0 0 20px rgba(248, 113, 113, 0.25), var(--shadow-lg) !important;
+    border-color: var(--accent-danger) !important;
+}
+
+.budget-widget-value {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text-heading);
+    letter-spacing: -0.02em;
+    margin-top: 8px;
+    margin-bottom: 4px;
+}
+
+.budget-widget-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.budget-widget-subtext {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* ========================================
+   Budget Variance Matrix Table
+   ======================================== */
+
+.budget-table-wrapper {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+    margin-bottom: 24px;
+}
+
+.budget-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.budget-table th {
+    background: var(--bg-card-header);
+    color: var(--text-heading);
+    font-weight: 600;
+    text-align: left;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.85rem;
+    letter-spacing: 0.02em;
+}
+
+.budget-table td {
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+    vertical-align: middle;
+    transition: background-color var(--transition-fast);
+}
+
+.budget-table tr:last-child td {
+    border-bottom: none;
+}
+
+.budget-table tr:hover td {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+body.light-theme .budget-table tr:hover td {
+    background: rgba(0, 0, 0, 0.01);
+}
+
+.variance-badge {
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    font-weight: 700;
+    font-size: 0.75rem;
+    display: inline-block;
+}
+
+.variance-positive {
+    background: var(--accent-success-muted);
+    color: var(--accent-success);
+}
+
+.variance-negative {
+    background: var(--accent-danger-muted);
+    color: var(--accent-danger);
+}
+
+.variance-neutral {
+    background: var(--border-color);
+    color: var(--text-secondary);
+}
+
+/* ========================================
+   Events Timeline
+   ======================================== */
+
+.timeline-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    padding: 24px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.timeline-container {
+    position: relative;
+    padding-left: 32px;
+    margin-top: 16px;
+    flex: 1;
+    overflow-y: auto;
+    max-height: 480px;
+}
+
+.timeline-container::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    bottom: 8px;
+    left: 11px;
+    width: 2px;
+    background: var(--border-color);
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 24px;
+    transition: transform var(--transition-base);
+}
+
+.timeline-item:hover {
+    transform: translateX(4px);
+}
+
+.timeline-item:last-child {
+    margin-bottom: 0;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -32px;
+    top: 4px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--bg-card);
+    border: 2px solid var(--border-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    transition: all var(--transition-base);
+}
+
+.timeline-item.status-paid .timeline-marker {
+    border-color: var(--accent-success);
+    background: var(--accent-success-muted);
+    color: var(--accent-success);
+    box-shadow: 0 0 10px rgba(52, 211, 153, 0.2);
+}
+
+.timeline-item.status-confirmed .timeline-marker {
+    border-color: var(--accent-info);
+    background: var(--accent-info-muted);
+    color: var(--accent-info);
+    box-shadow: 0 0 10px rgba(34, 211, 238, 0.2);
+}
+
+.timeline-item.status-planned .timeline-marker {
+    border-color: var(--accent-primary);
+    background: var(--accent-primary-muted);
+    color: var(--accent-primary);
+}
+
+.timeline-item.status-postponed .timeline-marker {
+    border-color: var(--accent-warning);
+    background: var(--accent-warning-muted);
+    color: var(--accent-warning);
+}
+
+.timeline-content {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 12px 16px;
+    transition: border-color var(--transition-base);
+}
+
+.timeline-item:hover .timeline-content {
+    border-color: var(--border-light);
+}
+
+.timeline-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.timeline-title {
+    font-weight: 600;
+    color: var(--text-heading);
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.timeline-cost {
+    font-weight: 700;
+    color: var(--text-heading);
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+.timeline-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.timeline-date-badge {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+body.light-theme .timeline-date-badge {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+/* ========================================
+   Year Navigator and Headers
+   ======================================== */
+
+.year-navigator {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 24px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    margin-bottom: 32px;
+    box-shadow: var(--shadow-sm);
+}
+
+.navigator-controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.year-display {
+    font-family: 'Inter', sans-serif;
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--text-heading);
+    min-width: 120px;
+    text-align: center;
+}
+
+/* ========================================
+   Interactive Buttons and Forms
+   ======================================== */
+
+.btn-icon-only {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.btn-icon-only:hover {
+    background: var(--bg-elevated);
+    border-color: var(--border-color);
+    color: var(--text-heading);
+}
+
+.btn-icon-danger {
+    color: var(--accent-danger);
+}
+
+.btn-icon-danger:hover {
+    background: var(--accent-danger-muted);
+    border-color: rgba(248, 113, 113, 0.2);
+    color: var(--accent-danger-hover) !important;
+}
+
+/* Custom form row updates */
+.form-input-group {
+    display: flex;
+    gap: 12px;
+}
+
+.form-input-group .form-control {
+    flex: 1;
+}
+
+/* Chart Card layout overrides */
+.chart-grid-budget {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+@media (max-width: 992px) {
+    .chart-grid-budget {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ========================================
+   Yearly Goal Items
+   ======================================== */
+
+.goal-item {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin-bottom: 16px;
+    transition: transform var(--transition-base), border-color var(--transition-base);
+}
+
+.goal-item:hover {
+    transform: translateY(-1px);
+    border-color: var(--border-light);
+}
+
+.goal-item:last-child {
+    margin-bottom: 0;
+}
+
+.goal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.goal-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-heading);
+    margin: 0;
+}
+
+.goal-percentage {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--accent-info);
+}
+
+.goal-progress-bar-wrapper {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+body.light-theme .goal-progress-bar-wrapper {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.goal-progress-bar {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--accent-primary) 0%, var(--accent-info) 100%);
+    box-shadow: 0 0 10px rgba(129, 140, 248, 0.2);
+    transition: width var(--transition-slow) ease;
+}
+
+.goal-item.achieved .goal-progress-bar {
+    background: linear-gradient(90deg, var(--accent-success) 0%, #10b981 100%);
+    box-shadow: 0 0 10px rgba(52, 211, 153, 0.2);
+}
+
+.goal-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.goal-category-badge {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+body.light-theme .goal-category-badge {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+/* ========================================
+   Responsive Grid for Yearly Goals Section
+   ======================================== */
+
+.goals-grid-layout {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+    padding-right: 4px;
+}
+
+.goals-grid-layout .goal-item {
+    margin-bottom: 0; /* Managed by grid gap */
+}
+
+/* ========================================
+   Light Theme Button Contrast & Hover Adjustments
+   ======================================== */
+
+body.light-theme .btn-finance-warning,
+body.light-theme .btn-finance-success {
+    color: #0f172a !important; /* Fix unreadable white text on bright background in light theme */
+}
+
+/* ========================================
+   Mobile View & Alignment Adjustments
+   ======================================== */
+
+@media (max-width: 991px) {
+    .timeline-container {
+        max-height: none;
+        overflow-y: visible;
+    }
+}
+
+@media (max-width: 768px) {
+    .year-navigator {
+        flex-direction: column;
+        gap: 16px;
+        align-items: center;
+        text-align: center;
+        padding: 16px;
+    }
+
+    .year-navigator .navigator-controls {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        width: 100%;
+    }
+    
+    .year-navigator .ms-auto {
+        margin-left: 0 !important;
+        width: 100%;
+    }
+    
+    .year-navigator .btn-finance {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* Mobile 2x2 Overview Card Optimizations */
+    .budget-widget-card {
+        padding: 16px !important;
+        border-radius: 10px !important;
+        min-height: 115px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    
+    .budget-widget-value {
+        font-size: 1.35rem !important;
+        margin-top: 4px !important;
+        margin-bottom: 2px !important;
+    }
+    
+    .budget-widget-label {
+        font-size: 0.75rem !important;
+    }
+    
+    .budget-widget-subtext {
+        font-size: 0.65rem !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
+/* ========================================
+   Timeline Container Desktop Height Optimization
+   ======================================== */
+
+@media (min-width: 992px) {
+    .timeline-container {
+        max-height: 600px;
+    }
+}
+
+/* ========================================
+   Danger Button Theme Overrides
+   ======================================== */
+
+.btn-danger {
+    background-color: var(--accent-danger) !important;
+    border-color: var(--accent-danger) !important;
+    color: #ffffff !important;
+}
+
+.btn-danger:hover {
+    background-color: var(--accent-danger-hover) !important;
+    border-color: var(--accent-danger-hover) !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 12px rgba(248, 113, 113, 0.4) !important;
+}
+
+/* ========================================
+   Full Width Helper for CSS Grid Elements
+   ======================================== */
+
+.grid-full-width {
+    grid-column: 1 / -1;
+}
+
+/* ========================================
+   Empty Timeline Enhancements
+   ======================================== */
+
+.timeline-container.empty-timeline {
+    padding-left: 0 !important;
+}
+
+.timeline-container.empty-timeline::before {
+    display: none !important;
+}
+
+
+
