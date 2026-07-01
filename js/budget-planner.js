@@ -66,9 +66,9 @@ document.addEventListener('DOMContentLoaded', () => {
     setupFormHandlers();
     initEncryptionBanner();
 
-    // Redraw charts when theme is toggled
-    document.addEventListener('click', (e) => {
-        if (e.target.closest('#themeToggle')) {
+    // Redraw charts when the global theme is changed
+    window.addEventListener('themechanged', () => {
+        if (typeof renderCharts === 'function') {
             setTimeout(() => {
                 renderCharts();
             }, 50);

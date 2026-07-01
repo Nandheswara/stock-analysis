@@ -24,12 +24,14 @@
 function applyTheme(theme) {
     if (theme === 'light') {
         document.body.classList.add('light-theme');
+        document.documentElement.classList.add('light-theme');
         const icon = document.getElementById('themeIcon');
         if (icon) { 
             icon.className = 'bi bi-sun-fill'; 
         }
     } else {
         document.body.classList.remove('light-theme');
+        document.documentElement.classList.remove('light-theme');
         const icon = document.getElementById('themeIcon');
         if (icon) { 
             icon.className = 'bi bi-moon-fill'; 
@@ -41,6 +43,9 @@ function applyTheme(theme) {
     } catch (e) {
         // Ignore storage errors (e.g., in private browsing mode)
     }
+
+    // Dispatch custom event to notify other scripts (like charts) that theme changed
+    window.dispatchEvent(new CustomEvent('themechanged', { detail: { theme } }));
 }
 
 /**
@@ -71,6 +76,13 @@ function initTheme() {
     // Use stored preference if available, otherwise use system preference
     const theme = stored ? stored : (prefersLight ? 'light' : 'dark');
     applyTheme(theme);
+
+    // Sync theme updates across other open tabs in real-time
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'theme' && e.newValue) {
+            applyTheme(e.newValue);
+        }
+    });
 
     // Listen for system preference changes when no stored preference
     if (window.matchMedia) {
@@ -612,6 +624,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if (themeToggle) {
             toggleTheme();
         }
+    });
+
+    // Listen for centralized layout injection to sync the theme icon
+    document.addEventListener('layoutReady', () => {
+        const stored = localStorage.getItem('theme');
+        const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+        const theme = stored ? stored : (prefersLight ? 'light' : 'dark');
+        applyTheme(theme);
     });
     
     // Check impersonation immediately

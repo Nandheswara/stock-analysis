@@ -4509,4 +4509,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
+
+    // Re-render charts when the global theme is changed
+    window.addEventListener('themechanged', () => {
+        if (typeof renderCharts === 'function') {
+            // A short delay ensures CSS styles and custom properties have fully updated in the DOM
+            setTimeout(() => {
+                renderCharts();
+            }, 50);
+        }
+    });
 });
