@@ -112,6 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showProfileContent();
             updateLinkedAccountsUI();
             updatePasswordCardUI();
+            initMcpTunnelControl();
         } else {
             currentUserData = null;
             showAuthRequired();
@@ -216,6 +217,70 @@ function setupEventListeners() {
             e.preventDefault();
             await signOutUser();
             window.location.href = '../index.html';
+        });
+    }
+
+    // MCP Integration Event Listeners
+    const generateMcpTokenBtn = document.getElementById('generateMcpTokenBtn');
+    if (generateMcpTokenBtn) {
+        generateMcpTokenBtn.addEventListener('click', async () => {
+            const user = getCurrentUser();
+            if (!user) return;
+
+            const tokenInput = document.getElementById('mcpAuthToken');
+            const originalBtnText = generateMcpTokenBtn.innerHTML;
+            generateMcpTokenBtn.disabled = true;
+            generateMcpTokenBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generating...';
+
+            try {
+                const token = await user.getIdToken(true);
+                if (tokenInput) {
+                    tokenInput.value = token;
+                    tokenInput.type = 'text'; // Show temporarily
+                    const eyeIcon = document.querySelector('.toggle-password[data-target="mcpAuthToken"] i');
+                    if (eyeIcon) {
+                        eyeIcon.className = 'bi bi-eye-slash';
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to generate token", error);
+                alert("Failed to generate token: " + error.message);
+            } finally {
+                generateMcpTokenBtn.disabled = false;
+                generateMcpTokenBtn.innerHTML = originalBtnText;
+            }
+        });
+    }
+
+    const copyMcpUrlBtn = document.getElementById('copyMcpUrlBtn');
+    if (copyMcpUrlBtn) {
+        copyMcpUrlBtn.addEventListener('click', () => {
+            const urlInput = document.getElementById('mcpServerUrl');
+            if (urlInput) {
+                navigator.clipboard.writeText(urlInput.value);
+                const originalIcon = copyMcpUrlBtn.innerHTML;
+                copyMcpUrlBtn.innerHTML = '<i class="bi bi-check-lg text-success"></i>';
+                setTimeout(() => {
+                    copyMcpUrlBtn.innerHTML = originalIcon;
+                }, 2000);
+            }
+        });
+    }
+
+    const copyMcpTokenBtn = document.getElementById('copyMcpTokenBtn');
+    if (copyMcpTokenBtn) {
+        copyMcpTokenBtn.addEventListener('click', () => {
+            const tokenInput = document.getElementById('mcpAuthToken');
+            if (tokenInput && tokenInput.value) {
+                navigator.clipboard.writeText(tokenInput.value);
+                const originalIcon = copyMcpTokenBtn.innerHTML;
+                copyMcpTokenBtn.innerHTML = '<i class="bi bi-check-lg text-success"></i>';
+                setTimeout(() => {
+                    copyMcpTokenBtn.innerHTML = originalIcon;
+                }, 2000);
+            } else {
+                alert("Please generate the MCP token first.");
+            }
         });
     }
 }
@@ -1258,4 +1323,108 @@ async function handlePasswordReset() {
         btn.disabled = false;
         btn.innerHTML = originalText;
     }
+}
+
+/**
+ * Initialize MCP Server tunnel controls
+ */
+async function initMcpTunnelControl() {
+    const serverStatus = document.getElementById('mcpServerStatus');
+    const tunnelStatusText = document.getElementById('mcpTunnelStatusText');
+    const tunnelBtn = document.getElementById('mcpTunnelBtn');
+    const urlContainer = document.getElementById('mcpUrlContainer');
+    const connectionUrlInput = document.getElementById('mcpConnectionUrl');
+    const copyBtn = document.getElementById('copyMcpUrlBtn');
+    const alertContainer = document.getElementById('mcpServerAlert');
+
+    if (!serverStatus) return;
+
+    // Helper to get active Firebase ID token
+    async function getToken() {
+        const user = compatAuth ? compatAuth.currentUser : null;
+        if (user) {
+            return await user.getIdToken(true);
+        }
+        return '';
+    }
+
+    // Helper to check MCP local server status
+    async function checkServerStatus() {
+        try {
+            const res = await fetch('http://localhost:3000/api/tunnel/status');
+            if (res.ok) {
+                const data = await res.json();
+                serverStatus.textContent = 'Server Online';
+                serverStatus.className = 'badge bg-success';
+                tunnelBtn.disabled = false;
+
+                if (data.running) {
+                    tunnelStatusText.textContent = 'Tunnel Active';
+                    tunnelBtn.textContent = 'Stop Tunnel';
+                    tunnelBtn.className = 'btn btn-danger btn-sm';
+                    urlContainer.style.display = 'block';
+                    const token = await getToken();
+                    connectionUrlInput.value = `${data.url}/sse?token=${token}`;
+                } else {
+                    tunnelStatusText.textContent = 'Tunnel Offline. Expose server to connect web apps.';
+                    tunnelBtn.textContent = 'Start Tunnel';
+                    tunnelBtn.className = 'btn btn-primary btn-sm';
+                    urlContainer.style.display = 'none';
+                }
+            } else {
+                throw new Error();
+            }
+        } catch (e) {
+            serverStatus.textContent = 'Server Offline';
+            serverStatus.className = 'badge bg-danger';
+            tunnelStatusText.textContent = 'Local MCP server is not running. Start it with "npm start" inside the mcp-server directory.';
+            tunnelBtn.disabled = true;
+            tunnelBtn.textContent = 'Start Tunnel';
+            tunnelBtn.className = 'btn btn-primary btn-sm';
+            urlContainer.style.display = 'none';
+        }
+    }
+
+    // Initial check
+    await checkServerStatus();
+    // Poll status every 5 seconds
+    const interval = setInterval(checkServerStatus, 5000);
+
+    // Event listener for tunnel button
+    tunnelBtn.addEventListener('click', async () => {
+        const originalText = tunnelBtn.innerHTML;
+        tunnelBtn.disabled = true;
+        tunnelBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Loading...';
+
+        const isRunning = tunnelBtn.textContent === 'Stop Tunnel';
+        const endpoint = isRunning ? 'stop' : 'start';
+
+        try {
+            const res = await fetch(`http://localhost:3000/api/tunnel/${endpoint}`, {
+                method: 'POST'
+            });
+
+            if (res.ok) {
+                await checkServerStatus();
+            } else {
+                const data = await res.json();
+                showAlert(alertContainer, data.error || `Failed to ${endpoint} tunnel`, 'danger');
+            }
+        } catch (err) {
+            showAlert(alertContainer, `Failed to communicate with local MCP server`, 'danger');
+        } finally {
+            tunnelBtn.disabled = false;
+        }
+    });
+
+    // Event listener for Copy button
+    copyBtn.addEventListener('click', () => {
+        connectionUrlInput.select();
+        document.execCommand('copy');
+        const origHtml = copyBtn.innerHTML;
+        copyBtn.innerHTML = '<i class="bi bi-check"></i> Copied!';
+        setTimeout(() => {
+            copyBtn.innerHTML = origHtml;
+        }, 2000);
+    });
 }

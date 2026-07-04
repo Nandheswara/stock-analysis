@@ -4445,6 +4445,70 @@ function setupAuth() {
             }
         });
     });
+
+    // MCP Integration Event Listeners
+    const generateMcpTokenBtn = document.getElementById('generateMcpTokenBtn');
+    if (generateMcpTokenBtn) {
+        generateMcpTokenBtn.addEventListener('click', async () => {
+            const user = getCurrentUser();
+            if (!user) return;
+
+            const tokenInput = document.getElementById('mcpAuthToken');
+            const originalBtnText = generateMcpTokenBtn.innerHTML;
+            generateMcpTokenBtn.disabled = true;
+            generateMcpTokenBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generating...';
+
+            try {
+                const token = await user.getIdToken(true);
+                if (tokenInput) {
+                    tokenInput.value = token;
+                    tokenInput.type = 'text'; // Show temporarily
+                    const eyeIcon = document.querySelector('.toggle-password[data-target="mcpAuthToken"] i');
+                    if (eyeIcon) {
+                        eyeIcon.className = 'bi bi-eye-slash';
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to generate token", error);
+                alert("Failed to generate token: " + error.message);
+            } finally {
+                generateMcpTokenBtn.disabled = false;
+                generateMcpTokenBtn.innerHTML = originalBtnText;
+            }
+        });
+    }
+
+    const copyMcpUrlBtn = document.getElementById('copyMcpUrlBtn');
+    if (copyMcpUrlBtn) {
+        copyMcpUrlBtn.addEventListener('click', () => {
+            const urlInput = document.getElementById('mcpServerUrl');
+            if (urlInput) {
+                navigator.clipboard.writeText(urlInput.value);
+                const originalIcon = copyMcpUrlBtn.innerHTML;
+                copyMcpUrlBtn.innerHTML = '<i class="bi bi-check-lg text-success"></i>';
+                setTimeout(() => {
+                    copyMcpUrlBtn.innerHTML = originalIcon;
+                }, 2000);
+            }
+        });
+    }
+
+    const copyMcpTokenBtn = document.getElementById('copyMcpTokenBtn');
+    if (copyMcpTokenBtn) {
+        copyMcpTokenBtn.addEventListener('click', () => {
+            const tokenInput = document.getElementById('mcpAuthToken');
+            if (tokenInput && tokenInput.value) {
+                navigator.clipboard.writeText(tokenInput.value);
+                const originalIcon = copyMcpTokenBtn.innerHTML;
+                copyMcpTokenBtn.innerHTML = '<i class="bi bi-check-lg text-success"></i>';
+                setTimeout(() => {
+                    copyMcpTokenBtn.innerHTML = originalIcon;
+                }, 2000);
+            } else {
+                alert("Please generate the MCP token first.");
+            }
+        });
+    }
 }
 
 function initEncryptionBanner() {

@@ -154,7 +154,7 @@
                         </div>
                     </div>
                     <hr>
-                    <div class="change-password-section">
+                    <div class="change-password-section mb-4">
                         <h6 class="mb-3"><i class="bi bi-key"></i> Change Password</h6>
                         <form id="changePasswordForm">
                             <div class="mb-3">
@@ -189,6 +189,41 @@
                                 <i class="bi bi-shield-lock"></i> Update Password
                             </button>
                         </form>
+                    </div>
+                    <hr>
+                    <div class="mcp-integration-section">
+                        <h6 class="mb-3"><i class="bi bi-cpu"></i> AI Assistant (MCP) Connection</h6>
+                        <p class="text-muted small">Connect your local AI assistant (e.g. Claude Desktop) directly to your financial data.</p>
+                        
+                        <div class="mb-3">
+                            <label for="mcpServerUrl" class="form-label">MCP SSE URL</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control form-control-sm" id="mcpServerUrl" readonly value="https://equity-labs-mcp.onrender.com/sse">
+                                <button class="btn btn-outline-secondary btn-sm" type="button" id="copyMcpUrlBtn" title="Copy URL">
+                                    <i class="bi bi-clipboard"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="mcpAuthToken" class="form-label">Firebase ID Token</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control form-control-sm" id="mcpAuthToken" readonly placeholder="Click Generate to view token">
+                                <button class="btn btn-outline-secondary btn-sm toggle-password" type="button" data-target="mcpAuthToken" aria-label="Toggle token visibility">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm" type="button" id="copyMcpTokenBtn" title="Copy Token">
+                                    <i class="bi bi-clipboard"></i>
+                                </button>
+                            </div>
+                            <small class="text-muted d-block mt-1" style="font-size: 0.75rem;">
+                                Note: Tokens expire in 1 hour for security.
+                            </small>
+                        </div>
+                        
+                        <button type="button" class="btn btn-outline-primary btn-sm w-100" id="generateMcpTokenBtn">
+                            <i class="bi bi-key"></i> Generate MCP Token
+                        </button>
                     </div>
                 </div>
             </div>
