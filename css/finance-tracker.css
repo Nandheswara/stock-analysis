@@ -1828,51 +1828,45 @@
     }
 
     .month-navigator {
-        flex-direction: column;
+        flex-direction: row;
         align-items: center;
+        justify-content: space-between;
         gap: 16px;
-        padding: 16px;
+        padding: 10px 14px;
     }
 
     .month-nav-left {
-        width: 100%;
-        display: grid;
-        grid-template-columns: auto 1fr auto;
-        gap: 10px;
+        width: auto;
+        display: flex;
         align-items: center;
+        gap: 16px;
     }
 
-    #monthPrevBtn {
-        grid-column: 1;
+    .month-navigator .month-btn {
+        width: 34px;
+        height: 34px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
     }
 
     #monthDisplay {
-        grid-column: 2;
         text-align: center;
-        width: 100%;
+        width: auto;
         min-width: auto;
-        font-size: 1.1rem;
-    }
-
-    #monthNextBtn {
-        grid-column: 3;
-    }
-
-    #monthCurrentBtn {
-        grid-column: 1 / span 3;
-        width: 100%;
-        margin-top: 4px;
-        padding: 10px !important;
-        text-align: center;
+        font-size: 0.95rem;
+        white-space: nowrap;
+        padding: 0 20px;
     }
 
     .month-nav-right {
-        margin: 0 auto;
-        justify-content: center;
-        gap: 16px;
-        width: 100%;
-        border-top: 1px solid var(--border-color);
-        padding-top: 12px;
+        margin: 0;
+        justify-content: flex-end;
+        gap: 8px;
+        width: auto;
+        border-top: none;
+        padding-top: 0;
     }
 
     .income-form {

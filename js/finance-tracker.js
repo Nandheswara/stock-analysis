@@ -1061,12 +1061,6 @@ function initMonthNavigator() {
         renderAll();
     });
 
-    document.getElementById('monthCurrentBtn').addEventListener('click', () => {
-        currentMonth = getCurrentMonthKey();
-        updateMonthDisplay();
-        renderAll();
-    });
-
     updateMonthDisplay();
 }
 
@@ -1077,10 +1071,6 @@ function updateMonthDisplay() {
     const nextButton = document.getElementById('monthNextBtn');
     nextButton.disabled = false;
     nextButton.classList.remove('disabled');
-
-    const btn = document.getElementById('monthCurrentBtn');
-    btn.classList.toggle('active', isCurrentMonth);
-    btn.textContent = isCurrentMonth ? '● Current' : 'Today';
 }
 
 // ========================================
