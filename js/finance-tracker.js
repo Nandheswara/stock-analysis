@@ -3404,16 +3404,19 @@ async function ensureJsPDF() {
             'https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js'
         ], () => Boolean(window.jsPDF || window.jspdf));
     }
+    if (window.jspdf && !window.jsPDF) {
+        window.jsPDF = window.jspdf.jsPDF;
+    }
     const jsPDFCtor = window.jsPDF || window.jspdf?.jsPDF || window.jspdf;
     if (!jsPDFCtor) {
         throw new Error('jsPDF could not be loaded. Please check internet access or choose CSV/JSON format.');
     }
 
-    if (!jsPDFCtor.autoTable && !window.jspdf?.autoTable) {
+    if (!jsPDFCtor.autoTable && !jsPDFCtor.API?.autoTable && !window.jspdf?.autoTable) {
         await loadScriptWithFallback([
             'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js',
             'https://unpkg.com/jspdf-autotable@3.5.29/dist/jspdf.plugin.autotable.min.js'
-        ], () => Boolean(jsPDFCtor.autoTable || window.jspdf?.autoTable));
+        ], () => Boolean(jsPDFCtor.autoTable || jsPDFCtor.API?.autoTable || window.jspdf?.autoTable));
     }
 
     return window.jsPDF || window.jspdf?.jsPDF || window.jspdf;
@@ -3558,96 +3561,19 @@ function buildExportData(months) {
     investmentAlloc.push(['TOTAL', investmentTotal, '100%']);
     investmentAlloc.push([]);
 
-    // ========================================
-    // RISK ASSESSMENT & RECOMMENDATIONS
-    // ========================================
-    const recommendations = [['RISK ASSESSMENT & FINANCIAL RECOMMENDATIONS']];
-    recommendations.push([]);
-    
-    const risks = [];
-    const suggestions = [];
-    
-    // Risk Assessment
-    if (debtToAssetRatio > 50) {
-        risks.push(`⚠️  HIGH DEBT LEVEL: Your debt-to-asset ratio is ${debtToAssetRatio}% (>50% threshold). Consider reducing credit card balances.`);
-        suggestions.push(`• Pay off high-interest credit cards aggressively. Prioritize cards with >30% utilization.`);
-    } else if (debtToAssetRatio > 30) {
-        risks.push(`⚠️  MODERATE DEBT: Your debt-to-asset ratio is ${debtToAssetRatio}% (30-50% range). Monitor closely.`);
-        suggestions.push(`• Work on reducing outstanding balances systematically.`);
-    }
 
-    if (debtToIncomeRatio > 50) {
-        risks.push(`⚠️  HIGH DEBT-TO-INCOME: Monthly debt is ${debtToIncomeRatio}% of income. This is concerning.`);
-        suggestions.push(`• Increase income or reduce expenses to lower this ratio below 30%.`);
-    }
 
-    if (avgSavingsRate < 10) {
-        risks.push(`⚠️  LOW SAVINGS RATE: You're saving only ${avgSavingsRate}% of income. This is below recommended 20%.`);
-        suggestions.push(`• Review spending patterns and identify areas to cut expenses.`);
-        suggestions.push(`• Set a target to increase savings to at least 20% of monthly income.`);
-    } else if (avgSavingsRate < 20) {
-        suggestions.push(`• Aim to increase savings rate from ${avgSavingsRate}% to at least 20%.`);
-        suggestions.push(`• Look for recurring expenses that can be eliminated or reduced.`);
-    }
-
-    if (investmentRatio < 20) {
-        suggestions.push(`• Your investment ratio is low (${investmentRatio}%). Consider increasing monthly investments.`);
-        suggestions.push(`• Allocate more surplus to equities or mutual funds for long-term growth.`);
-    }
-
-    if (investmentRatio > 70) {
-        suggestions.push(`• Your investment ratio is high (${investmentRatio}%). Ensure adequate emergency fund (3-6 months expenses).`);
-    }
-
-    // Credit Card analysis
-    Object.values(financeData.creditCards).forEach(card => {
-        const latestMonth = months[months.length - 1];
-        const outstanding = getMonthAmount(card, latestMonth, 'outstandingBalance');
-        const limit = card.creditLimit || 0;
-        const util = limit > 0 ? (outstanding / limit) * 100 : 0;
-        
-        if (util > 80) {
-            risks.push(`⚠️  HIGH UTILIZATION: ${card.name} is ${util.toFixed(1)}% utilized. Keep below 30% for better credit.`);
-            suggestions.push(`• Reduce balance on ${card.name} to below 30% of credit limit (${(limit * 0.3).toFixed(0)} ₹).`);
-        }
-    });
-
-    if (risks.length === 0) {
-        risks.push('✅ NO MAJOR RISKS IDENTIFIED: Your financial health appears stable.');
-    }
-
-    recommendations.push(['IDENTIFIED RISKS']);
-    risks.forEach(risk => recommendations.push([risk]));
-    recommendations.push([]);
-    
-    recommendations.push(['ACTIONABLE SUGGESTIONS']);
-    suggestions.forEach(suggestion => recommendations.push([suggestion]));
-    recommendations.push([]);
-    
-    recommendations.push(['PRIORITY ACTIONS']);
-    if (debtToAssetRatio > 50 || debtToIncomeRatio > 50) {
-        recommendations.push(['1. Prioritize debt reduction - focus on highest interest rate cards first']);
-    }
-    if (avgSavingsRate < 10) {
-        recommendations.push(['1. Increase savings rate by cutting discretionary spending']);
-    } else {
-        recommendations.push(['1. Maintain current savings rate and increase investments']);
-    }
-    recommendations.push(['2. Review monthly spending patterns and identify optimization opportunities']);
-    recommendations.push(['3. Build emergency fund to 6 months of expenses if not already done']);
-    recommendations.push(['4. Consider diversifying investments across asset classes']);
-
-    const categoryRows = [['Category', 'Icon', 'Color', 'Item Name', 'Amount (₹)', 'Month', 'Date', 'Notes']];
+    const categoryRows = [['Category', 'Item Name', 'Amount (₹)', 'Month', 'Date', 'Notes']];
     const pdfCategoryRows = [['Category', 'Item Name', 'Amount (₹)', 'Month', 'Date', 'Notes']];
     Object.values(financeData.categories).forEach(cat => {
         const items = cat.items ? Object.values(cat.items).filter(item => months.includes(item.month)) : [];
         if (items.length > 0) {
             items.forEach(item => {
-                categoryRows.push([cat.name, cat.icon, cat.color, item.name, item.amount, item.month, item.date, item.notes || '']);
+                categoryRows.push([cat.name, item.name, item.amount, item.month, item.date, item.notes || '']);
                 pdfCategoryRows.push([cat.name, item.name, item.amount, item.month, item.date, item.notes || '']);
             });
         } else {
-            categoryRows.push([cat.name, cat.icon, cat.color, '', '', '', '', '']);
+            categoryRows.push([cat.name, '', '', '', '', '']);
             pdfCategoryRows.push([cat.name, '', '', '', '', '']);
         }
     });
@@ -3680,7 +3606,7 @@ function buildExportData(months) {
     totalsRow.push(grandTotal);
     pivotRows.push(totalsRow);
 
-    const bankHeader = ['Account Name', 'Bank', 'Type', ...months.map(month => `${getMonthDisplay(month)} Balance (₹)`), 'Color'];
+    const bankHeader = ['Account Name', 'Bank', 'Type', ...months.map(month => `${getMonthDisplay(month)} Balance (₹)`)];
     const bankRows = [bankHeader];
     const pdfBankHeader = ['Account Name', 'Bank', 'Type', ...months.map(month => `${getMonthDisplay(month)} Balance (₹)`), 'Total Balance (₹)'];
     const pdfBankRows = [pdfBankHeader];
@@ -3694,13 +3620,12 @@ function buildExportData(months) {
             pdfRow.push(balance);
             total += balance;
         });
-        row.push(bank.color || '');
         pdfRow.push(total);
         bankRows.push(row);
         pdfBankRows.push(pdfRow);
     });
 
-    const cardHeader = ['Card Name', 'Issuer', ...months.map(month => `${getMonthDisplay(month)} Outstanding (₹)`), 'Credit Limit (₹)', 'Utilization %', 'Due Date', 'Color'];
+    const cardHeader = ['Card Name', 'Issuer', ...months.map(month => `${getMonthDisplay(month)} Outstanding (₹)`), 'Credit Limit (₹)', 'Utilization %', 'Due Date'];
     const cardRows = [cardHeader];
     const pdfCardHeader = ['Card Name', 'Issuer', ...months.map(month => `${getMonthDisplay(month)} Outstanding (₹)`), 'Credit Limit (₹)', 'Utilization %', 'Due Date'];
     const pdfCardRows = [pdfCardHeader];
@@ -3716,7 +3641,7 @@ function buildExportData(months) {
         });
         const limit = getCreditCardLimit(card, currentMonth);
         const util = limit > 0 ? ((total / limit) * 100).toFixed(1) : '0.0';
-        row.push(limit || 0, util + '%', card.dueDate || '', card.color || '');
+        row.push(limit || 0, util + '%', card.dueDate || '');
         pdfRow.push(limit || 0, util + '%', card.dueDate || '');
         cardRows.push(row);
         pdfCardRows.push(pdfRow);
@@ -3757,24 +3682,117 @@ function buildExportData(months) {
         ]);
     });
 
+    const loanHeader = ['Loan Name', 'Bank/Issuer', 'Total Loan Amount (₹)', 'Interest Rate (%)', 'Tenure (Months)', 'Start Month', 'Processing Fee', 'Loan Type', ...months.map(month => `${getMonthDisplay(month)} Outstanding Balance (₹)`)];
+    const loanRows = [loanHeader];
+    Object.values(financeData.loans || {}).forEach(loan => {
+        const row = [
+            loan.name,
+            loan.issuer || '',
+            parseFloat(loan.totalLoanAmount) || 0,
+            parseFloat(loan.interestRate) || 0,
+            parseInt(loan.tenure) || 0,
+            loan.loanStartMonth || '',
+            parseFloat(loan.processingFee) || 0,
+            loan.loanType || ''
+        ];
+        months.forEach(month => {
+            row.push(getMonthAmount(loan, month, 'outstandingBalance'));
+        });
+        loanRows.push(row);
+    });
+
+    const insuranceHeader = ['Policy Name', 'Issuer/Company', 'Category', 'Policy Number', 'Coverage Amount (₹)', 'Valid Upto / Due Date', ...months.map(month => `${getMonthDisplay(month)} Premium / Paid (₹)`)];
+    const insuranceRows = [insuranceHeader];
+    Object.values(financeData.insurance || {}).forEach(policy => {
+        const row = [
+            policy.name,
+            policy.issuer || '',
+            policy.insuranceCategory || '',
+            policy.policyNumber || '',
+            parseFloat(policy.coverageAmount) || 0,
+            policy.insuranceValidUpto || policy.dueDate || ''
+        ];
+        months.forEach(month => {
+            row.push(getMonthAmount(policy, month, 'outstandingBalance'));
+        });
+        insuranceRows.push(row);
+    });
+
+    const generalExpensesHeader = ['Expense Item', 'Category / Note', ...months.map(month => `${getMonthDisplay(month)} Spend (₹)`)];
+    const generalExpensesRows = [generalExpensesHeader];
+    Object.values(financeData.expenses || {}).forEach(exp => {
+        const row = [
+            exp.name,
+            exp.notes || exp.issuer || ''
+        ];
+        months.forEach(month => {
+            row.push(getMonthAmount(exp, month, 'outstandingBalance'));
+        });
+        generalExpensesRows.push(row);
+    });
+
+    function formatExportCell(val) {
+        if (typeof val === 'number') {
+            if (Number.isInteger(val)) {
+                return val;
+            }
+            const rounded = Math.round(val * 100) / 100;
+            return Number.isInteger(rounded) ? Math.round(rounded) : rounded;
+        }
+        return val;
+    }
+
+    function formatExportRows(rows) {
+        if (!Array.isArray(rows)) return rows;
+        return rows.map(row => {
+            if (!Array.isArray(row)) return row;
+            return row.map(formatExportCell);
+        });
+    }
+
+    const formattedOverviewRows = formatExportRows(overviewRows);
+    const formattedMonthlyOverviewSections = monthlyOverviewSections.map(section => ({
+        title: section.title,
+        rows: formatExportRows(section.rows)
+    }));
+    const formattedAggregateSummary = formatExportRows(aggregateSummary);
+    const formattedHealthMetrics = formatExportRows(healthMetrics);
+    const formattedExpenseBreakdown = formatExportRows(expenseBreakdown);
+    const formattedInvestmentAlloc = formatExportRows(investmentAlloc);
+    const formattedCategoryRows = formatExportRows(categoryRows);
+    const formattedPdfCategoryRows = formatExportRows(pdfCategoryRows);
+    const formattedPivotRows = formatExportRows(pivotRows);
+    const formattedBankRows = formatExportRows(bankRows);
+    const formattedPdfBankRows = formatExportRows(pdfBankRows);
+    const formattedCardRows = formatExportRows(cardRows);
+    const formattedPdfCardRows = formatExportRows(pdfCardRows);
+    const formattedIncomeRows = formatExportRows(incomeRows);
+    const formattedSummaryRows = formatExportRows(summaryRows);
+    const formattedChartRows = formatExportRows(chartRows);
+    const formattedLoanRows = formatExportRows(loanRows);
+    const formattedInsuranceRows = formatExportRows(insuranceRows);
+    const formattedGeneralExpensesRows = formatExportRows(generalExpensesRows);
+
     return {
-        overviewRows,
-        monthlyOverviewSections,
-        aggregateSummary,
-        healthMetrics,
-        expenseBreakdown,
-        investmentAlloc,
-        recommendations,
-        categoryRows,
-        pdfCategoryRows,
-        pivotRows,
-        bankRows,
-        pdfBankRows,
-        cardRows,
-        pdfCardRows,
-        incomeRows,
-        summaryRows,
-        chartRows,
+        overviewRows: formattedOverviewRows,
+        monthlyOverviewSections: formattedMonthlyOverviewSections,
+        aggregateSummary: formattedAggregateSummary,
+        healthMetrics: formattedHealthMetrics,
+        expenseBreakdown: formattedExpenseBreakdown,
+        investmentAlloc: formattedInvestmentAlloc,
+        categoryRows: formattedCategoryRows,
+        pdfCategoryRows: formattedPdfCategoryRows,
+        pivotRows: formattedPivotRows,
+        bankRows: formattedBankRows,
+        pdfBankRows: formattedPdfBankRows,
+        cardRows: formattedCardRows,
+        pdfCardRows: formattedPdfCardRows,
+        incomeRows: formattedIncomeRows,
+        summaryRows: formattedSummaryRows,
+        chartRows: formattedChartRows,
+        loanRows: formattedLoanRows,
+        insuranceRows: formattedInsuranceRows,
+        generalExpensesRows: formattedGeneralExpensesRows,
         dateRangeLabel
     };
 }
@@ -3832,13 +3850,16 @@ window.exportFinanceData = async function(options = {}) {
                 buildCsvSection('Financial Health Metrics', exportData.healthMetrics),
                 buildCsvSection('Expense Breakdown', exportData.expenseBreakdown),
                 buildCsvSection('Investment Allocation', exportData.investmentAlloc),
-                buildCsvSection('Risk Assessment & Recommendations', exportData.recommendations),
                 buildCsvSection('Investments', exportData.categoryRows),
                 buildCsvSection('Category by Month', exportData.pivotRows),
                 buildCsvSection('Bank Accounts', exportData.bankRows),
                 buildCsvSection('Expenses', exportData.cardRows),
+                buildCsvSection('Loans', exportData.loanRows),
+                buildCsvSection('Insurance', exportData.insuranceRows),
+                buildCsvSection('General Expenses', exportData.generalExpensesRows),
                 buildCsvSection('Income History', exportData.incomeRows),
-                buildCsvSection('Net Worth History', exportData.summaryRows)
+                buildCsvSection('Net Worth History', exportData.summaryRows),
+                buildCsvSection('Chart Data', exportData.chartRows)
             ];
             downloadFile(sections.join('\r\n\r\n'), `${filenameBase}.csv`, 'text/csv;charset=utf-8;');
         } else if (format === 'pdf') {
@@ -3909,16 +3930,18 @@ window.exportFinanceData = async function(options = {}) {
 
             renderTableSection('Aggregate Summary', ['Metric', 'Amount (₹)'], exportData.aggregateSummary.slice(1), { theme: 'striped' });
             renderTableSection('Financial Health Metrics', ['Metric', 'Value'], exportData.healthMetrics.slice(1), { theme: 'grid' });
-
-            if (exportData.recommendations.length > 1) {
-                renderTableSection('Risk Assessment & Recommendations', ['Recommendation'], exportData.recommendations.slice(1), { theme: 'plain', columnStyles: { 0: { cellWidth: 500 } } });
-            }
-
-            if (hasAutoTable) {
-                renderTableSection('Investments', exportData.pdfCategoryRows[0], exportData.pdfCategoryRows.slice(1), { theme: 'striped', fontSize: 7 });
-                renderTableSection('Bank Accounts', exportData.pdfBankRows[0], exportData.pdfBankRows.slice(1), { theme: 'grid', fontSize: 7 });
-                renderTableSection('Credit Card Expenses', exportData.pdfCardRows[0], exportData.pdfCardRows.slice(1), { theme: 'grid', fontSize: 7 });
-            }
+            renderTableSection('Expense Breakdown', exportData.expenseBreakdown[0], exportData.expenseBreakdown.slice(1), { theme: 'grid', fontSize: 7 });
+            renderTableSection('Investment Allocation', exportData.investmentAlloc[0], exportData.investmentAlloc.slice(1), { theme: 'striped', fontSize: 7 });
+            renderTableSection('Investments', exportData.pdfCategoryRows[0], exportData.pdfCategoryRows.slice(1), { theme: 'striped', fontSize: 7 });
+            renderTableSection('Category by Month', exportData.pivotRows[0], exportData.pivotRows.slice(1), { theme: 'grid', fontSize: 7 });
+            renderTableSection('Bank Accounts', exportData.pdfBankRows[0], exportData.pdfBankRows.slice(1), { theme: 'grid', fontSize: 7 });
+            renderTableSection('Credit Card Expenses', exportData.pdfCardRows[0], exportData.pdfCardRows.slice(1), { theme: 'grid', fontSize: 7 });
+            renderTableSection('Loans', exportData.loanRows[0], exportData.loanRows.slice(1), { theme: 'grid', fontSize: 7 });
+            renderTableSection('Insurance', exportData.insuranceRows[0], exportData.insuranceRows.slice(1), { theme: 'striped', fontSize: 7 });
+            renderTableSection('General Expenses', exportData.generalExpensesRows[0], exportData.generalExpensesRows.slice(1), { theme: 'grid', fontSize: 7 });
+            renderTableSection('Income History', exportData.incomeRows[0], exportData.incomeRows.slice(1), { theme: 'grid', fontSize: 7 });
+            renderTableSection('Net Worth History', exportData.summaryRows[0], exportData.summaryRows.slice(1), { theme: 'striped', fontSize: 7 });
+            renderTableSection('Chart Data', exportData.chartRows[0], exportData.chartRows.slice(1), { theme: 'grid', fontSize: 7 });
 
             doc.save(`${filenameBase}.pdf`);
         } else {
@@ -3929,11 +3952,13 @@ window.exportFinanceData = async function(options = {}) {
             XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(exportData.healthMetrics), 'Health Metrics');
             XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(exportData.expenseBreakdown), 'Expenses');
             XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(exportData.investmentAlloc), 'Investment Allocation');
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(exportData.recommendations), 'Recommendations');
             XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(exportData.categoryRows), 'Investments');
             XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(exportData.pivotRows), 'Category by Month');
             XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(exportData.bankRows), 'Bank Accounts');
             XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(exportData.cardRows), 'Credit Cards');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(exportData.loanRows), 'Loans');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(exportData.insuranceRows), 'Insurance');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(exportData.generalExpensesRows), 'General Expenses');
             XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(exportData.incomeRows), 'Income History');
             XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(exportData.summaryRows), 'Net Worth History');
             XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(exportData.chartRows), 'Chart Data');
