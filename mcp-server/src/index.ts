@@ -45,6 +45,12 @@ const getFinanceRefForUser = (userId: string, subPath = "") => {
   return db.ref(`users/${userId}/finance${subPath ? "/" + subPath : ""}`);
 };
 
+// Helper to get stocks database reference path for a specific user ID
+const getStocksRefForUser = (userId: string, subPath = "") => {
+  return db.ref(`users/${userId}/stocks${subPath ? "/" + subPath : ""}`);
+};
+
+
 // Session storage mapping sessionId -> { transport, uid }
 interface SessionInfo {
   transport: SSEServerTransport;
@@ -91,6 +97,133 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         inputSchema: {
           type: "object",
           properties: {}
+        }
+      },
+      {
+        name: "add_stock_analysis",
+        description: "Add a stock with its fundamental analysis metrics (such as quick ratio, debt/equity, ROE, PE) to the user's stock analysis table.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            name: {
+              type: "string",
+              description: "The name of the company (e.g., Tata Consultancy Services)."
+            },
+            symbol: {
+              type: "string",
+              description: "The unique slug identifier/URL symbol for the stock on Groww (e.g., tata-consultancy-services-ltd). If not provided, it will be generated from the name."
+            },
+            stock_symbol: {
+              type: "string",
+              description: "The NSE/BSE ticker symbol (e.g., TCS)."
+            },
+            is_manual_entry: {
+              type: "boolean",
+              description: "Whether the stock was added manually. Defaults to true."
+            },
+            current_price: {
+              type: "string",
+              description: "Current stock price."
+            },
+            market_cap: {
+              type: "string",
+              description: "Market Capitalization."
+            },
+            sector: {
+              type: "string",
+              description: "Sector of the company."
+            },
+            industry: {
+              type: "string",
+              description: "Industry of the company."
+            },
+            liquidity: {
+              type: "string",
+              description: "Liquidity status (e.g., Good, Poor)."
+            },
+            quick_ratio: {
+              type: "string",
+              description: "Quick ratio."
+            },
+            debt_to_equity: {
+              type: "string",
+              description: "Debt to Equity ratio."
+            },
+            roe: {
+              type: "string",
+              description: "Return on Equity (%)."
+            },
+            roa: {
+              type: "string",
+              description: "Return on Assets (%)."
+            },
+            ebitda_current: {
+              type: "string",
+              description: "EBITDA for the current/latest financial year."
+            },
+            ebitda_previous: {
+              type: "string",
+              description: "EBITDA for the previous financial year."
+            },
+            dividend_yield: {
+              type: "string",
+              description: "Dividend Yield (%)."
+            },
+            pe_ratio: {
+              type: "string",
+              description: "Stock P/E ratio."
+            },
+            forward_pe: {
+              type: "string",
+              description: "Forward P/E ratio."
+            },
+            industry_pe: {
+              type: "string",
+              description: "Industry P/E ratio."
+            },
+            price_to_book: {
+              type: "string",
+              description: "Price to Book (P/B) ratio."
+            },
+            price_to_sales: {
+              type: "string",
+              description: "Price to Sales (P/S) ratio."
+            },
+            ps_trend: {
+              type: "string",
+              description: "P/S Trend description."
+            },
+            beta: {
+              type: "string",
+              description: "Beta value."
+            },
+            promoter_holdings: {
+              type: "string",
+              description: "Promoter Holdings (%)."
+            }
+          },
+          required: ["name"]
+        }
+      },
+      {
+        name: "delete_stock_analysis",
+        description: "Delete a stock from the fundamental analysis table by its symbol, stock_symbol, or stock_id.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            symbol: {
+              type: "string",
+              description: "The Groww slug identifier/symbol of the stock to delete (e.g., tata-consultancy-services-ltd)."
+            },
+            stock_symbol: {
+              type: "string",
+              description: "The NSE/BSE ticker symbol of the stock to delete (e.g., TCS)."
+            },
+            stock_id: {
+              type: "string",
+              description: "The unique database ID of the stock to delete."
+            }
+          }
         }
       }
     ]
@@ -165,16 +298,160 @@ server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
         };
       }
 
+      case "add_stock_analysis": {
+        const name = args?.name as string;
+        let symbol = args?.symbol as string;
+        if (!name) throw new Error("name is required");
+        if (!symbol) {
+          symbol = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '').replace(/^-+/, '');
+        }
+
+        // Fetch existing stocks to check for potential duplicate/match for upsert
+        const snap = await getStocksRefForUser(uid).get();
+        const stocks = snap.val() || {};
+        let existingStockId: string | null = null;
+        let existingStock: any = null;
+
+        for (const key of Object.keys(stocks)) {
+          const s = stocks[key];
+          if (s.symbol === symbol || (args?.stock_symbol && s.stock_symbol === args.stock_symbol)) {
+            existingStockId = key;
+            existingStock = s;
+            break;
+          }
+        }
+
+        const stockId = existingStockId || `stock_${Date.now()}`;
+        
+        const getVal = (argVal: any, existingVal: any, defaultVal = 'Enter Data') => {
+          if (argVal !== undefined) return String(argVal);
+          if (existingVal !== undefined) return String(existingVal);
+          return defaultVal;
+        };
+
+        const stockData = {
+          symbol: symbol,
+          name: args?.name || (existingStock ? existingStock.name : name),
+          stock_symbol: args?.stock_symbol !== undefined ? String(args.stock_symbol) : (existingStock ? (existingStock.stock_symbol || "") : ""),
+          is_manual_entry: args?.is_manual_entry !== undefined ? !!args.is_manual_entry : (existingStock ? !!existingStock.is_manual_entry : true),
+          data_available: true,
+          current_price: getVal(args?.current_price, existingStock?.current_price),
+          market_cap: getVal(args?.market_cap, existingStock?.market_cap),
+          sector: getVal(args?.sector, existingStock?.sector),
+          industry: getVal(args?.industry, existingStock?.industry),
+          liquidity: getVal(args?.liquidity, existingStock?.liquidity),
+          quick_ratio: getVal(args?.quick_ratio, existingStock?.quick_ratio),
+          debt_to_equity: getVal(args?.debt_to_equity, existingStock?.debt_to_equity),
+          roe: getVal(args?.roe, existingStock?.roe),
+          roa: getVal(args?.roa, existingStock?.roa),
+          ebitda_current: getVal(args?.ebitda_current, existingStock?.ebitda_current),
+          ebitda_previous: getVal(args?.ebitda_previous, existingStock?.ebitda_previous),
+          dividend_yield: getVal(args?.dividend_yield, existingStock?.dividend_yield),
+          pe_ratio: getVal(args?.pe_ratio, existingStock?.pe_ratio),
+          forward_pe: getVal(args?.forward_pe, existingStock?.forward_pe),
+          industry_pe: getVal(args?.industry_pe, existingStock?.industry_pe),
+          price_to_book: getVal(args?.price_to_book, existingStock?.price_to_book),
+          price_to_sales: getVal(args?.price_to_sales, existingStock?.price_to_sales),
+          ps_trend: getVal(args?.ps_trend, existingStock?.ps_trend),
+          beta: getVal(args?.beta, existingStock?.beta),
+          promoter_holdings: getVal(args?.promoter_holdings, existingStock?.promoter_holdings),
+          createdAt: existingStock ? (existingStock.createdAt || new Date().toISOString()) : new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          userId: uid,
+          stock_id: stockId
+        };
+
+        await getStocksRefForUser(uid, stockId).set(stockData);
+
+        const isUpdate = !!existingStockId;
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                success: true,
+                message: `Successfully ${isUpdate ? 'updated' : 'added'} stock ${name} (${symbol}) in fundamental analysis.`,
+                stockId,
+                stockData
+              }, null, 2)
+            }
+          ]
+        };
+      }
+
+      case "delete_stock_analysis": {
+        const symbol = args?.symbol as string;
+        const stockSymbol = args?.stock_symbol as string;
+        const stockIdArg = args?.stock_id as string;
+
+        if (!symbol && !stockSymbol && !stockIdArg) {
+          throw new Error("At least one of symbol, stock_symbol, or stock_id must be provided.");
+        }
+
+        const snap = await getStocksRefForUser(uid).get();
+        const stocks = snap.val() || {};
+        let targetStockId: string | null = null;
+        let targetName = "";
+
+        if (stockIdArg && stocks[stockIdArg]) {
+          targetStockId = stockIdArg;
+          targetName = stocks[stockIdArg].name;
+        } else {
+          const matchSymbol = symbol ? symbol.toLowerCase().trim() : "";
+          const matchStockSymbol = stockSymbol ? stockSymbol.toLowerCase().trim() : "";
+
+          for (const key of Object.keys(stocks)) {
+            const s = stocks[key];
+            const sSymbol = s.symbol ? String(s.symbol).toLowerCase().trim() : "";
+            const sStockSymbol = s.stock_symbol ? String(s.stock_symbol).toLowerCase().trim() : "";
+            const sName = s.name ? String(s.name).toLowerCase().trim() : "";
+
+            // Check if any provided search criteria matches symbol, stock_symbol, or name
+            const matchesSymbol = matchSymbol && (sSymbol === matchSymbol || sStockSymbol === matchSymbol || sName === matchSymbol);
+            const matchesStockSymbol = matchStockSymbol && (sSymbol === matchStockSymbol || sStockSymbol === matchStockSymbol || sName === matchStockSymbol);
+
+            if (matchesSymbol || matchesStockSymbol) {
+              targetStockId = key;
+              targetName = s.name;
+              break;
+            }
+          }
+        }
+
+        if (!targetStockId) {
+          const available = Object.keys(stocks).map(k => {
+            const s = stocks[k];
+            return `${s.name || 'Unnamed'} (symbol: ${s.symbol || 'none'}, ticker: ${s.stock_symbol || 'none'}, id: ${k})`;
+          }).join(", ");
+          throw new Error(`Stock not found with the specified identifier(s). Search term(s): symbol='${symbol || ""}', stock_symbol='${stockSymbol || ""}'. Available stocks in list: [${available || 'none'}]`);
+        }
+
+        await getStocksRefForUser(uid, targetStockId).remove();
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                success: true,
+                message: `Successfully deleted stock ${targetName} (ID: ${targetStockId}) from fundamental analysis.`
+              }, null, 2)
+            }
+          ]
+        };
+      }
+
       default:
         throw new Error(`Unknown tool: ${name}`);
     }
   } catch (error: any) {
+    console.error(`Error executing tool ${name}:`, error);
     return {
-      isError: true,
       content: [
         {
           type: "text",
-          text: `Error executing tool: ${error.message}`
+          text: `Error: ${error.message}`
         }
       ]
     };
