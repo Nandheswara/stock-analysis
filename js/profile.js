@@ -1348,8 +1348,11 @@ async function initMcpTunnelControl() {
         return '';
     }
 
+    let isTransitioning = false;
+
     // Helper to check MCP local server status
     async function checkServerStatus() {
+        if (isTransitioning) return;
         try {
             const res = await fetch('http://localhost:3000/api/tunnel/status');
             if (res.ok) {
@@ -1359,17 +1362,22 @@ async function initMcpTunnelControl() {
                 tunnelBtn.disabled = false;
 
                 if (data.running) {
-                    tunnelStatusText.textContent = 'Tunnel Active';
+                    tunnelStatusText.textContent = data.url ? 'Tunnel Active' : 'Establishing tunnel...';
                     tunnelBtn.textContent = 'Stop Tunnel';
                     tunnelBtn.className = 'btn btn-danger btn-sm';
                     urlContainer.style.display = 'block';
                     const token = await getToken();
-                    connectionUrlInput.value = `${data.url}/sse?token=${token}`;
+                    if (data.url) {
+                        connectionUrlInput.value = `${data.url}/sse?token=${token}`;
+                    } else {
+                        connectionUrlInput.value = 'Generating connection URL...';
+                    }
                 } else {
                     tunnelStatusText.textContent = 'Tunnel Offline. Expose server to connect web apps.';
                     tunnelBtn.textContent = 'Start Tunnel';
                     tunnelBtn.className = 'btn btn-primary btn-sm';
                     urlContainer.style.display = 'none';
+                    connectionUrlInput.value = '';
                 }
             } else {
                 throw new Error();
@@ -1382,6 +1390,7 @@ async function initMcpTunnelControl() {
             tunnelBtn.textContent = 'Start Tunnel';
             tunnelBtn.className = 'btn btn-primary btn-sm';
             urlContainer.style.display = 'none';
+            connectionUrlInput.value = '';
         }
     }
 
@@ -1392,11 +1401,19 @@ async function initMcpTunnelControl() {
 
     // Event listener for tunnel button
     tunnelBtn.addEventListener('click', async () => {
+        if (isTransitioning) return;
+        
         const originalText = tunnelBtn.innerHTML;
+        const isRunning = tunnelBtn.textContent.trim() === 'Stop Tunnel';
+        
+        isTransitioning = true;
         tunnelBtn.disabled = true;
         tunnelBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Loading...';
 
-        const isRunning = tunnelBtn.textContent === 'Stop Tunnel';
+        if (connectionUrlInput) {
+            connectionUrlInput.value = isRunning ? '' : 'Starting tunnel...';
+        }
+
         const endpoint = isRunning ? 'stop' : 'start';
 
         try {
@@ -1405,14 +1422,19 @@ async function initMcpTunnelControl() {
             });
 
             if (res.ok) {
+                // Temporarily disable flag to allow checkServerStatus to run once
+                isTransitioning = false;
                 await checkServerStatus();
             } else {
                 const data = await res.json();
-                showAlert(alertContainer, data.error || `Failed to ${endpoint} tunnel`, 'danger');
+                if (data.error !== "Tunnel stopped by user") {
+                    showAlert(alertContainer, data.error || `Failed to ${endpoint} tunnel`, 'danger');
+                }
             }
         } catch (err) {
             showAlert(alertContainer, `Failed to communicate with local MCP server`, 'danger');
         } finally {
+            isTransitioning = false;
             tunnelBtn.disabled = false;
         }
     });

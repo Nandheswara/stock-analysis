@@ -607,9 +607,10 @@ app.post("/api/tunnel/start", async (req, res) => {
         }
       }, 10000);
 
+      let accumulatedOutput = "";
       tunnelProcess?.stdout?.on("data", (data: Buffer) => {
-        const output = data.toString();
-        const match = output.match(/https:\/\/[a-z0-9]+\.lhr\.life/);
+        accumulatedOutput += data.toString();
+        const match = accumulatedOutput.match(/https:\/\/[a-z0-9]+\.lhr\.life/);
         if (match) {
           resolved = true;
           clearTimeout(timeout);
@@ -625,11 +626,15 @@ app.post("/api/tunnel/start", async (req, res) => {
         }
       });
 
-      tunnelProcess?.on("exit", (code) => {
+      tunnelProcess?.on("exit", (code, signal) => {
         if (!resolved) {
           resolved = true;
           clearTimeout(timeout);
-          reject(new Error(`Tunnel exited with code ${code}`));
+          if (signal === "SIGKILL" || signal === "SIGTERM") {
+            reject(new Error("Tunnel stopped by user"));
+          } else {
+            reject(new Error(`Tunnel exited with code ${code}`));
+          }
         }
         tunnelProcess = null;
         tunnelUrl = null;
@@ -641,10 +646,18 @@ app.post("/api/tunnel/start", async (req, res) => {
 
   } catch (error: any) {
     if (tunnelProcess) {
-      tunnelProcess.kill();
+      try {
+        tunnelProcess.kill("SIGKILL");
+      } catch (e) {
+        // ignore
+      }
       tunnelProcess = null;
     }
-    res.status(500).json({ error: error.message });
+    if (error.message === "Tunnel stopped by user") {
+      res.json({ success: false, message: "Tunnel start aborted by user" });
+    } else {
+      res.status(500).json({ error: error.message });
+    }
   }
 });
 
@@ -655,13 +668,23 @@ app.post("/api/tunnel/stop", (req, res) => {
   }
 
   if (tunnelProcess) {
-    tunnelProcess.kill();
+    try {
+      tunnelProcess.kill("SIGKILL");
+    } catch (e) {
+      console.error("Error killing tunnel process:", e);
+    }
     tunnelProcess = null;
-    tunnelUrl = null;
-    res.json({ success: true });
-  } else {
-    res.json({ success: true, message: "Tunnel was not running" });
   }
+
+  // Fallback cleanup to ensure no orphaned ssh instances survive
+  try {
+    spawn("pkill", ["-f", "localhost.run"]);
+  } catch (e) {
+    console.error("Error running pkill cleanup:", e);
+  }
+
+  tunnelUrl = null;
+  res.json({ success: true });
 });
 
 const PORT = process.env.PORT || 3000;
