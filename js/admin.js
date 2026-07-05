@@ -1263,8 +1263,8 @@ async function deleteUser() {
             finance: null
         });
 
-        await remove(ref(database, `stocks/${selectedUserId}`));
-        await remove(ref(database, `portfolio/${selectedUserId}`));
+        await remove(ref(database, `users/${selectedUserId}/stocks`));
+        await remove(ref(database, `users/${selectedUserId}/portfolio`));
         
         await logAuditAction('user_deleted', selectedUserId, `Deleted user: ${user.email}`);
         
@@ -1404,6 +1404,9 @@ async function viewUserData() {
         'userFinanceCategoriesContent',
         'userFinanceBanksContent',
         'userFinanceCardsContent',
+        'userFinanceLoansContent',
+        'userFinanceExpensesContent',
+        'userFinanceInsuranceContent',
         'userFinanceIncomeContent',
         'userFinanceTaxesContent',
         'userFinanceEPFOContent',
@@ -1421,7 +1424,7 @@ async function viewUserData() {
     
     // Load stocks data
     try {
-        const stocksRef = ref(database, `stocks/${selectedUserId}`);
+        const stocksRef = ref(database, `users/${selectedUserId}/stocks`);
         const stocksSnapshot = await get(stocksRef);
         
         const stocksContent = document.getElementById('userStocksContent');
@@ -1471,7 +1474,7 @@ async function viewUserData() {
     
     // Load portfolio data
     try {
-        const portfolioRef = ref(database, `portfolio/${selectedUserId}`);
+        const portfolioRef = ref(database, `users/${selectedUserId}/portfolio`);
         const portfolioSnapshot = await get(portfolioRef);
         
         const portfolioContent = document.getElementById('userPortfolioContent');
@@ -1489,17 +1492,29 @@ async function viewUserData() {
                                 <th>Qty</th>
                                 <th>Avg Price</th>
                                 <th>Investment</th>
+                                <th>Profit/Loss</th>
+                                <th>Status</th>
                             </tr>
                         </thead>
                         <tbody>
-                            ${portfolioArray.map(p => `
-                                <tr>
-                                    <td>${escapeHtml(p.stockName || p.symbol || 'N/A')}</td>
-                                    <td>${p.quantity || 0}</td>
-                                    <td>₹${(p.avgPrice || 0).toFixed(2)}</td>
-                                    <td>₹${((p.quantity || 0) * (p.avgPrice || 0)).toFixed(2)}</td>
-                                </tr>
-                            `).join('')}
+                            ${portfolioArray.map(p => {
+                                const isSold = p.sellPrice !== undefined && p.sellPrice !== null;
+                                const status = isSold ? 'Sold' : 'Holding';
+                                const profitLoss = p.profitLoss !== undefined && p.profitLoss !== null ? p.profitLoss : 0;
+                                const statusBadgeClass = isSold ? 'badge bg-secondary' : 'badge bg-success';
+                                const plClass = profitLoss > 0 ? 'text-success' : (profitLoss < 0 ? 'text-danger' : 'text-muted');
+                                const plText = isSold ? `₹${profitLoss.toFixed(2)}` : '—';
+                                return `
+                                    <tr>
+                                        <td>${escapeHtml(p.name || p.stockName || p.symbol || 'N/A')}</td>
+                                        <td>${p.quantity || 0}</td>
+                                        <td>₹${(p.buyPrice || p.avgPrice || 0).toFixed(2)}</td>
+                                        <td>₹${(p.totalCost || ((p.quantity || 0) * (p.buyPrice || p.avgPrice || 0))).toFixed(2)}</td>
+                                        <td class="${plClass}">${plText}</td>
+                                        <td><span class="${statusBadgeClass}">${status}</span></td>
+                                    </tr>
+                                `;
+                            }).join('')}
                         </tbody>
                     </table>
                 </div>
@@ -1708,6 +1723,213 @@ async function viewUserData() {
         `;
     }
     
+    // Load finance tracker - loans
+    try {
+        const loansRef = ref(database, `users/${selectedUserId}/finance/loans`);
+        const loansSnapshot = await get(loansRef);
+        
+        const loansContent = document.getElementById('userFinanceLoansContent');
+        
+        if (loansSnapshot.exists()) {
+            const loans = loansSnapshot.val();
+            const loansArray = Object.entries(loans);
+            
+            function getLatestLoanOutstanding(loan) {
+                if (loan.balances) {
+                    const months = Object.keys(loan.balances).sort();
+                    if (months.length > 0) {
+                        return parseFloat(loan.balances[months[months.length - 1]]) || 0;
+                    }
+                }
+                return parseFloat(loan.outstandingBalance) || parseFloat(loan.totalLoanAmount) || 0;
+            }
+            
+            const totalLoanAmount = loansArray.reduce((sum, [, l]) => sum + (parseFloat(l.totalLoanAmount) || 0), 0);
+            const totalOutstanding = loansArray.reduce((sum, [, l]) => sum + getLatestLoanOutstanding(l), 0);
+            
+            loansContent.innerHTML = `
+                <div class="table-responsive">
+                    <table class="table table-dark table-sm">
+                        <thead>
+                            <tr>
+                                <th>Loan Name</th>
+                                <th>Lender</th>
+                                <th>Loan Amount</th>
+                                <th>Interest Rate</th>
+                                <th>Tenure (Months)</th>
+                                <th>Outstanding</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${loansArray.map(([, l]) => `
+                                <tr>
+                                    <td>${escapeHtml(l.name || 'N/A')}</td>
+                                    <td>${escapeHtml(l.issuer || 'N/A')}</td>
+                                    <td>₹${(parseFloat(l.totalLoanAmount) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td>${parseFloat(l.interestRate) || 0}%</td>
+                                    <td>${parseInt(l.tenure) || 0}</td>
+                                    <td>₹${getLatestLoanOutstanding(l).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-muted mt-2">Total: ${loansArray.length} loans, Total Loaned: ₹${totalLoanAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}, Outstanding: ₹${totalOutstanding.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            `;
+        } else {
+            loansContent.innerHTML = `
+                <div class="empty-state">
+                    <i class="bi bi-cash"></i>
+                    <h5>No Loans</h5>
+                    <p>This user has no loan data.</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        // Error:('Error loading loans:', error);
+        document.getElementById('userFinanceLoansContent').innerHTML = `
+            <div class="alert alert-danger">Error loading loans data</div>
+        `;
+    }
+
+    // Load finance tracker - expenses
+    try {
+        const expensesRef = ref(database, `users/${selectedUserId}/finance/expenses`);
+        const expensesSnapshot = await get(expensesRef);
+        
+        const expensesContent = document.getElementById('userFinanceExpensesContent');
+        
+        if (expensesSnapshot.exists()) {
+            const expenses = expensesSnapshot.val();
+            const expensesArray = Object.entries(expenses);
+            
+            function getLatestExpenseAmount(expense) {
+                if (expense.balances) {
+                    const months = Object.keys(expense.balances).sort();
+                    if (months.length > 0) {
+                        return parseFloat(expense.balances[months[months.length - 1]]) || 0;
+                    }
+                }
+                return parseFloat(expense.outstandingBalance) || 0;
+            }
+            
+            const totalMonthlyExpense = expensesArray.reduce((sum, [, e]) => sum + getLatestExpenseAmount(e), 0);
+            
+            expensesContent.innerHTML = `
+                <div class="table-responsive">
+                    <table class="table table-dark table-sm">
+                        <thead>
+                            <tr>
+                                <th>Expense Name</th>
+                                <th>Category/Merchant</th>
+                                <th>Latest Month Amount</th>
+                                <th>Due Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${expensesArray.map(([, e]) => `
+                                <tr>
+                                    <td>${escapeHtml(e.name || 'N/A')}</td>
+                                    <td>${escapeHtml(e.issuer || 'N/A')}</td>
+                                    <td>₹${getLatestExpenseAmount(e).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td>${escapeHtml(e.dueDate || '-')}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-muted mt-2">Total: ${expensesArray.length} items, Combined Latest Monthly Expense: ₹${totalMonthlyExpense.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            `;
+        } else {
+            expensesContent.innerHTML = `
+                <div class="empty-state">
+                    <i class="bi bi-wallet2"></i>
+                    <h5>No Expenses</h5>
+                    <p>This user has no expense data.</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        // Error:('Error loading expenses:', error);
+        document.getElementById('userFinanceExpensesContent').innerHTML = `
+            <div class="alert alert-danger">Error loading expenses data</div>
+        `;
+    }
+
+    // Load finance tracker - insurance
+    try {
+        const insuranceRef = ref(database, `users/${selectedUserId}/finance/insurance`);
+        const insuranceSnapshot = await get(insuranceRef);
+        
+        const insuranceContent = document.getElementById('userFinanceInsuranceContent');
+        
+        if (insuranceSnapshot.exists()) {
+            const insurance = insuranceSnapshot.val();
+            const insuranceArray = Object.entries(insurance);
+            
+            function getLatestPremiumAmount(ins) {
+                if (ins.balances) {
+                    const months = Object.keys(ins.balances).sort();
+                    if (months.length > 0) {
+                        return parseFloat(ins.balances[months[months.length - 1]]) || 0;
+                    }
+                }
+                return parseFloat(ins.outstandingBalance) || 0;
+            }
+            
+            const totalCoverage = insuranceArray.reduce((sum, [, i]) => sum + (parseFloat(i.coverageAmount) || 0), 0);
+            
+            insuranceContent.innerHTML = `
+                <div class="table-responsive">
+                    <table class="table table-dark table-sm">
+                        <thead>
+                            <tr>
+                                <th>Policy Name</th>
+                                <th>Provider</th>
+                                <th>Policy Number</th>
+                                <th>Coverage Amount</th>
+                                <th>Premium Amount</th>
+                                <th>Term</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${insuranceArray.map(([, i]) => {
+                                const status = i.insuranceStatus || 'Active';
+                                const badgeClass = status.toLowerCase() === 'active' ? 'badge bg-success' : 'badge bg-secondary';
+                                return `
+                                    <tr>
+                                        <td>${escapeHtml(i.name || 'N/A')}</td>
+                                        <td>${escapeHtml(i.issuer || 'N/A')}</td>
+                                        <td>${escapeHtml(i.policyNumber || '-')}</td>
+                                        <td>₹${(parseFloat(i.coverageAmount) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                        <td>₹${getLatestPremiumAmount(i).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                        <td>${escapeHtml(i.premiumTerm || 'yearly')}</td>
+                                        <td><span class="${badgeClass}">${status}</span></td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-muted mt-2">Total Policies: ${insuranceArray.length}, Total Coverage: ₹${totalCoverage.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            `;
+        } else {
+            insuranceContent.innerHTML = `
+                <div class="empty-state">
+                    <i class="bi bi-shield-check"></i>
+                    <h5>No Insurance Policies</h5>
+                    <p>This user has no insurance data.</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        // Error:('Error loading insurance:', error);
+        document.getElementById('userFinanceInsuranceContent').innerHTML = `
+            <div class="alert alert-danger">Error loading insurance data</div>
+        `;
+    }
+
     // Load finance tracker - income
     try {
         const incomeRef = ref(database, `users/${selectedUserId}/finance/income`);
@@ -1945,8 +2167,8 @@ async function deleteUserData() {
     const user = allUsers.find(u => u.uid === selectedUserId);
     
     try {
-        await remove(ref(database, `stocks/${selectedUserId}`));
-        await remove(ref(database, `portfolio/${selectedUserId}`));
+        await remove(ref(database, `users/${selectedUserId}/stocks`));
+        await remove(ref(database, `users/${selectedUserId}/portfolio`));
         await remove(ref(database, `users/${selectedUserId}/finance`));
         
         await logAuditAction('data_deleted', selectedUserId, `Deleted all data for: ${user?.email}`);
