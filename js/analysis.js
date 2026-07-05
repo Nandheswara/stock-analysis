@@ -258,6 +258,17 @@ $(document).ready(function() {
         submitManualData();
     });
     
+    // Restrict manual data entry inputs to number with up to 2 decimals
+    $('#manualDataForm input[type="number"][step="0.01"]').on('input', function() {
+        let val = this.value;
+        if (val.indexOf('.') !== -1) {
+            let parts = val.split('.');
+            if (parts[1].length > 2) {
+                this.value = parts[0] + '.' + parts[1].substring(0, 2);
+            }
+        }
+    });
+    
     $(document).on('click', '#filterBtn', function() {
         openFilterModal();
     });
@@ -1022,7 +1033,7 @@ function renderTableInternal() {
             
             row.innerHTML = `
                 <td class="text-center"><strong>${index + 1}</strong></td>
-                <td class="text-muted"><strong>${index + 1}. ${escapeAttribute(stock.name)}</strong><br><small class="text-primary">${escapeAttribute(displaySymbol)}</small></td>
+                <td class="text-muted"><strong>${escapeAttribute(stock.name)}</strong></td>
                 <td class="text-center">${formatValue('liquidity', stock.liquidity)}</td>
                 <td class="text-center">${formatValue('quick_ratio', stock.quick_ratio)}</td>
                 <td class="text-center">${formatValue('debt_to_equity', stock.debt_to_equity)}</td>
@@ -1224,6 +1235,22 @@ function showAlert(type, message) {
    Modal Functions
    ======================================== */
 
+function cleanNumberValue(val) {
+    if (val === null || val === undefined || val === 'Enter Data' || val === 'N/A' || val === '') {
+        return '';
+    }
+    // If it's already numeric
+    if (!isNaN(val)) {
+        return parseFloat(val).toFixed(2);
+    }
+    // Extract first number (integer or float) from the string, e.g. "Good (1.5x)" -> "1.50"
+    const match = val.toString().replace(/,/g, '').match(/[-+]?[0-9]*\.?[0-9]+/);
+    if (match) {
+        return parseFloat(match[0]).toFixed(2);
+    }
+    return '';
+}
+
 /**
  * Open manual data entry modal for a stock
  * @param {string} symbol - Stock symbol
@@ -1244,20 +1271,20 @@ window.openManualDataModal = function(symbol, name, stockId) {
     const stock = stocksData.find(s => s.stock_id === stockId);
     
     if (stock) {
-        $('#modalLiquidity').val((stock.liquidity && stock.liquidity !== 'Enter Data') ? stock.liquidity : '');
-        $('#modalQuickRatio').val((stock.quick_ratio && stock.quick_ratio !== 'Enter Data') ? stock.quick_ratio : '');
-        $('#modalDebtEquity').val((stock.debt_to_equity && stock.debt_to_equity !== 'Enter Data') ? stock.debt_to_equity : '');
-        $('#modalROE').val((stock.roe && stock.roe !== 'Enter Data') ? stock.roe : '');
-        $('#modalROA').val((stock.roa && stock.roa !== 'Enter Data') ? stock.roa : '');
-        $('#modalEBITDACurrent').val((stock.ebitda_current && stock.ebitda_current !== 'Enter Data') ? stock.ebitda_current : '');
-        $('#modalEBITDAPrevious').val((stock.ebitda_previous && stock.ebitda_previous !== 'Enter Data') ? stock.ebitda_previous : '');
-        $('#modalDividendYield').val((stock.dividend_yield && stock.dividend_yield !== 'Enter Data') ? stock.dividend_yield : '');
-        $('#modalPE').val((stock.pe_ratio && stock.pe_ratio !== 'Enter Data') ? stock.pe_ratio : '');
-        $('#modalIndustryPE').val((stock.industry_pe && stock.industry_pe !== 'Enter Data') ? stock.industry_pe : '');
-        $('#modalPriceToBook').val((stock.price_to_book && stock.price_to_book !== 'Enter Data') ? stock.price_to_book : '');
-        $('#modalPriceToSales').val((stock.price_to_sales && stock.price_to_sales !== 'Enter Data') ? stock.price_to_sales : '');
-        $('#modalBeta').val((stock.beta && stock.beta !== 'Enter Data') ? stock.beta : '');
-        $('#modalPromoterHoldings').val((stock.promoter_holdings && stock.promoter_holdings !== 'Enter Data') ? stock.promoter_holdings : '');
+        $('#modalLiquidity').val(cleanNumberValue(stock.liquidity));
+        $('#modalQuickRatio').val(cleanNumberValue(stock.quick_ratio));
+        $('#modalDebtEquity').val(cleanNumberValue(stock.debt_to_equity));
+        $('#modalROE').val(cleanNumberValue(stock.roe));
+        $('#modalROA').val(cleanNumberValue(stock.roa));
+        $('#modalEBITDACurrent').val(cleanNumberValue(stock.ebitda_current));
+        $('#modalEBITDAPrevious').val(cleanNumberValue(stock.ebitda_previous));
+        $('#modalDividendYield').val(cleanNumberValue(stock.dividend_yield));
+        $('#modalPE').val(cleanNumberValue(stock.pe_ratio));
+        $('#modalIndustryPE').val(cleanNumberValue(stock.industry_pe));
+        $('#modalPriceToBook').val(cleanNumberValue(stock.price_to_book));
+        $('#modalPriceToSales').val(cleanNumberValue(stock.price_to_sales));
+        $('#modalBeta').val(cleanNumberValue(stock.beta));
+        $('#modalPromoterHoldings').val(cleanNumberValue(stock.promoter_holdings));
     } else {
         $('#modalLiquidity, #modalQuickRatio, #modalDebtEquity, #modalROE, #modalROA, #modalEBITDACurrent, #modalEBITDAPrevious, #modalDividendYield, #modalPE, #modalIndustryPE, #modalPriceToBook, #modalPriceToSales, #modalBeta, #modalPromoterHoldings').val('');
     }
