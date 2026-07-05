@@ -65,6 +65,9 @@ document.addEventListener('DOMContentLoaded', () => {
     initYearNavigator();
     setupFormHandlers();
     initEncryptionBanner();
+    if (typeof window.initializeAmountMasking === 'function') {
+        window.initializeAmountMasking();
+    }
 
     // Redraw charts when the global theme is changed
     window.addEventListener('themechanged', () => {
@@ -259,6 +262,9 @@ function updateAndRender() {
     renderYearlyGoals();
     renderEventsTimeline();
     renderCharts();
+    if (typeof window.applyAmountMasking === 'function') {
+        window.applyAmountMasking();
+    }
     isInitialLoad = false;
 }
 
@@ -315,7 +321,9 @@ function renderKPIs() {
     let scheduledEventsCount = 0;
     if (annualEventsData) {
         Object.values(annualEventsData).forEach(ev => {
-            totalEventCost += parseFloat(ev.estimatedCost || 0);
+            if (ev.status !== 'Completed') {
+                totalEventCost += parseFloat(ev.estimatedCost || 0);
+            }
             scheduledEventsCount++;
         });
     }
@@ -398,7 +406,7 @@ function renderYearlyGoals() {
             <div class="goal-footer">
                 <div class="d-flex align-items-center gap-2">
                     <span class="goal-category-badge">${escapeHtml(goal.category)}</span>
-                    <span class="text-muted" style="font-size:0.75rem;">${formatCurrency(current)} / ${formatCurrency(target)}</span>
+                    <span class="text-muted mask-amount" style="font-size:0.75rem;">${formatCurrency(current)} / ${formatCurrency(target)}</span>
                 </div>
                 <div class="d-flex gap-1">
                     <button class="btn-icon-only btn-sm" onclick="openEditGoalModal('${goal.id}')" title="Edit Goal Progress">
@@ -444,10 +452,10 @@ function renderEventsTimeline() {
         const statusClass = `status-${(ev.status || 'Planned').toLowerCase()}`;
         let statusBadgeClass = 'badge bg-secondary';
         
-        if (ev.status === 'Paid') statusBadgeClass = 'badge bg-success';
+        if (ev.status === 'Completed' || ev.status === 'Paid') statusBadgeClass = 'badge bg-success';
         else if (ev.status === 'Confirmed') statusBadgeClass = 'badge bg-info text-dark';
         else if (ev.status === 'Planned') statusBadgeClass = 'badge bg-primary';
-        else if (ev.status === 'Postponed') statusBadgeClass = 'badge bg-warning text-dark';
+        else if (ev.status === 'Postponed' || ev.status === 'Postponded') statusBadgeClass = 'badge bg-warning text-dark';
         else if (ev.status === 'Unplanned') statusBadgeClass = 'badge bg-secondary';
 
         const div = document.createElement('div');
@@ -459,7 +467,7 @@ function renderEventsTimeline() {
             <div class="timeline-content">
                 <div class="timeline-header">
                     <h5 class="timeline-title">${ev.name}</h5>
-                    <span class="timeline-cost" title="Estimated Cost">
+                    <span class="timeline-cost mask-amount" title="Estimated Cost">
                         ${formatCurrency(ev.estimatedCost)}
                     </span>
                 </div>
@@ -1113,3 +1121,99 @@ window.confirmDeleteGoal = function(goalId) {
     const modal = new bootstrap.Modal(modalEl);
     modal.show();
 };
+
+
+// ========================================
+// Amount Masking Features
+// ========================================
+let isAmountMasked = false;
+const AMOUNT_MASK_STORAGE_KEY = 'financeTrackerMaskAmounts';
+const AMOUNT_MASK_TOKEN = '*****';
+const AMOUNT_MASK_SELECTOR = '.mask-amount';
+
+function maskAmountString(rawText) {
+    if (!rawText) return '';
+    return rawText.replace(/[-+]?\d[\d,]*(?:\.\d+)?/g, AMOUNT_MASK_TOKEN);
+}
+
+window.updateMaskDataButton = function() {
+    const button = document.getElementById('maskDataBtn');
+    const icon = document.getElementById('maskDataIcon');
+    if (!button || !icon) return;
+
+    if (isAmountMasked) {
+        icon.className = 'bi bi-eye';
+        button.title = 'Show amount values';
+        button.setAttribute('aria-label', 'Show amount values');
+    } else {
+        icon.className = 'bi bi-eye-slash';
+        button.title = 'Mask amount values';
+        button.setAttribute('aria-label', 'Mask amount values');
+    }
+}
+
+window.applyAmountMasking = function() {
+    const nodes = document.querySelectorAll(AMOUNT_MASK_SELECTOR);
+    nodes.forEach((node) => {
+        const currentText = node.textContent || '';
+        const storedOriginal = node.dataset.maskOriginalText;
+        const expectedMasked = storedOriginal !== undefined ? maskAmountString(storedOriginal) : null;
+        const hasTitle = node.hasAttribute('title');
+        const currentTitle = hasTitle ? (node.getAttribute('title') || '') : '';
+        const storedOriginalTitle = node.dataset.maskOriginalTitle;
+
+        if (isAmountMasked) {
+            const isStillMasked = storedOriginal !== undefined && currentText === expectedMasked;
+            if (!isStillMasked) {
+                node.dataset.maskOriginalText = currentText;
+                node.textContent = maskAmountString(currentText);
+            }
+
+            if (hasTitle && storedOriginalTitle === undefined) {
+                node.dataset.maskOriginalTitle = currentTitle;
+            }
+            if (hasTitle) {
+                node.setAttribute('title', maskAmountString(currentTitle));
+            }
+
+            node.dataset.maskState = 'masked';
+        } else if (node.dataset.maskState === 'masked') {
+            node.textContent = storedOriginal !== undefined ? storedOriginal : currentText;
+
+            if (storedOriginalTitle !== undefined) {
+                if (storedOriginalTitle) {
+                    node.setAttribute('title', storedOriginalTitle);
+                } else {
+                    node.removeAttribute('title');
+                }
+                delete node.dataset.maskOriginalTitle;
+            }
+
+            delete node.dataset.maskOriginalText;
+            delete node.dataset.maskState;
+        }
+    });
+}
+
+window.toggleAmountMasking = function() {
+    isAmountMasked = !isAmountMasked;
+    try {
+        localStorage.setItem(AMOUNT_MASK_STORAGE_KEY, isAmountMasked ? '1' : '0');
+    } catch (error) {
+        // Ignore localStorage failures
+    }
+
+    window.updateMaskDataButton();
+    window.applyAmountMasking();
+    showToast(isAmountMasked ? 'Amount values masked.' : 'Amount values visible.', 'info');
+};
+
+window.initializeAmountMasking = function() {
+    try {
+        isAmountMasked = localStorage.getItem(AMOUNT_MASK_STORAGE_KEY) === '1';
+    } catch (error) {
+        isAmountMasked = false;
+    }
+    window.updateMaskDataButton();
+    window.applyAmountMasking();
+}

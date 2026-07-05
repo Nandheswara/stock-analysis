@@ -194,6 +194,11 @@
                         <i class="bi bi-chevron-right"></i>
                     </button>
                 </div>
+                <div class="month-nav-right ms-auto">
+                    <button class="mask-data-btn icon-only" id="maskDataBtn" onclick="toggleAmountMasking()" title="Mask amount values" aria-label="Mask or unmask amount values">
+                        <i class="bi bi-eye-slash" id="maskDataIcon"></i>
+                    </button>
+                </div>
             </div>
 
             <!-- Overview Metrics Grid -->
@@ -201,14 +206,14 @@
                 <div class="col-6 col-xl">
                     <div class="budget-widget-card widget-primary h-100" onclick="openEditAnnualGoalModal()" style="cursor: pointer;">
                         <div class="budget-widget-label">Annual Income Goal <i class="bi bi-pencil-square ms-1" style="font-size: 0.8rem; opacity: 0.7;"></i></div>
-                        <div class="budget-widget-value" id="annualIncomeGoalValue">₹0</div>
-                        <div class="budget-widget-subtext" id="annualSavingsRateText">₹0 YTD (0% achieved)</div>
+                        <div class="budget-widget-value mask-amount" id="annualIncomeGoalValue">₹0</div>
+                        <div class="budget-widget-subtext mask-amount" id="annualSavingsRateText">₹0 YTD (0% achieved)</div>
                     </div>
                 </div>
                 <div class="col-6 col-xl">
                     <div class="budget-widget-card widget-danger h-100" onclick="openEditYearlyExpensesModal()" style="cursor: pointer;">
                         <div class="budget-widget-label">Yearly Expenses So Far <i class="bi bi-pencil-square ms-1" style="font-size: 0.8rem; opacity: 0.7;"></i></div>
-                        <div class="budget-widget-value" id="yearlyExpensesValue">₹0</div>
+                        <div class="budget-widget-value mask-amount" id="yearlyExpensesValue">₹0</div>
                         <div class="budget-widget-subtext" id="yearlyExpensesSubtext">Based on monthly logs</div>
                     </div>
                 </div>
@@ -229,7 +234,7 @@
                 <div class="col-6 col-xl">
                     <div class="budget-widget-card widget-warning h-100">
                         <div class="budget-widget-label">Event Funding Needed</div>
-                        <div class="budget-widget-value" id="eventFundingNeededValue">₹0</div>
+                        <div class="budget-widget-value mask-amount" id="eventFundingNeededValue">₹0</div>
                         <div class="budget-widget-subtext" id="eventSummaryText">0 Scheduled Events</div>
                     </div>
                 </div>
@@ -404,13 +409,12 @@
                             <input type="number" class="form-control" id="eventEstInput" min="0" required placeholder="0">
                         </div>
                         <div class="mb-3">
-                            <label for="eventStatusInput" class="form-label">Funding / Payment Status</label>
+                            <label for="eventStatusInput" class="form-label">Status</label>
                             <select class="form-select" id="eventStatusInput" required>
                                 <option value="Planned">Planned</option>
-                                <option value="Confirmed">Confirmed</option>
-                                <option value="Paid">Paid</option>
-                                <option value="Postponed">Postponed</option>
                                 <option value="Unplanned">Unplanned</option>
+                                <option value="Postponed">Postponed</option>
+                                <option value="Completed">Completed</option>
                             </select>
                         </div>
                         <div class="text-end">
