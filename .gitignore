@@ -46,3 +46,6 @@ build/
 coverage/
 .nyc_output/
 /.claude-plugin*
+
+# MCP Server
+mcp-server/
