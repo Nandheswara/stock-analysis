@@ -4487,6 +4487,32 @@ function initEncryptionBanner() {
 }
 
 // ========================================
+// EquityBot AI State Bridge
+// ========================================
+
+/**
+ * Expose a read-only API on window so the AI assistant can
+ * access live finance data and the current month without tightly
+ * coupling to this module's internals.
+ */
+window.equityLabsFinance = Object.freeze({
+    /** @returns {Object} Current finance data snapshot */
+    getData: () => financeData,
+
+    /** @returns {string} Currently selected month key (YYYY-MM) */
+    getCurrentMonth: () => currentMonth,
+
+    /** @param {string} month - YYYY-MM to navigate to */
+    setMonth: (month) => {
+        const picker = document.getElementById('monthPicker');
+        if (picker) {
+            picker.value = month;
+            picker.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    }
+});
+
+// ========================================
 // Init
 // ========================================
 
@@ -4499,6 +4525,11 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeAmountMasking();
     applySectionPreferences();
     setupAuth();
+
+    // Dynamically load the EquityBot AI assistant
+    import('./ai/chat-panel.js')
+        .then(({ initChatPanel }) => initChatPanel())
+        .catch(err => console.warn('[EquityBot] Failed to load AI assistant:', err));
 
     // Accordion togglers for mobile viewports (tables and category cards)
     document.addEventListener('click', (e) => {
