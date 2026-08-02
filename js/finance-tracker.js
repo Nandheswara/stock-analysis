@@ -49,6 +49,8 @@ import {
     saveTax,
     saveEPFO,
     getEPFO,
+    saveCibilScore,
+    getCibilScore,
     getIncome,
     saveMonthlySnapshot,
     listenToFinanceData,
@@ -83,7 +85,8 @@ let financeData = {
     income: {},
     taxes: {},
     snapshots: {},
-    epfo: {}
+    epfo: {},
+    cibil: {}
 };
 let charts = {};
 let unsubscribeFinance = null;
@@ -163,16 +166,18 @@ const WIDGET_PREFERENCE_META = Object.freeze([
     { key: 'netWorthLiabilities', elementId: 'netWorthLiabilitiesCard', label: 'Net Worth: Liabilities Card', description: 'Shows total liabilities.' },
     { key: 'netWorthTotal', elementId: 'netWorthTotalCard', label: 'Net Worth: Total Card', description: 'Shows current net worth.' },
     { key: 'netWorthEPFO', elementId: 'netWorthEPFOCard', label: 'Net Worth: EPFO Card', description: 'Shows EPFO value.' },
+    { key: 'netWorthCibil', elementId: 'netWorthCibilCard', label: 'Net Worth: CIBIL Card', description: 'Shows CIBIL/Credit Score.' },
     { key: 'analyticsInvestmentBreakdown', elementId: 'analyticsInvestmentBreakdownCard', label: 'Analytics: Investment Breakdown', description: 'Pie chart by category.' },
     { key: 'analyticsNetWorthTrend', elementId: 'analyticsNetWorthTrendCard', label: 'Analytics: Net Worth Trend', description: 'Line chart for asset growth.' },
     { key: 'analyticsIncomeExpense', elementId: 'analyticsIncomeExpenseCard', label: 'Analytics: Income vs Expenditure', description: 'Bar chart for income/expense/invested.' },
-    { key: 'analyticsCategoryTrend', elementId: 'analyticsCategoryTrendCard', label: 'Analytics: Category Trends', description: 'Line chart by investment category.' }
+    { key: 'analyticsCategoryTrend', elementId: 'analyticsCategoryTrendCard', label: 'Analytics: Category Trends', description: 'Line chart by investment category.' },
+    { key: 'analyticsCibil', elementId: 'analyticsCibilCard', label: 'Analytics: Credit Score Trend', description: 'Line chart for CIBIL score history.' }
 ]);
 
 const SECTION_WIDGET_GROUPS = Object.freeze({
     financialSummary: Object.freeze(['summaryIncome', 'summaryExpenditure', 'summaryInvested', 'summaryBankBalance', 'summaryTax']),
-    netWorth: Object.freeze(['netWorthAssets', 'netWorthLiabilities', 'netWorthTotal', 'netWorthEPFO']),
-    analytics: Object.freeze(['analyticsInvestmentBreakdown', 'analyticsNetWorthTrend', 'analyticsIncomeExpense', 'analyticsCategoryTrend'])
+    netWorth: Object.freeze(['netWorthAssets', 'netWorthLiabilities', 'netWorthTotal', 'netWorthEPFO', 'netWorthCibil']),
+    analytics: Object.freeze(['analyticsInvestmentBreakdown', 'analyticsNetWorthTrend', 'analyticsIncomeExpense', 'analyticsCategoryTrend', 'analyticsCibil'])
 });
 
 const WIDGET_SECTION_MAP = Object.freeze(
@@ -230,6 +235,7 @@ const AMOUNT_MASK_SELECTOR = [
     '#totalLiabilitiesValue',
     '#netWorthValue',
     '#epfoValue',
+    '#cibilScoreValue',
     '.category-card-total',
     '.category-item-amount',
     '.amount-cell',
@@ -1153,6 +1159,29 @@ window.submitEditEPFO = async function() {
     }
 };
 
+window.openEditCibilModal = function() {
+    const monthCibil = financeData.cibil?.[currentMonth]?.value || '';
+    document.getElementById('modalCibilScore').value = monthCibil;
+    openModal('editCibilModal');
+    setTimeout(() => document.getElementById('modalCibilScore').focus(), 100);
+};
+
+window.submitEditCibil = async function() {
+    const input = document.getElementById('modalCibilScore');
+    const value = parseInt(input.value);
+    if (isNaN(value) || value < 300 || value > 900) {
+        showToast('CIBIL score must be between 300 and 900', 'error');
+        return;
+    }
+    const result = await saveCibilScore(currentMonth, { value });
+    if (result.success) {
+        closeModal('editCibilModal');
+        showToast('CIBIL score updated!', 'success');
+    } else {
+        showToast('Failed to save. ' + (result.error || ''), 'error');
+    }
+};
+
 function renderIncome() {
     const monthIncome = financeData.income[currentMonth] || { salary: 0, otherIncome: 0, totalIncome: 0 };
     const monthTax = financeData.taxes?.[currentMonth] || { tax: 0 };
@@ -1218,6 +1247,29 @@ function renderFinancialSummary() {
     if (epfoElem) epfoElem.textContent = formatCurrency(summary.epfoValue || 0);
     document.getElementById('totalLiabilitiesValue').textContent = formatCurrency(summary.totalLiabilities);
     document.getElementById('netWorthValue').textContent = formatCurrencyWithSign(summary.netWorth);
+
+    // CIBIL Score Card
+    const cibilElem = document.getElementById('cibilScoreValue');
+    const cibilCard = document.getElementById('netWorthCibilCard');
+    if (cibilElem && cibilCard) {
+        const monthCibil = financeData.cibil?.[currentMonth]?.value;
+        if (monthCibil) {
+            cibilElem.textContent = monthCibil;
+            cibilCard.classList.remove('cibil-excellent', 'cibil-good', 'cibil-fair', 'cibil-poor');
+            if (monthCibil >= 750) {
+                cibilCard.classList.add('cibil-excellent');
+            } else if (monthCibil >= 700) {
+                cibilCard.classList.add('cibil-good');
+            } else if (monthCibil >= 650) {
+                cibilCard.classList.add('cibil-fair');
+            } else {
+                cibilCard.classList.add('cibil-poor');
+            }
+        } else {
+            cibilElem.textContent = '---';
+            cibilCard.classList.remove('cibil-excellent', 'cibil-good', 'cibil-fair', 'cibil-poor');
+        }
+    }
 
     // Header savings rate badge — meaningful breakdown
     const badge = document.getElementById('savingsRateValue');
@@ -2031,6 +2083,13 @@ function renderCharts() {
         charts.categoryTrend.destroy();
         delete charts.categoryTrend;
     }
+
+    if (isWidgetEnabled('analyticsCibil')) {
+        renderCibilTrendChart(currentSummary, snapshots);
+    } else if (charts.cibilTrend) {
+        charts.cibilTrend.destroy();
+        delete charts.cibilTrend;
+    }
 }
 
 function buildChartSnapshots() {
@@ -2401,6 +2460,80 @@ function renderCategoryTrendChart(currentSummary, snapshots) {
                 x: { ticks: { color: textColor }, grid: { display: false } },
                 y: {
                     ticks: { color: textColor, callback: (val) => formatCurrency(val) },
+                    grid: { color: gridColor }
+                }
+            }
+        }
+    });
+}
+
+function renderCibilTrendChart(currentSummary, snapshots) {
+    const ctx = document.getElementById('cibilTrendChart');
+    if (!ctx) return;
+
+    if (charts.cibilTrend) charts.cibilTrend.destroy();
+
+    const months = Object.keys(snapshots).sort();
+    const chartMonths = [...new Set([...months, currentMonth])].sort();
+    const last6 = chartMonths.slice(-6);
+    const labels = last6.map(m => getMonthDisplay(m).replace(/ \d{4}/, ''));
+
+    // Pull CIBIL scores from financeData.cibil
+    const cibilData = financeData.cibil || {};
+    const data = last6.map(month => {
+        const entry = cibilData[month];
+        return entry ? entry.value : null;
+    });
+
+    const hasData = data.some(val => val !== null);
+    if (!hasData) {
+        ctx.style.opacity = '0.5';
+    } else {
+        ctx.style.opacity = '1';
+    }
+
+    const textColor = getComputedStyle(document.body).getPropertyValue('--text-primary').trim() || '#e9ecef';
+    const gridColor = getComputedStyle(document.body).getPropertyValue('--border-color').trim() || '#1f2229';
+
+    charts.cibilTrend = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: 'CIBIL Score',
+                data,
+                borderColor: '#28a745',
+                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                fill: true,
+                tension: 0.3,
+                spanGaps: true,
+                borderWidth: 3,
+                pointRadius: 6,
+                pointHoverRadius: 8,
+                pointBackgroundColor: '#28a745',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => `Score: ${ctx.raw}`
+                    }
+                }
+            },
+            scales: {
+                x: { ticks: { color: textColor }, grid: { display: false } },
+                y: {
+                    min: 300,
+                    max: 900,
+                    ticks: { color: textColor },
                     grid: { color: gridColor }
                 }
             }
@@ -3176,6 +3309,7 @@ window.copyFinanceDataFromSettings = async function() {
             includeIncome: Boolean(document.getElementById('copySectionIncome')?.checked),
             includeTaxes: Boolean(document.getElementById('copySectionTaxes')?.checked),
             includeEPFO: Boolean(document.getElementById('copySectionEPFO')?.checked),
+            includeCibil: Boolean(document.getElementById('copySectionCibil')?.checked),
             overwriteExisting: copyAndReplaceEnabled,
             replaceCategories: copyAndReplaceEnabled && Boolean(document.getElementById('copySectionCategories')?.checked),
             replaceInsurance: copyAndReplaceEnabled && Boolean(document.getElementById('copySectionInsurance')?.checked)
@@ -3189,7 +3323,8 @@ window.copyFinanceDataFromSettings = async function() {
             || options.includeInsurance
             || options.includeIncome
             || options.includeTaxes
-            || options.includeEPFO;
+            || options.includeEPFO
+            || options.includeCibil;
         if (!hasSelectedSection) {
             showToast('Select at least one section to copy.', 'warning');
             return;
@@ -3234,6 +3369,9 @@ window.copyFinanceDataFromSettings = async function() {
         }
         if ((result.epfoCopied || 0) > 0) {
             summaryParts.push(`EPFO: ${result.epfoCopied}`);
+        }
+        if ((result.cibilCopied || 0) > 0) {
+            summaryParts.push(`CIBIL: ${result.cibilCopied}`);
         }
 
         if (summaryParts.length === 0) {

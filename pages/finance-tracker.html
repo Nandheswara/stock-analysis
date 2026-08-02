@@ -323,6 +323,11 @@
                     <div class="nw-label">EPFO</div>
                     <div class="nw-value" id="epfoValue">₹0</div>
                 </div>
+                <div class="networth-card cibil-card clickable" id="netWorthCibilCard" data-widget-preference="netWorthCibil" onclick="openEditCibilModal()" role="button" tabindex="0">
+                    <i class="bi bi-speedometer2 nw-icon"></i>
+                    <div class="nw-label">CIBIL Score</div>
+                    <div class="nw-value" id="cibilScoreValue">---</div>
+                </div>
             </div>
 
             <!-- Investment Categories -->
@@ -539,6 +544,14 @@
                             <canvas id="categoryTrendChart"></canvas>
                         </div>
                     </div>
+                    <div class="chart-card" id="analyticsCibilCard" data-widget-preference="analyticsCibil">
+                        <div class="chart-card-title">
+                            <i class="bi bi-speedometer2"></i> Credit Score Trend
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="cibilTrendChart"></canvas>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -632,6 +645,7 @@
                                 <label class="settings-checkbox-item"><input type="checkbox" id="copySectionIncome" checked> Income</label>
                                 <label class="settings-checkbox-item"><input type="checkbox" id="copySectionTaxes" checked> Tax</label>
                                 <label class="settings-checkbox-item"><input type="checkbox" id="copySectionEPFO" checked> EPFO</label>
+                                <label class="settings-checkbox-item"><input type="checkbox" id="copySectionCibil" checked> CIBIL Score</label>
                             </div>
                             <div class="settings-checkbox-overwrite" role="group" aria-labelledby="copyModeSelectionLabel">
                                 <div class="settings-copy-mode-title" id="copyModeSelectionLabel">Copy mode</div>
@@ -830,6 +844,30 @@
                 <button class="btn-finance btn-finance-outline" onclick="closeFinanceModal('editEPFOModal')">Cancel</button>
                 <button class="btn-finance btn-finance-primary" onclick="submitEditEPFO()">
                     <i class="bi bi-check-lg"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit CIBIL Modal -->
+    <div class="finance-modal-overlay" id="editCibilModal">
+        <div class="finance-modal">
+            <div class="finance-modal-header">
+                <h3><i class="bi bi-speedometer2"></i> Track CIBIL Score</h3>
+                <button class="finance-modal-close" onclick="closeFinanceModal('editCibilModal')">&times;</button>
+            </div>
+            <div class="finance-modal-body">
+                <form id="editCibilForm" onsubmit="event.preventDefault(); submitEditCibil();">
+                    <div class="form-group mb-3">
+                        <label for="modalCibilScore">CIBIL Score (300 - 900)</label>
+                        <input type="number" id="modalCibilScore" placeholder="Enter score" min="300" max="900" required>
+                    </div>
+                </form>
+            </div>
+            <div class="finance-modal-footer">
+                <button class="btn-finance btn-finance-outline" onclick="closeFinanceModal('editCibilModal')">Close</button>
+                <button class="btn-finance btn-finance-primary" onclick="submitEditCibil()">
+                    <i class="bi bi-check-lg"></i> Save Score
                 </button>
             </div>
         </div>

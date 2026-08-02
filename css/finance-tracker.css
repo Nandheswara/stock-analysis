@@ -355,6 +355,51 @@
     border: 1px solid rgba(4, 130, 130, 0.22);
 }
 
+.networth-card.cibil-card {
+    background: linear-gradient(135deg, rgba(142, 142, 147, 0.12) 0%, rgba(142, 142, 147, 0.03) 100%);
+    border: 1px solid rgba(142, 142, 147, 0.22);
+    transition: all 0.3s ease;
+}
+.networth-card.cibil-card .nw-icon { color: #8e8e93; }
+.networth-card.cibil-card .nw-value { color: #8e8e93; }
+
+/* CIBIL Score Health Theme Overlays */
+.networth-card.cibil-card.cibil-excellent {
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.15) 0%, rgba(40, 167, 69, 0.05) 100%);
+    border-color: rgba(40, 167, 69, 0.35);
+}
+.networth-card.cibil-card.cibil-excellent .nw-icon,
+.networth-card.cibil-card.cibil-excellent .nw-value {
+    color: #28a745;
+}
+
+.networth-card.cibil-card.cibil-good {
+    background: linear-gradient(135deg, rgba(173, 223, 35, 0.15) 0%, rgba(173, 223, 35, 0.05) 100%);
+    border-color: rgba(173, 223, 35, 0.35);
+}
+.networth-card.cibil-card.cibil-good .nw-icon,
+.networth-card.cibil-card.cibil-good .nw-value {
+    color: #9cb315;
+}
+
+.networth-card.cibil-card.cibil-fair {
+    background: linear-gradient(135deg, rgba(253, 126, 20, 0.15) 0%, rgba(253, 126, 20, 0.05) 100%);
+    border-color: rgba(253, 126, 20, 0.35);
+}
+.networth-card.cibil-card.cibil-fair .nw-icon,
+.networth-card.cibil-card.cibil-fair .nw-value {
+    color: #fd7e14;
+}
+
+.networth-card.cibil-card.cibil-poor {
+    background: linear-gradient(135deg, rgba(220, 53, 69, 0.15) 0%, rgba(220, 53, 69, 0.05) 100%);
+    border-color: rgba(220, 53, 69, 0.35);
+}
+.networth-card.cibil-card.cibil-poor .nw-icon,
+.networth-card.cibil-card.cibil-poor .nw-value {
+    color: #dc3545;
+}
+
 .networth-card .nw-icon {
     font-size: 2.2rem;
     margin-bottom: 8px;
@@ -2363,6 +2408,11 @@ body.light-theme .networth-card.networth-total-card {
 body.light-theme .networth-card.epfo-card {
     background: linear-gradient(135deg, rgba(4, 130, 130, 0.06) 0%, rgba(4, 130, 130, 0.02) 100%);
     border-color: rgba(4, 130, 130, 0.18);
+}
+
+body.light-theme .networth-card.cibil-card {
+    background: linear-gradient(135deg, rgba(142, 142, 147, 0.06) 0%, rgba(142, 142, 147, 0.02) 100%);
+    border-color: rgba(142, 142, 147, 0.18);
 }
 
 /* Scrollbar styling */
