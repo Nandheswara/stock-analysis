@@ -310,15 +310,15 @@
 
 .networth-cards {
     display: grid;
-    /* Responsive: fit as many cards as possible per row, min width 200px */
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
+    /* Responsive: fit all cards in a row down to 768px screens */
+    grid-template-columns: repeat(auto-fit, minmax(115px, 1fr));
+    gap: clamp(10px, 1.5vw, 20px);
     margin-bottom: 28px;
 }
 
 .networth-card {
     position: relative;
-    padding: 28px 24px;
+    padding: 28px clamp(10px, 1.8vw, 24px);
     border-radius: 16px;
     text-align: center;
     overflow: hidden;
@@ -546,6 +546,8 @@
     overflow: hidden;
     transition: all 0.3s ease;
     animation: fadeInUp 0.4s ease;
+    max-width: 550px;
+    width: 100%;
 }
 
 .category-card:hover {
