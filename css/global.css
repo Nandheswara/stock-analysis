@@ -149,6 +149,10 @@ body *::after {
    Base Styles
    ======================================== */
 
+html {
+    font-size: clamp(11px, 0.2vw + 10px, 14px);
+}
+
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     background-color: var(--bg-primary);
@@ -1615,10 +1619,7 @@ body.light-theme .select2-container--default .select2-selection--single .select2
 
 
 @media (max-width: 768px) {
-    /* Global Typography Scaling */
-    html {
-        font-size: 14px !important; /* scale all rem-based typography down by 12.5% */
-    }
+    /* Global Typography Scaling is handled fluidly by clamp() on the root html element */
     
     body {
         font-size: 0.9rem !important; /* slightly smaller body copy */
