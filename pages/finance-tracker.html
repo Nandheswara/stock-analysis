@@ -258,6 +258,9 @@
                     </button>
                 </div>
                 <div class="month-nav-right">
+                    <button class="forecast-btn icon-only" id="forecastBtn" onclick="openForecastModal()" title="Future Forecast" aria-label="Configure future forecast">
+                        <i class="bi bi-graph-up-arrow"></i>
+                    </button>
                     <button class="view-settings-btn icon-only" onclick="openSectionSettingsModal()" title="Customize visible sections" aria-label="Customize finance tracker sections">
                         <i class="bi bi-sliders2"></i>
                     </button>
@@ -265,6 +268,23 @@
                         <i class="bi bi-eye-slash" id="maskDataIcon"></i>
                     </button>
                 </div>
+            </div>
+
+            <!-- Forecast Mode Active Banner -->
+            <div id="forecastActiveBanner" class="forecast-active-banner" style="display: none;">
+                <div class="forecast-banner-content">
+                    <i class="bi bi-graph-up-arrow forecast-banner-icon"></i>
+                    <span id="forecastBannerText">Forecast Mode Active: Projections for December 2030 (Inflation: 6%, Return: 12%)</span>
+                </div>
+                <button class="btn-finance btn-finance-outline btn-forecast-exit" onclick="exitForecastMode()" title="Exit Forecast Mode">
+                    <i class="bi bi-x-circle"></i> Exit Forecast
+                </button>
+            </div>
+
+            <!-- Cash Shortage Warning Banner -->
+            <div id="cashShortageBanner" class="cash-shortage-banner" style="display: none;">
+                <i class="bi bi-exclamation-octagon-fill cash-shortage-icon"></i>
+                <span id="cashShortageText">Warning: Projected cash shortage detected! Your bank balance falls below ₹0 in the forecasted month.</span>
             </div>
 
             <!-- Financial Summary Bar: Income | Expenditure | Invested -->
@@ -670,6 +690,101 @@
                 </button>
                 <button class="btn-finance btn-finance-primary" onclick="saveSectionPreferences()" type="button">
                     <i class="bi bi-check-lg"></i> Save Preferences
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forecast Modal -->
+    <div class="finance-modal-overlay" id="forecastModal">
+        <div class="finance-modal">
+            <div class="finance-modal-header">
+                <h3><i class="bi bi-graph-up-arrow"></i> Future Financial Forecast</h3>
+                <button class="finance-modal-close" onclick="closeFinanceModal('forecastModal')" aria-label="Close forecast modal">&times;</button>
+            </div>
+            <div class="finance-modal-body">
+                <p class="text-muted">Configure variables to project your portfolio growth, expenses, and net worth into the future.</p>
+                
+                <div class="form-group">
+                    <label>Target Period</label>
+                    <div style="display: flex; gap: 12px;">
+                        <div style="flex: 1;">
+                            <label for="forecastMonthSelect" style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 4px;">Month</label>
+                            <select id="forecastMonthSelect" class="form-select">
+                                <option value="01">January</option>
+                                <option value="02">February</option>
+                                <option value="03">March</option>
+                                <option value="04">April</option>
+                                <option value="05">May</option>
+                                <option value="06">June</option>
+                                <option value="07">July</option>
+                                <option value="08">August</option>
+                                <option value="09">September</option>
+                                <option value="10">October</option>
+                                <option value="11">November</option>
+                                <option value="12">December</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1;">
+                            <label for="forecastYearSelect" style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 4px;">Year</label>
+                            <select id="forecastYearSelect" class="form-select">
+                                <!-- Will be populated dynamically via JS -->
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div class="slider-label-row" style="display: flex; justify-content: space-between; align-items: center;">
+                        <label for="forecastInflationInput">Annual Inflation Rate (%)</label>
+                        <span class="slider-value-display" id="forecastInflationVal">6.0%</span>
+                    </div>
+                    <input type="range" class="form-range" id="forecastInflationInput" min="0" max="20" step="0.1" value="6.0" oninput="document.getElementById('forecastInflationVal').textContent = parseFloat(this.value).toFixed(1) + '%'">
+                </div>
+
+                <div class="form-group">
+                    <div class="slider-label-row" style="display: flex; justify-content: space-between; align-items: center;">
+                        <label for="forecastReturnInput">Annual Investment Return (%)</label>
+                        <span class="slider-value-display" id="forecastReturnVal">12.0%</span>
+                    </div>
+                    <input type="range" class="form-range" id="forecastReturnInput" min="0" max="30" step="0.1" value="12.0" oninput="document.getElementById('forecastReturnVal').textContent = parseFloat(this.value).toFixed(1) + '%'">
+                </div>
+
+                <div class="form-group">
+                    <div class="slider-label-row" style="display: flex; justify-content: space-between; align-items: center;">
+                        <label for="forecastIncomeGrowthInput">Annual Income Growth (%)</label>
+                        <span class="slider-value-display" id="forecastIncomeGrowthVal">5.0%</span>
+                    </div>
+                    <input type="range" class="form-range" id="forecastIncomeGrowthInput" min="0" max="20" step="0.1" value="5.0" oninput="document.getElementById('forecastIncomeGrowthVal').textContent = parseFloat(this.value).toFixed(1) + '%'">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <label for="forecastEpfoContribInput">Monthly EPFO Contribution (₹)</label>
+                        <span style="font-size: 0.75rem; color: var(--accent-primary); font-weight: 500;">e.g. 12% employer + employee EPF</span>
+                    </div>
+                    <input type="number" id="forecastEpfoContribInput" class="form-control" placeholder="e.g. 19440" min="0" step="1">
+                    <small class="text-muted" style="font-size: 0.75rem; display: block; margin-top: 4px;">Accumulates monthly EPF additions compounding at 8.15% p.a.</small>
+                </div>
+
+                <div class="form-group" style="border: 1px solid var(--border-color); border-radius: 12px; padding: 14px; background: var(--bg-tertiary); margin-top: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <label for="forecastExpensesToggle" style="font-weight: 500; cursor: pointer; margin-bottom: 0;">Override Monthly Expenses</label>
+                        <div class="form-check form-switch" style="padding-left: 2.5em; margin-bottom: 0;">
+                            <input class="form-check-input" type="checkbox" role="switch" id="forecastExpensesToggle" onchange="toggleForecastExpensesInput()">
+                        </div>
+                    </div>
+                    <p class="text-muted" style="font-size: 0.8rem; margin-bottom: 12px;">If disabled, we'll calculate average monthly expenses based on recent months.</p>
+                    <div id="forecastExpensesInputContainer" style="display: none;">
+                        <label for="forecastExpensesInput" style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 4px;">Expected Monthly Expenses (₹)</label>
+                        <input type="number" id="forecastExpensesInput" class="form-control" placeholder="Enter amount" min="0" step="1">
+                    </div>
+                </div>
+            </div>
+            <div class="finance-modal-footer">
+                <button class="btn-finance btn-finance-outline" onclick="closeFinanceModal('forecastModal')" type="button">Cancel</button>
+                <button class="btn-finance btn-finance-primary" onclick="applyForecastMode()" type="button">
+                    <i class="bi bi-graph-up"></i> Generate Forecast
                 </button>
             </div>
         </div>
