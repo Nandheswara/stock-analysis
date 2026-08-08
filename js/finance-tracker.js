@@ -75,6 +75,16 @@ log('info', 'Finance tracker initialized successfully.');
 // ========================================
 
 let currentMonth = getCurrentMonthKey();
+let forecastConfig = {
+    isActive: false,
+    targetMonth: '',
+    inflation: 6.0,
+    returns: 12.0,
+    incomeGrowth: 5.0,
+    expensesOverride: null
+};
+let originalActualMonth = null;
+let originalActualData = null;
 let financeData = {
     categories: {},
     banks: {},
@@ -1055,12 +1065,18 @@ function formatCurrencyWithSign(amount) {
 
 function initMonthNavigator() {
     document.getElementById('monthPrevBtn').addEventListener('click', () => {
+        if (forecastConfig && forecastConfig.isActive) {
+            exitForecastMode();
+        }
         currentMonth = getPreviousMonth(currentMonth);
         updateMonthDisplay();
         renderAll();
     });
 
     document.getElementById('monthNextBtn').addEventListener('click', () => {
+        if (forecastConfig && forecastConfig.isActive) {
+            exitForecastMode();
+        }
         const next = getNextMonth(currentMonth);
         currentMonth = next;
         updateMonthDisplay();
@@ -1853,6 +1869,9 @@ function renderExpenses() {
 
     // Filter for general expenses only — require explicit balance entry, no auto carry-forward
     const visibleCards = Object.entries(cards).filter(([cardId, card]) => {
+        if (cardId === 'forecast_projected_expense') {
+            return false;
+        }
         if ((card.type || 'credit-card') !== 'general-expense') {
             return false;
         }
@@ -2549,6 +2568,9 @@ function renderAll() {
     // Guard against re-entrant renders
     if (isRendering) return;
     isRendering = true;
+
+    const isForecastActive = forecastConfig && forecastConfig.isActive;
+
     try {
         applySectionPreferences();
         renderIncome();
@@ -2585,6 +2607,12 @@ function renderAll() {
         }
 
         applyAmountMasking();
+
+        if (isForecastActive) {
+            applyForecastUIStates();
+        } else {
+            clearForecastUIStates();
+        }
     } finally {
         isRendering = false;
     }
@@ -4352,7 +4380,17 @@ function setupAuth() {
             // Setup finance data listener
             if (unsubscribeFinance) unsubscribeFinance();
             unsubscribeFinance = listenToFinanceData((data) => {
-                financeData = data;
+                window.financeData = data;
+                if (forecastConfig && forecastConfig.isActive) {
+                    originalActualData = data;
+                    try {
+                        financeData = generateForecastData(originalActualData, originalActualMonth, forecastConfig.targetMonth, forecastConfig);
+                    } catch (e) {
+                        log('error', 'Error generating forecast: ' + e.message);
+                    }
+                } else {
+                    financeData = data;
+                }
                 financeDataVersion += 1;
                 renderRecordPreferenceOptions();
                 debouncedRenderAll();
@@ -4637,6 +4675,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeAmountMasking();
     applySectionPreferences();
     setupAuth();
+    initForecastModalInputs();
 
     // Accordion togglers for mobile viewports (tables and category cards)
     document.addEventListener('click', (e) => {
@@ -4673,3 +4712,543 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+// ========================================
+// Future Financial Forecast Feature
+// ========================================
+
+function initForecastModalInputs() {
+    const yearSelect = document.getElementById('forecastYearSelect');
+    if (yearSelect && yearSelect.options.length === 0) {
+        const currentYear = new Date().getFullYear();
+        for (let y = currentYear; y <= currentYear + 30; y++) {
+            const opt = document.createElement('option');
+            opt.value = y;
+            opt.textContent = y;
+            yearSelect.appendChild(opt);
+        }
+    }
+    
+    // Default selections: set target month to next month, target year to next year or 3 years ahead
+    const [curYear, curMon] = currentMonth.split('-');
+    const nextMonthKey = getNextMonth(currentMonth);
+    const [nextYear, nextMon] = nextMonthKey.split('-');
+    
+    document.getElementById('forecastMonthSelect').value = nextMon;
+    document.getElementById('forecastYearSelect').value = Number(curYear) + 1; // Default to next year
+    
+    // Reset sliders to defaults
+    document.getElementById('forecastInflationInput').value = "6.0";
+    document.getElementById('forecastInflationVal').textContent = "6.0%";
+    document.getElementById('forecastReturnInput').value = "12.0";
+    document.getElementById('forecastReturnVal').textContent = "12.0%";
+    document.getElementById('forecastIncomeGrowthInput').value = "5.0";
+    document.getElementById('forecastIncomeGrowthVal').textContent = "5.0%";
+    
+    // Pre-populate EPFO monthly contribution (default to 12% of baseline salary if available)
+    const epfoInput = document.getElementById('forecastEpfoContribInput');
+    if (epfoInput && !epfoInput.value) {
+        const refM = originalActualMonth || currentMonth;
+        const incObj = financeData.income?.[refM] || {};
+        const sal = Number(incObj.salary) || 162000;
+        epfoInput.value = Math.round(sal * 0.12);
+    }
+
+    // Toggle expenses override off
+    const expToggle = document.getElementById('forecastExpensesToggle');
+    expToggle.checked = false;
+    document.getElementById('forecastExpensesInputContainer').style.display = 'none';
+    document.getElementById('forecastExpensesInput').value = '';
+}
+
+window.openForecastModal = function() {
+    openModal('forecastModal');
+    initForecastModalInputs();
+};
+
+window.closeForecastModal = function() {
+    closeModal('forecastModal');
+};
+
+window.toggleForecastExpensesInput = function() {
+    const toggle = document.getElementById('forecastExpensesToggle');
+    const container = document.getElementById('forecastExpensesInputContainer');
+    const input = document.getElementById('forecastExpensesInput');
+    if (toggle.checked) {
+        container.style.display = 'block';
+        // Pre-populate with average monthly expenses if empty
+        if (!input.value) {
+            const summary = computeFinancialSummary(financeData, currentMonth);
+            input.value = Math.round(summary.expenditure) || '';
+        }
+    } else {
+        container.style.display = 'none';
+        input.value = '';
+    }
+};
+
+window.applyForecastMode = function() {
+    const month = document.getElementById('forecastMonthSelect').value;
+    const year = document.getElementById('forecastYearSelect').value;
+    const targetMonthKey = `${year}-${month}`;
+    
+    // Check if targetMonthKey is in the future
+    if (targetMonthKey <= currentMonth && !forecastConfig.isActive) {
+        alert('Please select a future month and year for the forecast.');
+        return;
+    }
+    
+    // If already in forecast mode, we use the original month as the reference point
+    const refMonth = originalActualMonth !== null ? originalActualMonth : currentMonth;
+    if (targetMonthKey <= refMonth) {
+        alert('Please select a future month and year for the forecast.');
+        return;
+    }
+    
+    const inflation = parseFloat(document.getElementById('forecastInflationInput').value) || 0;
+    const returns = parseFloat(document.getElementById('forecastReturnInput').value) || 0;
+    const incomeGrowth = parseFloat(document.getElementById('forecastIncomeGrowthInput').value) || 0;
+    
+    const expToggle = document.getElementById('forecastExpensesToggle');
+    let expensesOverride = null;
+    if (expToggle.checked) {
+        const val = parseFloat(document.getElementById('forecastExpensesInput').value);
+        if (Number.isNaN(val) || val < 0) {
+            alert('Please enter a valid monthly expenses amount.');
+            return;
+        }
+        expensesOverride = val;
+    }
+    
+    // Backup original actual state if not already in forecast mode
+    if (originalActualMonth === null) {
+        originalActualMonth = currentMonth;
+        originalActualData = financeData;
+    }
+    
+    const epfoContribution = parseFloat(document.getElementById('forecastEpfoContribInput').value) || 0;
+
+    // Set forecast state
+    forecastConfig = {
+        isActive: true,
+        targetMonth: targetMonthKey,
+        inflation,
+        returns,
+        incomeGrowth,
+        expensesOverride,
+        epfoContribution
+    };
+    
+    // Set active month and data to projected
+    try {
+        financeData = generateForecastData(originalActualData, originalActualMonth, targetMonthKey, forecastConfig);
+        currentMonth = targetMonthKey;
+    } catch (e) {
+        log('error', 'Error generating forecast: ' + e.message);
+        alert('An error occurred while generating the forecast: ' + e.message);
+        exitForecastMode();
+        return;
+    }
+    
+    // Hide modal
+    closeModal('forecastModal');
+    
+    // Update banner text
+    const banner = document.getElementById('forecastActiveBanner');
+    const bannerText = document.getElementById('forecastBannerText');
+    const monthDisplay = getMonthDisplay(targetMonthKey);
+    bannerText.textContent = `Forecast Mode Active: Projections for ${monthDisplay} (Inflation: ${inflation.toFixed(1)}%, Return: ${returns.toFixed(1)}%, Income Growth: ${incomeGrowth.toFixed(1)}%)`;
+    banner.style.display = 'flex';
+    
+    // Update navigator display
+    updateMonthDisplay();
+    
+    // Trigger render
+    renderAll();
+};
+
+window.exitForecastMode = function() {
+    forecastConfig.isActive = false;
+    
+    // Restore original actual state
+    if (originalActualMonth !== null) {
+        currentMonth = originalActualMonth;
+        financeData = originalActualData;
+        originalActualMonth = null;
+        originalActualData = null;
+    }
+    
+    // Hide banners
+    const banner = document.getElementById('forecastActiveBanner');
+    if (banner) banner.style.display = 'none';
+    const cashBanner = document.getElementById('cashShortageBanner');
+    if (cashBanner) cashBanner.style.display = 'none';
+    
+    // Update navigator display
+    updateMonthDisplay();
+    
+    // Trigger render to restore original actual data
+    renderAll();
+};
+
+function generateForecastData(baseData, startMonth, targetMonth, config) {
+    // 1. Deep copy baseData
+    const proj = JSON.parse(JSON.stringify(baseData));
+    
+    // Dynamic Helper: Universal Monthly Contribution & SIP Detector across all category types (Land, Real Estate, Crypto, RD, Gold, Mutual Funds, etc.)
+    function detectMonthlyContribution(catId, itemName, refMonth) {
+        let maxChange = 0;
+        let currMonth = refMonth;
+        
+        for (let i = 0; i < 3; i++) {
+            const prevMonthKey = getPreviousMonth(currMonth);
+            
+            let currAmt = 0;
+            const catObj = baseData.categories?.[catId];
+            if (catObj && catObj.items) {
+                Object.values(catObj.items).forEach(item => {
+                    if (item && item.month === currMonth && item.name === itemName) {
+                        currAmt = Number(item.amount) || 0;
+                    }
+                });
+            }
+            
+            let prevAmt = 0;
+            if (catObj && catObj.items) {
+                Object.values(catObj.items).forEach(item => {
+                    if (item && item.month === prevMonthKey && item.name === itemName) {
+                        prevAmt = Number(item.amount) || 0;
+                    }
+                });
+            }
+            
+            let change = 0;
+            if (prevAmt > 0) {
+                // Pure mathematical delta: Any positive change between consecutive months is detected as recurring monthly inflow
+                change = Math.max(0, currAmt - prevAmt);
+            } else if (currAmt > 0) {
+                // First appearance of an item: Distinguish recurring monthly additions vs one-time lump-sum capital assets (e.g., Land purchase)
+                const nameLower = (itemName + ' ' + catId + ' ' + (catObj?.name || '')).toLowerCase();
+                const isExplicitLumpSum = nameLower.includes('land') || nameLower.includes('plot') || nameLower.includes('flat') || nameLower.includes('property');
+                
+                // If initial value is under ₹50,000 OR contains recurring keywords, treat initial value as the monthly contribution rate
+                if (!isExplicitLumpSum && (currAmt <= 50000 || nameLower.includes('sip') || nameLower.includes('chit') || nameLower.includes('rd') || nameLower.includes('recurring') || nameLower.includes('monthly'))) {
+                    change = currAmt;
+                }
+            }
+            
+            if (change > maxChange) {
+                maxChange = change;
+            }
+            currMonth = prevMonthKey;
+        }
+        return maxChange;
+    }
+    
+    // Helper to calculate average monthly expenditures across the last 12 available historical months
+    function calculateHistoricalAvgExpenses(data, refMonth) {
+        let total = 0;
+        let count = 0;
+        let curr = refMonth;
+        for (let i = 0; i < 12; i++) {
+            if (data.income?.[curr] || data.monthlySnapshots?.[curr]) {
+                const sum = computeFinancialSummary(data, curr);
+                const exp = (sum && sum.expenditure > 0) ? sum.expenditure : (Number(data.monthlySnapshots?.[curr]?.totalExpenses) || 0);
+                if (exp > 0) {
+                    total += exp;
+                    count++;
+                }
+            }
+            curr = getPreviousMonth(curr);
+        }
+        return count > 0 ? (total / count) : 0;
+    }
+    
+    // 2. Find all intermediate months
+    const monthsList = [startMonth];
+    let current = startMonth;
+    while (current !== targetMonth) {
+        current = getNextMonth(current);
+        monthsList.push(current);
+    }
+    
+    // Find the most recent active month with recorded salary to serve as the template pattern
+    let referenceMonth = startMonth;
+    let tempMonth = startMonth;
+    let foundRef = false;
+    for (let i = 0; i < 12; i++) {
+        const inc = baseData.income?.[tempMonth];
+        if (inc && Number(inc.salary) > 0) {
+            referenceMonth = tempMonth;
+            foundRef = true;
+            break;
+        }
+        tempMonth = getPreviousMonth(tempMonth);
+    }
+    
+    // Pre-calculate baseline parameters from reference month
+    const startSummary = computeFinancialSummary(baseData, referenceMonth);
+    const r_m = Math.pow(1 + config.returns / 100, 1 / 12) - 1;
+    const avgHistoricalExpenses = calculateHistoricalAvgExpenses(baseData, referenceMonth);
+    
+    // 3. For each intermediate month, calculate values sequentially
+    for (let k = 1; k < monthsList.length; k++) {
+        const m = monthsList[k];
+        const prevM = monthsList[k - 1];
+        const y = k / 12; // years difference
+        
+        // --- Income (Fixed Monthly Amount) ---
+        const startIncomeObj = baseData.income[referenceMonth] || { salary: 0, otherIncome: 0 };
+        const baseSalary = Number(startIncomeObj.salary) || 0;
+        const baseOther = Number(startIncomeObj.otherIncome) || 0;
+        const projSalary = baseSalary;
+        const projOther = baseOther;
+        proj.income[m] = {
+            salary: projSalary,
+            otherIncome: projOther,
+            totalIncome: projSalary + projOther
+        };
+        
+        // --- Taxes ---
+        const startTaxObj = baseData.taxes?.[referenceMonth] || { tax: 0 };
+        const baseTax = Number(startTaxObj.tax) || 0;
+        const projTax = baseTax * Math.pow(1 + config.incomeGrowth / 100, y);
+        if (!proj.taxes) proj.taxes = {};
+        proj.taxes[m] = { tax: projTax };
+        
+        // --- EPFO (Accumulates monthly EPF contributions + 8.15% p.a. interest) ---
+        const r_epfo = Math.pow(1 + 0.0815, 1 / 12) - 1; // Monthly EPF interest compounding rate
+        const epfoMonthlyContrib = (config.epfoContribution !== undefined && config.epfoContribution !== null) 
+            ? Number(config.epfoContribution) 
+            : Math.round(baseSalary * 0.12);
+
+        let prevEpfoVal = 0;
+        if (k === 1) {
+            const startEpfoObj = baseData.epfo?.[referenceMonth] || { value: 0 };
+            prevEpfoVal = Number(startEpfoObj.value) || 0;
+        } else {
+            prevEpfoVal = Number(proj.epfo?.[prevM]?.value) || 0;
+        }
+
+        const projEpfo = prevEpfoVal + (prevEpfoVal * r_epfo) + epfoMonthlyContrib;
+        if (!proj.epfo) proj.epfo = {};
+        proj.epfo[m] = { value: projEpfo };
+        
+        // --- Investments (Categories) Compounding & Contributions ---
+        let monthlyInvestmentTotal = 0;
+        Object.entries(proj.categories || {}).forEach(([catId, cat]) => {
+            if (!cat.items) cat.items = {};
+            
+            // Find all unique item names in this category around the reference month
+            const uniqueItemNames = new Set();
+            Object.values(cat.items).forEach(item => {
+                if (item && item.name && (item.month === referenceMonth || item.month === getPreviousMonth(referenceMonth))) {
+                    if (!item.name.includes('(Projected)') && !item.name.includes('Expected Investment Returns')) {
+                        uniqueItemNames.add(item.name);
+                    }
+                }
+            });
+            
+            let catContribTotal = 0;
+            uniqueItemNames.forEach(itemName => {
+                // Find previous month's balance of this item (which represents the compounded cumulative balance so far)
+                let prevAmt = 0;
+                Object.values(cat.items).forEach(item => {
+                    if (item && item.month === prevM && item.name === itemName) {
+                        prevAmt = Number(item.amount) || 0;
+                    }
+                });
+                
+                // If it is month 1, we seed it with the actual balance of the reference month
+                if (k === 1) {
+                    let baseAmt = 0;
+                    Object.values(cat.items).forEach(item => {
+                        if (item && item.month === referenceMonth && item.name === itemName) {
+                            baseAmt = Number(item.amount) || 0;
+                        }
+                    });
+                    prevAmt = baseAmt;
+                }
+                
+                // Compound the existing balance
+                const growth = prevAmt * r_m;
+                
+                // Project the monthly contribution (SIP/Chit)
+                const detectedContrib = detectMonthlyContribution(catId, itemName, referenceMonth);
+                const projContrib = detectedContrib * Math.pow(1 + config.incomeGrowth / 100, y);
+                
+                // New cumulative balance for month m
+                const newAmt = prevAmt + growth + projContrib;
+                
+                // Save the cumulative balance as the item's amount in month m
+                const newItemId = `forecast_item_${m}_${catId}_${itemName.replace(/\s+/g, '_')}`;
+                cat.items[newItemId] = {
+                    amount: newAmt,
+                    month: m,
+                    name: itemName,
+                    category: cat.name
+                };
+                
+                catContribTotal += projContrib;
+            });
+            monthlyInvestmentTotal += catContribTotal;
+        });
+        
+        // --- Expenditures (Loans, General Expenses, Credit Cards) ---
+        let loanOutflow = 0;
+        
+        Object.values(proj.loans || {}).forEach(card => {
+            if (!card.balances) card.balances = {};
+            if (!card.paymentStatusByMonth) card.paymentStatusByMonth = {};
+            
+            if (card.loanStartMonth && card.tenure) {
+                const monthIndex = getMonthsDifference(card.loanStartMonth, m) + 1;
+                if (monthIndex >= 1 && monthIndex <= card.tenure) {
+                    const schedule = calculateAmortizationSchedule(
+                        parseFloat(card.totalLoanAmount) || 0,
+                        parseFloat(card.interestRate) || 0,
+                        parseInt(card.tenure) || 0,
+                        parseFloat(card.processingFee) || 0,
+                        card.loanType
+                    );
+                    const record = schedule[monthIndex - 1];
+                    if (record) {
+                        loanOutflow += (record.totalOutflow || 0);
+                        card.balances[m] = record.endBalance; // Principal remaining after paying EMI
+                        card.paymentStatusByMonth[m] = true;  // EMI paid from monthly income
+                    }
+                } else if (monthIndex > card.tenure) {
+                    // Tenure completed: Loan fully paid off (0 remaining liabilities)
+                    card.balances[m] = 0;
+                    card.paymentStatusByMonth[m] = true;
+                }
+            }
+        });
+        
+        // General Expenses & Credit Cards
+        // If override is provided, use it directly. Otherwise, use the 12-month historical average expenses.
+        let generalExpensesAndCC;
+        if (config.expensesOverride !== null) {
+            generalExpensesAndCC = config.expensesOverride * Math.pow(1 + config.inflation / 100, y);
+        } else {
+            const baseExpenses = avgHistoricalExpenses > 0 ? avgHistoricalExpenses : startSummary.expenditure;
+            generalExpensesAndCC = Math.max(0, baseExpenses * Math.pow(1 + config.inflation / 100, y) - loanOutflow);
+        }
+        
+        // Preserve existing credit card accounts and insurance cards for forecast display
+        Object.values(proj.creditCards || {}).forEach(card => {
+            if (!card.balances) card.balances = {};
+            card.balances[m] = 0;
+            if (!card.paymentStatusByMonth) card.paymentStatusByMonth = {};
+            card.paymentStatusByMonth[m] = true;
+        });
+        
+        Object.values(proj.insurance || {}).forEach(card => {
+            if (!card.balances) card.balances = {};
+            card.balances[m] = 0;
+        });
+
+        // Store projected monthly expenses entry for accurate expenditure calculation in computeFinancialSummary and analytics charts
+        if (!proj.expenses) proj.expenses = {};
+        if (!proj.expenses['forecast_projected_expense']) {
+            proj.expenses['forecast_projected_expense'] = {
+                name: 'Projected Monthly Expenses',
+                type: 'general-expense',
+                balances: {},
+                outstandingBalance: 0
+            };
+        }
+        proj.expenses['forecast_projected_expense'].balances[m] = generalExpensesAndCC;
+        
+        const totalExpensesM = loanOutflow + generalExpensesAndCC;
+        
+        // --- Bank Balances (Accumulated Surplus/Deficit) ---
+        // Savings = Income - Expenditures - Monthly Investment Contributions (outflow from salary/bank)
+        const monthlySavings = (projSalary + projOther) - totalExpensesM - monthlyInvestmentTotal;
+        
+        let prevTotalBankBal = 0;
+        Object.values(proj.banks || {}).forEach(bank => {
+            if (!bank.balances) bank.balances = {};
+            if (bank.balances[prevM] === undefined) {
+                bank.balances[prevM] = getMonthAmount(bank, prevM, 'balance');
+            }
+            prevTotalBankBal += bank.balances[prevM];
+        });
+        
+        Object.values(proj.banks || {}).forEach(bank => {
+            if (!bank.balances) bank.balances = {};
+            if (prevTotalBankBal !== 0) {
+                const ratio = bank.balances[prevM] / prevTotalBankBal;
+                bank.balances[m] = bank.balances[prevM] + monthlySavings * ratio;
+            } else {
+                const count = Object.keys(proj.banks || {}).length;
+                bank.balances[m] = (bank.balances[prevM] || 0) + monthlySavings / (count || 1);
+            }
+        });
+    }
+    
+    return proj;
+}
+
+function applyForecastUIStates() {
+    document.body.classList.add('forecast-mode-active');
+
+    // Target specific interactive controls (buttons, inputs, action icons), NOT card containers
+    const query = '#financeMainContent button, #financeMainContent input, #financeMainContent select, #financeMainContent .action-icon, #financeMainContent .card-action-btn, #financeMainContent .edit-btn, #financeMainContent .delete-btn, #financeMainContent .add-item-btn';
+    document.querySelectorAll(query).forEach(el => {
+        // Skip forecast-related elements AND any element inside a modal overlay
+        if (el.id !== 'maskDataBtn' && el.id !== 'forecastBtn' && !el.classList.contains('btn-forecast-exit')
+            && !el.closest('.finance-modal-overlay')) {
+            el.classList.add('forecast-disabled-element');
+            el.setAttribute('data-orig-title', el.getAttribute('title') || '');
+            el.setAttribute('title', 'Editing is disabled in Forecast Mode');
+        }
+    });
+
+    const summary = computeFinancialSummary(financeData, currentMonth);
+    const totalBank = summary.totalBankBalance;
+    
+    const cashShortageBanner = document.getElementById('cashShortageBanner');
+    if (totalBank < 0) {
+        if (cashShortageBanner) {
+            cashShortageBanner.style.display = 'flex';
+            document.getElementById('cashShortageText').innerHTML = `
+                <strong>Warning:</strong> Projected cash shortage detected! Your total bank balance falls below ₹0 to <strong style="color:#ff6b6b;">${formatCurrencyWithSign(totalBank)}</strong> in the forecasted month.
+            `;
+        }
+        const bankCard = document.getElementById('summaryBankCard') || document.querySelector('.bank-balance-metric');
+        if (bankCard) {
+            bankCard.classList.add('cash-shortage-card-warning');
+            const bankVal = bankCard.querySelector('.metric-value') || bankCard;
+            if (bankVal) bankVal.classList.add('cash-shortage-text-warning');
+        }
+    } else {
+        if (cashShortageBanner) cashShortageBanner.style.display = 'none';
+    }
+}
+
+function clearForecastUIStates() {
+    document.body.classList.remove('forecast-mode-active');
+
+    const query = '.forecast-disabled-element';
+    document.querySelectorAll(query).forEach(el => {
+        el.classList.remove('forecast-disabled-element');
+        if (el.hasAttribute('data-orig-title')) {
+            el.setAttribute('title', el.getAttribute('data-orig-title'));
+            el.removeAttribute('data-orig-title');
+        } else {
+            el.removeAttribute('title');
+        }
+    });
+
+    const bankCard = document.getElementById('summaryBankCard') || document.querySelector('.bank-balance-metric');
+    if (bankCard) {
+        bankCard.classList.remove('cash-shortage-card-warning');
+        const bankVal = bankCard.querySelector('.metric-value') || bankCard;
+        if (bankVal) bankVal.classList.remove('cash-shortage-text-warning');
+    }
+    
+    const cashShortageBanner = document.getElementById('cashShortageBanner');
+    if (cashShortageBanner) cashShortageBanner.style.display = 'none';
+}
+

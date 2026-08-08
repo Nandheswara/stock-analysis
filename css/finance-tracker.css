@@ -189,12 +189,12 @@
     border-radius: 10px !important;
     cursor: help;
     transition: all 0.25s ease;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .savings-badge:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 /* ========================================
@@ -268,11 +268,25 @@
     display: block;
 }
 
-.summary-metric.income-metric .metric-icon { color: var(--accent-success); }
-.summary-metric.expenditure-metric .metric-icon { color: var(--accent-danger); }
-.summary-metric.invested-metric .metric-icon { color: var(--accent-primary); }
-.summary-metric.bank-balance-metric .metric-icon { color: var(--accent-success); }
-.summary-metric.tax-metric .metric-icon { color: var(--accent-warning); }
+.summary-metric.income-metric .metric-icon {
+    color: var(--accent-success);
+}
+
+.summary-metric.expenditure-metric .metric-icon {
+    color: var(--accent-danger);
+}
+
+.summary-metric.invested-metric .metric-icon {
+    color: var(--accent-primary);
+}
+
+.summary-metric.bank-balance-metric .metric-icon {
+    color: var(--accent-success);
+}
+
+.summary-metric.tax-metric .metric-icon {
+    color: var(--accent-warning);
+}
 
 .summary-metric .metric-label {
     font-family: 'Inter', sans-serif;
@@ -292,11 +306,25 @@
     letter-spacing: -0.02em;
 }
 
-.summary-metric.income-metric .metric-value { color: var(--accent-success); }
-.summary-metric.expenditure-metric .metric-value { color: var(--accent-danger); }
-.summary-metric.invested-metric .metric-value { color: var(--accent-primary); }
-.summary-metric.bank-balance-metric .metric-value { color: var(--accent-success); }
-.summary-metric.tax-metric .metric-value { color: var(--accent-warning); }
+.summary-metric.income-metric .metric-value {
+    color: var(--accent-success);
+}
+
+.summary-metric.expenditure-metric .metric-value {
+    color: var(--accent-danger);
+}
+
+.summary-metric.invested-metric .metric-value {
+    color: var(--accent-primary);
+}
+
+.summary-metric.bank-balance-metric .metric-value {
+    color: var(--accent-success);
+}
+
+.summary-metric.tax-metric .metric-value {
+    color: var(--accent-warning);
+}
 
 .summary-metric .metric-sub {
     font-size: 0.78rem;
@@ -327,8 +355,14 @@
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-.networth-card.clickable { cursor: pointer; }
-.networth-card.clickable:focus { outline: 3px solid rgba(34,34,34,0.06); box-shadow: var(--shadow-sm); }
+.networth-card.clickable {
+    cursor: pointer;
+}
+
+.networth-card.clickable:focus {
+    outline: 3px solid rgba(34, 34, 34, 0.06);
+    box-shadow: var(--shadow-sm);
+}
 
 .networth-card:hover {
     transform: translateY(-4px);
@@ -360,14 +394,21 @@
     border: 1px solid rgba(142, 142, 147, 0.22);
     transition: all 0.3s ease;
 }
-.networth-card.cibil-card .nw-icon { color: #8e8e93; }
-.networth-card.cibil-card .nw-value { color: #8e8e93; }
+
+.networth-card.cibil-card .nw-icon {
+    color: #8e8e93;
+}
+
+.networth-card.cibil-card .nw-value {
+    color: #8e8e93;
+}
 
 /* CIBIL Score Health Theme Overlays */
 .networth-card.cibil-card.cibil-excellent {
     background: linear-gradient(135deg, rgba(40, 167, 69, 0.15) 0%, rgba(40, 167, 69, 0.05) 100%);
     border-color: rgba(40, 167, 69, 0.35);
 }
+
 .networth-card.cibil-card.cibil-excellent .nw-icon,
 .networth-card.cibil-card.cibil-excellent .nw-value {
     color: #28a745;
@@ -377,6 +418,7 @@
     background: linear-gradient(135deg, rgba(173, 223, 35, 0.15) 0%, rgba(173, 223, 35, 0.05) 100%);
     border-color: rgba(173, 223, 35, 0.35);
 }
+
 .networth-card.cibil-card.cibil-good .nw-icon,
 .networth-card.cibil-card.cibil-good .nw-value {
     color: #9cb315;
@@ -386,6 +428,7 @@
     background: linear-gradient(135deg, rgba(253, 126, 20, 0.15) 0%, rgba(253, 126, 20, 0.05) 100%);
     border-color: rgba(253, 126, 20, 0.35);
 }
+
 .networth-card.cibil-card.cibil-fair .nw-icon,
 .networth-card.cibil-card.cibil-fair .nw-value {
     color: #fd7e14;
@@ -395,6 +438,7 @@
     background: linear-gradient(135deg, rgba(220, 53, 69, 0.15) 0%, rgba(220, 53, 69, 0.05) 100%);
     border-color: rgba(220, 53, 69, 0.35);
 }
+
 .networth-card.cibil-card.cibil-poor .nw-icon,
 .networth-card.cibil-card.cibil-poor .nw-value {
     color: #dc3545;
@@ -406,10 +450,21 @@
     display: block;
 }
 
-.networth-card.assets-card .nw-icon { color: var(--accent-success); }
-.networth-card.liabilities-card .nw-icon { color: var(--accent-danger); }
-.networth-card.networth-total-card .nw-icon { color: var(--accent-primary); }
-.networth-card.epfo-card .nw-icon { color: #048282; }
+.networth-card.assets-card .nw-icon {
+    color: var(--accent-success);
+}
+
+.networth-card.liabilities-card .nw-icon {
+    color: var(--accent-danger);
+}
+
+.networth-card.networth-total-card .nw-icon {
+    color: var(--accent-primary);
+}
+
+.networth-card.epfo-card .nw-icon {
+    color: #048282;
+}
 
 .networth-card .nw-label {
     font-family: 'Inter', sans-serif;
@@ -428,10 +483,21 @@
     letter-spacing: -0.02em;
 }
 
-.networth-card.assets-card .nw-value { color: var(--accent-success); }
-.networth-card.liabilities-card .nw-value { color: var(--accent-danger); }
-.networth-card.networth-total-card .nw-value { color: var(--accent-primary); }
-.networth-card.epfo-card .nw-value { color: #048282; }
+.networth-card.assets-card .nw-value {
+    color: var(--accent-success);
+}
+
+.networth-card.liabilities-card .nw-value {
+    color: var(--accent-danger);
+}
+
+.networth-card.networth-total-card .nw-value {
+    color: var(--accent-primary);
+}
+
+.networth-card.epfo-card .nw-value {
+    color: #048282;
+}
 
 .networth-card .nw-change {
     font-size: 0.82rem;
@@ -439,8 +505,13 @@
     font-weight: 500;
 }
 
-.nw-change.positive { color: var(--accent-success); }
-.nw-change.negative { color: var(--accent-danger); }
+.nw-change.positive {
+    color: var(--accent-success);
+}
+
+.nw-change.negative {
+    color: var(--accent-danger);
+}
 
 /* ========================================
    Section Titles
@@ -899,9 +970,17 @@
     transition: width 0.6s ease;
 }
 
-.utilization-bar-fill.low { background: var(--accent-success); }
-.utilization-bar-fill.medium { background: var(--accent-warning); }
-.utilization-bar-fill.high { background: var(--accent-danger); }
+.utilization-bar-fill.low {
+    background: var(--accent-success);
+}
+
+.utilization-bar-fill.medium {
+    background: var(--accent-warning);
+}
+
+.utilization-bar-fill.high {
+    background: var(--accent-danger);
+}
 
 .utilization-percent {
     font-family: 'Inter', sans-serif;
@@ -1597,10 +1676,22 @@
     min-width: 280px;
 }
 
-.finance-toast.success { background: linear-gradient(135deg, var(--accent-success) 0%, var(--accent-success-hover) 100%); }
-.finance-toast.error { background: linear-gradient(135deg, var(--accent-danger) 0%, var(--accent-danger-hover) 100%); }
-.finance-toast.info { background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-primary-hover) 100%); }
-.finance-toast.warning { background: linear-gradient(135deg, var(--accent-warning) 0%, var(--accent-warning-hover) 100%); color: #1a1a1a; }
+.finance-toast.success {
+    background: linear-gradient(135deg, var(--accent-success) 0%, var(--accent-success-hover) 100%);
+}
+
+.finance-toast.error {
+    background: linear-gradient(135deg, var(--accent-danger) 0%, var(--accent-danger-hover) 100%);
+}
+
+.finance-toast.info {
+    background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-primary-hover) 100%);
+}
+
+.finance-toast.warning {
+    background: linear-gradient(135deg, var(--accent-warning) 0%, var(--accent-warning-hover) 100%);
+    color: #1a1a1a;
+}
 
 /* ========================================
    Export Section
@@ -1646,8 +1737,13 @@
    ======================================== */
 
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 @keyframes fadeInUp {
@@ -1655,6 +1751,7 @@
         opacity: 0;
         transform: translateY(20px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -1666,6 +1763,7 @@
         opacity: 0;
         transform: translateY(30px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -1677,6 +1775,7 @@
         opacity: 0;
         transform: translateX(100px);
     }
+
     to {
         opacity: 1;
         transform: translateX(0);
@@ -1684,18 +1783,37 @@
 }
 
 @keyframes fadeOut {
-    from { opacity: 1; }
-    to { opacity: 0; }
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
 }
 
 @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
 }
 
 @keyframes countUp {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* ========================================
@@ -1816,7 +1934,8 @@
         cursor: pointer;
         user-select: none;
         position: relative;
-        padding-right: 44px; /* Space for action buttons + chevron */
+        padding-right: 44px;
+        /* Space for action buttons + chevron */
     }
 
     .category-card-header::after {
@@ -1939,18 +2058,18 @@
         overflow: visible;
     }
 
-    .finance-table, 
-    .finance-table thead, 
-    .finance-table tbody, 
-    .finance-table th, 
-    .finance-table td, 
-    .finance-table tr { 
-        display: block; 
+    .finance-table,
+    .finance-table thead,
+    .finance-table tbody,
+    .finance-table th,
+    .finance-table td,
+    .finance-table tr {
+        display: block;
         width: 100%;
         min-width: 0 !important;
     }
 
-    .finance-table thead tr { 
+    .finance-table thead tr {
         position: absolute;
         top: -9999px;
         left: -9999px;
@@ -1994,7 +2113,7 @@
         transform: rotate(180deg);
     }
 
-    .finance-table tbody td { 
+    .finance-table tbody td {
         display: none;
         border: none;
         position: relative;
@@ -2045,52 +2164,223 @@
 
     .finance-table tbody td:first-child {
         padding-top: 0;
-        padding-right: 28px; /* space for chevron */
+        padding-right: 28px;
+        /* space for chevron */
     }
 
     /* Bank Accounts Table Labels */
-    #banksTableBody td:nth-of-type(1)::before { content: "Account Name"; font-weight: 600; color: var(--text-muted); text-align: left; }
-    #banksTableBody td:nth-of-type(2)::before { content: "Bank"; font-weight: 600; color: var(--text-muted); text-align: left; }
-    #banksTableBody td:nth-of-type(3)::before { content: "Type"; font-weight: 600; color: var(--text-muted); text-align: left; }
-    #banksTableBody td:nth-of-type(4)::before { content: "Balance"; font-weight: 600; color: var(--text-muted); text-align: left; }
-    #banksTableBody td:nth-of-type(5)::before { content: "Actions"; font-weight: 600; color: var(--text-muted); text-align: left; }
+    #banksTableBody td:nth-of-type(1)::before {
+        content: "Account Name";
+        font-weight: 600;
+        color: var(--text-muted);
+        text-align: left;
+    }
+
+    #banksTableBody td:nth-of-type(2)::before {
+        content: "Bank";
+        font-weight: 600;
+        color: var(--text-muted);
+        text-align: left;
+    }
+
+    #banksTableBody td:nth-of-type(3)::before {
+        content: "Type";
+        font-weight: 600;
+        color: var(--text-muted);
+        text-align: left;
+    }
+
+    #banksTableBody td:nth-of-type(4)::before {
+        content: "Balance";
+        font-weight: 600;
+        color: var(--text-muted);
+        text-align: left;
+    }
+
+    #banksTableBody td:nth-of-type(5)::before {
+        content: "Actions";
+        font-weight: 600;
+        color: var(--text-muted);
+        text-align: left;
+    }
 
     /* Credit Cards Table Labels */
-    #creditCardsTableBody td:nth-of-type(1)::before { content: "Card Name"; font-weight: 600; color: var(--text-muted); }
-    #creditCardsTableBody td:nth-of-type(2)::before { content: "Issuer"; font-weight: 600; color: var(--text-muted); }
-    #creditCardsTableBody td:nth-of-type(3)::before { content: "Outstanding Balance"; font-weight: 600; color: var(--text-muted); }
-    #creditCardsTableBody td:nth-of-type(4)::before { content: "Credit Limit"; font-weight: 600; color: var(--text-muted); }
-    #creditCardsTableBody td:nth-of-type(5)::before { content: "Due Date"; font-weight: 600; color: var(--text-muted); }
-    #creditCardsTableBody td:nth-of-type(6)::before { content: "Status"; font-weight: 600; color: var(--text-muted); }
-    #creditCardsTableBody td:nth-of-type(7)::before { content: "Actions"; font-weight: 600; color: var(--text-muted); }
+    #creditCardsTableBody td:nth-of-type(1)::before {
+        content: "Card Name";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #creditCardsTableBody td:nth-of-type(2)::before {
+        content: "Issuer";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #creditCardsTableBody td:nth-of-type(3)::before {
+        content: "Outstanding Balance";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #creditCardsTableBody td:nth-of-type(4)::before {
+        content: "Credit Limit";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #creditCardsTableBody td:nth-of-type(5)::before {
+        content: "Due Date";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #creditCardsTableBody td:nth-of-type(6)::before {
+        content: "Status";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #creditCardsTableBody td:nth-of-type(7)::before {
+        content: "Actions";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
 
     /* Loans Table Labels */
-    #loansTableBody td:nth-of-type(1)::before { content: "Loan Name"; font-weight: 600; color: var(--text-muted); }
-    #loansTableBody td:nth-of-type(2)::before { content: "Lender"; font-weight: 600; color: var(--text-muted); }
-    #loansTableBody td:nth-of-type(3)::before { content: "Loan Amount"; font-weight: 600; color: var(--text-muted); }
-    #loansTableBody td:nth-of-type(4)::before { content: "Outstanding Amount"; font-weight: 600; color: var(--text-muted); }
-    #loansTableBody td:nth-of-type(5)::before { content: "EMI Amount"; font-weight: 600; color: var(--text-muted); }
-    #loansTableBody td:nth-of-type(6)::before { content: "Due Date"; font-weight: 600; color: var(--text-muted); }
-    #loansTableBody td:nth-of-type(7)::before { content: "Status"; font-weight: 600; color: var(--text-muted); }
-    #loansTableBody td:nth-of-type(8)::before { content: "Actions"; font-weight: 600; color: var(--text-muted); }
+    #loansTableBody td:nth-of-type(1)::before {
+        content: "Loan Name";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #loansTableBody td:nth-of-type(2)::before {
+        content: "Lender";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #loansTableBody td:nth-of-type(3)::before {
+        content: "Loan Amount";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #loansTableBody td:nth-of-type(4)::before {
+        content: "Outstanding Amount";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #loansTableBody td:nth-of-type(5)::before {
+        content: "EMI Amount";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #loansTableBody td:nth-of-type(6)::before {
+        content: "Due Date";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #loansTableBody td:nth-of-type(7)::before {
+        content: "Status";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #loansTableBody td:nth-of-type(8)::before {
+        content: "Actions";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
 
     /* Expenses Table Labels */
-    #expensesTableBody td:nth-of-type(1)::before { content: "Expense Name"; font-weight: 600; color: var(--text-muted); }
-    #expensesTableBody td:nth-of-type(2)::before { content: "Category / Vendor"; font-weight: 600; color: var(--text-muted); }
-    #expensesTableBody td:nth-of-type(3)::before { content: "Amount"; font-weight: 600; color: var(--text-muted); }
-    #expensesTableBody td:nth-of-type(4)::before { content: "Date"; font-weight: 600; color: var(--text-muted); }
-    #expensesTableBody td:nth-of-type(5)::before { content: "Status"; font-weight: 600; color: var(--text-muted); }
-    #expensesTableBody td:nth-of-type(6)::before { content: "Actions"; font-weight: 600; color: var(--text-muted); }
+    #expensesTableBody td:nth-of-type(1)::before {
+        content: "Expense Name";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #expensesTableBody td:nth-of-type(2)::before {
+        content: "Category / Vendor";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #expensesTableBody td:nth-of-type(3)::before {
+        content: "Amount";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #expensesTableBody td:nth-of-type(4)::before {
+        content: "Date";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #expensesTableBody td:nth-of-type(5)::before {
+        content: "Status";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #expensesTableBody td:nth-of-type(6)::before {
+        content: "Actions";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
 
     /* Insurance Table Labels */
-    #insuranceTableBody td:nth-of-type(1)::before { content: "Policy"; font-weight: 600; color: var(--text-muted); }
-    #insuranceTableBody td:nth-of-type(2)::before { content: "Insurance Type"; font-weight: 600; color: var(--text-muted); }
-    #insuranceTableBody td:nth-of-type(3)::before { content: "Provider"; font-weight: 600; color: var(--text-muted); }
-    #insuranceTableBody td:nth-of-type(4)::before { content: "Premium / Amount"; font-weight: 600; color: var(--text-muted); }
-    #insuranceTableBody td:nth-of-type(5)::before { content: "Coverage"; font-weight: 600; color: var(--text-muted); }
-    #insuranceTableBody td:nth-of-type(6)::before { content: "Premium Date"; font-weight: 600; color: var(--text-muted); }
-    #insuranceTableBody td:nth-of-type(7)::before { content: "Status"; font-weight: 600; color: var(--text-muted); }
-    #insuranceTableBody td:nth-of-type(8)::before { content: "Actions"; font-weight: 600; color: var(--text-muted); }
+    #insuranceTableBody td:nth-of-type(1)::before {
+        content: "Policy";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #insuranceTableBody td:nth-of-type(2)::before {
+        content: "Insurance Type";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #insuranceTableBody td:nth-of-type(3)::before {
+        content: "Provider";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #insuranceTableBody td:nth-of-type(4)::before {
+        content: "Premium / Amount";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #insuranceTableBody td:nth-of-type(5)::before {
+        content: "Coverage";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #insuranceTableBody td:nth-of-type(6)::before {
+        content: "Premium Date";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #insuranceTableBody td:nth-of-type(7)::before {
+        content: "Status";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #insuranceTableBody td:nth-of-type(8)::before {
+        content: "Actions";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
 
     .export-section {
         flex-direction: column;
@@ -2505,12 +2795,223 @@ body.light-theme .encryption-banner-icon {
 }
 
 @keyframes pulseGlow {
-    0%, 100% {
+
+    0%,
+    100% {
         opacity: 0.8;
         transform: scale(1);
     }
+
     50% {
         opacity: 1;
+        transform: scale(1.08);
+    }
+}
+
+/* ========================================
+   Future Financial Forecast Styles
+   ======================================== */
+
+.forecast-btn {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.forecast-btn:hover {
+    background: var(--accent-primary);
+    color: #fff;
+    border-color: var(--accent-primary);
+    box-shadow: 0 4px 12px rgba(114, 137, 255, 0.35);
+}
+
+/* Forecast Mode Active Banner */
+.forecast-active-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    background: rgba(243, 156, 18, 0.1);
+    border: 1px solid rgba(243, 156, 18, 0.4);
+    box-shadow: 0 0 15px rgba(243, 156, 18, 0.15);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin: 0 0 20px 0;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    animation: slideDown 0.3s ease-out;
+}
+
+.forecast-banner-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.forecast-banner-icon {
+    font-size: 1.4rem;
+    color: #f39c12;
+    animation: forecastGlow 2.5s infinite ease-in-out;
+}
+
+#forecastBannerText {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
+    color: var(--text-heading);
+    font-weight: 500;
+}
+
+.btn-forecast-exit {
+    white-space: nowrap;
+    border-color: rgba(243, 156, 18, 0.5);
+    color: #f39c12 !important;
+    transition: all 0.2s ease;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    background: transparent;
+}
+
+.btn-forecast-exit:hover {
+    background: #f39c12;
+    color: #fff !important;
+    border-color: #f39c12;
+    box-shadow: 0 0 10px rgba(243, 156, 18, 0.4);
+}
+
+/* Cash Shortage Warning Banner */
+.cash-shortage-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(231, 76, 60, 0.1);
+    border: 1px solid rgba(231, 76, 60, 0.4);
+    box-shadow: 0 0 15px rgba(231, 76, 60, 0.15);
+    border-radius: 12px;
+    padding: 14px 20px;
+    margin: 0 0 20px 0;
+    color: var(--text-heading);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.92rem;
+    animation: slideDown 0.3s ease-out;
+}
+
+.cash-shortage-icon {
+    font-size: 1.3rem;
+    color: #e74c3c;
+    animation: pulseGlow 1.5s infinite ease-in-out;
+}
+
+body.light-theme .forecast-active-banner {
+    background: rgba(243, 156, 18, 0.08);
+    border-color: rgba(243, 156, 18, 0.3);
+}
+
+body.light-theme .cash-shortage-banner {
+    background: rgba(231, 76, 60, 0.08);
+    border-color: rgba(231, 76, 60, 0.3);
+}
+
+/* Forecast Modal Specific Layouts */
+.slider-label-row {
+    margin-bottom: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.slider-value-display {
+    font-weight: 700;
+    color: var(--accent-primary);
+    background: rgba(0, 123, 255, 0.1);
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+}
+
+/* Red styling for values/metrics on cash shortage */
+.cash-shortage-text-warning {
+    color: #e74c3c !important;
+    text-shadow: 0 0 8px rgba(231, 76, 60, 0.2);
+}
+
+.cash-shortage-card-warning {
+    border-color: rgba(231, 76, 60, 0.5) !important;
+    background: linear-gradient(135deg, rgba(231, 76, 60, 0.05), rgba(231, 76, 60, 0.01)) !important;
+    box-shadow: 0 0 10px rgba(231, 76, 60, 0.1) !important;
+}
+
+/* Read-only notification badge for Forecast Mode */
+.forecast-read-only-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(243, 156, 18, 0.15);
+    border: 1px solid rgba(243, 156, 18, 0.4);
+    color: #f39c12;
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+
+/* Global Forecast Mode Rules: Uniform 100% Brightness for All Dashboard Cards & Metrics */
+body.forecast-mode-active #financeMainContent .summary-metric,
+body.forecast-mode-active #financeMainContent .networth-card,
+body.forecast-mode-active #financeMainContent .category-card,
+body.forecast-mode-active #financeMainContent .bank-card,
+body.forecast-mode-active #financeMainContent .credit-card,
+body.forecast-mode-active #financeMainContent .finance-section,
+body.forecast-mode-active #financeMainContent .financial-summary-bar {
+    opacity: 1 !important;
+    filter: none !important;
+}
+
+/* Prevent modal opening when clicking card containers in forecast mode, while keeping 100% opacity */
+body.forecast-mode-active #financeMainContent .summary-metric.clickable,
+body.forecast-mode-active #financeMainContent .networth-card.clickable,
+body.forecast-mode-active #financeMainContent .clickable {
+    pointer-events: none !important;
+    opacity: 1 !important;
+    cursor: default !important;
+}
+
+/* Disable interaction on editing buttons and inputs without dimming card containers */
+body.forecast-mode-active #financeMainContent button:not(#forecastBtn):not(#maskDataBtn):not(.btn-forecast-exit):not(.finance-modal-overlay *),
+body.forecast-mode-active #financeMainContent input:not(.finance-modal-overlay *),
+body.forecast-mode-active #financeMainContent select:not(.finance-modal-overlay *),
+body.forecast-mode-active #financeMainContent .action-icon:not(.finance-modal-overlay *),
+body.forecast-mode-active #financeMainContent .card-action-btn:not(.finance-modal-overlay *),
+body.forecast-mode-active #financeMainContent .btn-finance:not(#forecastBtn):not(#maskDataBtn):not(.btn-forecast-exit):not(.finance-modal-overlay *) {
+    pointer-events: none !important;
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+}
+
+/* Ensure all inputs, selects, buttons, and controls inside modal overlays (including forecast modal) remain 100% interactive & editable */
+body.forecast-mode-active #financeMainContent .finance-modal-overlay *,
+body.forecast-mode-active #financeMainContent .finance-modal-overlay input,
+body.forecast-mode-active #financeMainContent .finance-modal-overlay select,
+body.forecast-mode-active #financeMainContent .finance-modal-overlay button,
+body.forecast-mode-active #financeMainContent .finance-modal-overlay .btn-finance,
+body.forecast-mode-active .finance-modal-overlay input,
+body.forecast-mode-active .finance-modal-overlay select,
+body.forecast-mode-active .finance-modal-overlay button,
+body.forecast-mode-active .finance-modal-overlay .btn-finance {
+    pointer-events: auto !important;
+    opacity: 1 !important;
+    cursor: pointer !important;
+}
+
+@keyframes forecastGlow {
+
+    0%,
+    100% {
+        text-shadow: 0 0 4px rgba(243, 156, 18, 0.3);
+        transform: scale(1);
+    }
+
+    50% {
+        text-shadow: 0 0 12px rgba(243, 156, 18, 0.7);
         transform: scale(1.08);
     }
 }
