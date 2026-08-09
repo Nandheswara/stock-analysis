@@ -4970,10 +4970,12 @@ function generateForecastData(baseData, startMonth, targetMonth, config) {
         return maxChange;
     }
     
-    // Helper to calculate average monthly expenditures across the last 12 available historical months
+    // Helper to calculate overall average expenditure & month-of-year seasonal multipliers across historical months
     function calculateHistoricalAvgExpenses(data, refMonth) {
         let total = 0;
         let count = 0;
+        const monthByCal = {};
+        
         let curr = refMonth;
         for (let i = 0; i < 12; i++) {
             if (data.income?.[curr] || data.monthlySnapshots?.[curr]) {
@@ -4982,11 +4984,31 @@ function generateForecastData(baseData, startMonth, targetMonth, config) {
                 if (exp > 0) {
                     total += exp;
                     count++;
+                    
+                    const calMonthIndex = parseInt(curr.split('-')[1], 10) - 1;
+                    if (!monthByCal[calMonthIndex]) {
+                        monthByCal[calMonthIndex] = { total: 0, count: 0 };
+                    }
+                    monthByCal[calMonthIndex].total += exp;
+                    monthByCal[calMonthIndex].count += 1;
                 }
             }
             curr = getPreviousMonth(curr);
         }
-        return count > 0 ? (total / count) : 0;
+        
+        const overallAverage = count > 0 ? (total / count) : 0;
+        const seasonalMultipliers = {};
+        
+        for (let mIdx = 0; mIdx < 12; mIdx++) {
+            if (monthByCal[mIdx] && monthByCal[mIdx].count > 0 && overallAverage > 0) {
+                const mAvg = monthByCal[mIdx].total / monthByCal[mIdx].count;
+                seasonalMultipliers[mIdx] = mAvg / overallAverage;
+            } else {
+                seasonalMultipliers[mIdx] = 1.0;
+            }
+        }
+        
+        return { overallAverage, seasonalMultipliers };
     }
     
     // 2. Find all intermediate months
@@ -5014,7 +5036,7 @@ function generateForecastData(baseData, startMonth, targetMonth, config) {
     // Pre-calculate baseline parameters from reference month
     const startSummary = computeFinancialSummary(baseData, referenceMonth);
     const r_m = Math.pow(1 + config.returns / 100, 1 / 12) - 1;
-    const avgHistoricalExpenses = calculateHistoricalAvgExpenses(baseData, referenceMonth);
+    const expenseAnalysis = calculateHistoricalAvgExpenses(baseData, referenceMonth);
     
     // 3. For each intermediate month, calculate values sequentially
     for (let k = 1; k < monthsList.length; k++) {
@@ -5150,14 +5172,17 @@ function generateForecastData(baseData, startMonth, targetMonth, config) {
             }
         });
         
-        // General Expenses & Credit Cards
-        // If override is provided, use it directly. Otherwise, use the 12-month historical average expenses.
+        // General Expenses & Credit Cards (Incorporates Month-of-Year Seasonality Index)
+        const calMonthIndex = parseInt(m.split('-')[1], 10) - 1;
+        const seasonalMultiplier = expenseAnalysis.seasonalMultipliers[calMonthIndex] || 1.0;
+
         let generalExpensesAndCC;
         if (config.expensesOverride !== null) {
             generalExpensesAndCC = config.expensesOverride * Math.pow(1 + config.inflation / 100, y);
         } else {
-            const baseExpenses = avgHistoricalExpenses > 0 ? avgHistoricalExpenses : startSummary.expenditure;
-            generalExpensesAndCC = Math.max(0, baseExpenses * Math.pow(1 + config.inflation / 100, y) - loanOutflow);
+            const baseAverage = expenseAnalysis.overallAverage > 0 ? expenseAnalysis.overallAverage : startSummary.expenditure;
+            const seasonalBaseExpenses = baseAverage * seasonalMultiplier;
+            generalExpensesAndCC = Math.max(0, seasonalBaseExpenses * Math.pow(1 + config.inflation / 100, y) - loanOutflow);
         }
         
         // Preserve existing credit card accounts and insurance cards for forecast display
