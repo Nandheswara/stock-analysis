@@ -1066,7 +1066,14 @@ function formatCurrencyWithSign(amount) {
 function initMonthNavigator() {
     document.getElementById('monthPrevBtn').addEventListener('click', () => {
         if (forecastConfig && forecastConfig.isActive) {
-            exitForecastMode();
+            if (currentMonth > originalActualMonth) {
+                currentMonth = getPreviousMonth(currentMonth);
+                updateMonthDisplay();
+                renderAll();
+                return;
+            } else {
+                exitForecastMode();
+            }
         }
         currentMonth = getPreviousMonth(currentMonth);
         updateMonthDisplay();
@@ -1075,7 +1082,14 @@ function initMonthNavigator() {
 
     document.getElementById('monthNextBtn').addEventListener('click', () => {
         if (forecastConfig && forecastConfig.isActive) {
-            exitForecastMode();
+            if (currentMonth < forecastConfig.targetMonth) {
+                currentMonth = getNextMonth(currentMonth);
+                updateMonthDisplay();
+                renderAll();
+                return;
+            } else {
+                return;
+            }
         }
         const next = getNextMonth(currentMonth);
         currentMonth = next;
@@ -1088,11 +1102,25 @@ function initMonthNavigator() {
 
 function updateMonthDisplay() {
     document.getElementById('monthDisplay').textContent = getMonthDisplay(currentMonth);
-    const currentKey = getCurrentMonthKey();
-    const isCurrentMonth = currentMonth === currentKey;
     const nextButton = document.getElementById('monthNextBtn');
-    nextButton.disabled = false;
-    nextButton.classList.remove('disabled');
+    const prevButton = document.getElementById('monthPrevBtn');
+
+    if (forecastConfig && forecastConfig.isActive) {
+        prevButton.disabled = false;
+        prevButton.classList.remove('disabled');
+        if (currentMonth >= forecastConfig.targetMonth) {
+            nextButton.disabled = true;
+            nextButton.classList.add('disabled');
+        } else {
+            nextButton.disabled = false;
+            nextButton.classList.remove('disabled');
+        }
+    } else {
+        nextButton.disabled = false;
+        nextButton.classList.remove('disabled');
+        prevButton.disabled = false;
+        prevButton.classList.remove('disabled');
+    }
 }
 
 // ========================================
@@ -4740,18 +4768,15 @@ function initForecastModalInputs() {
     // Reset sliders to defaults
     document.getElementById('forecastInflationInput').value = "6.0";
     document.getElementById('forecastInflationVal').textContent = "6.0%";
-    document.getElementById('forecastReturnInput').value = "12.0";
-    document.getElementById('forecastReturnVal').textContent = "12.0%";
+    document.getElementById('forecastReturnInput').value = "6.0";
+    document.getElementById('forecastReturnVal').textContent = "6.0%";
     document.getElementById('forecastIncomeGrowthInput').value = "5.0";
     document.getElementById('forecastIncomeGrowthVal').textContent = "5.0%";
     
-    // Pre-populate EPFO monthly contribution (default to 12% of baseline salary if available)
+    // Leave EPFO monthly contribution empty by default (optional user choice)
     const epfoInput = document.getElementById('forecastEpfoContribInput');
-    if (epfoInput && !epfoInput.value) {
-        const refM = originalActualMonth || currentMonth;
-        const incObj = financeData.income?.[refM] || {};
-        const sal = Number(incObj.salary) || 162000;
-        epfoInput.value = Math.round(sal * 0.12);
+    if (epfoInput) {
+        epfoInput.value = '';
     }
 
     // Toggle expenses override off
@@ -5016,11 +5041,11 @@ function generateForecastData(baseData, startMonth, targetMonth, config) {
         if (!proj.taxes) proj.taxes = {};
         proj.taxes[m] = { tax: projTax };
         
-        // --- EPFO (Accumulates monthly EPF contributions + 8.15% p.a. interest) ---
+        // --- EPFO (Accumulates optional monthly EPF contributions + 8.15% p.a. interest) ---
         const r_epfo = Math.pow(1 + 0.0815, 1 / 12) - 1; // Monthly EPF interest compounding rate
-        const epfoMonthlyContrib = (config.epfoContribution !== undefined && config.epfoContribution !== null) 
+        const epfoMonthlyContrib = (config.epfoContribution !== undefined && config.epfoContribution !== null && !isNaN(config.epfoContribution)) 
             ? Number(config.epfoContribution) 
-            : Math.round(baseSalary * 0.12);
+            : 0;
 
         let prevEpfoVal = 0;
         if (k === 1) {
@@ -5073,9 +5098,9 @@ function generateForecastData(baseData, startMonth, targetMonth, config) {
                 // Compound the existing balance
                 const growth = prevAmt * r_m;
                 
-                // Project the monthly contribution (SIP/Chit)
+                // Project the monthly contribution (SIP/Chit) as a flat constant addition
                 const detectedContrib = detectMonthlyContribution(catId, itemName, referenceMonth);
-                const projContrib = detectedContrib * Math.pow(1 + config.incomeGrowth / 100, y);
+                const projContrib = detectedContrib;
                 
                 // New cumulative balance for month m
                 const newAmt = prevAmt + growth + projContrib;
@@ -5193,11 +5218,24 @@ function generateForecastData(baseData, startMonth, targetMonth, config) {
 function applyForecastUIStates() {
     document.body.classList.add('forecast-mode-active');
 
-    // Target specific interactive controls (buttons, inputs, action icons), NOT card containers
+    // Update banner text for currently viewed forecast month
+    if (forecastConfig && forecastConfig.isActive) {
+        const bannerText = document.getElementById('forecastBannerText');
+        if (bannerText) {
+            const mDisplay = getMonthDisplay(currentMonth);
+            const inf = forecastConfig.inflation || 0;
+            const ret = forecastConfig.returns || 0;
+            const inc = forecastConfig.incomeGrowth || 0;
+            bannerText.textContent = `Forecast Mode Active: Projections for ${mDisplay} (Inflation: ${inf.toFixed(1)}%, Return: ${ret.toFixed(1)}%, Income Growth: ${inc.toFixed(1)}%)`;
+        }
+    }
+
+    // Target specific interactive controls (buttons, inputs, action icons), NOT card containers or month navigator
     const query = '#financeMainContent button, #financeMainContent input, #financeMainContent select, #financeMainContent .action-icon, #financeMainContent .card-action-btn, #financeMainContent .edit-btn, #financeMainContent .delete-btn, #financeMainContent .add-item-btn';
     document.querySelectorAll(query).forEach(el => {
-        // Skip forecast-related elements AND any element inside a modal overlay
-        if (el.id !== 'maskDataBtn' && el.id !== 'forecastBtn' && !el.classList.contains('btn-forecast-exit')
+        // Skip forecast-related elements, month navigator, AND any element inside a modal overlay
+        if (el.id !== 'maskDataBtn' && el.id !== 'forecastBtn' && el.id !== 'monthPrevBtn' && el.id !== 'monthNextBtn'
+            && !el.classList.contains('month-btn') && !el.classList.contains('btn-forecast-exit')
             && !el.closest('.finance-modal-overlay')) {
             el.classList.add('forecast-disabled-element');
             el.setAttribute('data-orig-title', el.getAttribute('title') || '');
