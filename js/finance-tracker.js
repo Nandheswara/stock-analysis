@@ -4916,60 +4916,57 @@ window.exitForecastMode = function() {
     renderAll();
 };
 
+// Dynamic Helper: Universal Monthly Contribution & SIP Detector across all category types
+function detectMonthlyContribution(catId, itemName, refMonth, data = financeData) {
+    let maxChange = 0;
+    let currMonth = refMonth;
+    
+    for (let i = 0; i < 3; i++) {
+        const prevMonthKey = getPreviousMonth(currMonth);
+        
+        let currAmt = 0;
+        const catObj = data?.categories?.[catId];
+        if (catObj && catObj.items) {
+            Object.values(catObj.items).forEach(item => {
+                if (item && item.month === currMonth && item.name === itemName) {
+                    currAmt = Number(item.amount) || 0;
+                }
+            });
+        }
+        
+        let prevAmt = 0;
+        if (catObj && catObj.items) {
+            Object.values(catObj.items).forEach(item => {
+                if (item && item.month === prevMonthKey && item.name === itemName) {
+                    prevAmt = Number(item.amount) || 0;
+                }
+            });
+        }
+        
+        let change = 0;
+        if (prevAmt > 0) {
+            change = Math.max(0, currAmt - prevAmt);
+        } else if (currAmt > 0) {
+            const nameLower = (itemName + ' ' + catId + ' ' + (catObj?.name || '')).toLowerCase();
+            const isExplicitLumpSum = nameLower.includes('land') || nameLower.includes('plot') || nameLower.includes('flat') || nameLower.includes('property');
+            
+            if (!isExplicitLumpSum && (currAmt <= 50000 || nameLower.includes('sip') || nameLower.includes('chit') || nameLower.includes('rd') || nameLower.includes('recurring') || nameLower.includes('monthly'))) {
+                change = currAmt;
+            }
+        }
+        
+        if (change > maxChange) {
+            maxChange = change;
+        }
+        currMonth = prevMonthKey;
+    }
+    return maxChange;
+}
+
 function generateForecastData(baseData, startMonth, targetMonth, config) {
     // 1. Deep copy baseData
     const proj = JSON.parse(JSON.stringify(baseData));
-    
-    // Dynamic Helper: Universal Monthly Contribution & SIP Detector across all category types (Land, Real Estate, Crypto, RD, Gold, Mutual Funds, etc.)
-    function detectMonthlyContribution(catId, itemName, refMonth) {
-        let maxChange = 0;
-        let currMonth = refMonth;
-        
-        for (let i = 0; i < 3; i++) {
-            const prevMonthKey = getPreviousMonth(currMonth);
-            
-            let currAmt = 0;
-            const catObj = baseData.categories?.[catId];
-            if (catObj && catObj.items) {
-                Object.values(catObj.items).forEach(item => {
-                    if (item && item.month === currMonth && item.name === itemName) {
-                        currAmt = Number(item.amount) || 0;
-                    }
-                });
-            }
-            
-            let prevAmt = 0;
-            if (catObj && catObj.items) {
-                Object.values(catObj.items).forEach(item => {
-                    if (item && item.month === prevMonthKey && item.name === itemName) {
-                        prevAmt = Number(item.amount) || 0;
-                    }
-                });
-            }
-            
-            let change = 0;
-            if (prevAmt > 0) {
-                // Pure mathematical delta: Any positive change between consecutive months is detected as recurring monthly inflow
-                change = Math.max(0, currAmt - prevAmt);
-            } else if (currAmt > 0) {
-                // First appearance of an item: Distinguish recurring monthly additions vs one-time lump-sum capital assets (e.g., Land purchase)
-                const nameLower = (itemName + ' ' + catId + ' ' + (catObj?.name || '')).toLowerCase();
-                const isExplicitLumpSum = nameLower.includes('land') || nameLower.includes('plot') || nameLower.includes('flat') || nameLower.includes('property');
-                
-                // If initial value is under ₹50,000 OR contains recurring keywords, treat initial value as the monthly contribution rate
-                if (!isExplicitLumpSum && (currAmt <= 50000 || nameLower.includes('sip') || nameLower.includes('chit') || nameLower.includes('rd') || nameLower.includes('recurring') || nameLower.includes('monthly'))) {
-                    change = currAmt;
-                }
-            }
-            
-            if (change > maxChange) {
-                maxChange = change;
-            }
-            currMonth = prevMonthKey;
-        }
-        return maxChange;
-    }
-    
+
     // Helper to calculate overall average expenditure & month-of-year seasonal multipliers across historical months
     function calculateHistoricalAvgExpenses(data, refMonth) {
         let total = 0;
@@ -5121,7 +5118,7 @@ function generateForecastData(baseData, startMonth, targetMonth, config) {
                 const growth = prevAmt * r_m;
                 
                 // Project the monthly contribution (SIP/Chit) as a flat constant addition
-                const detectedContrib = detectMonthlyContribution(catId, itemName, referenceMonth);
+                const detectedContrib = detectMonthlyContribution(catId, itemName, referenceMonth, baseData);
                 const projContrib = detectedContrib;
                 
                 // New cumulative balance for month m
@@ -5258,9 +5255,10 @@ function applyForecastUIStates() {
     // Target specific interactive controls (buttons, inputs, action icons), NOT card containers or month navigator
     const query = '#financeMainContent button, #financeMainContent input, #financeMainContent select, #financeMainContent .action-icon, #financeMainContent .card-action-btn, #financeMainContent .edit-btn, #financeMainContent .delete-btn, #financeMainContent .add-item-btn';
     document.querySelectorAll(query).forEach(el => {
-        // Skip forecast-related elements, month navigator, AND any element inside a modal overlay
+        // Skip forecast-related elements, month navigator, forecast active banner elements, AND any element inside a modal overlay
         if (el.id !== 'maskDataBtn' && el.id !== 'forecastBtn' && el.id !== 'monthPrevBtn' && el.id !== 'monthNextBtn'
             && !el.classList.contains('month-btn') && !el.classList.contains('btn-forecast-exit')
+            && !el.classList.contains('btn-forecast-export') && !el.closest('#forecastActiveBanner')
             && !el.closest('.finance-modal-overlay')) {
             el.classList.add('forecast-disabled-element');
             el.setAttribute('data-orig-title', el.getAttribute('title') || '');
@@ -5314,4 +5312,217 @@ function clearForecastUIStates() {
     const cashShortageBanner = document.getElementById('cashShortageBanner');
     if (cashShortageBanner) cashShortageBanner.style.display = 'none';
 }
+
+// ========================================
+// ========================================
+// Forecast Export Feature (Month-by-Month)
+// ========================================
+
+function getSelectedForecastTargetMonth() {
+    const month = document.getElementById('forecastMonthSelect')?.value || '12';
+    const year = document.getElementById('forecastYearSelect')?.value || (new Date().getFullYear() + 1);
+    return `${year}-${month}`;
+}
+
+function getForecastInputConfig() {
+    const inflation = parseFloat(document.getElementById('forecastInflationInput')?.value) || 6.0;
+    const returns = parseFloat(document.getElementById('forecastReturnInput')?.value) || 6.0;
+    const incomeGrowth = parseFloat(document.getElementById('forecastIncomeGrowthInput')?.value) || 5.0;
+    const epfoContribVal = document.getElementById('forecastEpfoContribInput')?.value;
+    const epfoContribution = (epfoContribVal !== undefined && epfoContribVal !== null && epfoContribVal !== '') ? parseFloat(epfoContribVal) : 0;
+    
+    const expToggle = document.getElementById('forecastExpensesToggle');
+    let expensesOverride = null;
+    if (expToggle && expToggle.checked) {
+        const val = parseFloat(document.getElementById('forecastExpensesInput')?.value);
+        if (!isNaN(val) && val >= 0) expensesOverride = val;
+    }
+    
+    const targetMonth = getSelectedForecastTargetMonth();
+    return {
+        isActive: true,
+        targetMonth,
+        inflation,
+        returns,
+        incomeGrowth,
+        expensesOverride,
+        epfoContribution
+    };
+}
+
+window.exportForecastData = async function(format = 'xlsx') {
+    try {
+        const isForecastActive = forecastConfig && forecastConfig.isActive;
+        const refMonth = (isForecastActive && originalActualMonth) ? originalActualMonth : currentMonth;
+        const targetMon = (isForecastActive && forecastConfig.targetMonth) ? forecastConfig.targetMonth : getSelectedForecastTargetMonth();
+        const config = isForecastActive ? forecastConfig : getForecastInputConfig();
+        const baseDataToUse = (isForecastActive && originalActualData) ? originalActualData : financeData;
+
+        const projData = isForecastActive ? financeData : generateForecastData(baseDataToUse, refMonth, targetMon, config);
+
+        const monthsList = [refMonth];
+        let curr = refMonth;
+        while (curr !== targetMon && monthsList.length < 600) {
+            curr = getNextMonth(curr);
+            monthsList.push(curr);
+        }
+
+        showToast(`Preparing forecast export report (${format.toUpperCase()})...`, 'info');
+
+        const summaryRows = [];
+        monthsList.forEach(m => {
+            const sum = computeFinancialSummary(projData, m);
+            const inc = projData.income?.[m] || {};
+            
+            let monthlyInvContrib = 0;
+            Object.entries(projData.categories || {}).forEach(([catId, cat]) => {
+                Object.values(cat.items || {}).forEach(item => {
+                    if (item && item.month === m) {
+                        const detected = detectMonthlyContribution(catId, item.name, refMonth, projData);
+                        monthlyInvContrib += detected;
+                    }
+                });
+            });
+
+            const totalInc = Number(inc.totalIncome) || 0;
+            const totalExp = sum.expenditure || 0;
+            const netSavings = totalInc - totalExp - monthlyInvContrib;
+
+            summaryRows.push({
+                'Forecast Month': m,
+                'Monthly Salary Income (₹)': totalInc,
+                'General & EMI Expenditure (₹)': totalExp,
+                'Monthly Investment Outflow (₹)': monthlyInvContrib,
+                'Monthly Net Savings (₹)': netSavings,
+                'Total Bank Balance (₹)': sum.totalBankBalance || 0,
+                'Total Invested Portfolio (₹)': sum.investedThisMonth || 0,
+                'EPFO Corpus (₹)': sum.epfoValue || 0,
+                'Total Liabilities (₹)': sum.totalLiabilities || 0,
+                'Projected Net Worth (₹)': sum.netWorth || 0
+            });
+        });
+
+        const investmentRows = [];
+        monthsList.forEach(m => {
+            Object.values(projData.categories || {}).forEach(cat => {
+                Object.values(cat.items || {}).forEach(item => {
+                    if (item && item.month === m && Number(item.amount) > 0) {
+                        investmentRows.push({
+                            'Month': m,
+                            'Category': cat.name,
+                            'Asset Name': item.name,
+                            'Projected Amount (₹)': Number(item.amount) || 0
+                        });
+                    }
+                });
+            });
+        });
+
+        const loanRows = [];
+        monthsList.forEach(m => {
+            Object.values(projData.loans || {}).forEach(card => {
+                const bal = (card.balances && card.balances[m] !== undefined) ? card.balances[m] : 0;
+                loanRows.push({
+                    'Month': m,
+                    'Loan Name': card.name,
+                    'Remaining Principal Balance (₹)': bal
+                });
+            });
+        });
+
+        const paramRows = [
+            { 'Parameter': 'Reference Start Month', 'Value': refMonth },
+            { 'Parameter': 'Target Forecast Month', 'Value': targetMon },
+            { 'Parameter': 'Annual Inflation Rate (%)', 'Value': `${config?.inflation || 6}%` },
+            { 'Parameter': 'Annual Investment Return (%)', 'Value': `${config?.returns || 6}%` },
+            { 'Parameter': 'Monthly EPFO Contribution (₹)', 'Value': config?.epfoContribution ? `₹${config.epfoContribution}` : 'Optional (0)' },
+            { 'Parameter': 'Custom Expense Override (₹)', 'Value': config?.expensesOverride !== null ? `₹${config.expensesOverride}` : 'Disabled (Calculated using 12-month seasonality average)' }
+        ];
+
+        const filenameBase = `Financial_Forecast_${refMonth}_to_${targetMon}`;
+
+        if (format === 'json') {
+            const jsonPayload = {
+                forecastPeriod: { startMonth: refMonth, targetMonth: targetMon },
+                forecastConfiguration: paramRows,
+                monthByMonthSummary: summaryRows,
+                investmentPortfolioProjections: investmentRows,
+                liabilitiesAmortization: loanRows
+            };
+            downloadFile(JSON.stringify(jsonPayload, null, 2), `${filenameBase}.json`, 'application/json;charset=utf-8;');
+        } else if (format === 'pdf') {
+            const PDF = await ensureJsPDF();
+            const doc = new PDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+            
+            doc.setFontSize(15);
+            doc.text(`Financial Forecast Report (${refMonth} to ${targetMon})`, 40, 40);
+            doc.setFontSize(9);
+            doc.text(`Inflation Rate: ${config?.inflation || 6}% | Investment Return: ${config?.returns || 6}% | Generated on ${new Date().toLocaleDateString('en-IN')}`, 40, 55);
+            
+            if (typeof doc.autoTable === 'function') {
+                doc.autoTable({
+                    startY: 68,
+                    head: [['Month', 'Income', 'Expenses', 'Inv Outflow', 'Net Savings', 'Bank Bal', 'Invested', 'EPFO', 'Liabilities', 'Net Worth']],
+                    body: summaryRows.map(r => [
+                        r['Forecast Month'],
+                        formatCurrency(r['Monthly Salary Income (₹)']),
+                        formatCurrency(r['General & EMI Expenditure (₹)']),
+                        formatCurrency(r['Monthly Investment Outflow (₹)']),
+                        formatCurrency(r['Monthly Net Savings (₹)']),
+                        formatCurrency(r['Total Bank Balance (₹)']),
+                        formatCurrency(r['Total Invested Portfolio (₹)']),
+                        formatCurrency(r['EPFO Corpus (₹)']),
+                        formatCurrency(r['Total Liabilities (₹)']),
+                        formatCurrency(r['Projected Net Worth (₹)'])
+                    ]),
+                    theme: 'grid',
+                    styles: { fontSize: 7, cellPadding: 4 },
+                    headStyles: { fillColor: [79, 70, 229] }
+                });
+            }
+            doc.save(`${filenameBase}.pdf`);
+        } else if (format === 'csv') {
+            const sections = [
+                buildCsvSection('Forecast Month-by-Month Summary', summaryRows),
+                buildCsvSection('Investment Portfolio Projections', investmentRows),
+                buildCsvSection('Liabilities & Loan Amortization', loanRows),
+                buildCsvSection('Forecast Configuration', paramRows)
+            ];
+            downloadFile(sections.join('\r\n\r\n'), `${filenameBase}.csv`, 'text/csv;charset=utf-8;');
+        } else {
+            const XLSX = await ensureSheetJS();
+            const wb = XLSX.utils.book_new();
+
+            const wsSummary = XLSX.utils.json_to_sheet(summaryRows);
+            XLSX.utils.book_append_sheet(wb, wsSummary, "Monthly Summary");
+
+            const wsInvest = XLSX.utils.json_to_sheet(investmentRows);
+            XLSX.utils.book_append_sheet(wb, wsInvest, "Investments");
+
+            const wsLoans = XLSX.utils.json_to_sheet(loanRows);
+            XLSX.utils.book_append_sheet(wb, wsLoans, "Loans & Liabilities");
+
+            const wsParams = XLSX.utils.json_to_sheet(paramRows);
+            XLSX.utils.book_append_sheet(wb, wsParams, "Forecast Parameters");
+
+            XLSX.writeFile(wb, `${filenameBase}.xlsx`);
+        }
+        showToast(`Forecast ${format.toUpperCase()} report exported successfully!`, 'success');
+    } catch (err) {
+        console.error('Forecast export failed:', err);
+        showToast(`Failed to export forecast report: ${err.message}`, 'error');
+    }
+};
+
+window.exportForecastDataFromModal = async function() {
+    const formatSelect = document.getElementById('forecastModalFormatSelect');
+    const format = formatSelect ? formatSelect.value : 'xlsx';
+    closeModal('forecastModal');
+    await window.exportForecastData(format);
+};
+
+window.exportForecastDataModalFormat = async function(format = 'xlsx') {
+    closeModal('forecastModal');
+    await window.exportForecastData(format);
+};
 
