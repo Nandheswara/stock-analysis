@@ -274,11 +274,27 @@
             <div id="forecastActiveBanner" class="forecast-active-banner" style="display: none;">
                 <div class="forecast-banner-content">
                     <i class="bi bi-graph-up-arrow forecast-banner-icon"></i>
-                    <span id="forecastBannerText">Forecast Mode Active: Projections for December 2030 (Inflation: 6%, Return: 12%)</span>
+                    <span id="forecastBannerText">Forecast Mode Active: Projections for December 2030 (Inflation: 6%, Return: 6%)</span>
                 </div>
-                <button class="btn-finance btn-finance-outline btn-forecast-exit" onclick="exitForecastMode()" title="Exit Forecast Mode">
-                    <i class="bi bi-x-circle"></i> Exit Forecast
-                </button>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <div class="forecast-export-btn-group">
+                        <button class="btn-finance btn-forecast-export-main" type="button" onclick="exportForecastData('xlsx')" title="Download Month-by-Month Forecast Excel Report">
+                            <i class="bi bi-download"></i> Download Report
+                        </button>
+                        <button type="button" class="btn-finance btn-forecast-export-split dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false" title="Choose Export Format">
+                            <span class="visually-hidden">Toggle Dropdown</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end forecast-export-dropdown-menu">
+                            <li><button class="dropdown-item forecast-export-item" type="button" onclick="exportForecastData('xlsx')"><i class="bi bi-file-earmark-excel-fill text-success"></i> <span>Excel Workbook (.xlsx)</span></button></li>
+                            <li><button class="dropdown-item forecast-export-item" type="button" onclick="exportForecastData('pdf')"><i class="bi bi-file-earmark-pdf-fill text-danger"></i> <span>PDF Document (.pdf)</span></button></li>
+                            <li><button class="dropdown-item forecast-export-item" type="button" onclick="exportForecastData('csv')"><i class="bi bi-file-earmark-text-fill text-primary"></i> <span>CSV Spreadsheet (.csv)</span></button></li>
+                            <li><button class="dropdown-item forecast-export-item" type="button" onclick="exportForecastData('json')"><i class="bi bi-file-earmark-code-fill text-warning"></i> <span>JSON Raw Data (.json)</span></button></li>
+                        </ul>
+                    </div>
+                    <button class="btn-finance btn-finance-outline btn-forecast-exit" onclick="exitForecastMode()" title="Exit Forecast Mode">
+                        <i class="bi bi-x-circle"></i> Exit Forecast
+                    </button>
+                </div>
             </div>
 
             <!-- Cash Shortage Warning Banner -->
@@ -801,9 +817,9 @@
                 </div>
             </div>
             
-            <div class="finance-modal-footer" style="padding: 16px 24px 20px 24px; border-top: 1px solid var(--border-color);">
-                <button class="btn-finance btn-finance-outline" onclick="closeFinanceModal('forecastModal')" type="button" style="padding: 10px 20px; font-weight: 500;">Cancel</button>
-                <button class="btn-finance btn-finance-primary" onclick="applyForecastMode()" type="button" style="padding: 10px 24px; font-weight: 600; background: linear-gradient(135deg, var(--accent-primary) 0%, #4f46e5 100%); border: none;">
+            <div class="finance-modal-footer">
+                <button class="btn-finance btn-finance-outline" onclick="closeFinanceModal('forecastModal')" type="button" style="padding: 10px 22px; font-weight: 500;">Cancel</button>
+                <button class="btn-finance btn-finance-primary forecast-btn-submit" onclick="applyForecastMode()" type="button" style="padding: 10px 24px; font-weight: 600; background: linear-gradient(135deg, var(--accent-primary) 0%, #4f46e5 100%); border: none; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);">
                     <i class="bi bi-graph-up"></i> Generate Forecast
                 </button>
             </div>

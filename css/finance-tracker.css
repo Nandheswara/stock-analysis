@@ -2880,6 +2880,199 @@ body.light-theme .encryption-banner-icon {
     box-shadow: 0 0 10px rgba(243, 156, 18, 0.4);
 }
 
+/* Responsive Forecast Active Banner for Tablet & Mobile Viewports */
+@media (max-width: 768px) {
+    .forecast-active-banner {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        padding: 14px 16px;
+    }
+
+    .forecast-active-banner > div:last-child {
+        width: 100%;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .forecast-banner-content {
+        align-items: flex-start;
+        gap: 10px;
+        width: 100%;
+    }
+
+    .forecast-banner-icon {
+        font-size: 1.25rem;
+        margin-top: 2px;
+        flex-shrink: 0;
+    }
+
+    #forecastBannerText {
+        font-size: 0.86rem;
+        line-height: 1.4;
+        word-break: break-word;
+    }
+
+    .forecast-export-btn-group {
+        flex: 1;
+        display: inline-flex;
+    }
+
+    .btn-forecast-export-main {
+        flex: 1;
+        justify-content: center;
+        font-size: 0.8rem !important;
+        padding: 7px 10px !important;
+        white-space: nowrap;
+    }
+
+    .btn-forecast-export-split {
+        padding: 7px 8px !important;
+    }
+
+    .btn-forecast-exit {
+        flex: 1;
+        justify-content: center;
+        text-align: center;
+        font-size: 0.8rem !important;
+        padding: 7px 10px !important;
+        white-space: nowrap;
+    }
+}
+
+@media (max-width: 480px) {
+    .forecast-active-banner > div:last-child {
+        flex-direction: row;
+        gap: 6px;
+    }
+
+    .btn-forecast-export-main {
+        padding: 6px 8px !important;
+        font-size: 0.78rem !important;
+    }
+
+    .btn-forecast-exit {
+        padding: 6px 8px !important;
+        font-size: 0.78rem !important;
+    }
+}
+
+/* Finance Modal Footer Base & Mobile Responsive Styling */
+.finance-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 24px 20px 24px;
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    border-bottom-left-radius: 18px;
+    border-bottom-right-radius: 18px;
+}
+
+@media (max-width: 576px) {
+    .finance-modal-footer {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        padding: 14px 16px;
+    }
+
+    .finance-modal-footer .btn-finance {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+        padding: 10px 12px;
+        font-size: 0.86rem;
+    }
+}
+
+/* Premium Forecast Download Split-Button & Dropdown Styling */
+.forecast-export-btn-group {
+    display: inline-flex;
+    position: relative;
+    box-shadow: 0 2px 10px rgba(245, 158, 11, 0.2);
+    border-radius: 8px;
+}
+
+.btn-forecast-export-main {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.3) 100%) !important;
+    border: 1px solid rgba(245, 158, 11, 0.5) !important;
+    color: #f59e0b !important;
+    font-weight: 600 !important;
+    font-size: 0.84rem !important;
+    padding: 6px 14px !important;
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    transition: all 0.25s ease !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-forecast-export-split {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.3) 100%) !important;
+    border: 1px solid rgba(245, 158, 11, 0.5) !important;
+    border-left: none !important;
+    color: #f59e0b !important;
+    padding: 6px 10px !important;
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+    transition: all 0.25s ease !important;
+}
+
+.btn-forecast-export-main:hover,
+.btn-forecast-export-split:hover {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+    color: #ffffff !important;
+    border-color: #f59e0b !important;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.45) !important;
+}
+
+.forecast-export-dropdown-menu {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3) !important;
+    padding: 6px !important;
+    min-width: 210px !important;
+    z-index: 1060 !important;
+}
+
+.forecast-export-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 8px 12px !important;
+    border-radius: 8px !important;
+    font-size: 0.84rem !important;
+    font-weight: 500 !important;
+    color: var(--text-primary) !important;
+    transition: all 0.2s ease !important;
+}
+
+.forecast-export-item i {
+    font-size: 1.1rem !important;
+}
+
+.forecast-export-item:hover {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-heading) !important;
+    transform: translateX(3px);
+}
+
+body.light-theme .forecast-export-dropdown-menu {
+    background: #ffffff !important;
+    border-color: #e2e8f0 !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important;
+}
+
+body.light-theme .forecast-export-item:hover {
+    background: #f1f5f9 !important;
+}
+
 /* Cash Shortage Warning Banner */
 .cash-shortage-banner {
     display: flex;
@@ -3096,18 +3289,23 @@ body.forecast-mode-active #financeMainContent .clickable {
 }
 
 /* Disable interaction on editing buttons and inputs without dimming card containers */
-body.forecast-mode-active #financeMainContent button:not(#forecastBtn):not(#maskDataBtn):not(.btn-forecast-exit):not(.finance-modal-overlay *),
-body.forecast-mode-active #financeMainContent input:not(.finance-modal-overlay *),
-body.forecast-mode-active #financeMainContent select:not(.finance-modal-overlay *),
-body.forecast-mode-active #financeMainContent .action-icon:not(.finance-modal-overlay *),
-body.forecast-mode-active #financeMainContent .card-action-btn:not(.finance-modal-overlay *),
-body.forecast-mode-active #financeMainContent .btn-finance:not(#forecastBtn):not(#maskDataBtn):not(.btn-forecast-exit):not(.finance-modal-overlay *) {
+body.forecast-mode-active #financeMainContent button:not(#forecastBtn):not(#maskDataBtn):not(#monthPrevBtn):not(#monthNextBtn):not(.month-btn):not(.btn-forecast-exit):not(.btn-forecast-export):not(#forecastActiveBanner *):not(.finance-modal-overlay *),
+body.forecast-mode-active #financeMainContent input:not(#forecastActiveBanner *):not(.finance-modal-overlay *),
+body.forecast-mode-active #financeMainContent select:not(#forecastActiveBanner *):not(.finance-modal-overlay *),
+body.forecast-mode-active #financeMainContent .action-icon:not(#forecastActiveBanner *):not(.finance-modal-overlay *),
+body.forecast-mode-active #financeMainContent .card-action-btn:not(#forecastActiveBanner *):not(.finance-modal-overlay *),
+body.forecast-mode-active #financeMainContent .btn-finance:not(#forecastBtn):not(#maskDataBtn):not(#monthPrevBtn):not(#monthNextBtn):not(.month-btn):not(.btn-forecast-exit):not(.btn-forecast-export):not(#forecastActiveBanner *):not(.finance-modal-overlay *) {
     pointer-events: none !important;
     opacity: 0.5 !important;
     cursor: not-allowed !important;
 }
 
-/* Ensure all inputs, selects, buttons, and controls inside modal overlays (including forecast modal) remain 100% interactive & editable */
+/* Ensure all inputs, selects, buttons, and controls inside forecast active banner and modal overlays remain 100% interactive */
+body.forecast-mode-active #forecastActiveBanner *,
+body.forecast-mode-active #forecastActiveBanner button,
+body.forecast-mode-active #forecastActiveBanner .dropdown-menu *,
+body.forecast-mode-active .btn-forecast-export,
+body.forecast-mode-active #forecastDownloadDropdown,
 body.forecast-mode-active #financeMainContent .finance-modal-overlay *,
 body.forecast-mode-active #financeMainContent .finance-modal-overlay input,
 body.forecast-mode-active #financeMainContent .finance-modal-overlay select,
