@@ -45,6 +45,7 @@
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/global.css">
     <link rel="stylesheet" href="../css/finance-tracker.css">
+    <link rel="stylesheet" href="../css/forecast.css">
     <link rel="stylesheet" href="../css/firebase-auth.css">
 </head>
 <body>
@@ -277,24 +278,15 @@
                     <span id="forecastBannerText">Forecast Mode Active: Projections for December 2030 (Inflation: 6%, Return: 6%)</span>
                 </div>
                 <div style="display: flex; gap: 10px; align-items: center;">
-                    <div class="forecast-export-btn-group">
-                        <button class="btn-finance btn-forecast-export-main" type="button" onclick="exportForecastData('xlsx')" title="Download Month-by-Month Forecast Excel Report">
-                            <i class="bi bi-download"></i> Download Report
-                        </button>
-                        <button type="button" class="btn-finance btn-forecast-export-split dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false" title="Choose Export Format">
-                            <span class="visually-hidden">Toggle Dropdown</span>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end forecast-export-dropdown-menu">
-                            <li><button class="dropdown-item forecast-export-item" type="button" onclick="exportForecastData('xlsx')"><i class="bi bi-file-earmark-excel-fill text-success"></i> <span>Excel Workbook (.xlsx)</span></button></li>
-                            <li><button class="dropdown-item forecast-export-item" type="button" onclick="exportForecastData('pdf')"><i class="bi bi-file-earmark-pdf-fill text-danger"></i> <span>PDF Document (.pdf)</span></button></li>
-                            <li><button class="dropdown-item forecast-export-item" type="button" onclick="exportForecastData('csv')"><i class="bi bi-file-earmark-text-fill text-primary"></i> <span>CSV Spreadsheet (.csv)</span></button></li>
-                            <li><button class="dropdown-item forecast-export-item" type="button" onclick="exportForecastData('json')"><i class="bi bi-file-earmark-code-fill text-warning"></i> <span>JSON Raw Data (.json)</span></button></li>
-                        </ul>
-                    </div>
+                    <button class="btn-finance btn-forecast-export-main" type="button" onclick="openForecastExportModal()" title="Download Forecast Report">
+                        <i class="bi bi-file-earmark-arrow-down"></i> Download Report
+                    </button>
+
                     <button class="btn-finance btn-finance-outline btn-forecast-exit" onclick="exitForecastMode()" title="Exit Forecast Mode">
                         <i class="bi bi-x-circle"></i> Exit Forecast
                     </button>
                 </div>
+
             </div>
 
             <!-- Cash Shortage Warning Banner -->
@@ -799,15 +791,18 @@
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                             <label for="forecastEpfoContribInput" style="font-size: 0.84rem; font-weight: 500; margin: 0;">Monthly EPFO Contribution (₹) <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">(Optional)</span></label>
                         </div>
-                        <input type="number" id="forecastEpfoContribInput" class="form-control" placeholder="Optional - Enter monthly EPF addition" min="0" step="1">
+                        <input type="number" id="forecastEpfoContribInput" class="form-control" placeholder="Enter monthly EPF addition" min="0" step="1">
                         <small class="text-muted" style="font-size: 0.75rem; display: block; margin-top: 4px;">Leave blank if not adding monthly EPF. Existing EPF corpus compounds at 8.15% p.a.</small>
                     </div>
 
                     <div style="border-top: 1px solid var(--border-color); padding-top: 12px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                             <label for="forecastExpensesToggle" style="font-weight: 500; cursor: pointer; margin-bottom: 0; font-size: 0.84rem;">Set Custom Monthly Expenses</label>
-                            <input class="form-check-input" type="checkbox" id="forecastExpensesToggle" onchange="toggleForecastExpensesInput()">
+                            <div class="form-check form-switch" style="padding-left: 2.5em; margin-bottom: 0;">
+                                <input class="form-check-input" type="checkbox" role="switch" id="forecastExpensesToggle" onchange="toggleForecastExpensesInput()">
+                            </div>
                         </div>
+
                         <p class="text-muted" style="font-size: 0.78rem; margin-bottom: 8px;">If disabled, we'll estimate monthly spending using your historical average and seasonal monthly patterns.</p>
                         <div id="forecastExpensesInputContainer" style="display: none; margin-top: 8px;">
                             <label for="forecastExpensesInput" style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 4px; display: block;">Custom Monthly Spending (₹)</label>
@@ -826,7 +821,72 @@
         </div>
     </div>
 
+    <!-- Forecast Export Format Selection Modal -->
+    <div class="finance-modal-overlay" id="forecastExportModal">
+
+        <div class="finance-modal" style="max-width: 460px;">
+            <div class="finance-modal-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 14px;">
+                <h3 style="font-size: 1.1rem; margin: 0; display: flex; align-items: center; gap: 8px;"><i class="bi bi-file-earmark-arrow-down" style="color: var(--accent-primary);"></i> Export Forecast Projections</h3>
+                <button class="finance-modal-close" onclick="closeForecastExportModal()" aria-label="Close export format modal">&times;</button>
+            </div>
+            <div class="finance-modal-body" style="padding: 18px 20px;">
+                <p class="text-muted" style="font-size: 0.82rem; margin-bottom: 14px; line-height: 1.4;">
+                    Select your preferred document format to download month-by-month financial forecast report:
+                </p>
+                <div class="forecast-export-format-grid" style="display: flex; flex-direction: column; gap: 10px;">
+                    <button type="button" class="forecast-format-card" onclick="exportForecastDataAndClose('xlsx')">
+                        <div class="forecast-format-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">
+                            <i class="bi bi-file-earmark-excel-fill"></i>
+                        </div>
+                        <div class="forecast-format-info">
+                            <div class="forecast-format-title">Excel Workbook (.xlsx)</div>
+                            <div class="forecast-format-desc">Complete multi-sheet workbook with summary, investments & loans</div>
+                        </div>
+                        <i class="bi bi-chevron-right forecast-format-arrow"></i>
+                    </button>
+
+                    <button type="button" class="forecast-format-card" onclick="exportForecastDataAndClose('pdf')">
+                        <div class="forecast-format-icon" style="background: rgba(239, 68, 68, 0.15); color: #ef4444;">
+                            <i class="bi bi-file-earmark-pdf-fill"></i>
+                        </div>
+                        <div class="forecast-format-info">
+                            <div class="forecast-format-title">PDF Document (.pdf)</div>
+                            <div class="forecast-format-desc">Formatted executive document summary with structured tables</div>
+                        </div>
+                        <i class="bi bi-chevron-right forecast-format-arrow"></i>
+                    </button>
+
+                    <button type="button" class="forecast-format-card" onclick="exportForecastDataAndClose('csv')">
+                        <div class="forecast-format-icon" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">
+                            <i class="bi bi-file-earmark-text-fill"></i>
+                        </div>
+                        <div class="forecast-format-info">
+                            <div class="forecast-format-title">CSV Spreadsheet (.csv)</div>
+                            <div class="forecast-format-desc">Standard plain text tabular data for universal compatibility</div>
+                        </div>
+                        <i class="bi bi-chevron-right forecast-format-arrow"></i>
+                    </button>
+
+                    <button type="button" class="forecast-format-card" onclick="exportForecastDataAndClose('json')">
+                        <div class="forecast-format-icon" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">
+                            <i class="bi bi-file-earmark-code-fill"></i>
+                        </div>
+                        <div class="forecast-format-info">
+                            <div class="forecast-format-title">JSON Data Payload (.json)</div>
+                            <div class="forecast-format-desc">Raw structured projection dataset for backup or custom analysis</div>
+                        </div>
+                        <i class="bi bi-chevron-right forecast-format-arrow"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="finance-modal-footer" style="border-top: 1px solid var(--border-color); padding: 12px 20px;">
+                <button class="btn-finance btn-finance-outline" onclick="closeForecastExportModal()" type="button" style="padding: 8px 20px; font-weight: 500;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <div class="finance-modal-overlay" id="exportModal">
+
         <div class="finance-modal">
             <div class="finance-modal-header">
                 <h3><i class="bi bi-file-earmark-arrow-down"></i> Export Finance Data</h3>
