@@ -1,0 +1,547 @@
+/**
+ * Future Financial Forecast Styles
+ * 
+ * Provides styling for:
+ * - Forecast Mode toggle button & active indicator banner
+ * - Cash shortage warning banner & card highlights
+ * - Premium Forecast Configuration modal dialog & switches
+ * - Forecast Export dropdown and action buttons
+ * - Read-only dashboard states while forecast mode is active
+ * 
+ * @module forecast.css
+ */
+
+.forecast-btn {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.forecast-btn:hover {
+    background: var(--accent-primary);
+    color: #fff;
+    border-color: var(--accent-primary);
+    box-shadow: 0 4px 12px rgba(114, 137, 255, 0.35);
+}
+
+/* Forecast Mode Active Banner */
+.forecast-active-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    background: rgba(243, 156, 18, 0.1);
+    border: 1px solid rgba(243, 156, 18, 0.4);
+    box-shadow: 0 0 15px rgba(243, 156, 18, 0.15);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin: 0 0 20px 0;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    animation: slideDown 0.3s ease-out;
+}
+
+.forecast-banner-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.forecast-banner-icon {
+    font-size: 1.4rem;
+    color: #f39c12;
+    animation: forecastGlow 2.5s infinite ease-in-out;
+}
+
+#forecastBannerText {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
+    color: var(--text-heading);
+    font-weight: 500;
+}
+
+.btn-forecast-exit {
+    white-space: nowrap;
+    border-color: rgba(243, 156, 18, 0.5);
+    color: #f39c12 !important;
+    transition: all 0.2s ease;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    background: transparent;
+}
+
+.btn-forecast-exit:hover {
+    background: #f39c12;
+    color: #fff !important;
+    border-color: #f39c12;
+    box-shadow: 0 0 10px rgba(243, 156, 18, 0.4);
+}
+
+/* Responsive Forecast Active Banner for Tablet & Mobile Viewports */
+@media (max-width: 768px) {
+    .forecast-active-banner {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        padding: 14px 16px;
+    }
+
+    .forecast-active-banner > div:last-child {
+        width: 100%;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .forecast-banner-content {
+        align-items: flex-start;
+        gap: 10px;
+        width: 100%;
+    }
+
+    .forecast-banner-icon {
+        font-size: 1.25rem;
+        margin-top: 2px;
+        flex-shrink: 0;
+    }
+
+    #forecastBannerText {
+        font-size: 0.86rem;
+        line-height: 1.4;
+        word-break: break-word;
+    }
+
+    .forecast-export-btn-group {
+        flex: 1;
+        display: inline-flex;
+    }
+
+    .btn-forecast-export-main {
+        flex: 1;
+        justify-content: center;
+        font-size: 0.8rem !important;
+        padding: 7px 10px !important;
+        white-space: nowrap;
+    }
+
+    .btn-forecast-export-split {
+        padding: 7px 8px !important;
+    }
+
+    .btn-forecast-exit {
+        flex: 1;
+        justify-content: center;
+        text-align: center;
+        font-size: 0.8rem !important;
+        padding: 7px 10px !important;
+        white-space: nowrap;
+    }
+}
+
+@media (max-width: 480px) {
+    .forecast-active-banner > div:last-child {
+        flex-direction: row;
+        gap: 6px;
+    }
+
+    .btn-forecast-export-main {
+        padding: 6px 8px !important;
+        font-size: 0.78rem !important;
+    }
+
+    .btn-forecast-exit {
+        padding: 6px 8px !important;
+        font-size: 0.78rem !important;
+    }
+}
+
+/* Premium Forecast Download Split-Button & Dropdown Styling */
+.forecast-export-btn-group {
+    display: inline-flex;
+    position: relative;
+    box-shadow: 0 2px 10px rgba(245, 158, 11, 0.2);
+    border-radius: 8px;
+}
+
+.btn-forecast-export-main {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.3) 100%) !important;
+    border: 1px solid rgba(245, 158, 11, 0.5) !important;
+    color: #f59e0b !important;
+    font-weight: 600 !important;
+    font-size: 0.84rem !important;
+    padding: 6px 14px !important;
+    border-radius: 8px !important;
+    transition: all 0.25s ease !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+
+.btn-forecast-export-main:hover {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+    color: #ffffff !important;
+    border-color: #f59e0b !important;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.45) !important;
+}
+
+
+/* Forecast Export Format Selection Cards */
+.forecast-format-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    background: var(--bg-tertiary, #2c3038);
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.15));
+    border-radius: 14px;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    transition: all 0.25s ease;
+    outline: none;
+}
+
+.forecast-format-card:hover {
+    border-color: var(--accent-primary, #7289ff);
+    background: var(--bg-card, #1a1d24);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+}
+
+.forecast-format-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    flex-shrink: 0;
+}
+
+.forecast-format-info {
+    flex: 1;
+}
+
+.forecast-format-title {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+}
+
+.forecast-format-desc {
+    font-size: 0.76rem;
+    color: var(--text-secondary, #94a3b8);
+    line-height: 1.3;
+}
+
+.forecast-format-arrow {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    transition: transform 0.2s ease;
+}
+
+.forecast-format-card:hover .forecast-format-arrow {
+    transform: translateX(4px);
+    color: var(--accent-primary);
+}
+
+body.light-theme .forecast-format-card {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+}
+
+body.light-theme .forecast-format-card:hover {
+    background: #ffffff;
+    border-color: var(--accent-primary, #4f46e5);
+    box-shadow: 0 6px 16px rgba(79, 70, 229, 0.12);
+}
+
+
+
+/* Cash Shortage Warning Banner */
+.cash-shortage-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(231, 76, 60, 0.1);
+    border: 1px solid rgba(231, 76, 60, 0.4);
+    box-shadow: 0 0 15px rgba(231, 76, 60, 0.15);
+    border-radius: 12px;
+    padding: 14px 20px;
+    margin: 0 0 20px 0;
+    color: var(--text-heading);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.92rem;
+    animation: slideDown 0.3s ease-out;
+}
+
+.cash-shortage-icon {
+    font-size: 1.3rem;
+    color: #e74c3c;
+    animation: pulseGlow 1.5s infinite ease-in-out;
+}
+
+body.light-theme .forecast-active-banner {
+    background: rgba(243, 156, 18, 0.08);
+    border-color: rgba(243, 156, 18, 0.3);
+}
+
+body.light-theme .cash-shortage-banner {
+    background: rgba(231, 76, 60, 0.08);
+    border-color: rgba(231, 76, 60, 0.3);
+}
+
+/* Forecast Modal Premium UI Layouts & Theme Styling */
+.forecast-modal-icon-badge {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(114, 137, 255, 0.2) 0%, rgba(61, 220, 132, 0.15) 100%);
+    border: 1px solid rgba(114, 137, 255, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent-primary);
+    font-size: 1.3rem;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.forecast-card-section {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 14px;
+    transition: all 0.25s ease;
+}
+
+.forecast-card-section:hover {
+    border-color: var(--accent-primary);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+}
+
+.forecast-section-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.slider-label-row {
+    margin-bottom: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.slider-value-display {
+    font-weight: 700;
+    color: var(--accent-primary);
+    background: rgba(114, 137, 255, 0.15);
+    padding: 3px 10px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    border: 1px solid rgba(114, 137, 255, 0.25);
+}
+
+body.light-theme .forecast-modal-icon-badge {
+    background: linear-gradient(135deg, rgba(79, 70, 229, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%);
+    border-color: rgba(79, 70, 229, 0.2);
+    color: var(--accent-primary);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+body.light-theme .forecast-card-section {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+}
+
+body.light-theme .forecast-card-section:hover {
+    background: #ffffff;
+    border-color: var(--accent-primary);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.08);
+}
+
+body.light-theme .slider-value-display {
+    background: rgba(79, 70, 229, 0.08);
+    color: var(--accent-primary);
+    border-color: rgba(79, 70, 229, 0.2);
+}
+
+/* Premium Custom Switch Toggle for Forecast Modal & Preferences */
+.forecast-card-section .form-check.form-switch {
+    display: inline-flex;
+    align-items: center;
+    padding-left: 0 !important;
+    margin: 0;
+}
+
+.forecast-card-section .form-check.form-switch .form-check-input {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    width: 44px !important;
+    height: 24px !important;
+    background-color: var(--bg-tertiary, #2c3038) !important;
+    background-image: none !important;
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.2)) !important;
+    border-radius: 20px !important;
+    position: relative !important;
+    cursor: pointer !important;
+    outline: none !important;
+    margin: 0 !important;
+    float: none !important;
+    transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease !important;
+    flex-shrink: 0;
+}
+
+.forecast-card-section .form-check.form-switch .form-check-input::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 2px !important;
+    left: 2px !important;
+    width: 18px !important;
+    height: 18px !important;
+    background-color: #ffffff !important;
+    border-radius: 50% !important;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.25s ease !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.35) !important;
+}
+
+.forecast-card-section .form-check.form-switch .form-check-input:checked {
+    background-color: var(--accent-primary, #7289ff) !important;
+    border-color: var(--accent-primary, #7289ff) !important;
+    box-shadow: 0 0 12px rgba(114, 137, 255, 0.45) !important;
+}
+
+.forecast-card-section .form-check.form-switch .form-check-input:checked::before {
+    transform: translateX(20px) !important;
+    background-color: #ffffff !important;
+}
+
+.forecast-card-section .form-check.form-switch .form-check-input:hover {
+    border-color: var(--accent-primary, #7289ff) !important;
+}
+
+/* Light Theme Overrides */
+body.light-theme .forecast-card-section .form-check.form-switch .form-check-input {
+    background-color: #cbd5e1 !important;
+    border-color: #94a3b8 !important;
+}
+
+body.light-theme .forecast-card-section .form-check.form-switch .form-check-input:checked {
+    background-color: var(--accent-primary, #4f46e5) !important;
+    border-color: var(--accent-primary, #4f46e5) !important;
+    box-shadow: 0 0 10px rgba(79, 70, 229, 0.35) !important;
+}
+
+
+
+/* Red styling for values/metrics on cash shortage */
+.cash-shortage-text-warning {
+    color: #e74c3c !important;
+    text-shadow: 0 0 8px rgba(231, 76, 60, 0.2);
+}
+
+.cash-shortage-card-warning {
+    border-color: rgba(231, 76, 60, 0.5) !important;
+    background: linear-gradient(135deg, rgba(231, 76, 60, 0.05), rgba(231, 76, 60, 0.01)) !important;
+    box-shadow: 0 0 10px rgba(231, 76, 60, 0.1) !important;
+}
+
+/* Read-only notification badge for Forecast Mode */
+.forecast-read-only-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(243, 156, 18, 0.15);
+    border: 1px solid rgba(243, 156, 18, 0.4);
+    color: #f39c12;
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+
+/* Global Forecast Mode Rules: Uniform 100% Brightness for All Dashboard Cards & Metrics */
+body.forecast-mode-active #financeMainContent .summary-metric,
+body.forecast-mode-active #financeMainContent .networth-card,
+body.forecast-mode-active #financeMainContent .category-card,
+body.forecast-mode-active #financeMainContent .bank-card,
+body.forecast-mode-active #financeMainContent .credit-card,
+body.forecast-mode-active #financeMainContent .finance-section,
+body.forecast-mode-active #financeMainContent .financial-summary-bar {
+    opacity: 1 !important;
+    filter: none !important;
+}
+
+/* Prevent modal opening when clicking card containers in forecast mode, while keeping 100% opacity */
+body.forecast-mode-active #financeMainContent .summary-metric.clickable,
+body.forecast-mode-active #financeMainContent .networth-card.clickable,
+body.forecast-mode-active #financeMainContent .clickable {
+    pointer-events: none !important;
+    opacity: 1 !important;
+    cursor: default !important;
+}
+
+/* Disable interaction on editing buttons and inputs without dimming card containers */
+body.forecast-mode-active #financeMainContent button:not(#forecastBtn):not(#maskDataBtn):not(#monthPrevBtn):not(#monthNextBtn):not(.month-btn):not(.btn-forecast-exit):not(.btn-forecast-export):not(.btn-forecast-export-main):not(#forecastActiveBanner *):not(.finance-modal-overlay *),
+body.forecast-mode-active #financeMainContent input:not(#forecastActiveBanner *):not(.finance-modal-overlay *),
+body.forecast-mode-active #financeMainContent select:not(#forecastActiveBanner *):not(.finance-modal-overlay *),
+body.forecast-mode-active #financeMainContent .action-icon:not(#forecastActiveBanner *):not(.finance-modal-overlay *),
+body.forecast-mode-active #financeMainContent .card-action-btn:not(#forecastActiveBanner *):not(.finance-modal-overlay *),
+body.forecast-mode-active #financeMainContent .btn-finance:not(#forecastBtn):not(#maskDataBtn):not(#monthPrevBtn):not(#monthNextBtn):not(.month-btn):not(.btn-forecast-exit):not(.btn-forecast-export):not(.btn-forecast-export-main):not(#forecastActiveBanner *):not(.finance-modal-overlay *) {
+    pointer-events: none !important;
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+}
+
+/* Ensure all inputs, selects, buttons, and controls inside forecast active banner and modal overlays remain 100% interactive */
+#forecastExportModal {
+    z-index: 100005 !important;
+}
+
+body.forecast-mode-active #forecastActiveBanner *,
+body.forecast-mode-active #forecastActiveBanner button,
+body.forecast-mode-active #forecastActiveBanner .dropdown-menu *,
+body.forecast-mode-active .btn-forecast-export,
+body.forecast-mode-active .btn-forecast-export-main,
+body.forecast-mode-active #forecastDownloadDropdown,
+body.forecast-mode-active #forecastExportModal,
+body.forecast-mode-active #forecastExportModal *,
+body.forecast-mode-active #forecastExportModal button,
+body.forecast-mode-active #forecastExportModal .forecast-format-card,
+body.forecast-mode-active #financeMainContent .finance-modal-overlay *,
+body.forecast-mode-active #financeMainContent .finance-modal-overlay input,
+body.forecast-mode-active #financeMainContent .finance-modal-overlay select,
+body.forecast-mode-active #financeMainContent .finance-modal-overlay button,
+body.forecast-mode-active #financeMainContent .finance-modal-overlay .btn-finance,
+body.forecast-mode-active .finance-modal-overlay input,
+body.forecast-mode-active .finance-modal-overlay select,
+body.forecast-mode-active .finance-modal-overlay button,
+body.forecast-mode-active .finance-modal-overlay .btn-finance {
+    pointer-events: auto !important;
+    opacity: 1 !important;
+    cursor: pointer !important;
+}
+
+
+@keyframes forecastGlow {
+    0%, 100% {
+        text-shadow: 0 0 4px rgba(243, 156, 18, 0.3);
+        transform: scale(1);
+    }
+    50% {
+        text-shadow: 0 0 12px rgba(243, 156, 18, 0.7);
+        transform: scale(1.08);
+    }
+}
