@@ -1883,6 +1883,14 @@
 @media (max-width: 768px) {
     main.container-fluid {
         padding: 12px 10px !important;
+        max-width: 100vw !important;
+        overflow-x: hidden !important;
+        box-sizing: border-box !important;
+    }
+
+    .row {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
     }
 
     .header-section {
@@ -3157,6 +3165,12 @@ body.light-theme .finance-header-hero {
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05) !important;
 }
 
+.finance-header-main-flex {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
 body.light-theme .finance-header-title {
     color: #0f172a !important;
 }
@@ -3176,6 +3190,10 @@ body.light-theme .finance-header-icon-wrap {
         border-radius: 14px !important;
     }
 
+    .finance-header-main-flex {
+        gap: 12px;
+    }
+
     .finance-header-icon-wrap {
         width: 42px;
         height: 42px;
@@ -3189,5 +3207,102 @@ body.light-theme .finance-header-icon-wrap {
 
     .finance-header-subtitle {
         font-size: 0.8rem !important;
+    }
+
+    .smart-insights-card {
+        padding: 16px 18px;
+        border-radius: 14px;
+    }
+}
+
+@media (max-width: 576px) {
+    .finance-header-hero {
+        padding: 14px 14px !important;
+        border-radius: 14px !important;
+    }
+
+    .finance-header-main-flex {
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .finance-header-icon-wrap {
+        width: 36px;
+        height: 36px;
+        font-size: 1.15rem;
+        border-radius: 10px;
+        margin-top: 2px;
+    }
+
+    .finance-header-title {
+        font-size: 1.2rem !important;
+    }
+
+    .header-security-pill {
+        font-size: 0.65rem !important;
+        padding: 2px 7px !important;
+    }
+
+    .finance-header-subtitle {
+        font-size: 0.78rem !important;
+        line-height: 1.35;
+    }
+
+    .smart-insights-card {
+        padding: 14px 12px;
+        border-radius: 14px;
+    }
+
+    .smart-insights-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 12px;
+        padding-bottom: 12px;
+    }
+
+    .smart-insights-title {
+        font-size: 1.05rem;
+    }
+
+    .smart-insights-chips {
+        width: 100%;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        padding-bottom: 6px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .insight-chip {
+        white-space: nowrap;
+        flex-shrink: 0;
+        font-size: 0.74rem;
+        padding: 4px 10px;
+    }
+
+    .smart-insights-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .insight-item {
+        padding: 12px 12px;
+        gap: 10px;
+    }
+
+    .insight-icon-box {
+        width: 32px;
+        height: 32px;
+        font-size: 1rem;
+        border-radius: 8px;
+    }
+
+    .insight-item-title {
+        font-size: 0.82rem;
+    }
+
+    .insight-item-desc {
+        font-size: 0.78rem;
+        line-height: 1.4;
     }
 }
