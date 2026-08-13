@@ -84,10 +84,29 @@ import {
     exportForecastData
 } from './forecast.js';
 
+import {
+    registerHealthScoreBridge,
+    calculateFinancialHealthScore,
+    updateFinancialHealthScoreUI,
+    renderHealthScoreTrendChart,
+    openHealthScoreModal
+} from './health-score.js';
+
+
 window.openForecastModal = openForecastModal;
 window.closeForecastModal = closeForecastModal;
 window.openForecastExportModal = openForecastExportModal;
 window.closeForecastExportModal = closeForecastExportModal;
+
+registerHealthScoreBridge({
+    getFinanceData: () => financeData,
+    getCurrentMonth: () => currentMonth,
+    getMonthDisplay,
+    formatCurrency,
+    openModal,
+    getChartsObject: () => charts
+});
+
 window.exportForecastDataAndClose = exportForecastDataAndClose;
 window.exportForecastData = exportForecastData;
 
@@ -138,6 +157,13 @@ const SECTION_PREFERENCE_META = Object.freeze([
         label: 'Net Worth Cards',
         description: 'Assets, liabilities, net worth and EPFO cards.'
     },
+    {
+        key: 'financialHealth',
+        sectionId: 'financialHealthSection',
+        label: 'Financial Health Score',
+        description: 'Financial health gauge, savings rate, buffer, debt control and investment scores.'
+    },
+
     {
         key: 'investmentCategories',
         sectionId: 'investmentCategoriesSection',
@@ -197,13 +223,14 @@ const WIDGET_PREFERENCE_META = Object.freeze([
     { key: 'analyticsNetWorthTrend', elementId: 'analyticsNetWorthTrendCard', label: 'Analytics: Net Worth Trend', description: 'Line chart for asset growth.' },
     { key: 'analyticsIncomeExpense', elementId: 'analyticsIncomeExpenseCard', label: 'Analytics: Income vs Expenditure', description: 'Bar chart for income/expense/invested.' },
     { key: 'analyticsCategoryTrend', elementId: 'analyticsCategoryTrendCard', label: 'Analytics: Category Trends', description: 'Line chart by investment category.' },
-    { key: 'analyticsCibil', elementId: 'analyticsCibilCard', label: 'Analytics: Credit Score Trend', description: 'Line chart for CIBIL score history.' }
+    { key: 'analyticsCibil', elementId: 'analyticsCibilCard', label: 'Analytics: Credit Score Trend', description: 'Line chart for CIBIL score history.' },
+    { key: 'analyticsSmartInsights', elementId: 'analyticsSmartInsightsCard', label: 'Analytics: Smart Financial Insights', description: 'Automated data-driven financial insights and alerts.' }
 ]);
 
 const SECTION_WIDGET_GROUPS = Object.freeze({
     financialSummary: Object.freeze(['summaryIncome', 'summaryExpenditure', 'summaryInvested', 'summaryBankBalance', 'summaryTax']),
     netWorth: Object.freeze(['netWorthAssets', 'netWorthLiabilities', 'netWorthTotal', 'netWorthEPFO', 'netWorthCibil']),
-    analytics: Object.freeze(['analyticsInvestmentBreakdown', 'analyticsNetWorthTrend', 'analyticsIncomeExpense', 'analyticsCategoryTrend', 'analyticsCibil'])
+    analytics: Object.freeze(['analyticsSmartInsights', 'analyticsInvestmentBreakdown', 'analyticsNetWorthTrend', 'analyticsIncomeExpense', 'analyticsCategoryTrend', 'analyticsCibil'])
 });
 
 const WIDGET_SECTION_MAP = Object.freeze(
@@ -313,8 +340,11 @@ function normalizeSectionPreferences(preferences) {
     SECTION_PREFERENCE_META.forEach(({ key }) => {
         if (rawSections[key] !== undefined) {
             normalized.sections[key] = Boolean(rawSections[key]);
+        } else {
+            normalized.sections[key] = true;
         }
     });
+
 
     const rawWidgets = preferences.widgets && typeof preferences.widgets === 'object'
         ? preferences.widgets
@@ -2119,6 +2149,8 @@ function renderCharts() {
     const currentSummary = computeFinancialSummary(financeData, currentMonth);
     const snapshots = buildChartSnapshots();
 
+    renderSmartInsights(currentSummary, snapshots);
+
     if (isWidgetEnabled('analyticsInvestmentBreakdown')) {
         renderSpendingBreakdownChart();
     } else if (charts.spending) {
@@ -2649,8 +2681,15 @@ function renderAll() {
                 isInitialLoad = false;
             }
         }
+        try {
+            updateFinancialHealthScoreUI();
+        } catch (err) {
+            log('error', 'Error rendering financial health score: ' + err.message);
+        }
+
 
         applyAmountMasking();
+
 
         if (isForecastActive) {
             applyForecastUIStates();
@@ -4759,6 +4798,262 @@ function initEncryptionBanner() {
 }
 
 // ========================================
+// Smart Financial Insights Logic
+// ========================================
+
+let activeSmartInsightFilter = 'all';
+
+window.filterSmartInsights = function(filter, buttonEl) {
+    activeSmartInsightFilter = filter;
+    if (buttonEl) {
+        const chips = buttonEl.parentElement.querySelectorAll('.insight-chip');
+        chips.forEach(c => c.classList.remove('active'));
+        buttonEl.classList.add('active');
+    }
+    const gridEl = document.getElementById('smartInsightsGrid');
+    if (!gridEl) return;
+    const items = gridEl.querySelectorAll('.insight-item');
+    let visibleCount = 0;
+    items.forEach(item => {
+        const category = item.getAttribute('data-insight-cat');
+        if (filter === 'all' || category === filter) {
+            item.style.display = 'flex';
+            visibleCount++;
+        } else {
+            item.style.display = 'none';
+        }
+    });
+    const countBadge = document.getElementById('smartInsightsCountBadge');
+    if (countBadge) {
+        countBadge.textContent = `${visibleCount} Insight${visibleCount !== 1 ? 's' : ''}`;
+    }
+};
+
+function renderSmartInsights(currentSummary, snapshots) {
+    const cardEl = document.getElementById('analyticsSmartInsightsCard');
+    const gridEl = document.getElementById('smartInsightsGrid');
+    if (!cardEl || !gridEl) return;
+
+    if (!isWidgetEnabled('analyticsSmartInsights')) {
+        cardEl.style.display = 'none';
+        return;
+    }
+    cardEl.style.display = 'block';
+
+    const prevMonthKey = getPreviousMonth(currentMonth);
+    const prevSummary = computeFinancialSummary(financeData, prevMonthKey);
+
+    const insights = [];
+
+    // 1. Net Worth Growth Insight
+    const currentNW = currentSummary.netWorth || 0;
+    const prevNW = prevSummary.netWorth || 0;
+    const nwDiff = currentNW - prevNW;
+    const nwPct = prevNW > 0 ? (nwDiff / prevNW) * 100 : 0;
+
+    if (prevNW > 0 && Math.abs(nwDiff) > 0) {
+        if (nwDiff > 0) {
+            insights.push({
+                category: 'wealth',
+                type: 'wealth',
+                icon: 'bi-graph-up-arrow',
+                title: 'Net Worth Expansion',
+                pill: `+${nwPct.toFixed(1)}% MoM`,
+                pillClass: 'positive',
+                desc: `Your net worth grew by <strong>${formatCurrency(nwDiff)}</strong> (+${nwPct.toFixed(1)}%) this month, reaching a total of <strong>${formatCurrency(currentNW)}</strong>.`
+            });
+        } else {
+            insights.push({
+                category: 'wealth',
+                type: 'warning',
+                icon: 'bi-graph-down-arrow',
+                title: 'Net Worth Contraction',
+                pill: `${nwPct.toFixed(1)}% MoM`,
+                pillClass: 'warning',
+                desc: `Net worth contracted by <strong>${formatCurrency(Math.abs(nwDiff))}</strong> (${nwPct.toFixed(1)}%) compared to ${prevMonthKey}. Review liabilities and spending.`
+            });
+        }
+    } else if (currentNW > 0) {
+        insights.push({
+            category: 'wealth',
+            type: 'wealth',
+            icon: 'bi-trophy',
+            title: 'Current Net Worth',
+            pill: 'Active',
+            pillClass: 'positive',
+            desc: `Your total net worth stands at <strong>${formatCurrency(currentNW)}</strong> across bank balances, investments, and EPFO.`
+        });
+    }
+
+    // 2. Savings Rate & Cashflow Insight
+    const totalIncome = currentSummary.monthIncome?.totalIncome || 0;
+    const expenditure = currentSummary.expenditure || 0;
+    const savingsRate = currentSummary.savingsRate || 0;
+
+    if (totalIncome > 0) {
+        if (savingsRate >= 30) {
+            insights.push({
+                category: 'cashflow',
+                type: 'cashflow',
+                icon: 'bi-piggy-bank-fill',
+                title: 'Strong Savings Rate',
+                pill: `${savingsRate.toFixed(1)}% Saved`,
+                pillClass: 'positive',
+                desc: `You saved <strong>${savingsRate.toFixed(1)}%</strong> of your income (<strong>${formatCurrency(currentSummary.savings)}</strong> saved out of ${formatCurrency(totalIncome)}). Excellent financial discipline!`
+            });
+        } else if (savingsRate > 0) {
+            insights.push({
+                category: 'cashflow',
+                type: 'warning',
+                icon: 'bi-dash-circle',
+                title: 'Moderate Savings Rate',
+                pill: `${savingsRate.toFixed(1)}% Saved`,
+                pillClass: 'warning',
+                desc: `Savings rate is at <strong>${savingsRate.toFixed(1)}%</strong>. Aim for at least 30% savings to accelerate wealth compounding.`
+            });
+        } else {
+            insights.push({
+                category: 'cashflow',
+                type: 'danger',
+                icon: 'bi-exclamation-triangle-fill',
+                title: 'Outflows Exceed Income',
+                pill: 'High Outflow',
+                pillClass: 'danger',
+                desc: `Monthly expenditure (<strong>${formatCurrency(expenditure)}</strong>) equals or exceeds total income (<strong>${formatCurrency(totalIncome)}</strong>).`
+            });
+        }
+    }
+
+    // 3. Debt Burden / Credit Card Liabilities Insight
+    const totalLiabilities = currentSummary.totalLiabilities || 0;
+    if (totalLiabilities > 0) {
+        if (totalIncome > 0 && (totalLiabilities / totalIncome) > 0.5) {
+            insights.push({
+                category: 'cashflow',
+                type: 'danger',
+                icon: 'bi-credit-card-2-front-fill',
+                title: 'Elevated Liabilities',
+                pill: `${((totalLiabilities / totalIncome) * 100).toFixed(0)}% of Income`,
+                pillClass: 'danger',
+                desc: `Outstanding card & loan liabilities (<strong>${formatCurrency(totalLiabilities)}</strong>) represent over 50% of your monthly income. Pay off high-interest debt promptly.`
+            });
+        } else {
+            insights.push({
+                category: 'cashflow',
+                type: 'cashflow',
+                icon: 'bi-check-circle-fill',
+                title: 'Manageable Liabilities',
+                pill: 'Under Control',
+                pillClass: 'positive',
+                desc: `Total outstanding liabilities stand at <strong>${formatCurrency(totalLiabilities)}</strong>.`
+            });
+        }
+    } else {
+        insights.push({
+            category: 'cashflow',
+            type: 'wealth',
+            icon: 'bi-shield-check',
+            title: 'Debt-Free Status',
+            pill: 'Zero Debt',
+            pillClass: 'positive',
+            desc: `Zero outstanding credit card balances or loan liabilities recorded for this month!`
+        });
+    }
+
+    // 4. Emergency Buffer Runway Insight
+    const liquidBankBalance = currentSummary.totalBankBalance || 0;
+    let avgExp = expenditure;
+    if (snapshots && Object.keys(snapshots).length > 0) {
+        const expList = Object.values(snapshots).map(s => s.expenditure || 0).filter(e => e > 0);
+        if (expList.length > 0) {
+            avgExp = expList.reduce((a, b) => a + b, 0) / expList.length;
+        }
+    }
+    if (liquidBankBalance > 0 && avgExp > 0) {
+        const runwayMonths = liquidBankBalance / avgExp;
+        if (runwayMonths >= 6) {
+            insights.push({
+                category: 'safety',
+                type: 'safety',
+                icon: 'bi-shield-fill-check',
+                title: 'Robust Emergency Buffer',
+                pill: `${runwayMonths.toFixed(1)} Months`,
+                pillClass: 'positive',
+                desc: `Your liquid bank balance (<strong>${formatCurrency(liquidBankBalance)}</strong>) can cover ~<strong>${runwayMonths.toFixed(1)} months</strong> of expenses. Full 6+ month emergency cushion maintained.`
+            });
+        } else if (runwayMonths >= 3) {
+            insights.push({
+                category: 'safety',
+                type: 'safety',
+                icon: 'bi-shield-half',
+                title: 'Moderate Safety Runway',
+                pill: `${runwayMonths.toFixed(1)} Months`,
+                pillClass: 'neutral',
+                desc: `Bank balance (<strong>${formatCurrency(liquidBankBalance)}</strong>) provides ~<strong>${runwayMonths.toFixed(1)} months</strong> of spending runway. Build up towards 6 months for added peace of mind.`
+            });
+        } else {
+            insights.push({
+                category: 'safety',
+                type: 'warning',
+                icon: 'bi-shield-exclamation',
+                title: 'Low Liquid Buffer',
+                pill: `${runwayMonths.toFixed(1)} Months`,
+                pillClass: 'warning',
+                desc: `Bank balance covers ~<strong>${runwayMonths.toFixed(1)} months</strong> of average expenses. Consider parking funds in liquid accounts.`
+            });
+        }
+    }
+
+    // 5. Investment Category Highlight
+    const catBreakdown = currentSummary.categoryBreakdown || {};
+    let topCatName = '';
+    let topCatVal = 0;
+    Object.entries(catBreakdown).forEach(([catId, val]) => {
+        if (val > topCatVal) {
+            topCatVal = val;
+            const categoryObj = financeData.categories?.[catId];
+            topCatName = categoryObj ? categoryObj.name : catId;
+        }
+    });
+    if (topCatVal > 0 && topCatName) {
+        insights.push({
+            category: 'wealth',
+            type: 'wealth',
+            icon: 'bi-pie-chart-fill',
+            title: 'Top Investment Category',
+            pill: topCatName,
+            pillClass: 'positive',
+            desc: `<strong>${escapeHtml(topCatName)}</strong> led investment allocations this month with <strong>${formatCurrency(topCatVal)}</strong> invested.`
+        });
+    }
+
+    // Render HTML items
+    let html = '';
+    insights.forEach(ins => {
+        html += `
+        <div class="insight-item" data-insight-cat="${ins.category}">
+            <div class="insight-icon-box ${ins.type}">
+                <i class="bi ${ins.icon}"></i>
+            </div>
+            <div class="insight-content">
+                <div class="insight-title-row">
+                    <span class="insight-item-title">${escapeHtml(ins.title)}</span>
+                    <span class="insight-pill ${ins.pillClass}">${escapeHtml(ins.pill)}</span>
+                </div>
+                <p class="insight-item-desc">${ins.desc}</p>
+            </div>
+        </div>
+        `;
+    });
+
+    gridEl.innerHTML = html;
+
+    // Apply current filter chip
+    const activeChip = document.querySelector('#smartInsightsFilterChips .insight-chip.active');
+    filterSmartInsights(activeSmartInsightFilter || 'all', activeChip);
+}
+
+// ========================================
 // Init
 // ========================================
 
@@ -4810,7 +5105,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ========================================
-// Future Financial Forecast Feature
-// Moved to js/forecast.js
+// Financial Health Score Calculation & UI
+// Moved to js/health-score.js
 // ========================================
+
+
 
