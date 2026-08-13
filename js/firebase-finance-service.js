@@ -70,7 +70,8 @@ const FINANCE_VIEW_WIDGET_KEYS = Object.freeze([
     'analyticsNetWorthTrend',
     'analyticsIncomeExpense',
     'analyticsCategoryTrend',
-    'analyticsCibil'
+    'analyticsCibil',
+    'analyticsSmartInsights'
 ]);
 
 const FINANCE_VIEW_ITEM_KEYS = Object.freeze([
