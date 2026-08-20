@@ -462,25 +462,30 @@ async function ensurePrimaryAdminExists() {
  */
 async function loadAdminUsers() {
     try {
+        const tbody = document.getElementById('adminsTableBody');
+        if (tbody) tbody.innerHTML = getSkeletonRowsHTML(5, 3);
+        
         const adminsRef = ref(database, 'adminUsers');
         const snapshot = await get(adminsRef);
         
-        const tbody = document.getElementById('adminsTableBody');
         if (!tbody) return;
         
         // Always show primary admin first
         let html = `
-            <tr class="table-warning">
-                <td>
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-shield-fill text-warning"></i>
-                        <strong>${PRIMARY_ADMIN_EMAIL}</strong>
+            <tr class="table-warning" onclick="if(!window.blockRowClicks) this.classList.toggle('expanded')">
+                <td data-label="Email">
+                    <div class="d-flex align-items-center justify-content-between gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-shield-fill text-warning"></i>
+                            <strong>${PRIMARY_ADMIN_EMAIL}</strong>
+                        </div>
+                        <span class="row-expand-chevron d-md-none"><i class="bi bi-chevron-down"></i></span>
                     </div>
                 </td>
-                <td><span class="badge bg-warning text-dark">Primary Admin</span></td>
-                <td>System Default</td>
-                <td><span class="badge badge-active">Active</span></td>
-                <td>
+                <td data-label="Added By"><span class="badge bg-warning text-dark">Primary Admin</span></td>
+                <td data-label="Added On">System Default</td>
+                <td data-label="Status"><span class="badge badge-active">Active</span></td>
+                <td data-label="Actions" onclick="event.stopPropagation()">
                     <span class="text-muted">Protected</span>
                 </td>
             </tr>
@@ -500,16 +505,21 @@ async function loadAdminUsers() {
                 }
                 
                 html += `
-                    <tr>
-                        <td>${escapeHtml(admin.email)}</td>
-                        <td>${escapeHtml(admin.addedByEmail || 'Unknown')}</td>
-                        <td>${formatDate(admin.addedAt)}</td>
-                        <td>
+                    <tr onclick="if(!window.blockRowClicks) this.classList.toggle('expanded')">
+                        <td data-label="Email">
+                            <div class="d-flex align-items-center justify-content-between gap-2">
+                                <span>${escapeHtml(admin.email)}</span>
+                                <span class="row-expand-chevron d-md-none"><i class="bi bi-chevron-down"></i></span>
+                            </div>
+                        </td>
+                        <td data-label="Added By">${escapeHtml(admin.addedByEmail || 'Unknown')}</td>
+                        <td data-label="Added On">${formatDate(admin.addedAt)}</td>
+                        <td data-label="Status">
                             <span class="badge ${admin.active !== false ? 'badge-active' : 'badge-disabled'}">
                                 ${admin.active !== false ? 'Active' : 'Inactive'}
                             </span>
                         </td>
-                        <td>
+                        <td data-label="Actions" onclick="event.stopPropagation()">
                             <button class="btn btn-sm btn-outline-danger" onclick="removeAdminAccess('${admin.id}', '${escapeHtml(admin.email)}')" title="Remove Admin">
                                 <i class="bi bi-shield-x"></i> Remove
                             </button>
@@ -631,6 +641,9 @@ window.removeAdminAccess = async function(adminId, email) {
  */
 async function loadUsers() {
     try {
+        const tbody = document.getElementById('usersTableBody');
+        if (tbody) tbody.innerHTML = getSkeletonRowsHTML(6, 4);
+        
         const usersRef = ref(database, 'users');
         const snapshot = await get(usersRef);
         
@@ -722,35 +735,37 @@ function renderUsersTable() {
     
     pageUsers.forEach(user => {
         const tr = document.createElement('tr');
+        tr.setAttribute('onclick', "if(!window.blockRowClicks) this.classList.toggle('expanded')");
         const displayName = user.displayName || '';
         const email = user.email || '';
         // Show displayName first, then email prefix, then UID as last resort
         const userName = displayName || (email ? email.split('@')[0] : `User ${user.uid.substring(0, 8)}`);
         const displayEmail = email || 'No email';
         tr.innerHTML = `
-            <td>
+            <td data-label="User">
                 <div class="user-cell">
                     <div class="user-avatar">${getInitials(displayName, email)}</div>
                     <div class="user-info">
                         <span class="name">${escapeHtml(userName)}</span>
                         <span class="email">${escapeHtml(displayEmail)}</span>
                     </div>
+                    <span class="row-expand-chevron ms-auto d-md-none"><i class="bi bi-chevron-down"></i></span>
                 </div>
             </td>
-            <td>
+            <td data-label="Role">
                 <span class="badge ${user.role === 'admin' ? 'badge-admin' : 'badge-user'}">
                     ${user.role === 'admin' ? 'Admin' : 'User'}
                 </span>
             </td>
-            <td>
+            <td data-label="Status">
                 <span class="badge ${user.status === 'disabled' ? 'badge-disabled' : 'badge-active'}">
                     ${user.status === 'disabled' ? 'Disabled' : 'Active'}
                 </span>
             </td>
-            <td>${formatDate(user.lastActive)}</td>
-            <td>${formatDate(user.createdAt)}</td>
-            <td>
-                <div class="action-btns">
+            <td data-label="Last Active">${formatDate(user.lastActive)}</td>
+            <td data-label="Created">${formatDate(user.createdAt)}</td>
+            <td data-label="Actions">
+                <div class="action-btns" onclick="event.stopPropagation()">
                     <button class="btn btn-sm btn-outline-info" onclick="openUserActions('${user.uid}')" title="More Actions">
                         <i class="bi bi-three-dots"></i>
                     </button>
@@ -1410,6 +1425,7 @@ async function viewUserData() {
         'userFinanceIncomeContent',
         'userFinanceTaxesContent',
         'userFinanceEPFOContent',
+        'userFinanceCibilContent',
         'userFinanceSnapshotsContent'
     ].forEach(id => {
         const el = document.getElementById(id);
@@ -2096,6 +2112,64 @@ async function viewUserData() {
         `;
     }
 
+    // Load finance tracker - CIBIL Score
+    try {
+        const cibilRef = ref(database, `users/${selectedUserId}/finance/cibil`);
+        const cibilSnapshot = await get(cibilRef);
+
+        const cibilContent = document.getElementById('userFinanceCibilContent');
+
+        if (cibilSnapshot.exists()) {
+            const cibil = cibilSnapshot.val();
+            const cibilEntries = Object.entries(cibil).sort(([a], [b]) => b.localeCompare(a));
+
+            cibilContent.innerHTML = `
+                <div class="table-responsive">
+                    <table class="table table-dark table-sm">
+                        <thead>
+                            <tr>
+                                <th>Month</th>
+                                <th>CIBIL Score</th>
+                                <th>Rating</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${cibilEntries.map(([month, data]) => {
+                                const score = parseInt(data.value) || 0;
+                                let status = 'Unknown';
+                                let badgeClass = 'badge bg-secondary';
+                                if (score >= 750) { status = 'Excellent'; badgeClass = 'badge bg-success'; }
+                                else if (score >= 700) { status = 'Good'; badgeClass = 'badge bg-info text-dark'; }
+                                else if (score >= 650) { status = 'Fair'; badgeClass = 'badge bg-warning text-dark'; }
+                                else if (score >= 300) { status = 'Poor'; badgeClass = 'badge bg-danger'; }
+                                
+                                return `
+                                    <tr>
+                                        <td>${escapeHtml(month)}</td>
+                                        <td><strong>${score}</strong></td>
+                                        <td><span class="${badgeClass}">${status}</span></td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        } else {
+            cibilContent.innerHTML = `
+                <div class="empty-state">
+                    <i class="bi bi-speedometer2"></i>
+                    <h5>No CIBIL Data</h5>
+                    <p>This user has no CIBIL score records.</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        document.getElementById('userFinanceCibilContent').innerHTML = `
+            <div class="alert alert-danger">Error loading CIBIL data</div>
+        `;
+    }
+
     // Load finance tracker - monthly snapshots
     try {
         const snapshotsRef = ref(database, `users/${selectedUserId}/finance/monthlySnapshots`);
@@ -2189,10 +2263,83 @@ async function deleteUserData() {
    ======================================== */
 
 /**
+ * Generate skeleton rows HTML for loading state
+ * @param {number} columns - Number of columns in table
+ * @param {number} rows - Number of rows to generate
+ * @returns {string} HTML string
+ */
+function getSkeletonRowsHTML(columns = 5, rows = 3) {
+    let html = '';
+    for (let r = 0; r < rows; r++) {
+        html += '<tr class="skeleton-row-placeholder">';
+        for (let c = 0; c < columns; c++) {
+            if (c === 0) {
+                // Primary column gets an avatar + text skeleton
+                html += `
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="skeleton-loader skeleton-avatar"></div>
+                            <div class="d-flex flex-column gap-1 flex-grow-1" style="max-width: 150px;">
+                                <div class="skeleton-loader skeleton-title" style="width: 70%; margin: 0;"></div>
+                                <div class="skeleton-loader skeleton-text" style="width: 100%; margin: 0;"></div>
+                            </div>
+                        </div>
+                    </td>
+                `;
+            } else {
+                html += `
+                    <td>
+                        <div class="skeleton-loader skeleton-text" style="width: 50px; margin: 0;"></div>
+                    </td>
+                `;
+            }
+        }
+        html += '</tr>';
+    }
+    return html;
+}
+
+/**
  * Load statistics
  */
 async function loadStats() {
     // Stats will be updated after loading users
+}
+
+/**
+ * Animate a counter value
+ * @param {string} elementId - Element ID
+ * @param {number} targetValue - Target number
+ * @param {number} duration - Animation duration in ms
+ */
+function animateCounter(elementId, targetValue, duration = 800) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    
+    const startValue = parseInt(el.textContent, 10) || 0;
+    if (startValue === targetValue) {
+        el.textContent = targetValue;
+        return;
+    }
+    
+    const startTime = performance.now();
+    
+    function update(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        // Ease out quadratic
+        const easeProgress = progress * (2 - progress);
+        const currentValue = Math.floor(startValue + easeProgress * (targetValue - startValue));
+        el.textContent = currentValue;
+        
+        if (progress < 1) {
+            requestAnimationFrame(update);
+        } else {
+            el.textContent = targetValue;
+        }
+    }
+    
+    requestAnimationFrame(update);
 }
 
 /**
@@ -2230,10 +2377,10 @@ function updateStats() {
     const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
     const activeUsers = allUsers.filter(u => u.lastActive && u.lastActive > sevenDaysAgo).length;
     
-    document.getElementById('totalUsersCount').textContent = totalUsers;
-    document.getElementById('activeUsersCount').textContent = activeUsers;
-    document.getElementById('adminUsersCount').textContent = adminUsers;
-    document.getElementById('disabledUsersCount').textContent = disabledUsers;
+    animateCounter('totalUsersCount', totalUsers);
+    animateCounter('activeUsersCount', activeUsers);
+    animateCounter('adminUsersCount', adminUsers);
+    animateCounter('disabledUsersCount', disabledUsers);
 }
 
 /* ========================================
@@ -2267,6 +2414,9 @@ async function logAuditAction(action, targetUserId, details) {
  */
 async function loadAuditLogs() {
     try {
+        const tbody = document.getElementById('auditLogsBody');
+        if (tbody) tbody.innerHTML = getSkeletonRowsHTML(5, 5);
+        
         // Unsubscribe previous listener to prevent duplicates
         if (unsubscribeAuditLogs) unsubscribeAuditLogs();
 
@@ -2290,12 +2440,17 @@ async function loadAuditLogs() {
                 logs.sort((a, b) => b.timestamp - a.timestamp);
                 
                 tbody.innerHTML = logs.map(log => `
-                    <tr>
-                        <td>${formatDate(log.timestamp, true)}</td>
-                        <td>${escapeHtml(log.adminEmail)}</td>
-                        <td><span class="badge bg-secondary">${formatActionType(log.action)}</span></td>
-                        <td>${log.targetUserId ? escapeHtml(log.targetUserId.substring(0, 8) + '...') : '-'}</td>
-                        <td>${escapeHtml(log.details || '-')}</td>
+                    <tr onclick="if(!window.blockRowClicks) this.classList.toggle('expanded')">
+                        <td data-label="Timestamp">
+                            <div class="d-flex align-items-center justify-content-between gap-2">
+                                <span>${formatDate(log.timestamp, true)}</span>
+                                <span class="row-expand-chevron d-md-none"><i class="bi bi-chevron-down"></i></span>
+                            </div>
+                        </td>
+                        <td data-label="Admin">${escapeHtml(log.adminEmail)}</td>
+                        <td data-label="Action"><span class="badge bg-secondary">${formatActionType(log.action)}</span></td>
+                        <td data-label="Target User">${log.targetUserId ? escapeHtml(log.targetUserId.substring(0, 8) + '...') : '-'}</td>
+                        <td data-label="Details">${escapeHtml(log.details || '-')}</td>
                     </tr>
                 `).join('');
             } else {
@@ -2653,6 +2808,59 @@ async function backupData() {
 function bindEventListeners() {
     if (eventListenersBound) return;
     eventListenersBound = true;
+
+    // Ghost click / tap-through blocker for select dropdowns on mobile viewports
+    window.blockRowClicks = false;
+    document.querySelectorAll('.form-select, .form-control').forEach(el => {
+        const blockHandler = () => {
+            window.blockRowClicks = true;
+            setTimeout(() => { window.blockRowClicks = false; }, 400);
+        };
+        el.addEventListener('change', blockHandler);
+        el.addEventListener('blur', blockHandler);
+        el.addEventListener('click', blockHandler);
+    });
+
+    // Swipe gestures on Users Table for pagination
+    const usersTable = document.getElementById('usersTable');
+    if (usersTable) {
+        let touchstartX = 0;
+        let touchendX = 0;
+        let touchstartY = 0;
+        let touchendY = 0;
+        
+        usersTable.addEventListener('touchstart', (e) => {
+            touchstartX = e.changedTouches[0].screenX;
+            touchstartY = e.changedTouches[0].screenY;
+        }, { passive: true });
+        
+        usersTable.addEventListener('touchend', (e) => {
+            touchendX = e.changedTouches[0].screenX;
+            touchendY = e.changedTouches[0].screenY;
+            handleSwipe();
+        }, { passive: true });
+        
+        function handleSwipe() {
+            const diffX = touchendX - touchstartX;
+            const diffY = touchendY - touchstartY;
+            
+            // Check if swipe is horizontal and not vertical scrolling
+            if (Math.abs(diffX) > 60 && Math.abs(diffY) < 40) {
+                if (diffX < 0) {
+                    // Swiped left -> Next page
+                    const totalPages = Math.ceil(filteredUsers.length / USERS_PER_PAGE);
+                    if (currentPage < totalPages) {
+                        changePage(currentPage + 1);
+                    }
+                } else {
+                    // Swiped right -> Previous page
+                    if (currentPage > 1) {
+                        changePage(currentPage - 1);
+                    }
+                }
+            }
+        }
+    }
 
     // Search and filters
     document.getElementById('userSearchInput')?.addEventListener('input', debounce(filterUsers, 300));

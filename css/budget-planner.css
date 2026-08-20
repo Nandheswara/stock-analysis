@@ -543,29 +543,42 @@ body.light-theme .btn-finance-success {
 
 @media (max-width: 768px) {
     .year-navigator {
-        flex-direction: column;
-        gap: 16px;
+        flex-direction: row;
         align-items: center;
-        text-align: center;
-        padding: 16px;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 10px 14px;
     }
 
     .year-navigator .navigator-controls {
+        width: auto;
         display: flex;
         align-items: center;
-        justify-content: center;
         gap: 16px;
-        width: 100%;
     }
     
-    .year-navigator .ms-auto {
-        margin-left: 0 !important;
-        width: 100%;
-    }
-    
-    .year-navigator .btn-finance {
-        width: 100%;
+    .year-navigator .month-btn {
+        width: 34px;
+        height: 34px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
         justify-content: center;
+    }
+
+    #yearDisplay {
+        text-align: center;
+        width: auto;
+        min-width: auto;
+        font-size: 0.95rem;
+        white-space: nowrap;
+        padding: 0 20px;
+    }
+
+    .year-navigator .month-nav-right {
+        margin: 0;
+        justify-content: flex-end;
+        width: auto;
     }
 
     /* Mobile 2x2 Overview Card Optimizations */

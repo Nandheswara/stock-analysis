@@ -49,6 +49,8 @@ import {
     saveTax,
     saveEPFO,
     getEPFO,
+    saveCibilScore,
+    getCibilScore,
     getIncome,
     saveMonthlySnapshot,
     listenToFinanceData,
@@ -64,6 +66,51 @@ import {
 } from './firebase-finance-service.js';
 
 import { log } from './utils.js';
+import { 
+    registerForecastBridge, 
+    forecastConfig, 
+    originalActualMonth, 
+    originalActualData, 
+    generateForecastData, 
+    applyForecastUIStates, 
+    clearForecastUIStates, 
+    exitForecastMode,
+    initForecastModalInputs,
+    openForecastExportModal,
+    closeForecastExportModal,
+    exportForecastDataAndClose,
+    openForecastModal,
+    closeForecastModal,
+    exportForecastData
+} from './forecast.js';
+
+import {
+    registerHealthScoreBridge,
+    calculateFinancialHealthScore,
+    updateFinancialHealthScoreUI,
+    renderHealthScoreTrendChart,
+    openHealthScoreModal
+} from './health-score.js';
+
+
+window.openForecastModal = openForecastModal;
+window.closeForecastModal = closeForecastModal;
+window.openForecastExportModal = openForecastExportModal;
+window.closeForecastExportModal = closeForecastExportModal;
+
+registerHealthScoreBridge({
+    getFinanceData: () => financeData,
+    getCurrentMonth: () => currentMonth,
+    getMonthDisplay,
+    formatCurrency,
+    openModal,
+    getChartsObject: () => charts
+});
+
+window.exportForecastDataAndClose = exportForecastDataAndClose;
+window.exportForecastData = exportForecastData;
+
+
 
 // Replaced console.log with the centralized logging utility
 log('info', 'Finance tracker initialized successfully.');
@@ -83,7 +130,8 @@ let financeData = {
     income: {},
     taxes: {},
     snapshots: {},
-    epfo: {}
+    epfo: {},
+    cibil: {}
 };
 let charts = {};
 let unsubscribeFinance = null;
@@ -109,6 +157,13 @@ const SECTION_PREFERENCE_META = Object.freeze([
         label: 'Net Worth Cards',
         description: 'Assets, liabilities, net worth and EPFO cards.'
     },
+    {
+        key: 'financialHealth',
+        sectionId: 'financialHealthSection',
+        label: 'Financial Health Score',
+        description: 'Financial health gauge, savings rate, buffer, debt control and investment scores.'
+    },
+
     {
         key: 'investmentCategories',
         sectionId: 'investmentCategoriesSection',
@@ -163,16 +218,19 @@ const WIDGET_PREFERENCE_META = Object.freeze([
     { key: 'netWorthLiabilities', elementId: 'netWorthLiabilitiesCard', label: 'Net Worth: Liabilities Card', description: 'Shows total liabilities.' },
     { key: 'netWorthTotal', elementId: 'netWorthTotalCard', label: 'Net Worth: Total Card', description: 'Shows current net worth.' },
     { key: 'netWorthEPFO', elementId: 'netWorthEPFOCard', label: 'Net Worth: EPFO Card', description: 'Shows EPFO value.' },
+    { key: 'netWorthCibil', elementId: 'netWorthCibilCard', label: 'Net Worth: CIBIL Card', description: 'Shows CIBIL/Credit Score.' },
     { key: 'analyticsInvestmentBreakdown', elementId: 'analyticsInvestmentBreakdownCard', label: 'Analytics: Investment Breakdown', description: 'Pie chart by category.' },
     { key: 'analyticsNetWorthTrend', elementId: 'analyticsNetWorthTrendCard', label: 'Analytics: Net Worth Trend', description: 'Line chart for asset growth.' },
     { key: 'analyticsIncomeExpense', elementId: 'analyticsIncomeExpenseCard', label: 'Analytics: Income vs Expenditure', description: 'Bar chart for income/expense/invested.' },
-    { key: 'analyticsCategoryTrend', elementId: 'analyticsCategoryTrendCard', label: 'Analytics: Category Trends', description: 'Line chart by investment category.' }
+    { key: 'analyticsCategoryTrend', elementId: 'analyticsCategoryTrendCard', label: 'Analytics: Category Trends', description: 'Line chart by investment category.' },
+    { key: 'analyticsCibil', elementId: 'analyticsCibilCard', label: 'Analytics: Credit Score Trend', description: 'Line chart for CIBIL score history.' },
+    { key: 'analyticsSmartInsights', elementId: 'analyticsSmartInsightsCard', label: 'Analytics: Smart Financial Insights', description: 'Automated data-driven financial insights and alerts.' }
 ]);
 
 const SECTION_WIDGET_GROUPS = Object.freeze({
     financialSummary: Object.freeze(['summaryIncome', 'summaryExpenditure', 'summaryInvested', 'summaryBankBalance', 'summaryTax']),
-    netWorth: Object.freeze(['netWorthAssets', 'netWorthLiabilities', 'netWorthTotal', 'netWorthEPFO']),
-    analytics: Object.freeze(['analyticsInvestmentBreakdown', 'analyticsNetWorthTrend', 'analyticsIncomeExpense', 'analyticsCategoryTrend'])
+    netWorth: Object.freeze(['netWorthAssets', 'netWorthLiabilities', 'netWorthTotal', 'netWorthEPFO', 'netWorthCibil']),
+    analytics: Object.freeze(['analyticsSmartInsights', 'analyticsInvestmentBreakdown', 'analyticsNetWorthTrend', 'analyticsIncomeExpense', 'analyticsCategoryTrend', 'analyticsCibil'])
 });
 
 const WIDGET_SECTION_MAP = Object.freeze(
@@ -230,6 +288,7 @@ const AMOUNT_MASK_SELECTOR = [
     '#totalLiabilitiesValue',
     '#netWorthValue',
     '#epfoValue',
+    '#cibilScoreValue',
     '.category-card-total',
     '.category-item-amount',
     '.amount-cell',
@@ -281,8 +340,11 @@ function normalizeSectionPreferences(preferences) {
     SECTION_PREFERENCE_META.forEach(({ key }) => {
         if (rawSections[key] !== undefined) {
             normalized.sections[key] = Boolean(rawSections[key]);
+        } else {
+            normalized.sections[key] = true;
         }
     });
+
 
     const rawWidgets = preferences.widgets && typeof preferences.widgets === 'object'
         ? preferences.widgets
@@ -1049,12 +1111,32 @@ function formatCurrencyWithSign(amount) {
 
 function initMonthNavigator() {
     document.getElementById('monthPrevBtn').addEventListener('click', () => {
+        if (forecastConfig && forecastConfig.isActive) {
+            if (currentMonth > originalActualMonth) {
+                currentMonth = getPreviousMonth(currentMonth);
+                updateMonthDisplay();
+                renderAll();
+                return;
+            } else {
+                exitForecastMode();
+            }
+        }
         currentMonth = getPreviousMonth(currentMonth);
         updateMonthDisplay();
         renderAll();
     });
 
     document.getElementById('monthNextBtn').addEventListener('click', () => {
+        if (forecastConfig && forecastConfig.isActive) {
+            if (currentMonth < forecastConfig.targetMonth) {
+                currentMonth = getNextMonth(currentMonth);
+                updateMonthDisplay();
+                renderAll();
+                return;
+            } else {
+                return;
+            }
+        }
         const next = getNextMonth(currentMonth);
         currentMonth = next;
         updateMonthDisplay();
@@ -1066,11 +1148,25 @@ function initMonthNavigator() {
 
 function updateMonthDisplay() {
     document.getElementById('monthDisplay').textContent = getMonthDisplay(currentMonth);
-    const currentKey = getCurrentMonthKey();
-    const isCurrentMonth = currentMonth === currentKey;
     const nextButton = document.getElementById('monthNextBtn');
-    nextButton.disabled = false;
-    nextButton.classList.remove('disabled');
+    const prevButton = document.getElementById('monthPrevBtn');
+
+    if (forecastConfig && forecastConfig.isActive) {
+        prevButton.disabled = false;
+        prevButton.classList.remove('disabled');
+        if (currentMonth >= forecastConfig.targetMonth) {
+            nextButton.disabled = true;
+            nextButton.classList.add('disabled');
+        } else {
+            nextButton.disabled = false;
+            nextButton.classList.remove('disabled');
+        }
+    } else {
+        nextButton.disabled = false;
+        nextButton.classList.remove('disabled');
+        prevButton.disabled = false;
+        prevButton.classList.remove('disabled');
+    }
 }
 
 // ========================================
@@ -1153,6 +1249,29 @@ window.submitEditEPFO = async function() {
     }
 };
 
+window.openEditCibilModal = function() {
+    const monthCibil = financeData.cibil?.[currentMonth]?.value || '';
+    document.getElementById('modalCibilScore').value = monthCibil;
+    openModal('editCibilModal');
+    setTimeout(() => document.getElementById('modalCibilScore').focus(), 100);
+};
+
+window.submitEditCibil = async function() {
+    const input = document.getElementById('modalCibilScore');
+    const value = parseInt(input.value);
+    if (isNaN(value) || value < 300 || value > 900) {
+        showToast('CIBIL score must be between 300 and 900', 'error');
+        return;
+    }
+    const result = await saveCibilScore(currentMonth, { value });
+    if (result.success) {
+        closeModal('editCibilModal');
+        showToast('CIBIL score updated!', 'success');
+    } else {
+        showToast('Failed to save. ' + (result.error || ''), 'error');
+    }
+};
+
 function renderIncome() {
     const monthIncome = financeData.income[currentMonth] || { salary: 0, otherIncome: 0, totalIncome: 0 };
     const monthTax = financeData.taxes?.[currentMonth] || { tax: 0 };
@@ -1218,6 +1337,29 @@ function renderFinancialSummary() {
     if (epfoElem) epfoElem.textContent = formatCurrency(summary.epfoValue || 0);
     document.getElementById('totalLiabilitiesValue').textContent = formatCurrency(summary.totalLiabilities);
     document.getElementById('netWorthValue').textContent = formatCurrencyWithSign(summary.netWorth);
+
+    // CIBIL Score Card
+    const cibilElem = document.getElementById('cibilScoreValue');
+    const cibilCard = document.getElementById('netWorthCibilCard');
+    if (cibilElem && cibilCard) {
+        const monthCibil = financeData.cibil?.[currentMonth]?.value;
+        if (monthCibil) {
+            cibilElem.textContent = monthCibil;
+            cibilCard.classList.remove('cibil-excellent', 'cibil-good', 'cibil-fair', 'cibil-poor');
+            if (monthCibil >= 750) {
+                cibilCard.classList.add('cibil-excellent');
+            } else if (monthCibil >= 700) {
+                cibilCard.classList.add('cibil-good');
+            } else if (monthCibil >= 650) {
+                cibilCard.classList.add('cibil-fair');
+            } else {
+                cibilCard.classList.add('cibil-poor');
+            }
+        } else {
+            cibilElem.textContent = '---';
+            cibilCard.classList.remove('cibil-excellent', 'cibil-good', 'cibil-fair', 'cibil-poor');
+        }
+    }
 
     // Header savings rate badge — meaningful breakdown
     const badge = document.getElementById('savingsRateValue');
@@ -1801,6 +1943,9 @@ function renderExpenses() {
 
     // Filter for general expenses only — require explicit balance entry, no auto carry-forward
     const visibleCards = Object.entries(cards).filter(([cardId, card]) => {
+        if (cardId === 'forecast_projected_expense') {
+            return false;
+        }
         if ((card.type || 'credit-card') !== 'general-expense') {
             return false;
         }
@@ -2004,6 +2149,8 @@ function renderCharts() {
     const currentSummary = computeFinancialSummary(financeData, currentMonth);
     const snapshots = buildChartSnapshots();
 
+    renderSmartInsights(currentSummary, snapshots);
+
     if (isWidgetEnabled('analyticsInvestmentBreakdown')) {
         renderSpendingBreakdownChart();
     } else if (charts.spending) {
@@ -2030,6 +2177,13 @@ function renderCharts() {
     } else if (charts.categoryTrend) {
         charts.categoryTrend.destroy();
         delete charts.categoryTrend;
+    }
+
+    if (isWidgetEnabled('analyticsCibil')) {
+        renderCibilTrendChart(currentSummary, snapshots);
+    } else if (charts.cibilTrend) {
+        charts.cibilTrend.destroy();
+        delete charts.cibilTrend;
     }
 }
 
@@ -2408,6 +2562,80 @@ function renderCategoryTrendChart(currentSummary, snapshots) {
     });
 }
 
+function renderCibilTrendChart(currentSummary, snapshots) {
+    const ctx = document.getElementById('cibilTrendChart');
+    if (!ctx) return;
+
+    if (charts.cibilTrend) charts.cibilTrend.destroy();
+
+    const months = Object.keys(snapshots).sort();
+    const chartMonths = [...new Set([...months, currentMonth])].sort();
+    const last6 = chartMonths.slice(-6);
+    const labels = last6.map(m => getMonthDisplay(m).replace(/ \d{4}/, ''));
+
+    // Pull CIBIL scores from financeData.cibil
+    const cibilData = financeData.cibil || {};
+    const data = last6.map(month => {
+        const entry = cibilData[month];
+        return entry ? entry.value : null;
+    });
+
+    const hasData = data.some(val => val !== null);
+    if (!hasData) {
+        ctx.style.opacity = '0.5';
+    } else {
+        ctx.style.opacity = '1';
+    }
+
+    const textColor = getComputedStyle(document.body).getPropertyValue('--text-primary').trim() || '#e9ecef';
+    const gridColor = getComputedStyle(document.body).getPropertyValue('--border-color').trim() || '#1f2229';
+
+    charts.cibilTrend = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: 'CIBIL Score',
+                data,
+                borderColor: '#28a745',
+                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                fill: true,
+                tension: 0.3,
+                spanGaps: true,
+                borderWidth: 3,
+                pointRadius: 6,
+                pointHoverRadius: 8,
+                pointBackgroundColor: '#28a745',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => `Score: ${ctx.raw}`
+                    }
+                }
+            },
+            scales: {
+                x: { ticks: { color: textColor }, grid: { display: false } },
+                y: {
+                    min: 300,
+                    max: 900,
+                    ticks: { color: textColor },
+                    grid: { color: gridColor }
+                }
+            }
+        }
+    });
+}
+
 // ========================================
 // Render All (debounced to prevent rapid re-renders)
 // ========================================
@@ -2416,6 +2644,9 @@ function renderAll() {
     // Guard against re-entrant renders
     if (isRendering) return;
     isRendering = true;
+
+    const isForecastActive = forecastConfig && forecastConfig.isActive;
+
     try {
         applySectionPreferences();
         renderIncome();
@@ -2450,8 +2681,21 @@ function renderAll() {
                 isInitialLoad = false;
             }
         }
+        try {
+            updateFinancialHealthScoreUI();
+        } catch (err) {
+            log('error', 'Error rendering financial health score: ' + err.message);
+        }
+
 
         applyAmountMasking();
+
+
+        if (isForecastActive) {
+            applyForecastUIStates();
+        } else {
+            clearForecastUIStates();
+        }
     } finally {
         isRendering = false;
     }
@@ -2478,6 +2722,44 @@ function openModal(modalId) {
 function closeModal(modalId) {
     document.getElementById(modalId).classList.remove('active');
 }
+
+window.showToast = showToast;
+window.downloadFile = downloadFile;
+window.buildCsvSection = buildCsvSection;
+window.ensureJsPDF = ensureJsPDF;
+window.ensureSheetJS = ensureSheetJS;
+window.formatCurrencyWithSign = formatCurrencyWithSign;
+
+export { 
+    showToast, 
+    downloadFile, 
+    buildCsvSection, 
+    ensureJsPDF, 
+    ensureSheetJS, 
+    formatCurrencyWithSign 
+};
+
+// Register Forecast Bridge Callbacks
+registerForecastBridge({
+    getCurrentMonth: () => currentMonth,
+    setCurrentMonth: (m) => { currentMonth = m; },
+    getFinanceData: () => financeData,
+    setFinanceData: (d) => { financeData = d; },
+    getMonthDisplay,
+    getNextMonth,
+    getPreviousMonth,
+    updateMonthDisplay,
+    renderAll,
+    openModal,
+    closeModal,
+    showToast,
+    downloadFile,
+    buildCsvSection,
+    ensureJsPDF,
+    ensureSheetJS
+});
+
+
 
 window.openExportModal = function() {
     const modal = document.getElementById('exportModal');
@@ -3176,6 +3458,7 @@ window.copyFinanceDataFromSettings = async function() {
             includeIncome: Boolean(document.getElementById('copySectionIncome')?.checked),
             includeTaxes: Boolean(document.getElementById('copySectionTaxes')?.checked),
             includeEPFO: Boolean(document.getElementById('copySectionEPFO')?.checked),
+            includeCibil: Boolean(document.getElementById('copySectionCibil')?.checked),
             overwriteExisting: copyAndReplaceEnabled,
             replaceCategories: copyAndReplaceEnabled && Boolean(document.getElementById('copySectionCategories')?.checked),
             replaceInsurance: copyAndReplaceEnabled && Boolean(document.getElementById('copySectionInsurance')?.checked)
@@ -3189,7 +3472,8 @@ window.copyFinanceDataFromSettings = async function() {
             || options.includeInsurance
             || options.includeIncome
             || options.includeTaxes
-            || options.includeEPFO;
+            || options.includeEPFO
+            || options.includeCibil;
         if (!hasSelectedSection) {
             showToast('Select at least one section to copy.', 'warning');
             return;
@@ -3234,6 +3518,9 @@ window.copyFinanceDataFromSettings = async function() {
         }
         if ((result.epfoCopied || 0) > 0) {
             summaryParts.push(`EPFO: ${result.epfoCopied}`);
+        }
+        if ((result.cibilCopied || 0) > 0) {
+            summaryParts.push(`CIBIL: ${result.cibilCopied}`);
         }
 
         if (summaryParts.length === 0) {
@@ -3798,8 +4085,19 @@ function buildExportData(months) {
 }
 
 function buildCsvSection(title, rows) {
-    return [title, ...rows.map(row => row.map(sanitizeCsvCell).join(','))].join('\r\n');
+    if (!rows || !rows.length) return [title, 'No Data'].join('\r\n');
+    
+    if (Array.isArray(rows[0])) {
+        return [title, ...rows.map(row => row.map(sanitizeCsvCell).join(','))].join('\r\n');
+    } else if (typeof rows[0] === 'object' && rows[0] !== null) {
+        const headers = Object.keys(rows[0]);
+        const headerRow = headers.map(sanitizeCsvCell).join(',');
+        const bodyRows = rows.map(row => headers.map(h => sanitizeCsvCell(row ? row[h] : '')).join(','));
+        return [title, headerRow, ...bodyRows].join('\r\n');
+    }
+    return [title].join('\r\n');
 }
+
 
 window.exportFinanceData = async function(options = {}) {
     let fromMonth = document.getElementById('exportFromMonth')?.value;
@@ -3807,18 +4105,21 @@ window.exportFinanceData = async function(options = {}) {
     let format = document.getElementById('exportFormatSelect')?.value || 'xlsx';
     let closeMainExportModal = true;
 
-    if (options && typeof options === 'object') {
+    if (typeof options === 'string' && ['xlsx', 'pdf', 'csv', 'json'].includes(options.toLowerCase())) {
+        format = options.toLowerCase();
+    } else if (options && typeof options === 'object') {
         if (Object.prototype.hasOwnProperty.call(options, 'fromMonth')) {
             fromMonth = options.fromMonth;
         }
         if (Object.prototype.hasOwnProperty.call(options, 'toMonth')) {
             toMonth = options.toMonth;
         }
-        if (Object.prototype.hasOwnProperty.call(options, 'format')) {
-            format = options.format || format;
+        if (Object.prototype.hasOwnProperty.call(options, 'format') && typeof options.format === 'string') {
+            format = options.format.toLowerCase();
         }
         closeMainExportModal = options.closeModal !== false;
     }
+
 
     const range = getExportRange(fromMonth, toMonth);
     if (!range) {
@@ -4214,7 +4515,17 @@ function setupAuth() {
             // Setup finance data listener
             if (unsubscribeFinance) unsubscribeFinance();
             unsubscribeFinance = listenToFinanceData((data) => {
-                financeData = data;
+                window.financeData = data;
+                if (forecastConfig && forecastConfig.isActive) {
+                    originalActualData = data;
+                    try {
+                        financeData = generateForecastData(originalActualData, originalActualMonth, forecastConfig.targetMonth, forecastConfig);
+                    } catch (e) {
+                        log('error', 'Error generating forecast: ' + e.message);
+                    }
+                } else {
+                    financeData = data;
+                }
                 financeDataVersion += 1;
                 renderRecordPreferenceOptions();
                 debouncedRenderAll();
@@ -4487,6 +4798,262 @@ function initEncryptionBanner() {
 }
 
 // ========================================
+// Smart Financial Insights Logic
+// ========================================
+
+let activeSmartInsightFilter = 'all';
+
+window.filterSmartInsights = function(filter, buttonEl) {
+    activeSmartInsightFilter = filter;
+    if (buttonEl) {
+        const chips = buttonEl.parentElement.querySelectorAll('.insight-chip');
+        chips.forEach(c => c.classList.remove('active'));
+        buttonEl.classList.add('active');
+    }
+    const gridEl = document.getElementById('smartInsightsGrid');
+    if (!gridEl) return;
+    const items = gridEl.querySelectorAll('.insight-item');
+    let visibleCount = 0;
+    items.forEach(item => {
+        const category = item.getAttribute('data-insight-cat');
+        if (filter === 'all' || category === filter) {
+            item.style.display = 'flex';
+            visibleCount++;
+        } else {
+            item.style.display = 'none';
+        }
+    });
+    const countBadge = document.getElementById('smartInsightsCountBadge');
+    if (countBadge) {
+        countBadge.textContent = `${visibleCount} Insight${visibleCount !== 1 ? 's' : ''}`;
+    }
+};
+
+function renderSmartInsights(currentSummary, snapshots) {
+    const cardEl = document.getElementById('analyticsSmartInsightsCard');
+    const gridEl = document.getElementById('smartInsightsGrid');
+    if (!cardEl || !gridEl) return;
+
+    if (!isWidgetEnabled('analyticsSmartInsights')) {
+        cardEl.style.display = 'none';
+        return;
+    }
+    cardEl.style.display = 'block';
+
+    const prevMonthKey = getPreviousMonth(currentMonth);
+    const prevSummary = computeFinancialSummary(financeData, prevMonthKey);
+
+    const insights = [];
+
+    // 1. Net Worth Growth Insight
+    const currentNW = currentSummary.netWorth || 0;
+    const prevNW = prevSummary.netWorth || 0;
+    const nwDiff = currentNW - prevNW;
+    const nwPct = prevNW > 0 ? (nwDiff / prevNW) * 100 : 0;
+
+    if (prevNW > 0 && Math.abs(nwDiff) > 0) {
+        if (nwDiff > 0) {
+            insights.push({
+                category: 'wealth',
+                type: 'wealth',
+                icon: 'bi-graph-up-arrow',
+                title: 'Net Worth Expansion',
+                pill: `+${nwPct.toFixed(1)}% MoM`,
+                pillClass: 'positive',
+                desc: `Your net worth grew by <strong>${formatCurrency(nwDiff)}</strong> (+${nwPct.toFixed(1)}%) this month, reaching a total of <strong>${formatCurrency(currentNW)}</strong>.`
+            });
+        } else {
+            insights.push({
+                category: 'wealth',
+                type: 'warning',
+                icon: 'bi-graph-down-arrow',
+                title: 'Net Worth Contraction',
+                pill: `${nwPct.toFixed(1)}% MoM`,
+                pillClass: 'warning',
+                desc: `Net worth contracted by <strong>${formatCurrency(Math.abs(nwDiff))}</strong> (${nwPct.toFixed(1)}%) compared to ${prevMonthKey}. Review liabilities and spending.`
+            });
+        }
+    } else if (currentNW > 0) {
+        insights.push({
+            category: 'wealth',
+            type: 'wealth',
+            icon: 'bi-trophy',
+            title: 'Current Net Worth',
+            pill: 'Active',
+            pillClass: 'positive',
+            desc: `Your total net worth stands at <strong>${formatCurrency(currentNW)}</strong> across bank balances, investments, and EPFO.`
+        });
+    }
+
+    // 2. Savings Rate & Cashflow Insight
+    const totalIncome = currentSummary.monthIncome?.totalIncome || 0;
+    const expenditure = currentSummary.expenditure || 0;
+    const savingsRate = currentSummary.savingsRate || 0;
+
+    if (totalIncome > 0) {
+        if (savingsRate >= 30) {
+            insights.push({
+                category: 'cashflow',
+                type: 'cashflow',
+                icon: 'bi-piggy-bank-fill',
+                title: 'Strong Savings Rate',
+                pill: `${savingsRate.toFixed(1)}% Saved`,
+                pillClass: 'positive',
+                desc: `You saved <strong>${savingsRate.toFixed(1)}%</strong> of your income (<strong>${formatCurrency(currentSummary.savings)}</strong> saved out of ${formatCurrency(totalIncome)}). Excellent financial discipline!`
+            });
+        } else if (savingsRate > 0) {
+            insights.push({
+                category: 'cashflow',
+                type: 'warning',
+                icon: 'bi-dash-circle',
+                title: 'Moderate Savings Rate',
+                pill: `${savingsRate.toFixed(1)}% Saved`,
+                pillClass: 'warning',
+                desc: `Savings rate is at <strong>${savingsRate.toFixed(1)}%</strong>. Aim for at least 30% savings to accelerate wealth compounding.`
+            });
+        } else {
+            insights.push({
+                category: 'cashflow',
+                type: 'danger',
+                icon: 'bi-exclamation-triangle-fill',
+                title: 'Outflows Exceed Income',
+                pill: 'High Outflow',
+                pillClass: 'danger',
+                desc: `Monthly expenditure (<strong>${formatCurrency(expenditure)}</strong>) equals or exceeds total income (<strong>${formatCurrency(totalIncome)}</strong>).`
+            });
+        }
+    }
+
+    // 3. Debt Burden / Credit Card Liabilities Insight
+    const totalLiabilities = currentSummary.totalLiabilities || 0;
+    if (totalLiabilities > 0) {
+        if (totalIncome > 0 && (totalLiabilities / totalIncome) > 0.5) {
+            insights.push({
+                category: 'cashflow',
+                type: 'danger',
+                icon: 'bi-credit-card-2-front-fill',
+                title: 'Elevated Liabilities',
+                pill: `${((totalLiabilities / totalIncome) * 100).toFixed(0)}% of Income`,
+                pillClass: 'danger',
+                desc: `Outstanding card & loan liabilities (<strong>${formatCurrency(totalLiabilities)}</strong>) represent over 50% of your monthly income. Pay off high-interest debt promptly.`
+            });
+        } else {
+            insights.push({
+                category: 'cashflow',
+                type: 'cashflow',
+                icon: 'bi-check-circle-fill',
+                title: 'Manageable Liabilities',
+                pill: 'Under Control',
+                pillClass: 'positive',
+                desc: `Total outstanding liabilities stand at <strong>${formatCurrency(totalLiabilities)}</strong>.`
+            });
+        }
+    } else {
+        insights.push({
+            category: 'cashflow',
+            type: 'wealth',
+            icon: 'bi-shield-check',
+            title: 'Debt-Free Status',
+            pill: 'Zero Debt',
+            pillClass: 'positive',
+            desc: `Zero outstanding credit card balances or loan liabilities recorded for this month!`
+        });
+    }
+
+    // 4. Emergency Buffer Runway Insight
+    const liquidBankBalance = currentSummary.totalBankBalance || 0;
+    let avgExp = expenditure;
+    if (snapshots && Object.keys(snapshots).length > 0) {
+        const expList = Object.values(snapshots).map(s => s.expenditure || 0).filter(e => e > 0);
+        if (expList.length > 0) {
+            avgExp = expList.reduce((a, b) => a + b, 0) / expList.length;
+        }
+    }
+    if (liquidBankBalance > 0 && avgExp > 0) {
+        const runwayMonths = liquidBankBalance / avgExp;
+        if (runwayMonths >= 6) {
+            insights.push({
+                category: 'safety',
+                type: 'safety',
+                icon: 'bi-shield-fill-check',
+                title: 'Robust Emergency Buffer',
+                pill: `${runwayMonths.toFixed(1)} Months`,
+                pillClass: 'positive',
+                desc: `Your liquid bank balance (<strong>${formatCurrency(liquidBankBalance)}</strong>) can cover ~<strong>${runwayMonths.toFixed(1)} months</strong> of expenses. Full 6+ month emergency cushion maintained.`
+            });
+        } else if (runwayMonths >= 3) {
+            insights.push({
+                category: 'safety',
+                type: 'safety',
+                icon: 'bi-shield-half',
+                title: 'Moderate Safety Runway',
+                pill: `${runwayMonths.toFixed(1)} Months`,
+                pillClass: 'neutral',
+                desc: `Bank balance (<strong>${formatCurrency(liquidBankBalance)}</strong>) provides ~<strong>${runwayMonths.toFixed(1)} months</strong> of spending runway. Build up towards 6 months for added peace of mind.`
+            });
+        } else {
+            insights.push({
+                category: 'safety',
+                type: 'warning',
+                icon: 'bi-shield-exclamation',
+                title: 'Low Liquid Buffer',
+                pill: `${runwayMonths.toFixed(1)} Months`,
+                pillClass: 'warning',
+                desc: `Bank balance covers ~<strong>${runwayMonths.toFixed(1)} months</strong> of average expenses. Consider parking funds in liquid accounts.`
+            });
+        }
+    }
+
+    // 5. Investment Category Highlight
+    const catBreakdown = currentSummary.categoryBreakdown || {};
+    let topCatName = '';
+    let topCatVal = 0;
+    Object.entries(catBreakdown).forEach(([catId, val]) => {
+        if (val > topCatVal) {
+            topCatVal = val;
+            const categoryObj = financeData.categories?.[catId];
+            topCatName = categoryObj ? categoryObj.name : catId;
+        }
+    });
+    if (topCatVal > 0 && topCatName) {
+        insights.push({
+            category: 'wealth',
+            type: 'wealth',
+            icon: 'bi-pie-chart-fill',
+            title: 'Top Investment Category',
+            pill: topCatName,
+            pillClass: 'positive',
+            desc: `<strong>${escapeHtml(topCatName)}</strong> led investment allocations this month with <strong>${formatCurrency(topCatVal)}</strong> invested.`
+        });
+    }
+
+    // Render HTML items
+    let html = '';
+    insights.forEach(ins => {
+        html += `
+        <div class="insight-item" data-insight-cat="${ins.category}">
+            <div class="insight-icon-box ${ins.type}">
+                <i class="bi ${ins.icon}"></i>
+            </div>
+            <div class="insight-content">
+                <div class="insight-title-row">
+                    <span class="insight-item-title">${escapeHtml(ins.title)}</span>
+                    <span class="insight-pill ${ins.pillClass}">${escapeHtml(ins.pill)}</span>
+                </div>
+                <p class="insight-item-desc">${ins.desc}</p>
+            </div>
+        </div>
+        `;
+    });
+
+    gridEl.innerHTML = html;
+
+    // Apply current filter chip
+    const activeChip = document.querySelector('#smartInsightsFilterChips .insight-chip.active');
+    filterSmartInsights(activeSmartInsightFilter || 'all', activeChip);
+}
+
+// ========================================
 // EquityBot AI State Bridge
 // ========================================
 
@@ -4525,11 +5092,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeAmountMasking();
     applySectionPreferences();
     setupAuth();
-
-    // Dynamically load the EquityBot AI assistant
-    import('./ai/chat-panel.js')
-        .then(({ initChatPanel }) => initChatPanel())
-        .catch(err => console.warn('[EquityBot] Failed to load AI assistant:', err));
+    initForecastModalInputs();
 
     // Accordion togglers for mobile viewports (tables and category cards)
     document.addEventListener('click', (e) => {
@@ -4566,3 +5129,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+// ========================================
+// Financial Health Score Calculation & UI
+// Moved to js/health-score.js
+// ========================================
+
+
+

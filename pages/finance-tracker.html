@@ -45,6 +45,9 @@
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/global.css">
     <link rel="stylesheet" href="../css/finance-tracker.css">
+    <link rel="stylesheet" href="../css/health-score.css">
+    <link rel="stylesheet" href="../css/forecast.css">
+
     <link rel="stylesheet" href="../css/firebase-auth.css">
     <link rel="stylesheet" href="../css/ai-assistant.css">
 </head>
@@ -198,17 +201,33 @@
 
     <!-- Main Content -->
     <main class="container-fluid py-4">
-        <!-- Header -->
-        <div class="header-section">
-            <div class="row align-items-center">
-                <div class="col-md-8">
-                    <h1 class="mb-2"><i class="bi bi-piggy-bank"></i> Finance Tracker</h1>
-                    <p class="mb-0">Track investments, bank accounts, credit cards & net worth with monthly analytics</p>
+        <!-- Header Section -->
+        <div class="header-section finance-header-hero mb-4">
+            <div class="row align-items-center g-3">
+                <div class="col-lg-8 col-md-7">
+                    <div class="finance-header-main-flex">
+                        <div class="finance-header-icon-wrap">
+                            <i class="bi bi-piggy-bank-fill"></i>
+                        </div>
+                        <div class="finance-header-text-block">
+                            <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                                <h1 class="finance-header-title mb-0">Finance Tracker</h1>
+                                <span class="badge header-security-pill">
+                                    <i class="bi bi-shield-lock-fill me-1"></i> Encrypted
+                                </span>
+                            </div>
+                            <p class="finance-header-subtitle mb-0">
+                                Track investments, bank accounts, credit card liabilities & net worth with monthly analytics
+                            </p>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-md-4 text-md-end">
-                    <span class="badge bg-success savings-badge" id="savingsRateValue" style="font-size:1rem;padding:10px 18px;display:none;border-radius:10px;">
-                        <i class="bi bi-piggy-bank"></i> Savings Rate
-                    </span>
+                <div class="col-lg-4 col-md-5 text-md-end">
+                    <div class="d-flex align-items-center justify-content-md-end justify-content-start gap-2 flex-wrap" id="headerRightActions">
+                        <span class="badge bg-success savings-badge" id="savingsRateValue" style="display:none;">
+                            <i class="bi bi-piggy-bank me-1"></i> Savings Rate
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -259,6 +278,9 @@
                     </button>
                 </div>
                 <div class="month-nav-right">
+                    <button class="forecast-btn icon-only" id="forecastBtn" onclick="openForecastModal()" title="Future Forecast" aria-label="Configure future forecast">
+                        <i class="bi bi-graph-up-arrow"></i>
+                    </button>
                     <button class="view-settings-btn icon-only" onclick="openSectionSettingsModal()" title="Customize visible sections" aria-label="Customize finance tracker sections">
                         <i class="bi bi-sliders2"></i>
                     </button>
@@ -266,6 +288,30 @@
                         <i class="bi bi-eye-slash" id="maskDataIcon"></i>
                     </button>
                 </div>
+            </div>
+
+            <!-- Forecast Mode Active Banner -->
+            <div id="forecastActiveBanner" class="forecast-active-banner" style="display: none;">
+                <div class="forecast-banner-content">
+                    <i class="bi bi-graph-up-arrow forecast-banner-icon"></i>
+                    <span id="forecastBannerText">Forecast Mode Active: Projections for December 2030 (Inflation: 6%, Return: 6%)</span>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button class="btn-finance btn-forecast-export-main" type="button" onclick="openForecastExportModal()" title="Download Forecast Report">
+                        <i class="bi bi-file-earmark-arrow-down"></i> Download Report
+                    </button>
+
+                    <button class="btn-finance btn-finance-outline btn-forecast-exit" onclick="exitForecastMode()" title="Exit Forecast Mode">
+                        <i class="bi bi-x-circle"></i> Exit Forecast
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- Cash Shortage Warning Banner -->
+            <div id="cashShortageBanner" class="cash-shortage-banner" style="display: none;">
+                <i class="bi bi-exclamation-octagon-fill cash-shortage-icon"></i>
+                <span id="cashShortageText">Warning: Projected cash shortage detected! Your bank balance falls below ₹0 in the forecasted month.</span>
             </div>
 
             <!-- Financial Summary Bar: Income | Expenditure | Invested -->
@@ -324,9 +370,18 @@
                     <div class="nw-label">EPFO</div>
                     <div class="nw-value" id="epfoValue">₹0</div>
                 </div>
+                <div class="networth-card cibil-card clickable" id="netWorthCibilCard" data-widget-preference="netWorthCibil" onclick="openEditCibilModal()" role="button" tabindex="0">
+                    <i class="bi bi-speedometer2 nw-icon"></i>
+                    <div class="nw-label">CIBIL Score</div>
+                    <div class="nw-value" id="cibilScoreValue">---</div>
+                </div>
             </div>
 
+
+
+
             <!-- Investment Categories -->
+
             <div class="finance-section" id="investmentCategoriesSection" data-section-preference="investmentCategories">
                 <div class="finance-section-header">
                     <h2 class="finance-section-title">
@@ -507,7 +562,67 @@
                         <i class="bi bi-bar-chart-line" style="color:var(--accent-primary);"></i> Analytics
                     </h2>
                 </div>
+
+                <!-- Smart Financial Insights Banner Card -->
+                <div class="smart-insights-card mb-4" id="analyticsSmartInsightsCard" data-widget-preference="analyticsSmartInsights">
+                    <div class="smart-insights-header">
+                        <div class="smart-insights-title">
+                            <i class="bi bi-lightbulb-fill title-icon"></i>
+                            <span>Smart Financial Insights</span>
+                            <span class="badge bg-primary-subtle text-primary rounded-pill ms-2" id="smartInsightsCountBadge">0 Insights</span>
+                        </div>
+                        <div class="smart-insights-chips" id="smartInsightsFilterChips">
+                            <button type="button" class="insight-chip active" onclick="filterSmartInsights('all', this)">All</button>
+                            <button type="button" class="insight-chip" onclick="filterSmartInsights('wealth', this)">Wealth Growth</button>
+                            <button type="button" class="insight-chip" onclick="filterSmartInsights('cashflow', this)">Savings & Outflows</button>
+                            <button type="button" class="insight-chip" onclick="filterSmartInsights('safety', this)">Safety & Buffer</button>
+                        </div>
+                    </div>
+                    <div class="smart-insights-grid" id="smartInsightsGrid">
+                        <!-- Dynamically populated via JS -->
+                    </div>
+                </div>
+
                 <div class="charts-grid">
+                    
+                    <!-- Financial Health Score Analytics Card (Inside Charts Grid) -->
+                    <div class="chart-card" id="financialHealthSection" data-section-preference="financialHealth">
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; flex-wrap: wrap;">
+                            <div class="chart-card-title" style="margin: 0; display: flex; align-items: center; gap: 8px;">
+                                <i class="bi bi-shield-heart-fill" style="color: #ef4444;"></i> Financial Health Index
+                            </div>
+                            <button class="btn-finance btn-finance-primary" onclick="openHealthScoreModal()" style="font-size: 0.76rem; padding: 5px 14px; border-radius: 20px; font-weight: 600;">
+                                <i class="bi bi-compass-fill"></i> View Action Plan
+                            </button>
+                        </div>
+
+                        <!-- Mini Gauge & Status Header -->
+                        <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 14px; padding: 10px 14px; margin-bottom: 12px;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div class="health-gauge-svg-wrap" style="width: 90px; height: 50px; position: relative; display: flex; justify-content: center;">
+                                    <svg class="health-gauge-svg" viewBox="0 0 120 70" style="width: 90px; height: 48px; overflow: visible;">
+                                        <path class="health-gauge-bg" d="M 10 60 A 50 50 0 0 1 110 60" fill="none" stroke-width="10" stroke-linecap="round" />
+                                        <path class="health-gauge-fill" id="healthGaugePath" d="M 10 60 A 50 50 0 0 1 110 60" fill="none" stroke-width="10" stroke-linecap="round" stroke-dasharray="157" stroke-dashoffset="157" />
+                                    </svg>
+                                    <div class="health-gauge-center" style="position: absolute; bottom: 4px; left: 0; right: 0; text-align: center; display: flex; align-items: baseline; justify-content: center; gap: 2px;">
+                                        <span class="health-gauge-number" id="healthScoreNum" style="font-size: 1.35rem; font-weight: 800; line-height: 1;">0</span>
+                                        <span class="health-gauge-max" style="font-size: 0.68rem; color: var(--text-muted);">/100</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Health Index</div>
+                                    <div style="font-size: 0.78rem; font-weight: 600; color: var(--text-primary);">Solvency Rating</div>
+                                </div>
+                            </div>
+                            <span class="health-status-badge" id="healthStatusBadge" style="padding: 4px 12px; font-size: 0.7rem;">Calculating...</span>
+                        </div>
+
+                        <!-- 6-Month Line Chart Container -->
+                        <div class="chart-container" style="height: 200px; position: relative;">
+                            <canvas id="healthScoreTrendChart"></canvas>
+                        </div>
+                    </div>
+
                     <div class="chart-card" id="analyticsInvestmentBreakdownCard" data-widget-preference="analyticsInvestmentBreakdown">
                         <div class="chart-card-title">
                             <i class="bi bi-pie-chart"></i> Investment Breakdown
@@ -538,6 +653,14 @@
                         </div>
                         <div class="chart-container">
                             <canvas id="categoryTrendChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card" id="analyticsCibilCard" data-widget-preference="analyticsCibil">
+                        <div class="chart-card-title">
+                            <i class="bi bi-speedometer2"></i> Credit Score Trend
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="cibilTrendChart"></canvas>
                         </div>
                     </div>
                 </div>
@@ -633,6 +756,7 @@
                                 <label class="settings-checkbox-item"><input type="checkbox" id="copySectionIncome" checked> Income</label>
                                 <label class="settings-checkbox-item"><input type="checkbox" id="copySectionTaxes" checked> Tax</label>
                                 <label class="settings-checkbox-item"><input type="checkbox" id="copySectionEPFO" checked> EPFO</label>
+                                <label class="settings-checkbox-item"><input type="checkbox" id="copySectionCibil" checked> CIBIL Score</label>
                             </div>
                             <div class="settings-checkbox-overwrite" role="group" aria-labelledby="copyModeSelectionLabel">
                                 <div class="settings-copy-mode-title" id="copyModeSelectionLabel">Copy mode</div>
@@ -662,7 +786,229 @@
         </div>
     </div>
 
+    <!-- Forecast Modal -->
+    <div class="finance-modal-overlay" id="forecastModal">
+        <div class="finance-modal" style="max-width: 520px; border-radius: 18px;">
+            <div class="finance-modal-header" style="padding: 20px 24px 16px 24px;">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                    <div class="forecast-modal-icon-badge">
+                        <i class="bi bi-graph-up-arrow"></i>
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: var(--text-heading);">Future Financial Forecast</h3>
+                        <p style="margin: 2px 0 0 0; font-size: 0.8rem; color: var(--text-muted);">Simulate portfolio growth, interest compounding, and net worth trajectory</p>
+                    </div>
+                </div>
+                <button class="finance-modal-close" onclick="closeFinanceModal('forecastModal')" aria-label="Close forecast modal">&times;</button>
+            </div>
+            
+            <div class="finance-modal-body" style="padding: 16px 24px 20px 24px;">
+                
+                <!-- Target Period Card -->
+                <div class="forecast-card-section">
+                    <div class="forecast-section-label">
+                        <i class="bi bi-calendar3" style="color: var(--accent-primary);"></i> Target Forecast Period
+                    </div>
+                    <div style="display: flex; gap: 12px;">
+                        <div style="flex: 1;">
+                            <label for="forecastMonthSelect" style="font-size: 0.78rem; font-weight: 500; color: var(--text-secondary); margin-bottom: 6px; display: block;">Target Month</label>
+                            <select id="forecastMonthSelect" class="form-select">
+                                <option value="01">January</option>
+                                <option value="02">February</option>
+                                <option value="03">March</option>
+                                <option value="04">April</option>
+                                <option value="05">May</option>
+                                <option value="06">June</option>
+                                <option value="07">July</option>
+                                <option value="08">August</option>
+                                <option value="09">September</option>
+                                <option value="10">October</option>
+                                <option value="11">November</option>
+                                <option value="12">December</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1;">
+                            <label for="forecastYearSelect" style="font-size: 0.78rem; font-weight: 500; color: var(--text-secondary); margin-bottom: 6px; display: block;">Target Year</label>
+                            <select id="forecastYearSelect" class="form-select">
+                                <!-- Populated dynamically via JS -->
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Market & Financial Assumptions Card -->
+                <div class="forecast-card-section">
+                    <div class="forecast-section-label">
+                        <i class="bi bi-sliders" style="color: var(--accent-success);"></i> Market & Return Assumptions
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <div class="slider-label-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <label for="forecastInflationInput" style="font-size: 0.84rem; font-weight: 500; margin: 0;">Annual Inflation Rate (%)</label>
+                            <span class="slider-value-display" id="forecastInflationVal">6.0%</span>
+                        </div>
+                        <input type="range" class="form-range" id="forecastInflationInput" min="0" max="20" step="0.1" value="6.0" oninput="document.getElementById('forecastInflationVal').textContent = parseFloat(this.value).toFixed(1) + '%'">
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 6px;">
+                        <div class="slider-label-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <label for="forecastReturnInput" style="font-size: 0.84rem; font-weight: 500; margin: 0;">Annual Investment Return (%)</label>
+                            <span class="slider-value-display" id="forecastReturnVal">6.0%</span>
+                        </div>
+                        <input type="range" class="form-range" id="forecastReturnInput" min="0" max="30" step="0.1" value="6.0" oninput="document.getElementById('forecastReturnVal').textContent = parseFloat(this.value).toFixed(1) + '%'">
+                    </div>
+                    
+                    <div class="form-group" style="display: none;">
+                        <span class="slider-value-display" id="forecastIncomeGrowthVal">5.0%</span>
+                        <input type="range" class="form-range" id="forecastIncomeGrowthInput" min="0" max="20" step="0.1" value="5.0">
+                    </div>
+                </div>
+
+                <!-- Optional Additions & Expenses Card -->
+                <div class="forecast-card-section" style="margin-bottom: 0;">
+                    <div class="forecast-section-label">
+                        <i class="bi bi-wallet2" style="color: var(--accent-warning);"></i> Contributions & Expense Overrides
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                            <label for="forecastEpfoContribInput" style="font-size: 0.84rem; font-weight: 500; margin: 0;">Monthly EPFO Contribution (₹) <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">(Optional)</span></label>
+                        </div>
+                        <input type="number" id="forecastEpfoContribInput" class="form-control" placeholder="Enter monthly EPF addition" min="0" step="1">
+                        <small class="text-muted" style="font-size: 0.75rem; display: block; margin-top: 4px;">Leave blank if not adding monthly EPF. Existing EPF corpus compounds at 8.15% p.a.</small>
+                    </div>
+
+                    <div style="border-top: 1px solid var(--border-color); padding-top: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <label for="forecastExpensesToggle" style="font-weight: 500; cursor: pointer; margin-bottom: 0; font-size: 0.84rem;">Set Custom Monthly Expenses</label>
+                            <div class="form-check form-switch" style="padding-left: 2.5em; margin-bottom: 0;">
+                                <input class="form-check-input" type="checkbox" role="switch" id="forecastExpensesToggle" onchange="toggleForecastExpensesInput()">
+                            </div>
+                        </div>
+
+                        <p class="text-muted" style="font-size: 0.78rem; margin-bottom: 8px;">If disabled, we'll estimate monthly spending using your historical average and seasonal monthly patterns.</p>
+                        <div id="forecastExpensesInputContainer" style="display: none; margin-top: 8px;">
+                            <label for="forecastExpensesInput" style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 4px; display: block;">Custom Monthly Spending (₹)</label>
+                            <input type="number" id="forecastExpensesInput" class="form-control" placeholder="Enter custom monthly spending" min="0" step="1">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="finance-modal-footer">
+                <button class="btn-finance btn-finance-outline" onclick="closeFinanceModal('forecastModal')" type="button" style="padding: 10px 22px; font-weight: 500;">Cancel</button>
+                <button class="btn-finance btn-finance-primary forecast-btn-submit" onclick="applyForecastMode()" type="button" style="padding: 10px 24px; font-weight: 600; background: linear-gradient(135deg, var(--accent-primary) 0%, #4f46e5 100%); border: none; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);">
+                    <i class="bi bi-graph-up"></i> Generate Forecast
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forecast Export Format Selection Modal -->
+    <div class="finance-modal-overlay" id="forecastExportModal">
+
+        <div class="finance-modal" style="max-width: 460px;">
+            <div class="finance-modal-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 14px;">
+                <h3 style="font-size: 1.1rem; margin: 0; display: flex; align-items: center; gap: 8px;"><i class="bi bi-file-earmark-arrow-down" style="color: var(--accent-primary);"></i> Export Forecast Projections</h3>
+                <button class="finance-modal-close" onclick="closeForecastExportModal()" aria-label="Close export format modal">&times;</button>
+            </div>
+            <div class="finance-modal-body" style="padding: 18px 20px;">
+                <p class="text-muted" style="font-size: 0.82rem; margin-bottom: 14px; line-height: 1.4;">
+                    Select your preferred document format to download month-by-month financial forecast report:
+                </p>
+                <div class="forecast-export-format-grid" style="display: flex; flex-direction: column; gap: 10px;">
+                    <button type="button" class="forecast-format-card" onclick="exportForecastDataAndClose('xlsx')">
+                        <div class="forecast-format-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">
+                            <i class="bi bi-file-earmark-excel-fill"></i>
+                        </div>
+                        <div class="forecast-format-info">
+                            <div class="forecast-format-title">Excel Workbook (.xlsx)</div>
+                            <div class="forecast-format-desc">Complete multi-sheet workbook with summary, investments & loans</div>
+                        </div>
+                        <i class="bi bi-chevron-right forecast-format-arrow"></i>
+                    </button>
+
+                    <button type="button" class="forecast-format-card" onclick="exportForecastDataAndClose('pdf')">
+                        <div class="forecast-format-icon" style="background: rgba(239, 68, 68, 0.15); color: #ef4444;">
+                            <i class="bi bi-file-earmark-pdf-fill"></i>
+                        </div>
+                        <div class="forecast-format-info">
+                            <div class="forecast-format-title">PDF Document (.pdf)</div>
+                            <div class="forecast-format-desc">Formatted executive document summary with structured tables</div>
+                        </div>
+                        <i class="bi bi-chevron-right forecast-format-arrow"></i>
+                    </button>
+
+                    <button type="button" class="forecast-format-card" onclick="exportForecastDataAndClose('csv')">
+                        <div class="forecast-format-icon" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">
+                            <i class="bi bi-file-earmark-text-fill"></i>
+                        </div>
+                        <div class="forecast-format-info">
+                            <div class="forecast-format-title">CSV Spreadsheet (.csv)</div>
+                            <div class="forecast-format-desc">Standard plain text tabular data for universal compatibility</div>
+                        </div>
+                        <i class="bi bi-chevron-right forecast-format-arrow"></i>
+                    </button>
+
+                    <button type="button" class="forecast-format-card" onclick="exportForecastDataAndClose('json')">
+                        <div class="forecast-format-icon" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">
+                            <i class="bi bi-file-earmark-code-fill"></i>
+                        </div>
+                        <div class="forecast-format-info">
+                            <div class="forecast-format-title">JSON Data Payload (.json)</div>
+                            <div class="forecast-format-desc">Raw structured projection dataset for backup or custom analysis</div>
+                        </div>
+                        <i class="bi bi-chevron-right forecast-format-arrow"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="finance-modal-footer" style="border-top: 1px solid var(--border-color); padding: 12px 20px;">
+                <button class="btn-finance btn-finance-outline" onclick="closeForecastExportModal()" type="button" style="padding: 8px 20px; font-weight: 500;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Health Score Action Plan Modal -->
+    <div class="finance-modal-overlay" id="healthScoreModal">
+        <div class="finance-modal health-action-plan-modal" style="max-width: 720px; border-radius: 24px; overflow: hidden;">
+
+            <div class="finance-modal-header" style="padding: 18px 24px;">
+                <h3 style="font-size: 1.15rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 10px;">
+                    <i class="bi bi-heart-pulse-fill" style="color: #ef4444;"></i> Financial Health Action Plan
+                </h3>
+                <button class="finance-modal-close" onclick="closeFinanceModal('healthScoreModal')" aria-label="Close health score modal">&times;</button>
+            </div>
+            
+            <div class="finance-modal-body" style="padding: 20px 24px;">
+                
+                <!-- Action Plan Header Summary Banner -->
+                <div class="health-modal-summary-banner">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div class="health-modal-score-circle">
+                            <span id="modalHealthScoreNum">0</span>
+                            <span class="health-modal-score-max">/100</span>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 700;">Financial Health Index</div>
+                            <div style="font-size: 0.92rem; color: var(--text-primary); font-weight: 700; margin-top: 2px;" id="modalHealthSummaryText">8-Indicator Solvency & Wealth Analysis</div>
+                        </div>
+                    </div>
+                    <span class="health-status-badge" id="modalHealthStatusBadge">Calculating...</span>
+                </div>
+
+                <div id="healthScoreTipsList" style="display: flex; flex-direction: column; gap: 16px;">
+                    <!-- Dynamically populated 8-indicator scorecard cards -->
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+
+
     <div class="finance-modal-overlay" id="exportModal">
+
+
         <div class="finance-modal">
             <div class="finance-modal-header">
                 <h3><i class="bi bi-file-earmark-arrow-down"></i> Export Finance Data</h3>
@@ -831,6 +1177,30 @@
                 <button class="btn-finance btn-finance-outline" onclick="closeFinanceModal('editEPFOModal')">Cancel</button>
                 <button class="btn-finance btn-finance-primary" onclick="submitEditEPFO()">
                     <i class="bi bi-check-lg"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit CIBIL Modal -->
+    <div class="finance-modal-overlay" id="editCibilModal">
+        <div class="finance-modal">
+            <div class="finance-modal-header">
+                <h3><i class="bi bi-speedometer2"></i> Track CIBIL Score</h3>
+                <button class="finance-modal-close" onclick="closeFinanceModal('editCibilModal')">&times;</button>
+            </div>
+            <div class="finance-modal-body">
+                <form id="editCibilForm" onsubmit="event.preventDefault(); submitEditCibil();">
+                    <div class="form-group mb-3">
+                        <label for="modalCibilScore">CIBIL Score (300 - 900)</label>
+                        <input type="number" id="modalCibilScore" placeholder="Enter score" min="300" max="900" required>
+                    </div>
+                </form>
+            </div>
+            <div class="finance-modal-footer">
+                <button class="btn-finance btn-finance-outline" onclick="closeFinanceModal('editCibilModal')">Close</button>
+                <button class="btn-finance btn-finance-primary" onclick="submitEditCibil()">
+                    <i class="bi bi-check-lg"></i> Save Score
                 </button>
             </div>
         </div>
@@ -1171,7 +1541,7 @@
         "offers": {
             "@type": "Offer",
             "price": "0",
-            "priceCurrency": "USD"
+            "priceCurrency": "INR"
         }
     }
     </script>

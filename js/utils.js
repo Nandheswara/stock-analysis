@@ -819,6 +819,18 @@ export function formatCurrency(amount, showSymbol = true) {
 }
 
 /**
+ * Format currency with explicit sign for negative values
+ * @param {number} amount - Amount to format
+ * @returns {string} Formatted currency with sign
+ */
+export function formatCurrencyWithSign(amount) {
+    if (amount === null || amount === undefined || isNaN(amount)) return '--';
+    if (amount >= 0) return formatCurrency(amount);
+    return '-' + formatCurrency(Math.abs(amount));
+}
+
+
+/**
  * Format percentage
  * @param {number} value - Value to format
  * @param {number} decimals - Decimal places

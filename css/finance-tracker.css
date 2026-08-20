@@ -20,8 +20,62 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 /* ========================================
+   Helper Utility Classes
+   ======================================== */
+.flex-between {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.flex-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.flex-align-center {
+    display: flex;
+    align-items: center;
+}
+
+.gap-1 {
+    gap: 4px;
+}
+
+.gap-2 {
+    gap: 8px;
+}
+
+.gap-3 {
+    gap: 12px;
+}
+
+.gap-4 {
+    gap: 16px;
+}
+
+.text-sm-muted {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.modal-sm-custom {
+    max-width: 520px;
+}
+
+.modal-md-custom {
+    max-width: 680px;
+}
+
+.modal-lg-custom {
+    max-width: 840px;
+}
+
+/* ========================================
    Month Navigator
    ======================================== */
+
 
 .month-navigator {
     display: flex;
@@ -44,7 +98,7 @@
 
 .month-nav-left {
     gap: 16px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
 }
 
 .month-nav-right {
@@ -189,12 +243,12 @@
     border-radius: 10px !important;
     cursor: help;
     transition: all 0.25s ease;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .savings-badge:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 /* ========================================
@@ -268,11 +322,25 @@
     display: block;
 }
 
-.summary-metric.income-metric .metric-icon { color: var(--accent-success); }
-.summary-metric.expenditure-metric .metric-icon { color: var(--accent-danger); }
-.summary-metric.invested-metric .metric-icon { color: var(--accent-primary); }
-.summary-metric.bank-balance-metric .metric-icon { color: var(--accent-success); }
-.summary-metric.tax-metric .metric-icon { color: var(--accent-warning); }
+.summary-metric.income-metric .metric-icon {
+    color: var(--accent-success);
+}
+
+.summary-metric.expenditure-metric .metric-icon {
+    color: var(--accent-danger);
+}
+
+.summary-metric.invested-metric .metric-icon {
+    color: var(--accent-primary);
+}
+
+.summary-metric.bank-balance-metric .metric-icon {
+    color: var(--accent-success);
+}
+
+.summary-metric.tax-metric .metric-icon {
+    color: var(--accent-warning);
+}
 
 .summary-metric .metric-label {
     font-family: 'Inter', sans-serif;
@@ -292,11 +360,25 @@
     letter-spacing: -0.02em;
 }
 
-.summary-metric.income-metric .metric-value { color: var(--accent-success); }
-.summary-metric.expenditure-metric .metric-value { color: var(--accent-danger); }
-.summary-metric.invested-metric .metric-value { color: var(--accent-primary); }
-.summary-metric.bank-balance-metric .metric-value { color: var(--accent-success); }
-.summary-metric.tax-metric .metric-value { color: var(--accent-warning); }
+.summary-metric.income-metric .metric-value {
+    color: var(--accent-success);
+}
+
+.summary-metric.expenditure-metric .metric-value {
+    color: var(--accent-danger);
+}
+
+.summary-metric.invested-metric .metric-value {
+    color: var(--accent-primary);
+}
+
+.summary-metric.bank-balance-metric .metric-value {
+    color: var(--accent-success);
+}
+
+.summary-metric.tax-metric .metric-value {
+    color: var(--accent-warning);
+}
 
 .summary-metric .metric-sub {
     font-size: 0.78rem;
@@ -310,15 +392,15 @@
 
 .networth-cards {
     display: grid;
-    /* Responsive: fit as many cards as possible per row, min width 200px */
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
+    /* Responsive: fit all cards in a row down to 768px screens */
+    grid-template-columns: repeat(auto-fit, minmax(115px, 1fr));
+    gap: clamp(10px, 1.5vw, 20px);
     margin-bottom: 28px;
 }
 
 .networth-card {
     position: relative;
-    padding: 28px 24px;
+    padding: 28px clamp(10px, 1.8vw, 24px);
     border-radius: 16px;
     text-align: center;
     overflow: hidden;
@@ -327,8 +409,14 @@
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-.networth-card.clickable { cursor: pointer; }
-.networth-card.clickable:focus { outline: 3px solid rgba(34,34,34,0.06); box-shadow: var(--shadow-sm); }
+.networth-card.clickable {
+    cursor: pointer;
+}
+
+.networth-card.clickable:focus {
+    outline: 3px solid rgba(34, 34, 34, 0.06);
+    box-shadow: var(--shadow-sm);
+}
 
 .networth-card:hover {
     transform: translateY(-4px);
@@ -355,16 +443,82 @@
     border: 1px solid rgba(4, 130, 130, 0.22);
 }
 
+.networth-card.cibil-card {
+    background: linear-gradient(135deg, rgba(142, 142, 147, 0.12) 0%, rgba(142, 142, 147, 0.03) 100%);
+    border: 1px solid rgba(142, 142, 147, 0.22);
+    transition: all 0.3s ease;
+}
+
+.networth-card.cibil-card .nw-icon {
+    color: #8e8e93;
+}
+
+.networth-card.cibil-card .nw-value {
+    color: #8e8e93;
+}
+
+/* CIBIL Score Health Theme Overlays */
+.networth-card.cibil-card.cibil-excellent {
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.15) 0%, rgba(40, 167, 69, 0.05) 100%);
+    border-color: rgba(40, 167, 69, 0.35);
+}
+
+.networth-card.cibil-card.cibil-excellent .nw-icon,
+.networth-card.cibil-card.cibil-excellent .nw-value {
+    color: #28a745;
+}
+
+.networth-card.cibil-card.cibil-good {
+    background: linear-gradient(135deg, rgba(173, 223, 35, 0.15) 0%, rgba(173, 223, 35, 0.05) 100%);
+    border-color: rgba(173, 223, 35, 0.35);
+}
+
+.networth-card.cibil-card.cibil-good .nw-icon,
+.networth-card.cibil-card.cibil-good .nw-value {
+    color: #9cb315;
+}
+
+.networth-card.cibil-card.cibil-fair {
+    background: linear-gradient(135deg, rgba(253, 126, 20, 0.15) 0%, rgba(253, 126, 20, 0.05) 100%);
+    border-color: rgba(253, 126, 20, 0.35);
+}
+
+.networth-card.cibil-card.cibil-fair .nw-icon,
+.networth-card.cibil-card.cibil-fair .nw-value {
+    color: #fd7e14;
+}
+
+.networth-card.cibil-card.cibil-poor {
+    background: linear-gradient(135deg, rgba(220, 53, 69, 0.15) 0%, rgba(220, 53, 69, 0.05) 100%);
+    border-color: rgba(220, 53, 69, 0.35);
+}
+
+.networth-card.cibil-card.cibil-poor .nw-icon,
+.networth-card.cibil-card.cibil-poor .nw-value {
+    color: #dc3545;
+}
+
 .networth-card .nw-icon {
     font-size: 2.2rem;
     margin-bottom: 8px;
     display: block;
 }
 
-.networth-card.assets-card .nw-icon { color: var(--accent-success); }
-.networth-card.liabilities-card .nw-icon { color: var(--accent-danger); }
-.networth-card.networth-total-card .nw-icon { color: var(--accent-primary); }
-.networth-card.epfo-card .nw-icon { color: #048282; }
+.networth-card.assets-card .nw-icon {
+    color: var(--accent-success);
+}
+
+.networth-card.liabilities-card .nw-icon {
+    color: var(--accent-danger);
+}
+
+.networth-card.networth-total-card .nw-icon {
+    color: var(--accent-primary);
+}
+
+.networth-card.epfo-card .nw-icon {
+    color: #048282;
+}
 
 .networth-card .nw-label {
     font-family: 'Inter', sans-serif;
@@ -383,10 +537,21 @@
     letter-spacing: -0.02em;
 }
 
-.networth-card.assets-card .nw-value { color: var(--accent-success); }
-.networth-card.liabilities-card .nw-value { color: var(--accent-danger); }
-.networth-card.networth-total-card .nw-value { color: var(--accent-primary); }
-.networth-card.epfo-card .nw-value { color: #048282; }
+.networth-card.assets-card .nw-value {
+    color: var(--accent-success);
+}
+
+.networth-card.liabilities-card .nw-value {
+    color: var(--accent-danger);
+}
+
+.networth-card.networth-total-card .nw-value {
+    color: var(--accent-primary);
+}
+
+.networth-card.epfo-card .nw-value {
+    color: #048282;
+}
 
 .networth-card .nw-change {
     font-size: 0.82rem;
@@ -394,8 +559,13 @@
     font-weight: 500;
 }
 
-.nw-change.positive { color: var(--accent-success); }
-.nw-change.negative { color: var(--accent-danger); }
+.nw-change.positive {
+    color: var(--accent-success);
+}
+
+.nw-change.negative {
+    color: var(--accent-danger);
+}
 
 /* ========================================
    Section Titles
@@ -501,6 +671,8 @@
     overflow: hidden;
     transition: all 0.3s ease;
     animation: fadeInUp 0.4s ease;
+    max-width: 550px;
+    width: 100%;
 }
 
 .category-card:hover {
@@ -852,9 +1024,17 @@
     transition: width 0.6s ease;
 }
 
-.utilization-bar-fill.low { background: var(--accent-success); }
-.utilization-bar-fill.medium { background: var(--accent-warning); }
-.utilization-bar-fill.high { background: var(--accent-danger); }
+.utilization-bar-fill.low {
+    background: var(--accent-success);
+}
+
+.utilization-bar-fill.medium {
+    background: var(--accent-warning);
+}
+
+.utilization-bar-fill.high {
+    background: var(--accent-danger);
+}
 
 .utilization-percent {
     font-family: 'Inter', sans-serif;
@@ -1550,10 +1730,22 @@
     min-width: 280px;
 }
 
-.finance-toast.success { background: linear-gradient(135deg, var(--accent-success) 0%, var(--accent-success-hover) 100%); }
-.finance-toast.error { background: linear-gradient(135deg, var(--accent-danger) 0%, var(--accent-danger-hover) 100%); }
-.finance-toast.info { background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-primary-hover) 100%); }
-.finance-toast.warning { background: linear-gradient(135deg, var(--accent-warning) 0%, var(--accent-warning-hover) 100%); color: #1a1a1a; }
+.finance-toast.success {
+    background: linear-gradient(135deg, var(--accent-success) 0%, var(--accent-success-hover) 100%);
+}
+
+.finance-toast.error {
+    background: linear-gradient(135deg, var(--accent-danger) 0%, var(--accent-danger-hover) 100%);
+}
+
+.finance-toast.info {
+    background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-primary-hover) 100%);
+}
+
+.finance-toast.warning {
+    background: linear-gradient(135deg, var(--accent-warning) 0%, var(--accent-warning-hover) 100%);
+    color: #1a1a1a;
+}
 
 /* ========================================
    Export Section
@@ -1599,8 +1791,13 @@
    ======================================== */
 
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 @keyframes fadeInUp {
@@ -1608,6 +1805,7 @@
         opacity: 0;
         transform: translateY(20px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -1619,6 +1817,7 @@
         opacity: 0;
         transform: translateY(30px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -1630,6 +1829,7 @@
         opacity: 0;
         transform: translateX(100px);
     }
+
     to {
         opacity: 1;
         transform: translateX(0);
@@ -1637,18 +1837,37 @@
 }
 
 @keyframes fadeOut {
-    from { opacity: 1; }
-    to { opacity: 0; }
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
 }
 
 @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
 }
 
 @keyframes countUp {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* ========================================
@@ -1664,6 +1883,14 @@
 @media (max-width: 768px) {
     main.container-fluid {
         padding: 12px 10px !important;
+        max-width: 100vw !important;
+        overflow-x: hidden !important;
+        box-sizing: border-box !important;
+    }
+
+    .row {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
     }
 
     .header-section {
@@ -1769,7 +1996,8 @@
         cursor: pointer;
         user-select: none;
         position: relative;
-        padding-right: 44px; /* Space for action buttons + chevron */
+        padding-right: 44px;
+        /* Space for action buttons + chevron */
     }
 
     .category-card-header::after {
@@ -1839,7 +2067,8 @@
         width: auto;
         display: flex;
         align-items: center;
-        gap: 16px;
+        gap: 8px;
+        flex-wrap: nowrap;
     }
 
     .month-navigator .month-btn {
@@ -1849,6 +2078,7 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
+        flex-shrink: 0;
     }
 
     #monthDisplay {
@@ -1857,7 +2087,7 @@
         min-width: auto;
         font-size: 0.95rem;
         white-space: nowrap;
-        padding: 0 20px;
+        padding: 0 4px;
     }
 
     .month-nav-right {
@@ -1892,18 +2122,18 @@
         overflow: visible;
     }
 
-    .finance-table, 
-    .finance-table thead, 
-    .finance-table tbody, 
-    .finance-table th, 
-    .finance-table td, 
-    .finance-table tr { 
-        display: block; 
+    .finance-table,
+    .finance-table thead,
+    .finance-table tbody,
+    .finance-table th,
+    .finance-table td,
+    .finance-table tr {
+        display: block;
         width: 100%;
         min-width: 0 !important;
     }
 
-    .finance-table thead tr { 
+    .finance-table thead tr {
         position: absolute;
         top: -9999px;
         left: -9999px;
@@ -1947,7 +2177,7 @@
         transform: rotate(180deg);
     }
 
-    .finance-table tbody td { 
+    .finance-table tbody td {
         display: none;
         border: none;
         position: relative;
@@ -1998,52 +2228,223 @@
 
     .finance-table tbody td:first-child {
         padding-top: 0;
-        padding-right: 28px; /* space for chevron */
+        padding-right: 28px;
+        /* space for chevron */
     }
 
     /* Bank Accounts Table Labels */
-    #banksTableBody td:nth-of-type(1)::before { content: "Account Name"; font-weight: 600; color: var(--text-muted); text-align: left; }
-    #banksTableBody td:nth-of-type(2)::before { content: "Bank"; font-weight: 600; color: var(--text-muted); text-align: left; }
-    #banksTableBody td:nth-of-type(3)::before { content: "Type"; font-weight: 600; color: var(--text-muted); text-align: left; }
-    #banksTableBody td:nth-of-type(4)::before { content: "Balance"; font-weight: 600; color: var(--text-muted); text-align: left; }
-    #banksTableBody td:nth-of-type(5)::before { content: "Actions"; font-weight: 600; color: var(--text-muted); text-align: left; }
+    #banksTableBody td:nth-of-type(1)::before {
+        content: "Account Name";
+        font-weight: 600;
+        color: var(--text-muted);
+        text-align: left;
+    }
+
+    #banksTableBody td:nth-of-type(2)::before {
+        content: "Bank";
+        font-weight: 600;
+        color: var(--text-muted);
+        text-align: left;
+    }
+
+    #banksTableBody td:nth-of-type(3)::before {
+        content: "Type";
+        font-weight: 600;
+        color: var(--text-muted);
+        text-align: left;
+    }
+
+    #banksTableBody td:nth-of-type(4)::before {
+        content: "Balance";
+        font-weight: 600;
+        color: var(--text-muted);
+        text-align: left;
+    }
+
+    #banksTableBody td:nth-of-type(5)::before {
+        content: "Actions";
+        font-weight: 600;
+        color: var(--text-muted);
+        text-align: left;
+    }
 
     /* Credit Cards Table Labels */
-    #creditCardsTableBody td:nth-of-type(1)::before { content: "Card Name"; font-weight: 600; color: var(--text-muted); }
-    #creditCardsTableBody td:nth-of-type(2)::before { content: "Issuer"; font-weight: 600; color: var(--text-muted); }
-    #creditCardsTableBody td:nth-of-type(3)::before { content: "Outstanding Balance"; font-weight: 600; color: var(--text-muted); }
-    #creditCardsTableBody td:nth-of-type(4)::before { content: "Credit Limit"; font-weight: 600; color: var(--text-muted); }
-    #creditCardsTableBody td:nth-of-type(5)::before { content: "Due Date"; font-weight: 600; color: var(--text-muted); }
-    #creditCardsTableBody td:nth-of-type(6)::before { content: "Status"; font-weight: 600; color: var(--text-muted); }
-    #creditCardsTableBody td:nth-of-type(7)::before { content: "Actions"; font-weight: 600; color: var(--text-muted); }
+    #creditCardsTableBody td:nth-of-type(1)::before {
+        content: "Card Name";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #creditCardsTableBody td:nth-of-type(2)::before {
+        content: "Issuer";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #creditCardsTableBody td:nth-of-type(3)::before {
+        content: "Outstanding Balance";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #creditCardsTableBody td:nth-of-type(4)::before {
+        content: "Credit Limit";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #creditCardsTableBody td:nth-of-type(5)::before {
+        content: "Due Date";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #creditCardsTableBody td:nth-of-type(6)::before {
+        content: "Status";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #creditCardsTableBody td:nth-of-type(7)::before {
+        content: "Actions";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
 
     /* Loans Table Labels */
-    #loansTableBody td:nth-of-type(1)::before { content: "Loan Name"; font-weight: 600; color: var(--text-muted); }
-    #loansTableBody td:nth-of-type(2)::before { content: "Lender"; font-weight: 600; color: var(--text-muted); }
-    #loansTableBody td:nth-of-type(3)::before { content: "Loan Amount"; font-weight: 600; color: var(--text-muted); }
-    #loansTableBody td:nth-of-type(4)::before { content: "Outstanding Amount"; font-weight: 600; color: var(--text-muted); }
-    #loansTableBody td:nth-of-type(5)::before { content: "EMI Amount"; font-weight: 600; color: var(--text-muted); }
-    #loansTableBody td:nth-of-type(6)::before { content: "Due Date"; font-weight: 600; color: var(--text-muted); }
-    #loansTableBody td:nth-of-type(7)::before { content: "Status"; font-weight: 600; color: var(--text-muted); }
-    #loansTableBody td:nth-of-type(8)::before { content: "Actions"; font-weight: 600; color: var(--text-muted); }
+    #loansTableBody td:nth-of-type(1)::before {
+        content: "Loan Name";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #loansTableBody td:nth-of-type(2)::before {
+        content: "Lender";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #loansTableBody td:nth-of-type(3)::before {
+        content: "Loan Amount";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #loansTableBody td:nth-of-type(4)::before {
+        content: "Outstanding Amount";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #loansTableBody td:nth-of-type(5)::before {
+        content: "EMI Amount";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #loansTableBody td:nth-of-type(6)::before {
+        content: "Due Date";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #loansTableBody td:nth-of-type(7)::before {
+        content: "Status";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #loansTableBody td:nth-of-type(8)::before {
+        content: "Actions";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
 
     /* Expenses Table Labels */
-    #expensesTableBody td:nth-of-type(1)::before { content: "Expense Name"; font-weight: 600; color: var(--text-muted); }
-    #expensesTableBody td:nth-of-type(2)::before { content: "Category / Vendor"; font-weight: 600; color: var(--text-muted); }
-    #expensesTableBody td:nth-of-type(3)::before { content: "Amount"; font-weight: 600; color: var(--text-muted); }
-    #expensesTableBody td:nth-of-type(4)::before { content: "Date"; font-weight: 600; color: var(--text-muted); }
-    #expensesTableBody td:nth-of-type(5)::before { content: "Status"; font-weight: 600; color: var(--text-muted); }
-    #expensesTableBody td:nth-of-type(6)::before { content: "Actions"; font-weight: 600; color: var(--text-muted); }
+    #expensesTableBody td:nth-of-type(1)::before {
+        content: "Expense Name";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #expensesTableBody td:nth-of-type(2)::before {
+        content: "Category / Vendor";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #expensesTableBody td:nth-of-type(3)::before {
+        content: "Amount";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #expensesTableBody td:nth-of-type(4)::before {
+        content: "Date";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #expensesTableBody td:nth-of-type(5)::before {
+        content: "Status";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #expensesTableBody td:nth-of-type(6)::before {
+        content: "Actions";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
 
     /* Insurance Table Labels */
-    #insuranceTableBody td:nth-of-type(1)::before { content: "Policy"; font-weight: 600; color: var(--text-muted); }
-    #insuranceTableBody td:nth-of-type(2)::before { content: "Insurance Type"; font-weight: 600; color: var(--text-muted); }
-    #insuranceTableBody td:nth-of-type(3)::before { content: "Provider"; font-weight: 600; color: var(--text-muted); }
-    #insuranceTableBody td:nth-of-type(4)::before { content: "Premium / Amount"; font-weight: 600; color: var(--text-muted); }
-    #insuranceTableBody td:nth-of-type(5)::before { content: "Coverage"; font-weight: 600; color: var(--text-muted); }
-    #insuranceTableBody td:nth-of-type(6)::before { content: "Premium Date"; font-weight: 600; color: var(--text-muted); }
-    #insuranceTableBody td:nth-of-type(7)::before { content: "Status"; font-weight: 600; color: var(--text-muted); }
-    #insuranceTableBody td:nth-of-type(8)::before { content: "Actions"; font-weight: 600; color: var(--text-muted); }
+    #insuranceTableBody td:nth-of-type(1)::before {
+        content: "Policy";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #insuranceTableBody td:nth-of-type(2)::before {
+        content: "Insurance Type";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #insuranceTableBody td:nth-of-type(3)::before {
+        content: "Provider";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #insuranceTableBody td:nth-of-type(4)::before {
+        content: "Premium / Amount";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #insuranceTableBody td:nth-of-type(5)::before {
+        content: "Coverage";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #insuranceTableBody td:nth-of-type(6)::before {
+        content: "Premium Date";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #insuranceTableBody td:nth-of-type(7)::before {
+        content: "Status";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    #insuranceTableBody td:nth-of-type(8)::before {
+        content: "Actions";
+        font-weight: 600;
+        color: var(--text-muted);
+    }
 
     .export-section {
         flex-direction: column;
@@ -2365,6 +2766,11 @@ body.light-theme .networth-card.epfo-card {
     border-color: rgba(4, 130, 130, 0.18);
 }
 
+body.light-theme .networth-card.cibil-card {
+    background: linear-gradient(135deg, rgba(142, 142, 147, 0.06) 0%, rgba(142, 142, 147, 0.02) 100%);
+    border-color: rgba(142, 142, 147, 0.18);
+}
+
 /* Scrollbar styling */
 .finance-table-wrapper::-webkit-scrollbar {
     height: 6px;
@@ -2453,12 +2859,450 @@ body.light-theme .encryption-banner-icon {
 }
 
 @keyframes pulseGlow {
-    0%, 100% {
+
+    0%,
+    100% {
         opacity: 0.8;
         transform: scale(1);
     }
+
     50% {
         opacity: 1;
         transform: scale(1.08);
+    }
+}
+
+/* ========================================
+   Financial Health Score Gauge Styles
+   Moved to css/health-score.css
+   ======================================== */
+
+
+/* ========================================
+   Future Financial Forecast Styles
+   Moved to css/forecast.css
+   ======================================== */
+
+/* ========================================
+   Smart Financial Insights Card
+   ======================================== */
+.smart-insights-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 20px 24px;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow var(--transition-normal);
+}
+
+.smart-insights-card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.smart-insights-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 18px;
+}
+
+.smart-insights-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-heading);
+}
+
+.smart-insights-title .title-icon {
+    font-size: 1.25rem;
+    color: #f59e0b;
+    filter: drop-shadow(0 2px 6px rgba(245, 158, 11, 0.4));
+}
+
+.smart-insights-chips {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.insight-chip {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 5px 13px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.insight-chip:hover {
+    color: var(--text-primary);
+    border-color: var(--accent-primary);
+}
+
+.insight-chip.active {
+    background: var(--accent-primary);
+    color: #ffffff;
+    border-color: var(--accent-primary);
+}
+
+.smart-insights-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 16px;
+}
+
+.insight-item {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.insight-item:hover {
+    transform: translateY(-2px);
+    border-color: rgba(114, 137, 255, 0.3);
+    background: rgba(114, 137, 255, 0.03);
+}
+
+.insight-icon-box {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    flex-shrink: 0;
+}
+
+.insight-icon-box.wealth {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+}
+
+.insight-icon-box.cashflow {
+    background: rgba(59, 130, 246, 0.12);
+    color: #3b82f6;
+}
+
+.insight-icon-box.warning {
+    background: rgba(245, 158, 11, 0.12);
+    color: #f59e0b;
+}
+
+.insight-icon-box.danger {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+}
+
+.insight-icon-box.safety {
+    background: rgba(139, 92, 246, 0.12);
+    color: #8b5cf6;
+}
+
+.insight-content {
+    flex: 1;
+}
+
+.insight-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.insight-item-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.insight-pill {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.insight-pill.positive {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+}
+
+.insight-pill.neutral {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+}
+
+.insight-pill.warning {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+}
+
+.insight-pill.danger {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
+.insight-item-desc {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    line-height: 1.45;
+    margin: 0;
+}
+
+/* ========================================
+   Enhanced Finance Header Hero
+   ======================================== */
+.finance-header-hero {
+    background: linear-gradient(135deg, rgba(30, 27, 75, 0.95) 0%, rgba(49, 46, 129, 0.9) 50%, rgba(15, 23, 42, 0.95) 100%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 20px !important;
+    padding: 24px 30px !important;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    transition: all 0.3s ease;
+}
+
+.finance-header-hero::before {
+    content: '';
+    position: absolute;
+    top: -40px;
+    right: -40px;
+    width: 260px;
+    height: 260px;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, rgba(168, 85, 247, 0.08) 50%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+    animation: pulseGlow 6s infinite ease-in-out;
+}
+
+.finance-header-hero::after {
+    content: '';
+    position: absolute;
+    bottom: -60px;
+    left: 10%;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.finance-header-icon-wrap {
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.3) 0%, rgba(168, 85, 247, 0.3) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.55rem;
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
+    flex-shrink: 0;
+}
+
+.finance-header-title {
+    font-size: 1.85rem !important;
+    font-weight: 800 !important;
+    color: #ffffff !important;
+    letter-spacing: -0.02em;
+}
+
+.header-security-pill {
+    background: rgba(16, 185, 129, 0.18) !important;
+    border: 1px solid rgba(16, 185, 129, 0.35) !important;
+    color: #34d399 !important;
+    font-size: 0.72rem !important;
+    font-weight: 600 !important;
+    padding: 4px 10px !important;
+    border-radius: 20px !important;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.finance-header-subtitle {
+    font-size: 0.92rem !important;
+    color: rgba(255, 255, 255, 0.8) !important;
+    line-height: 1.45;
+}
+
+.savings-badge {
+    font-size: 0.88rem !important;
+    padding: 8px 16px !important;
+    border-radius: 20px !important;
+    font-weight: 600 !important;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+body.light-theme .finance-header-hero {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%) !important;
+    border: 1px solid rgba(226, 232, 240, 0.8) !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05) !important;
+}
+
+.finance-header-main-flex {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+body.light-theme .finance-header-title {
+    color: #0f172a !important;
+}
+
+body.light-theme .finance-header-subtitle {
+    color: #475569 !important;
+}
+
+body.light-theme .finance-header-icon-wrap {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    color: #ffffff;
+}
+
+@media (max-width: 768px) {
+    .finance-header-hero {
+        padding: 16px 18px !important;
+        border-radius: 14px !important;
+    }
+
+    .finance-header-main-flex {
+        gap: 12px;
+    }
+
+    .finance-header-icon-wrap {
+        width: 42px;
+        height: 42px;
+        font-size: 1.25rem;
+        border-radius: 12px;
+    }
+
+    .finance-header-title {
+        font-size: 1.35rem !important;
+    }
+
+    .finance-header-subtitle {
+        font-size: 0.8rem !important;
+    }
+
+    .smart-insights-card {
+        padding: 16px 18px;
+        border-radius: 14px;
+    }
+}
+
+@media (max-width: 576px) {
+    .finance-header-hero {
+        padding: 14px 14px !important;
+        border-radius: 14px !important;
+    }
+
+    .finance-header-main-flex {
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .finance-header-icon-wrap {
+        width: 36px;
+        height: 36px;
+        font-size: 1.15rem;
+        border-radius: 10px;
+        margin-top: 2px;
+    }
+
+    .finance-header-title {
+        font-size: 1.2rem !important;
+    }
+
+    .header-security-pill {
+        font-size: 0.65rem !important;
+        padding: 2px 7px !important;
+    }
+
+    .finance-header-subtitle {
+        font-size: 0.78rem !important;
+        line-height: 1.35;
+    }
+
+    .smart-insights-card {
+        padding: 14px 12px;
+        border-radius: 14px;
+    }
+
+    .smart-insights-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 12px;
+        padding-bottom: 12px;
+    }
+
+    .smart-insights-title {
+        font-size: 1.05rem;
+    }
+
+    .smart-insights-chips {
+        width: 100%;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        padding-bottom: 6px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .insight-chip {
+        white-space: nowrap;
+        flex-shrink: 0;
+        font-size: 0.74rem;
+        padding: 4px 10px;
+    }
+
+    .smart-insights-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .insight-item {
+        padding: 12px 12px;
+        gap: 10px;
+    }
+
+    .insight-icon-box {
+        width: 32px;
+        height: 32px;
+        font-size: 1rem;
+        border-radius: 8px;
+    }
+
+    .insight-item-title {
+        font-size: 0.82rem;
+    }
+
+    .insight-item-desc {
+        font-size: 0.78rem;
+        line-height: 1.4;
     }
 }

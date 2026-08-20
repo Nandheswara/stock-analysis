@@ -39,7 +39,8 @@ const CACHE_KEYS = {
     INCOME: 'financeIncome',
     TAXES: 'financeTaxes',
     SNAPSHOTS: 'financeSnapshots',
-    EPFO: 'financeEPFO'
+    EPFO: 'financeEPFO',
+    CIBIL: 'financeCibil'
 };
 
 const FINANCE_VIEW_SECTION_KEYS = Object.freeze([
@@ -64,10 +65,13 @@ const FINANCE_VIEW_WIDGET_KEYS = Object.freeze([
     'netWorthLiabilities',
     'netWorthTotal',
     'netWorthEPFO',
+    'netWorthCibil',
     'analyticsInvestmentBreakdown',
     'analyticsNetWorthTrend',
     'analyticsIncomeExpense',
-    'analyticsCategoryTrend'
+    'analyticsCategoryTrend',
+    'analyticsCibil',
+    'analyticsSmartInsights'
 ]);
 
 const FINANCE_VIEW_ITEM_KEYS = Object.freeze([
@@ -591,6 +595,48 @@ export async function getEPFO(month) {
 }
 
 /**
+ * Save monthly CIBIL score
+ * @param {string} month - "YYYY-MM" format
+ * @param {Object} cibilData - { value }
+ */
+export async function saveCibilScore(month, cibilData) {
+    const user = await getAuthenticatedUser();
+    if (!user) return { success: false, error: 'Not authenticated' };
+
+    try {
+        const cibilRef = ref(database, `users/${user.uid}/finance/cibil/${month}`);
+        const value = parseInt(cibilData.value) || null;
+        if (value !== null && (value < 300 || value > 900)) {
+            return { success: false, error: 'CIBIL score must be between 300 and 900' };
+        }
+        const data = value !== null ? {
+            value,
+            updatedAt: Date.now()
+        } : null;
+        await set(cibilRef, data);
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get CIBIL score for a specific month
+ */
+export async function getCibilScore(month) {
+    const user = await getAuthenticatedUser();
+    if (!user) return null;
+
+    try {
+        const cibilRef = ref(database, `users/${user.uid}/finance/cibil/${month}`);
+        const snapshot = await get(cibilRef);
+        return snapshot.exists() ? snapshot.val() : null;
+    } catch (error) {
+        return null;
+    }
+}
+
+/**
  * Get income for a specific month
  */
 export async function getIncome(month) {
@@ -742,6 +788,7 @@ export async function copyFinanceDataBetweenMonths(sourceMonth, targetMonth, opt
             includeIncome = true,
             includeTaxes = true,
             includeEPFO = true,
+            includeCibil = true,
             overwriteExisting = false,
             replaceCategories = false,
             replaceInsurance = false
@@ -757,6 +804,7 @@ export async function copyFinanceDataBetweenMonths(sourceMonth, targetMonth, opt
         let incomeCopied = 0;
         let taxesCopied = 0;
         let epfoCopied = 0;
+        let cibilCopied = 0;
         let categorySourceItemsFound = 0;
         let categoryItemsSkipped = 0;
         let categoryItemsFailed = 0;
@@ -774,14 +822,17 @@ export async function copyFinanceDataBetweenMonths(sourceMonth, targetMonth, opt
         // Copy bank balances
         if (includeBanks && data.banks) {
             Object.entries(data.banks).forEach(([bankId, bank]) => {
-                const sourceBalance = bank.balances?.[normalizedSourceMonth] ?? bank.balance;
-                const hasSourceData = true;
+                const isDeletedInSource = bank.deletedMonths?.[normalizedSourceMonth];
+                const sourceBalance = bank.balances?.[normalizedSourceMonth];
+                const hasSourceData = !isDeletedInSource && sourceBalance !== undefined && sourceBalance !== null;
                 const targetBalance = bank.balances?.[normalizedTargetMonth];
 
                 if (hasSourceData && shouldWriteTargetValue(targetBalance)) {
                     updates[`banks/${bankId}/balances/${normalizedTargetMonth}`] = parseFloat(sourceBalance) || 0;
                     updates[`banks/${bankId}/deletedMonths/${normalizedTargetMonth}`] = null;
                     banksCopied++;
+                } else if (overwriteExisting && !hasSourceData && targetBalance !== undefined) {
+                    updates[`banks/${bankId}/balances/${normalizedTargetMonth}`] = null;
                 }
             });
         }
@@ -799,24 +850,41 @@ export async function copyFinanceDataBetweenMonths(sourceMonth, targetMonth, opt
 
             Object.entries(data[dbKey]).forEach(([cardId, card]) => {
                 const isInsuranceCard = cardType === 'insurance';
+                const isDeletedInSource = Boolean(card.deletedMonths?.[normalizedSourceMonth]);
 
-                let sourceOutstanding = card.balances?.[normalizedSourceMonth] ?? card.outstandingBalance;
-                // For insurance without a balance for the source month, use the latest available balance
-                if (isInsuranceCard && (sourceOutstanding === undefined || sourceOutstanding === null)) {
-                    const allBalanceMonths = card.balances ? Object.keys(card.balances).sort() : [];
-                    const latestMonth = allBalanceMonths.filter(m => m <= normalizedSourceMonth).pop()
-                        || allBalanceMonths[allBalanceMonths.length - 1];
-                    if (latestMonth && card.balances[latestMonth] !== undefined) {
-                        sourceOutstanding = card.balances[latestMonth];
+                let sourceOutstanding = card.balances?.[normalizedSourceMonth];
+                let hasSourceOutstanding = !isDeletedInSource && sourceOutstanding !== undefined && sourceOutstanding !== null;
+
+                // For insurance without a balance for the source month, check if valid month data or fallback exists
+                if (isInsuranceCard && !hasSourceOutstanding && !isDeletedInSource) {
+                    const sourceInsuranceData = card.insuranceByMonth?.[normalizedSourceMonth];
+                    if (sourceInsuranceData) {
+                        hasSourceOutstanding = true;
+                        sourceOutstanding = card.balances?.[normalizedSourceMonth] ?? card.coverageAmount ?? 0;
+                    } else {
+                        const allBalanceMonths = card.balances ? Object.keys(card.balances).sort() : [];
+                        const latestMonth = allBalanceMonths.filter(m => m <= normalizedSourceMonth).pop()
+                            || allBalanceMonths[allBalanceMonths.length - 1];
+                        if (latestMonth && card.balances[latestMonth] !== undefined) {
+                            sourceOutstanding = card.balances[latestMonth];
+                            hasSourceOutstanding = true;
+                        }
                     }
                 }
-                const hasSourceOutstanding = true;
+
                 const targetOutstanding = card.balances?.[normalizedTargetMonth];
 
                 if (isInsuranceCard && shouldReplaceInsuranceItems && !hasSourceOutstanding) {
                     if (targetOutstanding !== undefined) {
                         updates[`${dbKey}/${cardId}/balances/${normalizedTargetMonth}`] = null;
                         updates[`${dbKey}/${cardId}/insuranceByMonth/${normalizedTargetMonth}`] = null;
+                    }
+                } else if (!isInsuranceCard && overwriteExisting && !hasSourceOutstanding) {
+                    if (targetOutstanding !== undefined) {
+                        updates[`${dbKey}/${cardId}/balances/${normalizedTargetMonth}`] = null;
+                        updates[`${dbKey}/${cardId}/monthlyLimits/${normalizedTargetMonth}`] = null;
+                        updates[`${dbKey}/${cardId}/paymentStatusByMonth/${normalizedTargetMonth}`] = null;
+                        updates[`${dbKey}/${cardId}/monthlyEmis/${normalizedTargetMonth}`] = null;
                     }
                 }
 
@@ -871,9 +939,9 @@ export async function copyFinanceDataBetweenMonths(sourceMonth, targetMonth, opt
                     }
                 }
 
-                if (!isInsuranceCard) {
+                if (!isInsuranceCard && hasSourceOutstanding) {
                     const sourceLimit = card.monthlyLimits?.[normalizedSourceMonth] ?? card.creditLimit;
-                    const hasSourceLimit = true;
+                    const hasSourceLimit = sourceLimit !== undefined && sourceLimit !== null;
                     const targetLimit = card.monthlyLimits?.[normalizedTargetMonth];
 
                     if (hasSourceLimit && shouldWriteTargetValue(targetLimit)) {
@@ -890,7 +958,7 @@ export async function copyFinanceDataBetweenMonths(sourceMonth, targetMonth, opt
 
                     if (cardType === 'loan') {
                         const sourceEmi = card.monthlyEmis?.[normalizedSourceMonth] ?? card.emiAmount;
-                        const hasSourceEmi = true;
+                        const hasSourceEmi = sourceEmi !== undefined && sourceEmi !== null;
                         const targetEmi = card.monthlyEmis?.[normalizedTargetMonth];
                         if (hasSourceEmi && shouldWriteTargetValue(targetEmi)) {
                             updates[`${dbKey}/${cardId}/monthlyEmis/${normalizedTargetMonth}`] = parseFloat(sourceEmi) || 0;
@@ -1075,6 +1143,15 @@ export async function copyFinanceDataBetweenMonths(sourceMonth, targetMonth, opt
             epfoCopied++;
         }
 
+        // Copy CIBIL score
+        if (includeCibil && data.cibil?.[normalizedSourceMonth] && shouldWriteTargetValue(data.cibil?.[normalizedTargetMonth])) {
+            updates[`cibil/${normalizedTargetMonth}`] = {
+                ...data.cibil[normalizedSourceMonth],
+                updatedAt: Date.now()
+            };
+            cibilCopied++;
+        }
+
         if (Object.keys(updates).length > 0) {
             await update(financeRef, updates);
         }
@@ -1090,6 +1167,7 @@ export async function copyFinanceDataBetweenMonths(sourceMonth, targetMonth, opt
             paymentStatusCopied,
             taxesCopied,
             epfoCopied,
+            cibilCopied,
             incomeCopied,
             categoryItemsCopied,
             categorySourceItemsFound,
@@ -1129,6 +1207,7 @@ export async function copyPreviousMonthData(targetMonth) {
         includeIncome: true,
         includeTaxes: true,
         includeEPFO: true,
+        includeCibil: true,
         overwriteExisting: false,
         replaceCategories: false
     });
@@ -1141,6 +1220,7 @@ export async function copyPreviousMonthData(targetMonth) {
         cardsCopied: (result.expensesCopied || 0) + (result.insuranceCopied || 0),
         taxesCopied: result.taxesCopied,
         epfoCopied: result.epfoCopied,
+        cibilCopied: result.cibilCopied,
         categoryItemsCopied: result.categoryItemsCopied,
         prevMonth
     };
@@ -1163,7 +1243,7 @@ export function listenToFinanceData(callback) {
     unsubscribeAll();
 
     if (!userId) {
-        callback({ categories: {}, banks: {}, creditCards: {}, loans: {}, expenses: {}, insurance: {}, income: {}, taxes: {}, snapshots: {}, epfo: {} });
+        callback({ categories: {}, banks: {}, creditCards: {}, loans: {}, expenses: {}, insurance: {}, income: {}, taxes: {}, snapshots: {}, epfo: {}, cibil: {} });
         return () => {};
     }
 
@@ -1178,8 +1258,9 @@ export function listenToFinanceData(callback) {
     const cachedTaxes = loadFromCache(CACHE_KEYS.TAXES, userId);
     const cachedSnapshots = loadFromCache(CACHE_KEYS.SNAPSHOTS, userId);
     const cachedEPFO = loadFromCache(CACHE_KEYS.EPFO, userId);
+    const cachedCibil = loadFromCache(CACHE_KEYS.CIBIL, userId);
 
-    const hasCache = cachedCategories || cachedBanks || cachedCards || cachedLoans || cachedExpenses || cachedInsurance || cachedIncome || cachedTaxes || cachedSnapshots || cachedEPFO;
+    const hasCache = cachedCategories || cachedBanks || cachedCards || cachedLoans || cachedExpenses || cachedInsurance || cachedIncome || cachedTaxes || cachedSnapshots || cachedEPFO || cachedCibil;
 
     // Data store
     const store = {
@@ -1192,7 +1273,8 @@ export function listenToFinanceData(callback) {
         income: cachedIncome || {},
         taxes: cachedTaxes || {},
         snapshots: cachedSnapshots || {},
-        epfo: cachedEPFO || {}
+        epfo: cachedEPFO || {},
+        cibil: cachedCibil || {}
     };
 
     if (hasCache) {
@@ -1207,15 +1289,16 @@ export function listenToFinanceData(callback) {
             income: cachedIncome || {},
             taxes: cachedTaxes || {},
             snapshots: cachedSnapshots || {},
-            epfo: cachedEPFO || {}
+            epfo: cachedEPFO || {},
+            cibil: cachedCibil || {}
         }));
         store.categories = normalizedCategories;
     }
 
-    // Track initial listener fires — all 9 listeners fire once on attach.
+    // Track initial listener fires — all 10 listeners fire once on attach.
     // If we served cached data we can skip these initial fires entirely;
-    // otherwise we batch them into a single callback after all 9 have reported.
-    const TOTAL_LISTENERS = 9;
+    // otherwise we batch them into a single callback after all 10 have reported.
+    const TOTAL_LISTENERS = 10;
     let initialFiringCount = 0;
     let initialLoadDone = hasCache; // if cache was served, initial load is "done"
     let debounceTimer = null;
@@ -1345,6 +1428,14 @@ export function listenToFinanceData(callback) {
         listeners.epfo = onValue(epfoRef, (snapshot) => {
             store.epfo = snapshot.val() || {};
             saveToCache(CACHE_KEYS.EPFO, uid, store.epfo);
+            onListenerData();
+        }, () => {});
+
+        // CIBIL listener
+        const cibilRef = ref(database, `users/${uid}/finance/cibil`);
+        listeners.cibil = onValue(cibilRef, (snapshot) => {
+            store.cibil = snapshot.val() || {};
+            saveToCache(CACHE_KEYS.CIBIL, uid, store.cibil);
             onListenerData();
         }, () => {});
 
