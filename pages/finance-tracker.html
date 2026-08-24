@@ -50,6 +50,7 @@
 
     <link rel="stylesheet" href="../css/firebase-auth.css">
     <link rel="stylesheet" href="../css/ai-assistant.css">
+    <link rel="stylesheet" href="../css/tour-guide.css">
 </head>
 <body>
     <!-- Navigation Placeholder -->
@@ -224,6 +225,9 @@
                 </div>
                 <div class="col-lg-4 col-md-5 text-md-end">
                     <div class="d-flex align-items-center justify-content-md-end justify-content-start gap-2 flex-wrap" id="headerRightActions">
+                        <button class="btn btn-tour-launch" id="headerTakeTourBtn" onclick="window.startFinanceTrackerTour(true)" title="Take a Guided Tour">
+                            <i class="bi bi-compass-fill"></i> Take a Tour
+                        </button>
                         <span class="badge bg-success savings-badge" id="savingsRateValue" style="display:none;">
                             <i class="bi bi-piggy-bank me-1"></i> Savings Rate
                         </span>

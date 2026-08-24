@@ -118,6 +118,33 @@
                 }
             }
 
+            // Ensure tour-guide.css is loaded globally
+            if (!document.querySelector('link[href*="tour-guide.css"]')) {
+                const tourCss = document.createElement('link');
+                tourCss.rel = 'stylesheet';
+                tourCss.href = `${prefix}css/tour-guide.css`;
+                document.head.appendChild(tourCss);
+            }
+
+            // Bind Take a Tour navbar button
+            const navTourBtn = document.getElementById('navTakeTourBtn');
+            if (navTourBtn) {
+                navTourBtn.addEventListener('click', async () => {
+                    try {
+                        const module = await import(`${prefix}js/tour-guide.js`);
+                        if (currentPage === 'finance-tracker.html') {
+                            module.getFinanceTrackerTour().reset();
+                            module.getFinanceTrackerTour().start(0);
+                        } else {
+                            module.getSiteTour().reset();
+                            module.getSiteTour().start(0);
+                        }
+                    } catch (err) {
+                        console.error('Failed to launch tour guide:', err);
+                    }
+                });
+            }
+
             // Dispatch custom event to notify other scripts that navbar/footer are ready in the DOM
             document.dispatchEvent(new CustomEvent('layoutReady', {
                 detail: { isSubfolder, prefix }

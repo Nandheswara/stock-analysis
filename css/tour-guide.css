@@ -1,0 +1,347 @@
+/**
+ * Equity Labs - Tour Guide Styles
+ * Modern glassmorphic spotlight tour overlay & step popovers
+ */
+
+/* Overlay Container */
+.tour-overlay-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9998;
+    pointer-events: auto;
+    transition: opacity 0.3s ease;
+    opacity: 0;
+}
+
+.tour-overlay-container.tour-active {
+    opacity: 1;
+}
+
+/* SVG Mask Overlay */
+.tour-spotlight-svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: auto;
+}
+
+/* Highlight Box Ring */
+.tour-highlight-ring {
+    position: absolute;
+    border-radius: var(--radius-lg, 12px);
+    box-shadow: 0 0 0 3px var(--accent-primary, #818cf8), 0 0 24px rgba(129, 140, 248, 0.5);
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+    z-index: 9999;
+    animation: tourPulse 2s infinite ease-in-out;
+}
+
+@keyframes tourPulse {
+    0%, 100% {
+        box-shadow: 0 0 0 3px var(--accent-primary, #818cf8), 0 0 20px rgba(129, 140, 248, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 5px var(--accent-info, #22d3ee), 0 0 32px rgba(34, 211, 238, 0.6);
+    }
+}
+
+/* Targeted Element Highlight Helper */
+.tour-target-active {
+    position: relative !important;
+    z-index: 9999 !important;
+    pointer-events: auto !important;
+}
+
+/* Popover Card */
+.tour-popover {
+    position: absolute;
+    width: 380px;
+    max-width: calc(100vw - 32px);
+    background: var(--bg-card, #0f1523);
+    border: 1px solid rgba(129, 140, 248, 0.3);
+    border-radius: 16px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(129, 140, 248, 0.15);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    color: var(--text-primary, #e2e8f0);
+    padding: 20px;
+    z-index: 10000;
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+    transition: opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1), transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), top 0.3s cubic-bezier(0.25, 1, 0.5, 1), left 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.tour-popover.tour-popover-visible {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+}
+
+/* Popover Arrow */
+.tour-popover-arrow {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    background: var(--bg-card, #0f1523);
+    border: 1px solid rgba(129, 140, 248, 0.3);
+    transform: rotate(45deg);
+    z-index: -1;
+}
+
+.tour-popover[data-placement="top"] .tour-popover-arrow {
+    bottom: -7px;
+    left: 50%;
+    margin-left: -7px;
+    border-top: none;
+    border-left: none;
+}
+
+.tour-popover[data-placement="bottom"] .tour-popover-arrow {
+    top: -7px;
+    left: 50%;
+    margin-left: -7px;
+    border-bottom: none;
+    border-right: none;
+}
+
+.tour-popover[data-placement="left"] .tour-popover-arrow {
+    right: -7px;
+    top: 50%;
+    margin-top: -7px;
+    border-bottom: none;
+    border-left: none;
+}
+
+.tour-popover[data-placement="right"] .tour-popover-arrow {
+    left: -7px;
+    top: 50%;
+    margin-top: -7px;
+    border-top: none;
+    border-right: none;
+}
+
+/* Popover Header */
+.tour-popover-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.tour-step-badge {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: var(--accent-primary-muted, rgba(129, 140, 248, 0.15));
+    color: var(--accent-primary, #818cf8);
+    border: 1px solid rgba(129, 140, 248, 0.3);
+}
+
+.tour-close-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted, #64748b);
+    font-size: 1.1rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: color 0.2s ease, background 0.2s ease;
+}
+
+.tour-close-btn:hover {
+    color: var(--accent-danger, #f87171);
+    background: rgba(248, 113, 113, 0.1);
+}
+
+/* Progress Bar */
+.tour-progress-bar-wrap {
+    height: 4px;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 14px;
+}
+
+.tour-progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-primary, #818cf8), var(--accent-info, #22d3ee));
+    width: 0%;
+    transition: width 0.3s ease;
+    border-radius: 2px;
+}
+
+/* Popover Content */
+.tour-popover-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-heading, #f1f5f9);
+    margin: 0 0 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tour-popover-title i {
+    color: var(--accent-primary, #818cf8);
+}
+
+.tour-popover-body {
+    font-size: 0.86rem;
+    line-height: 1.55;
+    color: var(--text-secondary, #94a3b8);
+    margin-bottom: 14px;
+}
+
+/* Pro Tip / Action Box */
+.tour-tip-box {
+    background: rgba(34, 211, 238, 0.08);
+    border-left: 3px solid var(--accent-info, #22d3ee);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-top: 10px;
+    font-size: 0.8rem;
+    color: var(--text-primary, #e2e8f0);
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.tour-tip-box i {
+    color: var(--accent-info, #22d3ee);
+    font-size: 0.95rem;
+    margin-top: 1px;
+    flex-shrink: 0;
+}
+
+/* Popover Footer Buttons */
+.tour-popover-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    margin-top: 14px;
+}
+
+.tour-btn {
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 7px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.tour-btn-skip {
+    background: transparent;
+    color: var(--text-muted, #64748b);
+}
+
+.tour-btn-skip:hover {
+    color: var(--text-primary, #e2e8f0);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.tour-btn-prev {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary, #e2e8f0);
+}
+
+.tour-btn-prev:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.tour-btn-next {
+    background: linear-gradient(135deg, var(--accent-primary, #818cf8), var(--accent-primary-hover, #6366f1));
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+}
+
+.tour-btn-next:hover {
+    background: linear-gradient(135deg, var(--accent-primary-hover, #6366f1), #4f46e5);
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.5);
+    transform: translateY(-1px);
+}
+
+.tour-btn-finish {
+    background: linear-gradient(135deg, var(--accent-success, #34d399), var(--accent-success-hover, #10b981));
+    color: #06080d;
+    box-shadow: 0 4px 12px rgba(52, 211, 153, 0.35);
+    font-weight: 700;
+}
+
+.tour-btn-finish:hover {
+    background: linear-gradient(135deg, var(--accent-success-hover, #10b981), #059669);
+    box-shadow: 0 6px 16px rgba(52, 211, 153, 0.5);
+    transform: translateY(-1px);
+}
+
+/* Replay Floating / Header Tour Button styling */
+.btn-tour-launch {
+    background: rgba(129, 140, 248, 0.12);
+    color: var(--accent-primary, #818cf8);
+    border: 1px solid rgba(129, 140, 248, 0.3);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    transition: all 0.25s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-tour-launch:hover {
+    background: var(--accent-primary, #818cf8);
+    color: #ffffff;
+    box-shadow: 0 0 16px rgba(129, 140, 248, 0.4);
+    transform: translateY(-1px);
+}
+
+/* Light Theme Adjustments */
+body.light-theme .tour-popover {
+    background: #ffffff;
+    border-color: rgba(129, 140, 248, 0.3);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18), 0 0 20px rgba(129, 140, 248, 0.1);
+    color: #12241a;
+}
+
+body.light-theme .tour-popover-arrow {
+    background: #ffffff;
+}
+
+body.light-theme .tour-popover-title {
+    color: #0a1c12;
+}
+
+body.light-theme .tour-popover-body {
+    color: #2d4c3a;
+}
+
+body.light-theme .tour-tip-box {
+    background: #eefcf6;
+    color: #12241a;
+}
+
+body.light-theme .tour-btn-prev {
+    background: #e5f0ea;
+    color: #12241a;
+}
+
+body.light-theme .tour-btn-skip {
+    color: #5e7a6a;
+}

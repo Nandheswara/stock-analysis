@@ -92,6 +92,9 @@ import {
     openHealthScoreModal
 } from './health-score.js';
 
+import { getFinanceTrackerTour } from './tour-guide.js';
+import { initChatPanel } from './ai/chat-panel.js';
+
 
 window.openForecastModal = openForecastModal;
 window.closeForecastModal = closeForecastModal;
@@ -4533,6 +4536,14 @@ function setupAuth() {
 
             // Create default categories for new users (delayed to avoid racing with listeners)
             setTimeout(() => createDefaultCategories(), 1500);
+
+            // Auto-prompt first-time visitors for guided tour
+            setTimeout(() => {
+                const tour = getFinanceTrackerTour();
+                if (!tour.isCompleted()) {
+                    showToast('New to Finance Tracker? Click "Take a Tour" in the top bar to explore all features!', 'info');
+                }
+            }, 2500);
         } else {
             lastLoadedUid = null;
             if (authButtons) authButtons.style.setProperty('display', 'flex', 'important');
@@ -5093,6 +5104,11 @@ document.addEventListener('DOMContentLoaded', () => {
     applySectionPreferences();
     setupAuth();
     initForecastModalInputs();
+    try {
+        initChatPanel();
+    } catch (e) {
+        log('warn', 'Chat panel initialization deferred: ' + e.message);
+    }
 
     // Accordion togglers for mobile viewports (tables and category cards)
     document.addEventListener('click', (e) => {
