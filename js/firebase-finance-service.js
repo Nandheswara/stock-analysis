@@ -1591,6 +1591,15 @@ export function computeFinancialSummary(data, selectedMonth) {
         if (isDeleted) return false;
         const hasExplicitBalance = card.balances && card.balances[month] !== undefined;
 
+        if (card.type === 'loan') {
+            if (hasExplicitBalance) return true;
+            if (card.loanStartMonth && card.tenure) {
+                const monthIndex = getMonthsDifference(card.loanStartMonth, month) + 1;
+                return monthIndex >= 1 && monthIndex <= card.tenure;
+            }
+            return true;
+        }
+
         if (card.type === 'insurance') {
             const hasInsuranceMonthData = card.insuranceByMonth && card.insuranceByMonth[month] !== undefined;
             const createdMonth = card.createdMonth || (card.createdAt ? getMonthFromTimestamp(card.createdAt) : null);
