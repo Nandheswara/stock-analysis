@@ -4936,17 +4936,17 @@ function renderSmartInsights(currentSummary, snapshots) {
     }
 
     // 3. Debt Burden / Credit Card Liabilities Insight
-    const totalLiabilities = currentSummary.totalLiabilities || 0;
-    if (totalLiabilities > 0) {
-        if (totalIncome > 0 && (totalLiabilities / totalIncome) > 0.5) {
+    const currentLiabilities = currentSummary.totalLiabilities || 0;
+    if (currentLiabilities > 0) {
+        if (totalIncome > 0 && (currentLiabilities / totalIncome) > 0.5) {
             insights.push({
                 category: 'cashflow',
                 type: 'danger',
                 icon: 'bi-credit-card-2-front-fill',
                 title: 'Elevated Liabilities',
-                pill: `${((totalLiabilities / totalIncome) * 100).toFixed(0)}% of Income`,
+                pill: `${((currentLiabilities / totalIncome) * 100).toFixed(0)}% of Income`,
                 pillClass: 'danger',
-                desc: `Outstanding card & loan liabilities (<strong>${formatCurrency(totalLiabilities)}</strong>) represent over 50% of your monthly income. Pay off high-interest debt promptly.`
+                desc: `Outstanding card & loan liabilities (<strong>${formatCurrency(currentLiabilities)}</strong>) represent over 50% of your monthly income. Pay off high-interest debt promptly.`
             });
         } else {
             insights.push({
@@ -4956,7 +4956,7 @@ function renderSmartInsights(currentSummary, snapshots) {
                 title: 'Manageable Liabilities',
                 pill: 'Under Control',
                 pillClass: 'positive',
-                desc: `Total outstanding liabilities stand at <strong>${formatCurrency(totalLiabilities)}</strong>.`
+                desc: `Current outstanding liabilities stand at <strong>${formatCurrency(currentLiabilities)}</strong>.`
             });
         }
     } else {
