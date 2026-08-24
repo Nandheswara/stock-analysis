@@ -92,6 +92,9 @@ import {
     openHealthScoreModal
 } from './health-score.js';
 
+import { getFinanceTrackerTour } from './tour-guide.js';
+import { initChatPanel } from './ai/chat-panel.js';
+
 
 window.openForecastModal = openForecastModal;
 window.closeForecastModal = closeForecastModal;
@@ -4533,6 +4536,14 @@ function setupAuth() {
 
             // Create default categories for new users (delayed to avoid racing with listeners)
             setTimeout(() => createDefaultCategories(), 1500);
+
+            // Auto-prompt first-time visitors for guided tour
+            setTimeout(() => {
+                const tour = getFinanceTrackerTour();
+                if (!tour.isCompleted()) {
+                    showToast('New to Finance Tracker? Click "Take a Tour" in the top bar to explore all features!', 'info');
+                }
+            }, 2500);
         } else {
             lastLoadedUid = null;
             if (authButtons) authButtons.style.setProperty('display', 'flex', 'important');
@@ -5054,6 +5065,32 @@ function renderSmartInsights(currentSummary, snapshots) {
 }
 
 // ========================================
+// EquityBot AI State Bridge
+// ========================================
+
+/**
+ * Expose a read-only API on window so the AI assistant can
+ * access live finance data and the current month without tightly
+ * coupling to this module's internals.
+ */
+window.equityLabsFinance = Object.freeze({
+    /** @returns {Object} Current finance data snapshot */
+    getData: () => financeData,
+
+    /** @returns {string} Currently selected month key (YYYY-MM) */
+    getCurrentMonth: () => currentMonth,
+
+    /** @param {string} month - YYYY-MM to navigate to */
+    setMonth: (month) => {
+        const picker = document.getElementById('monthPicker');
+        if (picker) {
+            picker.value = month;
+            picker.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    }
+});
+
+// ========================================
 // Init
 // ========================================
 
@@ -5067,6 +5104,11 @@ document.addEventListener('DOMContentLoaded', () => {
     applySectionPreferences();
     setupAuth();
     initForecastModalInputs();
+    try {
+        initChatPanel();
+    } catch (e) {
+        log('warn', 'Chat panel initialization deferred: ' + e.message);
+    }
 
     // Accordion togglers for mobile viewports (tables and category cards)
     document.addEventListener('click', (e) => {

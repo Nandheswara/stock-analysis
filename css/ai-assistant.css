@@ -1,0 +1,889 @@
+/**
+ * AI Assistant CSS
+ * 
+ * Premium glassmorphic styles for the EquityBot chat panel.
+ * Features: dark/light theme support, smooth animations, responsive mobile layout,
+ * glassmorphism effects, and polished micro-interactions.
+ */
+
+/* ==========================================
+   CSS Custom Properties
+   ========================================== */
+
+:root {
+    /* Dark theme (default) */
+    --eb-bg: rgba(18, 20, 28, 0.92);
+    --eb-bg-solid: #12141c;
+    --eb-surface: rgba(30, 33, 48, 0.85);
+    --eb-surface-hover: rgba(40, 44, 65, 0.9);
+    --eb-border: rgba(255, 255, 255, 0.08);
+    --eb-border-focus: rgba(114, 137, 255, 0.5);
+    --eb-text: #e4e6eb;
+    --eb-text-secondary: #9ba1b0;
+    --eb-text-muted: #6b7280;
+    --eb-accent: #7289ff;
+    --eb-accent-soft: rgba(114, 137, 255, 0.15);
+    --eb-accent-hover: #8b9eff;
+    --eb-user-bg: linear-gradient(135deg, #7289ff 0%, #5a6fd6 100%);
+    --eb-user-text: #ffffff;
+    --eb-success: #3ddc84;
+    --eb-success-bg: rgba(61, 220, 132, 0.1);
+    --eb-error: #ff6b6b;
+    --eb-error-bg: rgba(255, 107, 107, 0.1);
+    --eb-warning: #ffc107;
+    --eb-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --eb-shadow-fab: 0 4px 20px rgba(114, 137, 255, 0.35);
+    --eb-radius: 16px;
+    --eb-radius-sm: 10px;
+    --eb-radius-xs: 6px;
+    --eb-backdrop: blur(20px) saturate(180%);
+    --eb-header-bg: rgba(18, 20, 28, 0.95);
+    --eb-input-bg: rgba(30, 33, 48, 0.7);
+    --eb-scrollbar-thumb: rgba(255, 255, 255, 0.12);
+    --eb-scrollbar-track: transparent;
+    --eb-tool-bg: rgba(114, 137, 255, 0.08);
+    --eb-tool-border: rgba(114, 137, 255, 0.2);
+    --eb-confirm-bg: #3ddc84;
+    --eb-cancel-bg: rgba(255, 107, 107, 0.15);
+    --eb-cancel-text: #ff6b6b;
+    --eb-suggestion-bg: rgba(114, 137, 255, 0.1);
+    --eb-suggestion-border: rgba(114, 137, 255, 0.25);
+    --eb-settings-bg: rgba(30, 33, 48, 0.95);
+}
+
+.light-theme {
+    --eb-bg: rgba(255, 255, 255, 0.92);
+    --eb-bg-solid: #ffffff;
+    --eb-surface: rgba(245, 247, 250, 0.9);
+    --eb-surface-hover: rgba(235, 238, 245, 0.95);
+    --eb-border: rgba(0, 0, 0, 0.08);
+    --eb-border-focus: rgba(79, 70, 229, 0.5);
+    --eb-text: #1a1d27;
+    --eb-text-secondary: #555b6e;
+    --eb-text-muted: #9ca3af;
+    --eb-accent: #4f46e5;
+    --eb-accent-soft: rgba(79, 70, 229, 0.1);
+    --eb-accent-hover: #6366f1;
+    --eb-user-bg: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+    --eb-user-text: #ffffff;
+    --eb-success: #059669;
+    --eb-success-bg: rgba(5, 150, 105, 0.08);
+    --eb-error: #dc2626;
+    --eb-error-bg: rgba(220, 38, 38, 0.08);
+    --eb-warning: #d97706;
+    --eb-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    --eb-shadow-fab: 0 4px 20px rgba(79, 70, 229, 0.3);
+    --eb-backdrop: blur(20px) saturate(180%);
+    --eb-header-bg: rgba(255, 255, 255, 0.95);
+    --eb-input-bg: rgba(245, 247, 250, 0.8);
+    --eb-scrollbar-thumb: rgba(0, 0, 0, 0.12);
+    --eb-scrollbar-track: transparent;
+    --eb-tool-bg: rgba(79, 70, 229, 0.06);
+    --eb-tool-border: rgba(79, 70, 229, 0.15);
+    --eb-confirm-bg: #059669;
+    --eb-cancel-bg: rgba(220, 38, 38, 0.1);
+    --eb-cancel-text: #dc2626;
+    --eb-suggestion-bg: rgba(79, 70, 229, 0.06);
+    --eb-suggestion-border: rgba(79, 70, 229, 0.2);
+    --eb-settings-bg: rgba(245, 247, 250, 0.98);
+}
+
+/* ==========================================
+   Floating Action Button
+   ========================================== */
+
+.equitybot-fab {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9998;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--eb-user-bg);
+    color: #ffffff;
+    box-shadow: var(--eb-shadow-fab);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                opacity 0.3s ease,
+                box-shadow 0.3s ease;
+    outline: none;
+}
+
+.equitybot-fab:hover {
+    transform: scale(1.08);
+    box-shadow: 0 6px 28px rgba(114, 137, 255, 0.5);
+}
+
+.equitybot-fab:active {
+    transform: scale(0.95);
+}
+
+.equitybot-fab--hidden {
+    transform: scale(0) !important;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.equitybot-fab-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.equitybot-fab-pulse {
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    border: 2px solid var(--eb-accent);
+    opacity: 0;
+    animation: eb-pulse 2.5s ease-in-out infinite;
+}
+
+@keyframes eb-pulse {
+    0% { opacity: 0.6; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1.4); }
+}
+
+/* ==========================================
+   Chat Panel
+   ========================================== */
+
+.equitybot-panel {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9999;
+    width: 400px;
+    max-height: 600px;
+    height: 80vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--eb-bg);
+    backdrop-filter: var(--eb-backdrop);
+    -webkit-backdrop-filter: var(--eb-backdrop);
+    border: 1px solid var(--eb-border);
+    border-radius: var(--eb-radius);
+    box-shadow: var(--eb-shadow);
+    overflow: hidden;
+    
+    /* Animation */
+    transform: translateY(20px) scale(0.95);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+                opacity 0.25s ease;
+}
+
+.equitybot-panel--open {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* ==========================================
+   Header
+   ========================================== */
+
+.equitybot-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    background: var(--eb-header-bg);
+    border-bottom: 1px solid var(--eb-border);
+    flex-shrink: 0;
+}
+
+.equitybot-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.equitybot-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: var(--eb-user-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    flex-shrink: 0;
+}
+
+.equitybot-header-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.equitybot-header-title {
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--eb-text);
+    letter-spacing: -0.01em;
+}
+
+.equitybot-header-status {
+    font-size: 11px;
+    color: var(--eb-text-muted);
+}
+
+.equitybot-header-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.equitybot-header-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: var(--eb-text-secondary);
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, color 0.2s;
+}
+
+.equitybot-header-btn:hover {
+    background: var(--eb-surface-hover);
+    color: var(--eb-text);
+}
+
+/* ==========================================
+   Settings Panel
+   ========================================== */
+
+.equitybot-settings {
+    padding: 16px;
+    background: var(--eb-settings-bg);
+    border-bottom: 1px solid var(--eb-border);
+    animation: eb-slide-down 0.25s ease;
+}
+
+@keyframes eb-slide-down {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.equitybot-settings-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--eb-text);
+    margin: 0 0 6px;
+}
+
+.equitybot-settings-desc {
+    font-size: 12px;
+    color: var(--eb-text-secondary);
+    margin: 0 0 12px;
+    line-height: 1.5;
+}
+
+.equitybot-settings-desc a {
+    color: var(--eb-accent);
+    text-decoration: none;
+}
+
+.equitybot-settings-desc a:hover {
+    text-decoration: underline;
+}
+
+.equitybot-settings-field {
+    display: flex;
+    gap: 8px;
+}
+
+.equitybot-api-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--eb-border);
+    border-radius: var(--eb-radius-xs);
+    background: var(--eb-input-bg);
+    color: var(--eb-text);
+    font-size: 13px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.equitybot-api-input:focus {
+    border-color: var(--eb-border-focus);
+}
+
+.equitybot-save-key-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: var(--eb-radius-xs);
+    background: var(--eb-accent);
+    color: white;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+}
+
+.equitybot-save-key-btn:hover {
+    background: var(--eb-accent-hover);
+}
+
+.equitybot-settings-note {
+    font-size: 11px;
+    color: var(--eb-text-muted);
+    margin: 8px 0 0;
+}
+
+.equitybot-key-success {
+    color: var(--eb-success) !important;
+}
+
+.equitybot-key-error {
+    color: var(--eb-error) !important;
+}
+
+/* ==========================================
+   Messages Area
+   ========================================== */
+
+.equitybot-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    scroll-behavior: smooth;
+}
+
+/* Custom scrollbar */
+.equitybot-messages::-webkit-scrollbar {
+    width: 5px;
+}
+
+.equitybot-messages::-webkit-scrollbar-track {
+    background: var(--eb-scrollbar-track);
+}
+
+.equitybot-messages::-webkit-scrollbar-thumb {
+    background: var(--eb-scrollbar-thumb);
+    border-radius: 3px;
+}
+
+/* ==========================================
+   Message Bubbles
+   ========================================== */
+
+.equitybot-message {
+    display: flex;
+    gap: 8px;
+    max-width: 92%;
+    animation: eb-message-in 0.3s ease;
+}
+
+@keyframes eb-message-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.equitybot-message--user {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+}
+
+.equitybot-message--assistant,
+.equitybot-message--tool,
+.equitybot-message--error,
+.equitybot-message--system {
+    align-self: flex-start;
+}
+
+.equitybot-message-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    background: var(--eb-accent-soft);
+    color: var(--eb-accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.equitybot-message-avatar--tool {
+    background: var(--eb-tool-bg);
+    color: var(--eb-accent);
+}
+
+.equitybot-message-content {
+    padding: 10px 14px;
+    border-radius: var(--eb-radius-sm);
+    font-size: 13px;
+    line-height: 1.6;
+    word-break: break-word;
+}
+
+/* User message */
+.equitybot-message--user .equitybot-message-content {
+    background: var(--eb-user-bg);
+    color: var(--eb-user-text);
+    border-bottom-right-radius: 4px;
+}
+
+/* Assistant message */
+.equitybot-message--assistant .equitybot-message-content {
+    background: var(--eb-surface);
+    color: var(--eb-text);
+    border-bottom-left-radius: 4px;
+}
+
+.equitybot-message-content strong {
+    font-weight: 700;
+    color: var(--eb-text);
+}
+
+.equitybot-message-content code {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 12px;
+    background: rgba(114, 137, 255, 0.1);
+    padding: 2px 5px;
+    border-radius: 4px;
+    color: var(--eb-accent);
+}
+
+.equitybot-message-content pre {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 10px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 6px 0;
+}
+
+.equitybot-message-content pre code {
+    background: none;
+    padding: 0;
+}
+
+.equitybot-message-content p {
+    margin: 0;
+}
+
+.equitybot-message-content p + p {
+    margin-top: 8px;
+}
+
+/* Tool execution card */
+.equitybot-tool-card {
+    background: var(--eb-tool-bg) !important;
+    border: 1px solid var(--eb-tool-border);
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.equitybot-tool-card--success {
+    border-color: rgba(61, 220, 132, 0.3) !important;
+    background: var(--eb-success-bg) !important;
+}
+
+.equitybot-tool-card--error {
+    border-color: rgba(255, 107, 107, 0.3) !important;
+    background: var(--eb-error-bg) !important;
+}
+
+.equitybot-tool-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+    line-height: 1.4;
+}
+
+/* Error message */
+.equitybot-message--error-content {
+    background: var(--eb-error-bg) !important;
+    border: 1px solid rgba(255, 107, 107, 0.2);
+    color: var(--eb-error) !important;
+}
+
+/* System message */
+.equitybot-message--system-content {
+    background: var(--eb-accent-soft) !important;
+    color: var(--eb-text-secondary) !important;
+    font-size: 12px;
+    text-align: center;
+    border-radius: 8px !important;
+    max-width: 100%;
+}
+
+.equitybot-message--system {
+    max-width: 100%;
+    align-self: center;
+}
+
+/* ==========================================
+   Typing Indicator
+   ========================================== */
+
+.equitybot-typing {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 16px 8px;
+    flex-shrink: 0;
+}
+
+.equitybot-typing-avatar {
+    width: 22px;
+    height: 22px;
+    border-radius: 7px;
+    background: var(--eb-accent-soft);
+    color: var(--eb-accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.equitybot-typing-dots {
+    display: flex;
+    gap: 4px;
+    padding: 8px 12px;
+    background: var(--eb-surface);
+    border-radius: 12px;
+}
+
+.equitybot-typing-dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--eb-text-muted);
+    animation: eb-typing-bounce 1.4s infinite ease-in-out both;
+}
+
+.equitybot-typing-dots span:nth-child(1) { animation-delay: 0s; }
+.equitybot-typing-dots span:nth-child(2) { animation-delay: 0.16s; }
+.equitybot-typing-dots span:nth-child(3) { animation-delay: 0.32s; }
+
+@keyframes eb-typing-bounce {
+    0%, 80%, 100% { transform: scale(0.7); opacity: 0.4; }
+    40% { transform: scale(1); opacity: 1; }
+}
+
+/* ==========================================
+   Confirmation Bar
+   ========================================== */
+
+.equitybot-confirmation {
+    display: flex;
+    gap: 8px;
+    padding: 10px 16px;
+    background: var(--eb-surface);
+    border-top: 1px solid var(--eb-border);
+    flex-shrink: 0;
+    animation: eb-slide-up 0.2s ease;
+}
+
+@keyframes eb-slide-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.equitybot-confirm-btn,
+.equitybot-cancel-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border: none;
+    border-radius: var(--eb-radius-xs);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.15s;
+}
+
+.equitybot-confirm-btn:active,
+.equitybot-cancel-btn:active {
+    transform: scale(0.97);
+}
+
+.equitybot-confirm-btn {
+    background: var(--eb-confirm-bg);
+    color: white;
+}
+
+.equitybot-confirm-btn:hover {
+    opacity: 0.9;
+}
+
+.equitybot-cancel-btn {
+    background: var(--eb-cancel-bg);
+    color: var(--eb-cancel-text);
+}
+
+.equitybot-cancel-btn:hover {
+    opacity: 0.8;
+}
+
+/* ==========================================
+   Suggested Actions
+   ========================================== */
+
+.equitybot-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 16px;
+    flex-shrink: 0;
+}
+
+.equitybot-suggestion-chip {
+    padding: 6px 12px;
+    border: 1px solid var(--eb-suggestion-border);
+    border-radius: 20px;
+    background: var(--eb-suggestion-bg);
+    color: var(--eb-accent);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, transform 0.15s;
+    white-space: nowrap;
+}
+
+.equitybot-suggestion-chip:hover {
+    background: var(--eb-accent-soft);
+    border-color: var(--eb-accent);
+}
+
+.equitybot-suggestion-chip:active {
+    transform: scale(0.95);
+}
+
+/* ==========================================
+   Input Area
+   ========================================== */
+
+.equitybot-input-area {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    padding: 12px 14px;
+    background: var(--eb-header-bg);
+    border-top: 1px solid var(--eb-border);
+    flex-shrink: 0;
+}
+
+.equitybot-input {
+    flex: 1;
+    padding: 10px 14px;
+    border: 1px solid var(--eb-border);
+    border-radius: var(--eb-radius-sm);
+    background: var(--eb-input-bg);
+    color: var(--eb-text);
+    font-size: 13px;
+    font-family: inherit;
+    line-height: 1.5;
+    resize: none;
+    outline: none;
+    transition: border-color 0.2s;
+    max-height: 120px;
+}
+
+.equitybot-input::placeholder {
+    color: var(--eb-text-muted);
+}
+
+.equitybot-input:focus {
+    border-color: var(--eb-border-focus);
+}
+
+.equitybot-send-btn {
+    width: 38px;
+    height: 38px;
+    border: none;
+    border-radius: 10px;
+    background: var(--eb-accent);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.2s, opacity 0.2s, transform 0.15s;
+}
+
+.equitybot-send-btn:hover:not(:disabled) {
+    background: var(--eb-accent-hover);
+}
+
+.equitybot-send-btn:active:not(:disabled) {
+    transform: scale(0.92);
+}
+
+.equitybot-send-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* ==========================================
+   Responsive — Mobile
+   ========================================== */
+
+@media (max-width: 480px) {
+    .equitybot-fab {
+        bottom: 16px;
+        right: 16px;
+        width: 50px;
+        height: 50px;
+    }
+
+    .equitybot-panel {
+        bottom: 0;
+        right: 0;
+        left: 0;
+        width: 100%;
+        max-height: 100vh;
+        max-height: 100dvh;
+        height: 100vh;
+        height: 100dvh;
+        border-radius: 0;
+        border: none;
+    }
+
+    .equitybot-panel--open {
+        border-radius: 0;
+    }
+
+    .equitybot-header {
+        padding: 12px 16px;
+        /* Account for notch/dynamic island on iOS */
+        padding-top: max(12px, env(safe-area-inset-top));
+    }
+
+    .equitybot-input-area {
+        padding-bottom: max(12px, env(safe-area-inset-bottom));
+    }
+}
+
+@media (min-width: 481px) and (max-width: 768px) {
+    .equitybot-panel {
+        width: 360px;
+        max-height: 520px;
+    }
+}
+
+/* ==========================================
+   Reduced Motion
+   ========================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    .equitybot-fab,
+    .equitybot-panel,
+    .equitybot-message,
+    .equitybot-settings,
+    .equitybot-confirmation {
+        transition: none !important;
+        animation: none !important;
+    }
+
+    .equitybot-fab-pulse {
+        display: none;
+    }
+
+    .equitybot-typing-dots span {
+        animation: none;
+        opacity: 0.6;
+    }
+}
+
+/* ==========================================
+   Toggle Switches and Custom Settings UI
+   ========================================== */
+
+.equitybot-toggle-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+}
+
+.equitybot-toggle-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.equitybot-toggle-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--eb-text);
+}
+
+.equitybot-toggle-sub {
+    font-size: 11px;
+    color: var(--eb-text-secondary);
+}
+
+/* Switch styling */
+.equitybot-switch {
+    position: relative;
+    display: inline-block;
+    width: 42px;
+    height: 22px;
+    flex-shrink: 0;
+}
+
+.equitybot-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.equitybot-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--eb-border);
+    transition: .3s;
+    border-radius: 22px;
+}
+
+.equitybot-slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    bottom: 3px;
+    background-color: var(--eb-bg-solid);
+    transition: .3s;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+input:checked + .equitybot-slider {
+    background-color: var(--eb-accent);
+}
+
+input:focus + .equitybot-slider {
+    box-shadow: 0 0 1px var(--eb-accent);
+}
+
+input:checked + .equitybot-slider:before {
+    transform: translateX(20px);
+    background-color: #ffffff;
+}
+
