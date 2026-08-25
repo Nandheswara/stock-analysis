@@ -903,7 +903,8 @@ export async function copyFinanceDataBetweenMonths(sourceMonth, targetMonth, opt
                                 parseFloat(card.interestRate) || 0,
                                 parseInt(card.tenure) || 0,
                                 parseFloat(card.processingFee) || 0,
-                                card.loanType
+                                card.loanType,
+                                card.interestMethod
                             );
                             const record = schedule[monthIndex - 1];
                             nextOutstanding = record ? record.startBalance : 0;
@@ -1573,7 +1574,8 @@ export function computeFinancialSummary(data, selectedMonth) {
             parseFloat(card.interestRate) || 0,
             parseInt(card.tenure) || 0,
             parseFloat(card.processingFee) || 0,
-            card.loanType
+            card.loanType,
+            card.interestMethod
         );
         return schedule[monthIndex - 1] || null;
     }

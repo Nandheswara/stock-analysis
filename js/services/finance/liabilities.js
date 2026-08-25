@@ -293,38 +293,72 @@ export async function deleteCreditCardForMonth(cardId, month) {
     }
 }
 
-/**
- * Calculate amortization schedule for a loan
- */
-export function calculateAmortizationSchedule(principal, annualRate, tenureMonths, processingFee = 0, loanType = 'credit-card-emi') {
-    const monthlyRate = (annualRate / 12) / 100;
-    const isCcEmi = loanType !== 'personal-loan';
-    
-    // EMI Formula: [P x R x (1+R)^N] / [((1+R)^N) - 1]
-    let emi = 0;
-    if (monthlyRate > 0 && tenureMonths > 0) {
-        emi = (principal * monthlyRate * Math.pow(1 + monthlyRate, tenureMonths)) / (Math.pow(1 + monthlyRate, tenureMonths) - 1);
-    } else {
-        emi = tenureMonths > 0 ? (principal / tenureMonths) : 0;
-    }
-    
+export function calculateAmortizationSchedule(
+    principal, 
+    annualRate, 
+    tenureMonths, 
+    processingFee = 0, 
+    loanType = '', 
+    interestMethod = 'reducing'
+) {
+    const p = Math.max(0, parseFloat(principal) || 0);
+    const rate = Math.max(0, parseFloat(annualRate) || 0);
+    const tenure = Math.max(1, parseInt(tenureMonths) || 1);
+    const fee = Math.max(0, parseFloat(processingFee) || 0);
+
+    const monthlyRate = (rate / 12) / 100;
+    const isCcEmi = (loanType === 'credit-card-emi');
+    const isBullet = (loanType === 'gold-loan' || loanType === 'bullet-loan');
+    const isFlat = (loanType === 'flat-rate-loan' || interestMethod === 'flat');
+
     const schedule = [];
-    let remainingPrincipal = principal;
-    
-    for (let i = 1; i <= tenureMonths; i++) {
-        const interest = remainingPrincipal * monthlyRate;
-        const gst = isCcEmi ? (interest * 0.18) : 0;
-        const principalPaid = Math.min(remainingPrincipal, emi - interest);
-        const startBalance = remainingPrincipal;
-        remainingPrincipal = Math.max(0, remainingPrincipal - principalPaid);
-        
-        let extraCharges = 0;
-        if (i === 1) {
-            extraCharges = isCcEmi 
-                ? (processingFee + (processingFee * 0.18))
-                : 0;
+    let remainingPrincipal = p;
+
+    let standardEmi = 0;
+    if (isFlat) {
+        const monthlyInterest = p * monthlyRate;
+        const monthlyPrincipal = p / tenure;
+        standardEmi = monthlyPrincipal + monthlyInterest;
+    } else if (!isBullet) {
+        if (monthlyRate > 0 && tenure > 0) {
+            standardEmi = (p * monthlyRate * Math.pow(1 + monthlyRate, tenure)) / 
+                          (Math.pow(1 + monthlyRate, tenure) - 1);
+        } else {
+            standardEmi = tenure > 0 ? (p / tenure) : 0;
         }
-        
+    }
+
+    for (let i = 1; i <= tenure; i++) {
+        const startBalance = remainingPrincipal;
+        let interest = startBalance * monthlyRate;
+        let emi = 0;
+        let principalPaid = 0;
+
+        if (isBullet) {
+            if (i === tenure) {
+                principalPaid = startBalance;
+                emi = interest + principalPaid;
+            } else {
+                principalPaid = 0;
+                emi = interest;
+            }
+        } else if (isFlat) {
+            interest = p * monthlyRate;
+            principalPaid = Math.min(startBalance, p / tenure);
+            emi = principalPaid + interest;
+        } else {
+            emi = standardEmi;
+            principalPaid = Math.min(startBalance, Math.max(0, emi - interest));
+        }
+
+        const gst = isCcEmi ? (interest * 0.18) : 0;
+        remainingPrincipal = Math.max(0, startBalance - principalPaid);
+
+        let extraCharges = 0;
+        if (i === 1 && fee > 0) {
+            extraCharges = isCcEmi ? (fee + (fee * 0.18)) : fee;
+        }
+
         schedule.push({
             monthIndex: i,
             startBalance,
@@ -336,5 +370,7 @@ export function calculateAmortizationSchedule(principal, annualRate, tenureMonth
             totalOutflow: emi + gst + extraCharges
         });
     }
+
     return schedule;
 }
+

@@ -382,7 +382,8 @@ export function generateForecastData(baseData, startMonth, targetMonth, config) 
                 parseFloat(card.interestRate) || 0,
                 parseInt(card.tenure) || 0,
                 parseFloat(card.processingFee) || 0,
-                card.loanType
+                card.loanType,
+                card.interestMethod
             );
         }
     });

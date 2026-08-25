@@ -1379,7 +1379,7 @@ function renderFinancialSummary() {
             else comparisonText = ` ↓${Math.abs(diff).toFixed(1)}%`;
         }
 
-        badge.className = `badge ${badgeClass}`;
+        badge.className = `badge savings-badge ${badgeClass}`;
         badge.innerHTML = `<i class="bi bi-piggy-bank"></i> Savings: ${rate}%${comparisonText}`;
         badge.title = `Savings = Income (${formatCurrency(monthIncome.totalIncome)}) - Expenditure (${formatCurrency(summary.expenditure)}) = ${formatCurrency(summary.savings)}`;
         badge.style.display = '';
@@ -1883,7 +1883,7 @@ function renderLoans() {
         if (startMonth && tenure > 0) {
             const monthIndex = getMonthsDifference(startMonth, currentMonth) + 1;
             if (monthIndex >= 1 && monthIndex <= tenure) {
-                const schedule = calculateAmortizationSchedule(totalLoanAmount, annualRate, tenure, processingFee, card.loanType);
+                const schedule = calculateAmortizationSchedule(totalLoanAmount, annualRate, tenure, processingFee, card.loanType, card.interestMethod);
                 const record = schedule[monthIndex - 1];
                 if (record) {
                     displayOutstanding = isPaidForCurrentMonth ? record.endBalance : record.startBalance;
@@ -1900,6 +1900,7 @@ function renderLoans() {
 
         const lender = escapeHtml(card.issuer || '-');
         const isPFMonth = startMonth && (getMonthsDifference(startMonth, currentMonth) + 1) === 1 && processingFee > 0;
+        const loanTypeBadge = getLoanTypeBadgeLabel(card.loanType);
 
         return `
         <tr>
@@ -1907,6 +1908,7 @@ function renderLoans() {
                 <div style="display:flex;align-items:center;gap:8px;">
                     <span style="width:8px;height:8px;border-radius:50%;background:${card.color || '#ffb454'};display:inline-block;"></span>
                     <strong>${escapeHtml(card.name)}</strong>
+                    ${loanTypeBadge}
                 </div>
             </td>
             <td>${lender}</td>
@@ -1926,6 +1928,21 @@ function renderLoans() {
         </tr>
         `;
     }).join('');
+}
+
+function getLoanTypeBadgeLabel(loanType) {
+    const labels = {
+        'credit-card-emi': 'Credit Card EMI',
+        'personal-loan': 'Personal Loan',
+        'home-loan': 'Home Loan',
+        'car-loan': 'Car Loan',
+        'education-loan': 'Education Loan',
+        'gold-loan': 'Gold Loan',
+        'flat-rate-loan': 'Flat-Rate Loan'
+    };
+    const label = labels[loanType];
+    if (!label) return '';
+    return `<span style="font-weight:500;font-size:0.7rem;padding:2px 6px;border-radius:4px;background:rgba(255,180,84,0.15);color:var(--accent-warning,#ffb454);">${label}</span>`;
 }
 
 function renderExpenses() {
@@ -3084,7 +3101,68 @@ window.deleteFinanceBank = async function(bankId) {
     );
 };
 
-// --- Credit Cards ---
+window.updateLoanPreview = function() {
+    const previewBox = document.getElementById('loanCalculationPreview');
+    const type = document.getElementById('expenseTypeSelect')?.value;
+    if (type !== 'loan' || !previewBox) {
+        if (previewBox) previewBox.style.display = 'none';
+        return;
+    }
+
+    const principal = parseFloat(document.getElementById('cardTotalLoanAmount')?.value) || 0;
+    const rate = parseFloat(document.getElementById('cardInterestRate')?.value) || 0;
+    const tenure = parseInt(document.getElementById('cardTenure')?.value) || 0;
+    const fee = parseFloat(document.getElementById('cardProcessingFee')?.value) || 0;
+    const loanType = document.getElementById('cardLoanType')?.value || '';
+    const interestMethod = document.getElementById('cardLoanInterestMethod')?.value || 'reducing';
+
+    if (!loanType || principal <= 0 || tenure <= 0) {
+        previewBox.style.display = 'none';
+        return;
+    }
+
+    const schedule = calculateAmortizationSchedule(principal, rate, tenure, fee, loanType, interestMethod);
+    if (!schedule || schedule.length === 0) {
+        previewBox.style.display = 'none';
+        return;
+    }
+
+    let totalInterest = 0;
+    let totalGst = 0;
+    let totalOutflow = 0;
+
+    schedule.forEach(row => {
+        totalInterest += (row.interestPaid || 0);
+        totalGst += (row.gstOnInterest || 0);
+        totalOutflow += (row.totalOutflow || 0);
+    });
+
+    const isCcEmi = (loanType === 'credit-card-emi');
+    if (fee > 0 && isCcEmi) {
+        totalGst += (fee * 0.18);
+    }
+
+    const monthlyEmi = schedule[0] ? schedule[0].emi : 0;
+
+    document.getElementById('previewLoanEmi').textContent = formatCurrency(monthlyEmi);
+    document.getElementById('previewLoanInterest').textContent = formatCurrency(totalInterest);
+    document.getElementById('previewLoanGst').textContent = formatCurrency(totalGst);
+    document.getElementById('previewLoanOutflow').textContent = formatCurrency(totalOutflow);
+
+    previewBox.style.display = '';
+};
+
+window.handleLoanTypeChange = function() {
+    const loanType = document.getElementById('cardLoanType')?.value || '';
+    const interestMethodSubfield = document.querySelector('.loan-subfield-interest-method');
+
+    if (interestMethodSubfield) {
+        interestMethodSubfield.style.display = (loanType === 'car-loan' || loanType === 'flat-rate-loan') ? '' : 'none';
+    }
+
+    updateLoanPreview();
+};
+
 window.setExpenseFormFields = function(type) {
     const creditFields = document.querySelectorAll('.credit-card-fields');
     const loanFields = document.querySelectorAll('.loan-fields');
@@ -3101,6 +3179,10 @@ window.setExpenseFormFields = function(type) {
     
     if (outstandingField) {
         outstandingField.style.display = (type === 'loan' || type === 'insurance') ? 'none' : '';
+    }
+
+    if (type === 'loan') {
+        handleLoanTypeChange();
     }
 };
 
@@ -3126,6 +3208,9 @@ window.openAddLoanModal = function() {
     document.getElementById('expenseTypeSelect').value = 'loan';
     document.getElementById('insurancePolicyType').value = 'term';
     document.getElementById('insuranceStatusSelect').value = 'active';
+    document.getElementById('cardLoanType').value = '';
+    document.getElementById('cardLoanInterestMethod').value = 'reducing';
+    document.getElementById('cardLoanStartMonth').value = currentMonth || getCurrentMonthKey();
     setExpenseFormFields('loan');
     document.getElementById('addCreditCardModalTitle').textContent = 'Add Loan';
     openModal('addCreditCardModal');
@@ -3178,6 +3263,8 @@ window.submitAddCreditCard = async function() {
     const tenure = type === 'loan' ? parseInt(document.getElementById('cardTenure').value) || 0 : 0;
     const loanStartMonth = type === 'loan' ? document.getElementById('cardLoanStartMonth').value : '';
     const processingFee = type === 'loan' ? parseFloat(document.getElementById('cardProcessingFee').value) || 0 : 0;
+    const loanType = type === 'loan' ? document.getElementById('cardLoanType').value : '';
+    const interestMethod = type === 'loan' ? (document.getElementById('cardLoanInterestMethod')?.value || 'reducing') : 'reducing';
 
     const data = {
         type,
@@ -3202,7 +3289,8 @@ window.submitAddCreditCard = async function() {
         tenure,
         loanStartMonth,
         processingFee,
-        loanType: type === 'loan' ? document.getElementById('cardLoanType').value : '',
+        loanType,
+        interestMethod,
         dueDate: type === 'loan'
             ? document.getElementById('loanDueDate').value
             : type === 'insurance'
@@ -3228,6 +3316,9 @@ window.submitAddCreditCard = async function() {
             showToast('Enter insurance provider', 'warning');
             return;
         }
+    } else if (type === 'loan' && !data.loanType) {
+        showToast('Select loan type', 'warning');
+        return;
     } else if (!data.name) {
         showToast('Enter expense name', 'warning');
         return;
@@ -3268,7 +3359,7 @@ window.editFinanceCreditCard = function(cardId) {
     document.getElementById('cardTotalLoanAmount').value = card.totalLoanAmount || '';
     document.getElementById('cardInterestRate').value = card.interestRate || '';
     document.getElementById('cardTenure').value = card.tenure || '';
-    document.getElementById('cardLoanStartMonth').value = card.loanStartMonth || '';
+    document.getElementById('cardLoanStartMonth').value = card.loanStartMonth || currentMonth || getCurrentMonthKey();
     document.getElementById('cardProcessingFee').value = card.processingFee || '';
     document.getElementById('cardDueDate').value = card.dueDate || '';
     document.getElementById('cardExpenseDate').value = card.expenseDate || '';
@@ -3281,6 +3372,8 @@ window.editFinanceCreditCard = function(cardId) {
         document.getElementById('loanDueDate').value = card.dueDate || '';
         document.getElementById('cardIssuerLoan').value = card.issuer || '';
         document.getElementById('cardLoanType').value = card.loanType || 'credit-card-emi';
+        document.getElementById('cardLoanInterestMethod').value = card.interestMethod || 'reducing';
+        handleLoanTypeChange();
     } else if (type === 'general-expense') {
         document.getElementById('generalPaymentStatus').value = isCardPaidForMonth(card, currentMonth) ? 'paid' : 'unpaid';
         document.getElementById('cardIssuerGeneral').value = card.issuer || '';
@@ -4536,14 +4629,6 @@ function setupAuth() {
 
             // Create default categories for new users (delayed to avoid racing with listeners)
             setTimeout(() => createDefaultCategories(), 1500);
-
-            // Auto-prompt first-time visitors for guided tour
-            setTimeout(() => {
-                const tour = getFinanceTrackerTour();
-                if (!tour.isCompleted()) {
-                    showToast('New to Finance Tracker? Click "Take a Tour" in the top bar to explore all features!', 'info');
-                }
-            }, 2500);
         } else {
             lastLoadedUid = null;
             if (authButtons) authButtons.style.setProperty('display', 'flex', 'important');

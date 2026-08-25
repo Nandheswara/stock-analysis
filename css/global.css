@@ -1715,7 +1715,7 @@ body.light-theme .select2-container--default .select2-selection--single .select2
     }
 
     /* Buttons - Mobile */
-    .btn {
+    .btn:not(.btn-tour-launch) {
         padding: 8px 16px !important;
         font-size: 0.9rem !important;
         border-radius: 8px !important;
