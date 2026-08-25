@@ -3092,26 +3092,26 @@ body.light-theme .encryption-banner-icon {
    Enhanced Finance Header Hero
    ======================================== */
 .header-section.finance-header-hero {
-    background: linear-gradient(135deg, rgba(30, 27, 75, 0.95) 0%, rgba(49, 46, 129, 0.9) 50%, rgba(15, 23, 42, 0.95) 100%);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 20px;
+    background: linear-gradient(135deg, rgba(24, 20, 64, 0.98) 0%, rgba(39, 36, 110, 0.92) 50%, rgba(15, 23, 42, 0.98) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 22px;
     padding: 24px 30px;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     transition: all 0.3s ease;
 }
 
 .finance-header-hero::before {
     content: '';
     position: absolute;
-    top: -40px;
-    right: -40px;
-    width: 260px;
-    height: 260px;
-    background: radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, rgba(168, 85, 247, 0.08) 50%, transparent 70%);
+    top: -50px;
+    right: -50px;
+    width: 280px;
+    height: 280px;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.3) 0%, rgba(168, 85, 247, 0.12) 50%, transparent 70%);
     border-radius: 50%;
     pointer-events: none;
     animation: pulseGlow 6s infinite ease-in-out;
@@ -3122,9 +3122,9 @@ body.light-theme .encryption-banner-icon {
     position: absolute;
     bottom: -60px;
     left: 10%;
-    width: 200px;
-    height: 200px;
-    background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%);
+    width: 220px;
+    height: 220px;
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.18) 0%, transparent 70%);
     border-radius: 50%;
     pointer-events: none;
 }
@@ -3133,15 +3133,21 @@ body.light-theme .encryption-banner-icon {
     width: 52px;
     height: 52px;
     border-radius: 16px;
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.3) 0%, rgba(168, 85, 247, 0.3) 100%);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    border: 1px solid rgba(255, 255, 255, 0.25);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.55rem;
     color: #ffffff;
-    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
+    box-shadow: 0 6px 18px rgba(99, 102, 241, 0.4);
     flex-shrink: 0;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.finance-header-icon-wrap:hover {
+    transform: scale(1.05) rotate(-3deg);
+    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.55);
 }
 
 .finance-header-hero .finance-header-title {
@@ -3152,38 +3158,87 @@ body.light-theme .encryption-banner-icon {
 }
 
 .finance-header-hero .header-security-pill {
-    background: rgba(16, 185, 129, 0.18);
-    border: 1px solid rgba(16, 185, 129, 0.35);
+    height: 24px;
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(52, 211, 153, 0.4);
     color: #34d399;
-    font-size: 0.72rem;
+    font-size: 0.68rem;
     font-weight: 600;
-    padding: 4px 10px;
-    border-radius: 20px;
-    letter-spacing: 0.02em;
+    padding: 0 10px;
+    border-radius: 50rem;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    vertical-align: middle;
 }
 
 .finance-header-hero .finance-header-subtitle {
     font-size: 0.92rem;
-    color: rgba(255, 255, 255, 0.8);
+    color: rgba(226, 232, 240, 0.85);
     line-height: 1.45;
     text-align: left;
 }
 
+#headerRightActions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+#headerRightActions .btn-tour-launch,
+#headerRightActions .badge,
 .finance-header-hero .savings-badge {
-    font-size: 0.88rem;
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-weight: 600;
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    height: 30px !important;
+    padding: 0 13px !important;
+    font-size: 0.78rem !important;
+    font-weight: 600 !important;
+    line-height: 1.2 !important;
+    border-radius: 50rem !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    box-sizing: border-box !important;
+    vertical-align: middle !important;
+    margin: 0 !important;
+}
+
+.btn-tour-launch {
+    background: rgba(99, 102, 241, 0.18) !important;
+    color: #a5b4fc !important;
+    border: 1px solid rgba(129, 140, 248, 0.4) !important;
+    backdrop-filter: blur(8px);
+    transition: all 0.25s ease !important;
+}
+
+.btn-tour-launch:hover,
+.btn-tour-launch:focus {
+    background: #6366f1 !important;
+    color: #ffffff !important;
+    border-color: #818cf8 !important;
+    box-shadow: 0 0 16px rgba(99, 102, 241, 0.5) !important;
+    transform: translateY(-1px) !important;
+}
+
+.finance-header-hero .savings-badge,
+#headerRightActions .badge.bg-success {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35) !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    color: #ffffff !important;
 }
 
 body.light-theme .header-section.finance-header-hero {
     background: linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%);
-    border: 1px solid rgba(226, 232, 240, 0.8);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.06);
 }
 
 .finance-header-main-flex {
@@ -3208,7 +3263,7 @@ body.light-theme .finance-header-icon-wrap {
 @media (max-width: 768px) {
     .header-section.finance-header-hero {
         padding: 18px 18px;
-        border-radius: 16px;
+        border-radius: 18px;
         margin-bottom: 1.25rem;
     }
 
@@ -3219,9 +3274,9 @@ body.light-theme .finance-header-icon-wrap {
     }
 
     .finance-header-icon-wrap {
-        width: 46px;
-        height: 46px;
-        font-size: 1.35rem;
+        width: 44px;
+        height: 44px;
+        font-size: 1.3rem;
         border-radius: 14px;
         margin-top: 0;
         flex-shrink: 0;
@@ -3238,12 +3293,36 @@ body.light-theme .finance-header-icon-wrap {
     }
 
     .finance-header-hero .header-security-pill {
-        font-size: 0.68rem;
+        font-size: 0.65rem;
         padding: 3px 8px;
     }
 
     #headerRightActions {
-        margin-top: 4px;
+        margin-top: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start !important;
+        flex-wrap: wrap;
+        gap: 8px;
+        width: 100%;
+    }
+
+    #headerRightActions .btn-tour-launch,
+    #headerRightActions .badge,
+    .finance-header-hero .savings-badge {
+        height: 28px !important;
+        padding: 0 10px !important;
+        font-size: 0.75rem !important;
+        border-radius: 50rem !important;
+    }
+
+    #headerRightActions .btn-tour-launch,
+    #headerRightActions .badge,
+    .finance-header-hero .savings-badge {
+        height: 28px !important;
+        padding: 0 10px !important;
+        font-size: 0.75rem !important;
+        border-radius: 50rem !important;
     }
 
     .smart-insights-card {
@@ -3254,22 +3333,22 @@ body.light-theme .finance-header-icon-wrap {
 
 @media (max-width: 576px) {
     .header-section.finance-header-hero {
-        padding: 14px 14px;
-        border-radius: 14px;
+        padding: 16px 14px;
+        border-radius: 16px;
         margin-bottom: 1rem;
     }
 
     .finance-header-main-flex {
-        align-items: flex-start;
+        align-items: center;
         gap: 12px;
     }
 
     .finance-header-icon-wrap {
-        width: 40px;
-        height: 40px;
+        width: 42px;
+        height: 42px;
         font-size: 1.2rem;
-        border-radius: 10px;
-        margin-top: 2px;
+        border-radius: 12px;
+        margin-top: 0;
         flex-shrink: 0;
     }
 
@@ -3280,27 +3359,42 @@ body.light-theme .finance-header-icon-wrap {
     }
 
     .finance-header-hero .finance-header-title {
-        font-size: 1.2rem;
+        font-size: 1.25rem;
         line-height: 1.25;
         word-break: break-word;
         text-align: left;
     }
 
     .finance-header-hero .header-security-pill {
-        font-size: 0.65rem;
+        font-size: 0.62rem;
         padding: 2px 7px;
         white-space: nowrap;
     }
 
     .finance-header-hero .finance-header-subtitle {
         font-size: 0.78rem;
-        line-height: 1.38;
+        line-height: 1.4;
         text-align: left;
+        margin-top: 2px;
     }
 
+    #headerRightActions {
+        margin-top: 8px;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start !important;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    #headerRightActions .btn-tour-launch,
+    #headerRightActions .badge,
     .finance-header-hero .savings-badge {
-        font-size: 0.78rem;
-        padding: 6px 12px;
+        height: 28px !important;
+        padding: 0 10px !important;
+        font-size: 0.75rem !important;
+        border-radius: 50rem !important;
     }
 
     .smart-insights-card {
