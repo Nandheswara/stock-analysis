@@ -497,14 +497,6 @@ export const financeTrackerTourSteps = [
         content: 'Automated 0-to-100 score indicating your financial resilience, solvency rating, and emergency runway.',
         tip: 'Click <strong>View Action Plan</strong> for step-by-step personalized recommendations to improve your health score!',
         placement: 'bottom'
-    },
-    {
-        target: () => document.querySelector('#equitybot-fab') || document.querySelector('#headerRightActions') || document.querySelector('.finance-header-hero'),
-        title: 'AI Financial Assistant (EquityBot)',
-        icon: 'bi bi-robot',
-        content: 'Have questions about asset allocation, emergency funds, or stock analysis? Click the floating AI assistant icon anytime to converse with EquityBot!',
-        tip: 'Try asking EquityBot: <em>"Analyze my financial health"</em> or <em>"How should I split my monthly income?"</em>',
-        placement: 'top'
     }
 ];
 
