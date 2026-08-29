@@ -93,7 +93,6 @@ import {
 } from './health-score.js';
 
 import { getFinanceTrackerTour } from './tour-guide.js';
-import { initChatPanel } from './ai/chat-panel.js';
 
 
 window.openForecastModal = openForecastModal;
@@ -5020,28 +5019,42 @@ function renderSmartInsights(currentSummary, snapshots) {
         }
     }
 
-    // 3. Debt Burden / Credit Card Liabilities Insight
+    // 3. Debt Service Burden / EMI Obligations Insight
     const currentLiabilities = currentSummary.totalLiabilities || 0;
-    if (currentLiabilities > 0) {
-        if (totalIncome > 0 && (currentLiabilities / totalIncome) > 0.5) {
+    const monthlyDebtService = currentSummary.currentMonthCCOutstanding || 0;
+
+    if (currentLiabilities > 0 || monthlyDebtService > 0) {
+        const dtiRatio = totalIncome > 0 ? (monthlyDebtService / totalIncome) * 100 : 0;
+
+        if (totalIncome > 0 && dtiRatio > 40) {
             insights.push({
                 category: 'cashflow',
                 type: 'danger',
                 icon: 'bi-credit-card-2-front-fill',
-                title: 'Elevated Liabilities',
-                pill: `${((currentLiabilities / totalIncome) * 100).toFixed(0)}% of Income`,
+                title: 'High Debt Obligations',
+                pill: `${dtiRatio.toFixed(0)}% Debt-to-Income`,
                 pillClass: 'danger',
-                desc: `Outstanding card & loan liabilities (<strong>${formatCurrency(currentLiabilities)}</strong>) represent over 50% of your monthly income. Pay off high-interest debt promptly.`
+                desc: `Monthly debt obligations & loan EMIs (<strong>${formatCurrency(monthlyDebtService)}</strong>) consume over 40% of your monthly income. Total outstanding debt: <strong>${formatCurrency(currentLiabilities)}</strong>.`
+            });
+        } else if (totalIncome > 0 && dtiRatio > 25) {
+            insights.push({
+                category: 'cashflow',
+                type: 'warning',
+                icon: 'bi-credit-card-2-front-fill',
+                title: 'Moderate Debt Burden',
+                pill: `${dtiRatio.toFixed(0)}% Debt-to-Income`,
+                pillClass: 'warning',
+                desc: `Monthly debt obligations & loan EMIs (<strong>${formatCurrency(monthlyDebtService)}</strong>) account for <strong>${dtiRatio.toFixed(0)}%</strong> of your monthly income (total debt: <strong>${formatCurrency(currentLiabilities)}</strong>).`
             });
         } else {
             insights.push({
                 category: 'cashflow',
                 type: 'cashflow',
                 icon: 'bi-check-circle-fill',
-                title: 'Manageable Liabilities',
-                pill: 'Under Control',
+                title: 'Manageable Debt Service',
+                pill: totalIncome > 0 ? `${dtiRatio.toFixed(0)}% DTI` : 'Under Control',
                 pillClass: 'positive',
-                desc: `Current outstanding liabilities stand at <strong>${formatCurrency(currentLiabilities)}</strong>.`
+                desc: `Monthly debt repayments stand at <strong>${formatCurrency(monthlyDebtService)}</strong> (Total outstanding debt: <strong>${formatCurrency(currentLiabilities)}</strong>).`
             });
         }
     } else {
@@ -5149,31 +5162,7 @@ function renderSmartInsights(currentSummary, snapshots) {
     filterSmartInsights(activeSmartInsightFilter || 'all', activeChip);
 }
 
-// ========================================
-// EquityBot AI State Bridge
-// ========================================
 
-/**
- * Expose a read-only API on window so the AI assistant can
- * access live finance data and the current month without tightly
- * coupling to this module's internals.
- */
-window.equityLabsFinance = Object.freeze({
-    /** @returns {Object} Current finance data snapshot */
-    getData: () => financeData,
-
-    /** @returns {string} Currently selected month key (YYYY-MM) */
-    getCurrentMonth: () => currentMonth,
-
-    /** @param {string} month - YYYY-MM to navigate to */
-    setMonth: (month) => {
-        const picker = document.getElementById('monthPicker');
-        if (picker) {
-            picker.value = month;
-            picker.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-    }
-});
 
 // ========================================
 // Init
@@ -5189,11 +5178,6 @@ document.addEventListener('DOMContentLoaded', () => {
     applySectionPreferences();
     setupAuth();
     initForecastModalInputs();
-    try {
-        initChatPanel();
-    } catch (e) {
-        log('warn', 'Chat panel initialization deferred: ' + e.message);
-    }
 
     // Accordion togglers for mobile viewports (tables and category cards)
     document.addEventListener('click', (e) => {
