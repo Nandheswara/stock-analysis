@@ -48,6 +48,7 @@
             'analysis.html': 'navAnalysisLink',
             'stock-manager.html': 'navStockManagerLink',
             'news.html': 'navNewsLink',
+            'algo-scripts.html': 'navAlgoScriptsLink',
             'finance-tracker.html': 'navFinanceTrackerLink',
             'budget-planner.html': 'navBudgetPlannerLink'
         };

@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Algo Scripts Terminal | Equity Labs</title>
+    <meta name="description" content="29 interactive algorithmic trading strategy simulators across 7 categories — Mean Reversion, Momentum, Trend-Following, Volatility, Statistical, Machine Learning, and Hybrid. Real-time NSE data via Zerodha or Groww." />
+
+    <!-- Bootstrap 5 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet" />
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="../css/global.css" />
+    <link rel="stylesheet" href="../css/algo-scripts.css" />
+</head>
+<body>
+
+<!-- ========================================================
+     NAVBAR
+     ======================================================== -->
+<div id="navbar-placeholder"></div>
+
+<!-- ========================================================
+     MAIN CONTENT
+     ======================================================== -->
+<main class="container-xl py-4">
+
+    <!-- BREADCRUMB -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb" style="font-size:0.78rem;">
+            <li class="breadcrumb-item"><a href="../index.html" class="text-decoration-none">Home</a></li>
+            <li class="breadcrumb-item active text-muted">Algo Scripts</li>
+        </ol>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <div class="algo-hero mb-4">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-7">
+                <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                    <span class="badge bg-opacity-15 py-1 px-2" style="background:rgba(129,140,248,0.15);color:#818cf8;font-size:0.7rem;font-family:'JetBrains Mono',monospace;">BETA</span>
+                    <span class="engine-badge" title="All algorithmic trading strategies are calculated locally in your browser"><i class="bi bi-cpu-fill"></i> Executed in Browser (Client-Side JS)</span>
+                    <span style="font-size:0.75rem;color:var(--text-muted);">Real-time signal engine</span>
+                </div>
+                <h1 class="fw-bold mb-1" style="font-size:clamp(1.5rem,3vw,2.2rem);">
+                    <i class="bi bi-cpu-fill me-2" style="color:var(--accent-primary);"></i>
+                    Algo Scripts Terminal
+                </h1>
+                <p class="text-secondary mb-3" style="font-size:0.9rem;">
+                    Interactive strategy library — <strong id="algoStrategyCount" style="color:var(--text-heading);">29</strong> algorithmic trading strategies across 7 categories.
+                    Live signals computed in-browser using real OHLCV data.
+                </p>
+                <!-- TERMINAL LINE -->
+                <div class="d-flex align-items-center gap-2 mb-4" style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;color:var(--accent-primary);">
+                    <span style="color:var(--text-muted);">$</span>
+                    <span id="algoTypewriter" class="typewriter-cursor"></span>
+                </div>
+                <!-- STOCK SELECTOR + CONTROLS -->
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <div class="algo-stock-selector">
+                        <span style="font-size:0.78rem;color:var(--text-muted);font-family:'JetBrains Mono',monospace;">NSE:</span>
+                        <input
+                            type="text"
+                            id="algoSymbolInput"
+                            class="algo-stock-input"
+                            value="RELIANCE"
+                            placeholder="e.g. TCS, INFY"
+                            list="algoSymbolList"
+                            autocomplete="off"
+                            title="Enter NSE stock symbol" />
+                        <datalist id="algoSymbolList">
+                            <option value="RELIANCE"><option value="TCS"><option value="INFY">
+                            <option value="HDFC"><option value="ICICIBANK"><option value="SBIN">
+                            <option value="TATAMOTORS"><option value="WIPRO"><option value="HCLTECH">
+                            <option value="BAJFINANCE"><option value="ASIANPAINT"><option value="MARUTI"><option value="TITAN">
+                        </datalist>
+                        <button class="algo-run-btn" id="algoRunBtn">
+                            <i class="bi bi-play-fill"></i> Run Signals
+                        </button>
+                    </div>
+                    <button class="btn btn-sm" style="border:1px solid var(--border-color);color:var(--text-secondary);font-size:0.78rem;" onclick="openAPISettings()" title="Configure Zerodha / Groww API keys (optional)">
+                        <i class="bi bi-gear-fill me-1"></i> API Keys <span class="badge ms-1" style="background:var(--bg-elevated);color:var(--text-muted);font-size:0.6rem;">Optional</span>
+                    </button>
+                </div>
+                <!-- QUICK STOCK SWITCHER CHIPS -->
+                <div class="d-flex flex-wrap gap-1 align-items-center mt-3" id="algoQuickPills">
+                    <span style="font-size:0.72rem;color:var(--text-muted);margin-right:4px;"><i class="bi bi-lightning-charge-fill text-warning"></i> Quick Switch:</span>
+                    <button type="button" class="algo-stock-chip active" data-symbol="RELIANCE">RELIANCE</button>
+                    <button type="button" class="algo-stock-chip" data-symbol="TCS">TCS</button>
+                    <button type="button" class="algo-stock-chip" data-symbol="INFY">INFY</button>
+                    <button type="button" class="algo-stock-chip" data-symbol="HDFC">HDFC</button>
+                    <button type="button" class="algo-stock-chip" data-symbol="ICICIBANK">ICICIBANK</button>
+                    <button type="button" class="algo-stock-chip" data-symbol="SBIN">SBIN</button>
+                    <button type="button" class="algo-stock-chip" data-symbol="TATAMOTORS">TATAMOTORS</button>
+                    <button type="button" class="algo-stock-chip" data-symbol="WIPRO">WIPRO</button>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <!-- STATS -->
+                <div class="row g-2">
+                    <div class="col-4">
+                        <div class="text-center p-3" style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-md);">
+                            <div style="font-size:1.8rem;font-weight:800;color:var(--cat-3-color);font-family:'JetBrains Mono',monospace;">29</div>
+                            <div style="font-size:0.68rem;color:var(--text-muted);">STRATEGIES</div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="text-center p-3" style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-md);">
+                            <div style="font-size:1.8rem;font-weight:800;color:var(--cat-1-color);font-family:'JetBrains Mono',monospace;">7</div>
+                            <div style="font-size:0.68rem;color:var(--text-muted);">CATEGORIES</div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="text-center p-3" style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-md);">
+                            <div style="font-size:1.8rem;font-weight:800;color:var(--cat-7-color);font-family:'JetBrains Mono',monospace;">∞</div>
+                            <div style="font-size:0.68rem;color:var(--text-muted);">LIVE DATA</div>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="p-3" style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-md);font-size:0.75rem;">
+                            <div class="fw-bold mb-2" style="color:var(--text-muted);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.05em;">Data Source Waterfall</div>
+                            <div class="d-flex flex-column gap-1">
+                                <div class="d-flex align-items-center gap-2"><span style="width:12px;height:12px;background:#22c55e;border-radius:50%;display:inline-block;"></span><span>Zerodha Kite Connect (Real-time)</span></div>
+                                <div class="d-flex align-items-center gap-2"><span style="width:12px;height:12px;background:#22c55e;border-radius:50%;display:inline-block;"></span><span>Groww Trading API (Real-time)</span></div>
+                                <div class="d-flex align-items-center gap-2"><span style="width:12px;height:12px;background:#f59e0b;border-radius:50%;display:inline-block;"></span><span>Yahoo Finance (15-min delay, free)</span></div>
+                                <div class="d-flex align-items-center gap-2"><span style="width:12px;height:12px;background:#64748b;border-radius:50%;display:inline-block;"></span><span>Demo Mode (always available)</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ACTIVE STOCK METRIC STRIP -->
+    <div class="algo-stock-strip mb-3" id="algoStockStrip">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="algo-stock-symbol-badge" id="stripSymbolBadge">NSE: RELIANCE</div>
+                <div>
+                    <div class="d-flex align-items-baseline gap-2">
+                        <span class="fs-4 fw-bold font-monospace text-light" id="stripLTP">₹2,980.00</span>
+                        <span class="badge font-monospace" id="stripChangeBadge" style="background:rgba(34,197,94,0.15);color:#22c55e;">+₹24.50 (+0.83%)</span>
+                    </div>
+                    <small class="text-muted" id="stripMetaText" style="font-size:0.75rem;">OHLCV: 250 sessions analyzed in-browser</small>
+                </div>
+            </div>
+            <div class="d-flex flex-wrap gap-4 text-secondary" style="font-size:0.78rem;font-family:'JetBrains Mono',monospace;">
+                <div><span class="text-muted">Day High:</span> <span class="fw-semibold text-light ms-1" id="stripHigh">₹3,010.00</span></div>
+                <div><span class="text-muted">Day Low:</span> <span class="fw-semibold text-light ms-1" id="stripLow">₹2,965.00</span></div>
+                <div><span class="text-muted">52W Range:</span> <span class="fw-semibold text-light ms-1" id="strip52w">₹2,220 - ₹3,024</span></div>
+                <div><span class="text-muted">Volume:</span> <span class="fw-semibold text-light ms-1" id="stripVolume">9.5M</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DATA STATUS BAR -->
+    <div class="algo-status-bar mb-4" id="algoStatusBar">
+        <div class="algo-status-dot"></div>
+        <span id="algoStatusLabel" style="font-weight:600;">⏳ Initializing...</span>
+        <span class="text-muted ms-auto" id="algoStatusTime"></span>
+        <span class="text-muted" style="font-size:0.7rem;">|</span>
+        <span style="font-size:0.72rem;color:var(--text-muted);">
+            Proxy: <span id="proxyStatusText" style="color:var(--text-muted);">checking...</span>
+        </span>
+    </div>
+
+    <!-- CATEGORY TABS -->
+    <div class="algo-category-tabs mb-4" id="algoCategoryTabs">
+        <!-- Generated by JS -->
+    </div>
+
+    <!-- STRATEGY GRID -->
+    <div id="algoStrategiesContainer">
+        <!-- Generated by JS -->
+    </div>
+
+    <!-- GLOSSARY SECTION -->
+    <section class="mt-5 pt-3" id="algoGlossary">
+        <div class="d-flex align-items-center gap-2 mb-3">
+            <i class="bi bi-book-fill" style="color:var(--accent-primary);"></i>
+            <h2 class="fw-bold mb-0" style="font-size:1.1rem;">Indicator Glossary</h2>
+        </div>
+        <div class="glossary-grid" id="algoGlossaryGrid">
+            <!-- Generated by JS -->
+        </div>
+    </section>
+
+    <!-- DISCLAIMER -->
+    <div class="mt-5 p-3" style="background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.15);border-radius:var(--radius-md);font-size:0.75rem;color:var(--text-muted);">
+        <strong style="color:#f87171;"><i class="bi bi-shield-exclamation me-1"></i>Disclaimer:</strong>
+        All strategy signals are for <strong>educational and informational purposes only</strong>. They do not constitute financial advice.
+        Past performance is not indicative of future results. Always do your own research before trading.
+        Use paper trading to validate any strategy before committing real capital.
+    </div>
+
+</main>
+
+<!-- ========================================================
+     API SETTINGS MODAL
+     ======================================================== -->
+<div class="modal fade algo-api-modal" id="algoApiModal" tabindex="-1" aria-labelledby="algoApiModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="algoApiModalLabel">
+                    <i class="bi bi-gear-fill me-2" style="color:var(--accent-primary);"></i>
+                    Brokerage API Configuration
+                    <span class="badge ms-2" style="background:var(--bg-elevated);color:var(--text-muted);font-size:0.65rem;font-weight:400;">Optional</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- INFO NOTICE -->
+                <div class="api-notice mb-3">
+                    <i class="bi bi-shield-lock-fill me-2"></i>
+                    <strong>Your keys stay on your device.</strong> API keys are stored in your browser only and are <em>never sent to Equity Labs servers</em>.
+                    They travel only: <code>Your Browser → Local CORS Proxy → Your Broker's API</code>.
+                </div>
+
+                <!-- ZERODHA -->
+                <div class="broker-section broker-zerodha mb-3">
+                    <span class="broker-status-badge disconnected" id="zerodhaStatus">● Not Connected</span>
+                    <div class="broker-logo">
+                        <i class="bi bi-graph-up-arrow"></i> Zerodha Kite Connect
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="form-label text-muted" style="font-size:0.75rem;">API Key</label>
+                            <input type="text" class="form-control form-control-sm" id="zerodhaApiKey" placeholder="e.g. xxxxx" autocomplete="off" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label text-muted" style="font-size:0.75rem;">API Secret</label>
+                            <input type="password" class="form-control form-control-sm" id="zerodhaApiSecret" placeholder="••••••••" autocomplete="off" />
+                        </div>
+                    </div>
+                    <button class="btn btn-sm w-100" style="background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.3);color:#fb923c;" onclick="connectKite()">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> Connect via Kite OAuth
+                    </button>
+                    <small class="text-muted d-block mt-1" style="font-size:0.68rem;">
+                        Requires Kite Connect API subscription. Free for personal use at <a href="https://kite.trade" target="_blank" class="text-orange-400">kite.trade</a>
+                    </small>
+                </div>
+
+                <!-- GROWW -->
+                <div class="broker-section broker-groww">
+                    <span class="broker-status-badge disconnected" id="growwStatus">● Not Connected</span>
+                    <div class="broker-logo">
+                        <i class="bi bi-bar-chart-fill"></i> Groww Trading API
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="form-label text-muted" style="font-size:0.75rem;">API Key</label>
+                            <input type="text" class="form-control form-control-sm" id="growwApiKey" placeholder="e.g. xxxxx" autocomplete="off" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label text-muted" style="font-size:0.75rem;">API Secret</label>
+                            <input type="password" class="form-control form-control-sm" id="growwApiSecret" placeholder="••••••••" autocomplete="off" />
+                        </div>
+                    </div>
+                    <button class="btn btn-sm w-100" style="background:rgba(0,208,156,0.1);border:1px solid rgba(0,208,156,0.3);color:#00d09c;" onclick="connectGroww()">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> Connect via Groww OAuth
+                    </button>
+                    <small class="text-muted d-block mt-1" style="font-size:0.68rem;">
+                        Groww API requires subscription. Visit <a href="https://groww.in/trade-api" target="_blank">groww.in/trade-api</a>
+                    </small>
+                </div>
+
+                <!-- FALLBACK NOTE -->
+                <div class="mt-3 p-2" style="background:var(--bg-tertiary);border-radius:var(--radius-sm);font-size:0.75rem;color:var(--text-muted);">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Without API keys, data is fetched automatically from <strong>Yahoo Finance</strong> (15-min delayed) via the local CORS proxy,
+                    or falls back to <strong>Demo Mode</strong> if the proxy is not running.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-outline-danger me-auto" onclick="clearAPISettings()">
+                    <i class="bi bi-trash me-1"></i> Clear All
+                </button>
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-sm btn-primary" onclick="saveAPISettings()">
+                    <i class="bi bi-floppy me-1"></i> Save & Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================
+     FOOTER PLACEHOLDER
+     ======================================================== -->
+<div id="footer-placeholder"></div>
+
+<!-- ========================================================
+     SCRIPTS
+     ======================================================== -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- navigation-loader handles navbar + footer injection and auto-adjusts relative URLs for pages/ subdirectory -->
+<script src="../js/navigation-loader.js"></script>
+<script type="module" src="../js/algo-scripts.js"></script>
+<script>
+// Proxy status checker (non-module)
+fetch('http://localhost:8080/ping', { signal: AbortSignal.timeout(2000) })
+    .then(r => r.ok ? 'running' : 'error')
+    .catch(() => 'offline')
+    .then(status => {
+        const el = document.getElementById('proxyStatusText');
+        if (el) {
+            el.textContent = status === 'running' ? '🟢 Running (port 8080)' : '⚪ Offline (Demo Mode active)';
+            el.style.color = status === 'running' ? '#22c55e' : 'var(--text-muted)';
+        }
+    });
+</script>
+
+</body>
+</html>
