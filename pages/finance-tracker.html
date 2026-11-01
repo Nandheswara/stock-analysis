@@ -48,6 +48,7 @@
     <link rel="stylesheet" href="../css/health-score.css">
     <link rel="stylesheet" href="../css/forecast.css">
     <link rel="stylesheet" href="../css/credit-card-optimizer.css">
+    <link rel="stylesheet" href="../css/finance-quick-actions.css">
 
     <link rel="stylesheet" href="../css/firebase-auth.css">
     <link rel="stylesheet" href="../css/tour-guide.css">
@@ -1104,6 +1105,9 @@
                 <button type="button" class="card-optimizer-tab" id="tabPrivilegesBtn" onclick="switchCardOptimizerTab('privileges')">
                     <i class="bi bi-gift"></i> Lounges, Movies & Perks Hub
                 </button>
+                <button type="button" class="card-optimizer-tab" id="tabCardDirectoryBtn" onclick="switchCardOptimizerTab('directory')">
+                    <i class="bi bi-grid-3x3-gap"></i> Popular Cards & Perks Directory
+                </button>
             </div>
 
             <div class="finance-modal-body" style="padding: 20px 24px;">
@@ -1146,6 +1150,32 @@
                 <div id="cardOptimizerPrivilegesTab" class="card-optimizer-tab-panel" style="display: none;">
                     <div class="privileges-subsections" id="cardPrivilegesContent">
                         <!-- Populated dynamically (Airport Lounges, Railway Lounges, Movies BOGO, Annual Fee Progress) -->
+                    </div>
+                </div>
+
+                <!-- TAB 3: Popular Cards, Pros & Cons Directory -->
+                <div id="cardOptimizerDirectoryTab" class="card-optimizer-tab-panel" style="display: none;">
+                    <div class="card-directory-toolbar">
+                        <div class="card-directory-search-box">
+                            <i class="bi bi-search"></i>
+                            <input type="text" id="cardDirectorySearchInput" placeholder="Search cards by name, bank (e.g. ICICI, HDFC), perk (e.g. BMS BOGO, Golf, Lounge)..." oninput="runCardDirectoryFilter()" autocomplete="off">
+                            <button type="button" id="cardDirectoryClearBtn" class="input-clear-btn" style="display: none;" onclick="clearCardDirectorySearch()">&times;</button>
+                        </div>
+                        <div class="card-directory-filters">
+                            <button type="button" class="dir-filter-chip active" data-filter="all" onclick="setDirectoryCategoryFilter('all')">All Cards (23)</button>
+                            <button type="button" class="dir-filter-chip" data-filter="icici" onclick="setDirectoryCategoryFilter('icici')">ICICI Bank</button>
+                            <button type="button" class="dir-filter-chip" data-filter="hdfc" onclick="setDirectoryCategoryFilter('hdfc')">HDFC Bank</button>
+                            <button type="button" class="dir-filter-chip" data-filter="axis" onclick="setDirectoryCategoryFilter('axis')">Axis Bank</button>
+                            <button type="button" class="dir-filter-chip" data-filter="sbi" onclick="setDirectoryCategoryFilter('sbi')">SBI Card</button>
+                            <button type="button" class="dir-filter-chip" data-filter="cashback" onclick="setDirectoryCategoryFilter('cashback')">Cashback Cards</button>
+                            <button type="button" class="dir-filter-chip" data-filter="travel" onclick="setDirectoryCategoryFilter('travel')">Travel & Lounge</button>
+                            <button type="button" class="dir-filter-chip" data-filter="movies" onclick="setDirectoryCategoryFilter('movies')">Movie BOGO</button>
+                            <button type="button" class="dir-filter-chip" data-filter="golf" onclick="setDirectoryCategoryFilter('golf')">Golf Privileges</button>
+                            <button type="button" class="dir-filter-chip" data-filter="ltf" onclick="setDirectoryCategoryFilter('ltf')">Lifetime Free (₹0)</button>
+                        </div>
+                    </div>
+                    <div class="card-directory-grid" id="cardDirectoryGrid">
+                        <!-- Populated dynamically -->
                     </div>
                 </div>
             </div>

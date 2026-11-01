@@ -106,6 +106,11 @@ import {
     renderCardCheatSheet
 } from './credit-card-optimizer.js';
 
+import {
+    registerQuickActionsBridge,
+    renderLiabilityStatusDropdown
+} from './finance-quick-actions.js';
+
 window.openForecastModal = openForecastModal;
 window.closeForecastModal = closeForecastModal;
 window.openForecastExportModal = openForecastExportModal;
@@ -128,6 +133,20 @@ registerCardOptimizerBridge({
     openModal,
     closeModal,
     showToast
+});
+
+registerQuickActionsBridge({
+    getFinanceData: () => financeData,
+    getCurrentMonth: () => currentMonth,
+    updateCreditCard,
+    showToast,
+    refreshUI: () => {
+        renderFinancialSummary();
+        applyAmountMasking();
+        try {
+            updateFinancialHealthScoreUI();
+        } catch (_) {}
+    }
 });
 
 window.openCardOptimizerModal = openCardOptimizerModal;
@@ -1840,7 +1859,7 @@ function renderCreditCards() {
             <td class="amount-cell amount-negative">${formatCurrency(outstanding)}</td>
             <td class="amount-cell">${limitOrRate}</td>
             <td>${card.dueDate || '-'}</td>
-            <td>${statusLabel}</td>
+            <td>${renderLiabilityStatusDropdown(card, cardId, currentMonth, 'credit-card')}</td>
             <td>
                 <div class="table-actions">
                     <button onclick="editFinanceCreditCard('${cardId}')" title="Edit"><i class="bi bi-pencil"></i></button>
@@ -1953,7 +1972,7 @@ function renderLoans() {
                 ${formatCurrency(emiDisplay)}
             </td>
             <td>${card.dueDate || '-'}</td>
-            <td>${statusLabel}</td>
+            <td>${renderLiabilityStatusDropdown(card, cardId, currentMonth, 'loan')}</td>
             <td>
                 <div class="table-actions">
                     <button onclick="editFinanceCreditCard('${cardId}')" title="Edit"><i class="bi bi-pencil"></i></button>
@@ -2045,7 +2064,7 @@ function renderExpenses() {
             <td>${category}</td>
             <td class="amount-cell amount-negative">${formatCurrency(amount)}</td>
             <td>${date}</td>
-            <td>${statusLabel}</td>
+            <td>${renderLiabilityStatusDropdown(card, cardId, currentMonth, 'general-expense')}</td>
             <td>
                 <div class="table-actions">
                     <button onclick="editFinanceCreditCard('${cardId}')" title="Edit"><i class="bi bi-pencil"></i></button>
@@ -3367,6 +3386,36 @@ window.submitAddCreditCard = async function() {
     }
 
     if (result.success) {
+        if (editId) {
+            const card = financeData.creditCards?.[editId] || financeData.loans?.[editId] || financeData.expenses?.[editId] || financeData.insurance?.[editId];
+            if (card) {
+                if (data.creditLimit !== undefined) {
+                    card.creditLimit = data.creditLimit;
+                    if (currentMonth) {
+                        if (!card.monthlyLimits) card.monthlyLimits = {};
+                        card.monthlyLimits[currentMonth] = data.creditLimit;
+                    }
+                }
+                if (data.outstandingBalance !== undefined && currentMonth) {
+                    if (!card.balances) card.balances = {};
+                    card.balances[currentMonth] = data.outstandingBalance;
+                }
+                if (data.isPaid !== undefined && currentMonth) {
+                    if (!card.paymentStatusByMonth) card.paymentStatusByMonth = {};
+                    card.paymentStatusByMonth[currentMonth] = data.isPaid;
+                }
+            }
+            if (data.type === 'credit-card' || !data.type) {
+                renderCreditCards();
+            } else if (data.type === 'loan') {
+                renderLoans();
+            } else if (data.type === 'general-expense') {
+                renderExpenses();
+            } else if (data.type === 'insurance') {
+                renderInsurance();
+            }
+            renderFinancialSummary();
+        }
         showToast(editId ? 'Expense updated!' : 'Expense added!', 'success');
         closeModal('addCreditCardModal');
     } else {
@@ -3944,7 +3993,7 @@ function buildExportData(months) {
     mergedExpenses.forEach(card => {
         months.forEach(month => {
             const outstanding = getMonthAmount(card, month, 'outstandingBalance');
-            const limit = card.creditLimit || 0;
+            const limit = getCreditCardLimit(card, month);
             const util = limit > 0 ? ((outstanding / limit) * 100).toFixed(1) : 0;
             const isPaidForMonth = isCardPaidForMonth(card, month);
             const status = outstanding > 0 ? (isPaidForMonth ? 'PAID' : 'UNPAID') : 'NO CHARGES';
