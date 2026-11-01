@@ -76,6 +76,11 @@ export async function addCreditCard(cardData, month) {
         if (month) {
             baseData.balances[month] = parsedBalance;
             baseData.paymentStatusByMonth[month] = cardData.isPaid || false;
+            if (type === 'credit-card') {
+                baseData.monthlyLimits = {
+                    [month]: parseFloat(cardData.creditLimit) || 0
+                };
+            }
             if (isInsurance) {
                 baseData.insuranceByMonth = {
                     [month]: {
@@ -124,7 +129,13 @@ export async function updateCreditCard(cardId, updates, month) {
         if (updates.expenseDate !== undefined) updateData.expenseDate = updates.expenseDate;
         
         if (!isInsuranceUpdate) {
-            if (updates.creditLimit !== undefined) updateData.creditLimit = parseFloat(updates.creditLimit) || 0;
+            if (updates.creditLimit !== undefined) {
+                const parsedLimit = parseFloat(updates.creditLimit) || 0;
+                updateData.creditLimit = parsedLimit;
+                if (month) {
+                    updateData[`monthlyLimits/${month}`] = parsedLimit;
+                }
+            }
             if (updates.dueDate !== undefined) updateData.dueDate = updates.dueDate;
         } else {
             if (updates.premiumTerm !== undefined) updateData.premiumTerm = updates.premiumTerm;

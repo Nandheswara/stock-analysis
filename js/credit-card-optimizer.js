@@ -19,455 +19,2624 @@
 // ============================================================================
 
 export const CARD_PRESETS_REGISTRY = {
-    'hsbc-live-plus': {
-        id: 'hsbc-live-plus',
-        name: 'HSBC Live+ Credit Card',
-        color: '#dc2626',
-        matcher: /hsbc.*(live|cashback)/i,
-        issuer: 'HSBC',
-        network: 'Visa Infinite',
-        annualFee: 999,
-        feeWaiverSpendTarget: 200000,
+    'icici-sapphiro-visa': {
+        id: 'icici-sapphiro-visa',
+        name: 'ICICI Sapphiro Visa Credit Card',
+        shortName: 'ICICI Sapphiro',
+        color: '#0284c7',
+        matcher: /sapphir|saphiri/i,
+        issuer: 'ICICI Bank',
+        network: 'Visa Signature / Infinite',
+        cardType: 'Premium Lifestyle & Travel',
+        annualFee: 3500,
+        joiningFee: 6500,
+        feeWaiverSpendTarget: 600000,
         forexMarkupPercent: 3.5,
-        defaultMonthlyAcceleratedCap: 1200,
-        baseCashbackPercent: 1.5,
+        defaultMonthlyAcceleratedCap: null,
+        baseCashbackPercent: 0.5,
+        bestFor: "BookMyShow BOGO movie lovers, golf rounds, and travelers with ₹75k+ quarterly spends",
+        welcomeBenefit: "Vouchers worth ₹9,000+ (Tata CLiQ, EaseMyTrip, Croma, Uber) on paying joining fee",
+        keyBenefitsSummary: ["4 Domestic Airport Lounges/quarter (on ₹75k spend in prev quarter)","2 Complimentary International Airport Lounges/year via DreamFolks / Priority Pass","BookMyShow BOGO: Buy 1 Get 1 Free up to ₹500 off on second ticket twice a month (saves up to ₹12,000/yr)","Up to 4 complimentary golf rounds or lessons per month","ICICI Culinary Treats: Minimum 15% discount at 2,500+ restaurants","4 ICICI Reward Points per ₹100 on international spends (1% return)","1% Fuel Surcharge Waiver on spends between ₹400 and ₹4,000"],
+        pros: ["High Movie Savings: Buy 1 Get 1 Free up to ₹500 off on 2nd movie ticket twice a month on BookMyShow (saves up to ₹12,000 annually).","Generous Welcome Gift: Brand vouchers worth over ₹9,000–₹13,000 comfortably offset the initial ₹6,500 joining fee.","Generous Domestic Lounge Quota: Up to 16 complimentary domestic airport lounge visits per year (4 per quarter).","Complimentary International Lounges: 2 free international lounge visits per calendar year via DreamFolks membership.","Complimentary Golf: Up to 4 free golf rounds or coaching lessons per month across top golf courses in India.","Accelerated International Rewards: 4 Reward Points per ₹100 spent internationally (1% return).","Frequent LTF for Alumni & Corporates: Widely available as Lifetime Free (LTF) under ICICI Alumni Program (IITs, IIMs, NITs) or corporate salary tiers."],
+        cons: ["Low Base Domestic Rewards: Earning only 2 RP per ₹100 (0.5% return) is uncompetitive compared to dedicated cashback cards (e.g. SBI Cashback at 5%, HSBC Live+ at 10%).","Strict Quarterly Lounge Spend Hurdle: Requires spending ₹75,000 in the previous calendar quarter to unlock domestic airport lounges.","High Annual Fee Waiver Threshold: Requires ₹6,00,000 annual spend to waive the ₹3,500 renewal fee.","Reward Redemption Handling Fee: ICICI levies a ₹99 + 18% GST handling fee on every redemption order.","Standard 3.5% Forex Fee: No reduced forex markup for international spends compared to 0% cards like Scapia."],
         tiers: [
-            {
-                rate: 10.0,
-                name: 'Dining, Food Delivery & Groceries (10%)',
-                categories: ['dining', 'food-delivery', 'groceries', 'quick-commerce', 'supermarket'],
-                merchants: ['swiggy', 'zomato', 'blinkit', 'zepto', 'instamart', 'bigbasket', 'dmart', 'nature\'s basket', 'star bazaar', 'mcdonalds', 'kfc', 'starbucks', 'dominos', 'eatclub', 'district', 'district app'],
-                monthlyCap: 1200,
-                fallbackRate: 1.5,
-                notes: '10% accelerated cashback capped at ₹1,200/billing cycle (spend up to ₹12,000). Drops to 1.5% base afterwards.'
-            },
-            {
-                rate: 1.5,
-                name: 'All Other Eligible Retail (1.5%)',
-                categories: ['all-retail'],
-                merchants: [],
-                monthlyCap: null,
-                notes: 'Unlimited 1.5% cashback on all other eligible spends.'
-            }
-        ],
+          {
+                    "rate": 1,
+                    "name": "International Spends (4 RP/₹100 = 1%)",
+                    "categories": [
+                              "forex",
+                              "international"
+                    ],
+                    "merchants": [],
+                    "monthlyCap": null,
+                    "notes": "4 ICICI Reward Points per ₹100 spent internationally (1 RP = ₹0.25 => 1% return)."
+          },
+          {
+                    "rate": 0.5,
+                    "name": "Domestic Retail Spends (2 RP/₹100 = 0.5%)",
+                    "categories": [
+                              "all-retail",
+                              "shopping",
+                              "dining",
+                              "travel"
+                    ],
+                    "merchants": [],
+                    "monthlyCap": null,
+                    "notes": "2 ICICI Reward Points per ₹100 spent domestically (1 RP = ₹0.25 => 0.5% return)."
+          },
+          {
+                    "rate": 0.25,
+                    "name": "Utilities & Insurance (1 RP/₹100 = 0.25%)",
+                    "categories": [
+                              "utilities",
+                              "insurance"
+                    ],
+                    "merchants": [
+                              "electricity",
+                              "water",
+                              "gas",
+                              "lic"
+                    ],
+                    "monthlyCap": null,
+                    "notes": "1 ICICI Reward Point per ₹100 spent on utilities and insurance (0.25% return)."
+          }
+],
         exclusions: [
-            { category: 'fuel', reason: 'Fuel is excluded from cashback (fuel surcharge waiver applies between ₹400-₹4,000).' },
-            { category: 'rent', reason: 'Rental / property payments are strictly excluded from rewards.' },
-            { category: 'wallet', reason: 'Wallet loading (Paytm, Mobikwik, Amazon Pay balance) yields 0% rewards.' },
-            { category: 'insurance', reason: 'Insurance premium payments do not earn any cashback on HSBC Live+.' },
-            { category: 'education', reason: 'Education fees and tuition payments earn 0% cashback.' },
-            { category: 'government', reason: 'Taxes and government department payments are excluded.' },
-            { category: 'emi', reason: 'Transactions converted into EMI do not qualify for cashback.' },
-            { category: 'jewellery', reason: 'Jewellery, gold, and antiques (MCC 5094, 5944) are strictly excluded from earning cashback on HSBC Live+ (spends do count toward the ₹2L annual fee waiver).' },
-            { category: 'jewelry', reason: 'Jewellery, gold, and antiques (MCC 5094, 5944) are strictly excluded from earning cashback on HSBC Live+ (spends do count toward the ₹2L annual fee waiver).' },
-            { category: 'gold', reason: 'Jewellery, gold, and antiques (MCC 5094, 5944) are strictly excluded from earning cashback on HSBC Live+ (spends do count toward the ₹2L annual fee waiver).' },
-            { category: 'utilities', reason: 'Utility bill payments (MCC 4900) are excluded from earning cashback on HSBC Live+.' },
-            { category: 'telecom', reason: 'Telecom bills and mobile recharges earn 0% cashback on HSBC Live+.' }
-        ],
+          {
+                    "category": "fuel",
+                    "reason": "Fuel excluded from rewards (1% fuel surcharge waiver ₹400-₹4,000 applies)."
+          },
+          {
+                    "category": "rent",
+                    "reason": "Rent payments earn 0% rewards + 1% processing fee."
+          },
+          {
+                    "category": "wallet",
+                    "reason": "Wallet loading earns 0% rewards."
+          },
+          {
+                    "category": "government",
+                    "reason": "Government tax and challan payments earn 0% rewards."
+          },
+          {
+                    "category": "emi",
+                    "reason": "EMI transactions earn 0% rewards."
+          }
+],
         lounges: {
-            domesticAirport: {
-                hasAccess: true,
-                visitsPerYear: 2,
-                ruleText: '2 complimentary visits per calendar year (max 1 visit every 6 months via Visa Infinite direct swipe).',
-                spendCriteria: null
-            },
-            internationalAirport: {
-                hasAccess: false,
-                visitsPerYear: 0,
-                ruleText: 'Paid access via LoungeKey / Priority Pass.'
-            },
-            railwayLounge: {
-                hasAccess: false,
-                visitsPerYear: 0,
-                ruleText: 'No railway lounge access.'
-            }
-        },
+          "domesticAirport": {
+                    "hasAccess": true,
+                    "isMilestoneBased": true,
+                    "visitsPerYear": 16,
+                    "ruleText": "4 complimentary visits per calendar quarter (requires spending ₹75,000 in previous calendar quarter via Visa direct swipe).",
+                    "spendCriteria": "₹75,000 in prev calendar quarter"
+          },
+          "internationalAirport": {
+                    "hasAccess": true,
+                    "visitsPerYear": 2,
+                    "ruleText": "2 complimentary visits per calendar year via DreamFolks / Priority Pass.",
+                    "spendCriteria": "Priority Pass / DreamFolks"
+          },
+          "railwayLounge": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "No railway lounge access."
+          }
+},
         entertainment: {
-            movies: {
-                type: 'bogo',
-                bogo: true,
-                platform: 'District App (by Zomato) & BookMyShow',
-                description: 'Buy 1 Get 1 Free (BOGO) movie tickets (up to ₹250 off on 2nd ticket on Saturdays) on District App & BookMyShow, plus 10% cashback on District dining and events.'
-            }
-        }
+          "movies": {
+                    "type": "bogo",
+                    "bogo": true,
+                    "maxDiscount": 500,
+                    "platform": "BookMyShow",
+                    "description": "Buy 1 Get 1 Free: Up to ₹500 off on second movie ticket, usable twice per calendar month on BookMyShow."
+          }
+},
+        golf: {
+          "hasAccess": true,
+          "roundsPerMonth": 4,
+          "description": "Up to 4 complimentary golf rounds or lessons every month based on ₹50,000 monthly retail spend.",
+          "spendCriteria": "₹50,000 monthly spend"
+}
     },
 
-    'hdfc-millennia': {
-        id: 'hdfc-millennia',
-        name: 'HDFC Millennia Credit Card',
-        color: '#2563eb',
-        matcher: /millennia/i,
-        issuer: 'HDFC Bank',
-        network: 'Mastercard / Visa / RuPay',
-        annualFee: 1000,
-        feeWaiverSpendTarget: 100000,
+    'icici-rubyx': {
+        id: 'icici-rubyx',
+        name: 'ICICI Rubyx Credit Card',
+        shortName: 'ICICI Rubyx',
+        color: '#b91c1c',
+        matcher: /rubyx/i,
+        issuer: 'ICICI Bank',
+        network: 'Visa / Mastercard Dual',
+        cardType: 'Mid-Tier Lifestyle',
+        annualFee: 2000,
+        joiningFee: 3000,
+        feeWaiverSpendTarget: 300000,
         forexMarkupPercent: 3.5,
-        defaultMonthlyAcceleratedCap: 1000,
-        baseCashbackPercent: 1.0,
+        defaultMonthlyAcceleratedCap: null,
+        baseCashbackPercent: 0.5,
+        bestFor: "Movie lovers (25% off BMS), railway travelers & mid-tier golfers",
+        welcomeBenefit: "Shopping and travel vouchers worth ₹5,000+ on paying joining fee",
+        keyBenefitsSummary: ["2 Domestic Airport Lounges/quarter (on ₹50k spend in prev quarter)","2 Railway Lounges/quarter across major railway junctions","25% discount on BookMyShow & Inox up to ₹150 twice a month","2 complimentary golf rounds or lessons per month","ICICI Culinary Treats dining discounts"],
+        pros: ["Both Airport & Railway Lounge Access: 2 airport + 2 railway lounges per quarter.","Movie Ticket Discounts: 25% off up to ₹150 per ticket twice a month on BookMyShow.","Complimentary Golf: 2 free golf rounds/lessons per month.","Welcome Vouchers: ₹5,000+ vouchers offset the ₹3,000 joining fee."],
+        cons: ["Quarterly lounge spend criterion: Requires ₹50,000 quarterly spend for domestic airport lounges.","Low domestic reward rate of 0.5% (2 RP/₹100).","₹99 + GST redemption fee per order."],
         tiers: [
-            {
-                rate: 5.0,
-                name: 'Top 10 Merchant Partners (5%)',
-                categories: ['shopping', 'food-delivery', 'entertainment', 'travel'],
-                merchants: ['amazon', 'flipkart', 'myntra', 'swiggy', 'zomato', 'tata cliq', 'uber', 'cult.fit', 'cultfit', 'bookmyshow', 'bms', 'sony liv', 'sonyliv'],
-                monthlyCap: 1000,
-                fallbackRate: 1.0,
-                notes: '5% CashPoints on 10 partner merchants (Amazon, Flipkart, Swiggy, Zomato, Myntra, Uber, BMS, Tata CLiQ, Cult.fit, Sony LIV). Capped at 1,000 CashPoints/mo.'
-            },
-            {
-                rate: 1.0,
-                name: 'Other Eligible Retail Spends (1%)',
-                categories: ['all-retail'],
-                merchants: [],
-                monthlyCap: 1000,
-                notes: '1% CashPoints on other eligible spends (capped at 1,000 CashPoints/mo).'
-            }
-        ],
+          {
+                    "rate": 1,
+                    "name": "International Spends (1%)",
+                    "categories": [
+                              "forex",
+                              "international"
+                    ],
+                    "merchants": [],
+                    "monthlyCap": null,
+                    "notes": "4 Reward Points per ₹100 spent internationally (1% return)."
+          },
+          {
+                    "rate": 0.5,
+                    "name": "Domestic Retail Spends (0.5%)",
+                    "categories": [
+                              "all-retail"
+                    ],
+                    "merchants": [],
+                    "monthlyCap": null,
+                    "notes": "2 Reward Points per ₹100 spent domestically (0.5% return)."
+          }
+],
         exclusions: [
-            { category: 'fuel', reason: 'Fuel spends do not earn CashPoints (standard 1% surcharge waiver ₹400-₹5,000 applies).' },
-            { category: 'rent', reason: 'Rent transactions earn 0% CashPoints + attract 1% convenience fee.' },
-            { category: 'wallet', reason: 'Prepaid wallet loading earns 0% CashPoints.' },
-            { category: 'government', reason: 'Government portals, utilities, and tax payments earn 0%.' },
-            { category: 'education', reason: 'Education payments on 3rd party apps (Cred, CheQ) earn 0% CashPoints.' },
-            { category: 'emi', reason: 'EMI transactions earn 0% CashPoints.' },
-            { category: 'utilities', reason: 'Utility bill payments earn 0% CashPoints on HDFC Millennia.' },
-            { category: 'telecom', reason: 'Telecom bills and mobile recharges earn 0% CashPoints on HDFC Millennia.' }
-        ],
+          {
+                    "category": "fuel",
+                    "reason": "Fuel excluded."
+          },
+          {
+                    "category": "rent",
+                    "reason": "Rent payments earn 0% rewards."
+          },
+          {
+                    "category": "wallet",
+                    "reason": "Wallet loading earns 0%."
+          }
+],
         lounges: {
-            domesticAirport: {
-                hasAccess: true,
-                isMilestoneBased: true,
-                visitsPerYear: 4,
-                ruleText: 'Milestone-based: Spend ₹1,00,000 or more in a calendar quarter to choose either 1 Lounge Access Voucher OR ₹1,000 brand voucher.',
-                spendCriteria: '₹1,00,000 per calendar quarter'
-            },
-            internationalAirport: {
-                hasAccess: false,
-                visitsPerYear: 0,
-                ruleText: 'No complimentary international lounge access.'
-            },
-            railwayLounge: {
-                hasAccess: false,
-                visitsPerYear: 0,
-                ruleText: 'No railway lounge access.'
-            }
-        },
+          "domesticAirport": {
+                    "hasAccess": true,
+                    "isMilestoneBased": true,
+                    "visitsPerYear": 8,
+                    "ruleText": "2 complimentary domestic visits per calendar quarter (unlocked on ₹50,000 spend in previous quarter).",
+                    "spendCriteria": "₹50,000 in prev quarter"
+          },
+          "internationalAirport": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "No international lounge access."
+          },
+          "railwayLounge": {
+                    "hasAccess": true,
+                    "visitsPerYear": 8,
+                    "ruleText": "2 complimentary railway lounge visits per quarter across major Indian railway junctions.",
+                    "spendCriteria": "None (Direct swipe)"
+          }
+},
         entertainment: {
-            movies: {
-                type: 'cashback',
-                bogo: false,
-                rate: 5.0,
-                platform: 'BookMyShow',
-                description: '5% CashPoints on BookMyShow (counted within the 1,000 CashPoints/mo partner cap).'
-            }
-        }
+          "movies": {
+                    "type": "discount",
+                    "bogo": false,
+                    "rate": 25,
+                    "platform": "BookMyShow",
+                    "description": "25% discount (up to ₹150 off per ticket) twice a month on BookMyShow & Inox."
+          }
+},
+        golf: {
+          "hasAccess": true,
+          "roundsPerMonth": 2,
+          "description": "2 complimentary golf rounds or lessons per month on ₹50,000 monthly spend.",
+          "spendCriteria": "₹50,000 monthly spend"
+}
+    },
+
+    'icici-coral': {
+        id: 'icici-coral',
+        name: 'ICICI Coral Credit Card',
+        shortName: 'ICICI Coral',
+        color: '#ea580c',
+        matcher: /coral/i,
+        issuer: 'ICICI Bank',
+        network: 'Visa / Mastercard / RuPay',
+        cardType: 'Entry Lifestyle',
+        annualFee: 500,
+        joiningFee: 500,
+        feeWaiverSpendTarget: 150000,
+        forexMarkupPercent: 3.5,
+        defaultMonthlyAcceleratedCap: null,
+        baseCashbackPercent: 0.5,
+        bestFor: "First-time cardholders wanting railway & airport lounge access with low fees",
+        welcomeBenefit: "Welcome bonus reward points upon card activation",
+        keyBenefitsSummary: ["1 Domestic Airport Lounge/quarter (on ₹35k spend in prev quarter)","1 Railway Lounge/quarter across India","25% discount on BookMyShow up to ₹100 twice/month","RuPay variant available for UPI QR Scan & Pay"],
+        pros: ["Affordable annual fee (₹500) waived on ₹1.5L annual spend.","Railway Lounge Access: 1 complimentary railway lounge per quarter.","BookMyShow discount: 25% off up to ₹100 twice a month.","RuPay variant connects seamlessly to UPI for payments at local merchants."],
+        cons: ["Requires ₹35,000 spend in previous quarter just to unlock 1 airport lounge visit.","Low domestic reward rate of 0.5% (2 RP/₹100).","No international lounge access."],
+        tiers: [
+          {
+                    "rate": 0.5,
+                    "name": "Domestic Retail Spends (0.5%)",
+                    "categories": [
+                              "all-retail"
+                    ],
+                    "merchants": [],
+                    "monthlyCap": null,
+                    "notes": "2 Reward Points per ₹100 spent domestically (0.5% return)."
+          }
+],
+        exclusions: [
+          {
+                    "category": "fuel",
+                    "reason": "Fuel excluded."
+          },
+          {
+                    "category": "rent",
+                    "reason": "Rent excluded."
+          },
+          {
+                    "category": "wallet",
+                    "reason": "Wallet loading excluded."
+          }
+],
+        lounges: {
+          "domesticAirport": {
+                    "hasAccess": true,
+                    "isMilestoneBased": true,
+                    "visitsPerYear": 4,
+                    "ruleText": "1 complimentary domestic visit per calendar quarter (on ₹35,000 spend in previous quarter).",
+                    "spendCriteria": "₹35,000 in prev quarter"
+          },
+          "internationalAirport": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "No international lounge access."
+          },
+          "railwayLounge": {
+                    "hasAccess": true,
+                    "visitsPerYear": 4,
+                    "ruleText": "1 complimentary railway lounge visit per quarter.",
+                    "spendCriteria": "Direct swipe"
+          }
+},
+        entertainment: {
+          "movies": {
+                    "type": "discount",
+                    "bogo": false,
+                    "rate": 25,
+                    "platform": "BookMyShow",
+                    "description": "25% discount up to ₹100 on BookMyShow & Inox twice a month."
+          }
+}
     },
 
     'amazon-pay-icici': {
         id: 'amazon-pay-icici',
         name: 'Amazon Pay ICICI Credit Card',
+        shortName: 'Amazon Pay ICICI',
         color: '#d97706',
-        matcher: /amazon.*(pay|icici)/i,
+        matcher: /(amazon\s*pay)|((?=.*amazon)(?=.*(pay|icici)))/i,
         issuer: 'ICICI Bank',
         network: 'Visa Platinum',
+        cardType: 'Uncapped E-Commerce Cashback',
         annualFee: 0,
+        joiningFee: 0,
         feeWaiverSpendTarget: 0,
         forexMarkupPercent: 3.5,
         defaultMonthlyAcceleratedCap: null,
-        baseCashbackPercent: 1.0,
+        baseCashbackPercent: 1,
+        bestFor: "Amazon Prime shoppers, uncapped cashback lovers, lifetime free cardholders",
+        welcomeBenefit: "Up to ₹2,000+ in Amazon Pay balance & shopping coupons on card approval",
+        keyBenefitsSummary: ["Lifetime Free (LTF): ₹0 Joining Fee, ₹0 Annual Fee forever","5% Unlimited Cashback on Amazon.in for Prime members (3% for non-Prime)","2% Unlimited Cashback on 100+ Amazon Pay partner merchants (recharges, electricity, Swiggy, Uber)","1% Unlimited Cashback on all other eligible domestic & international retail spends","Auto-credit directly to Amazon Pay balance with zero redemption charges"],
+        pros: ["Zero Annual Fees: Completely Lifetime Free (LTF) with no hidden conditions or renewal charges.","Uncapped 5% Cashback: No monthly limit or ceiling on 5% cashback on Amazon.in shopping.","Automatic Credit: Cashback is automatically added to Amazon Pay balance every month with ₹0 redemption fees.","No Cost EMI options frequently available across high-value electronics and gadgets on Amazon.","Minimum 15% discount at 2,500+ partner restaurants via ICICI Culinary Treats."],
+        cons: ["No complimentary airport or railway lounge access.","Cashback is paid into Amazon Pay balance (cannot be withdrawn as direct bank account cash).","Non-Prime members only earn 3% on Amazon shopping instead of 5%.","Gold, jewellery, fuel, and wallet reloads earn 0% cashback."],
         tiers: [
-            {
-                rate: 5.0,
-                name: 'Amazon.in Shopping (5% Unlimited)',
-                categories: ['shopping'],
-                merchants: ['amazon', 'amazon.in', 'amazon shopping'],
-                monthlyCap: null,
-                notes: '5% Unlimited Cashback for Prime members (3% for non-Prime) credited directly to Amazon Pay balance.'
-            },
-            {
-                rate: 2.0,
-                name: 'Amazon Pay Partner Merchants & Bill Payments (2%)',
-                categories: ['utilities', 'bill-payment', 'recharge', 'food-delivery', 'travel'],
-                merchants: ['amazon pay', 'electricity', 'water', 'gas', 'dth', 'mobile recharge', 'broadband', 'uber', 'yatra', 'bookmyshow', 'swiggy'],
-                monthlyCap: null,
-                notes: '2% Unlimited Cashback on 100+ partner merchants & bill payments when paid via Amazon Pay portal.'
-            },
-            {
-                rate: 1.0,
-                name: 'All Other Spends (1% Unlimited)',
-                categories: ['all-retail'],
-                merchants: [],
-                monthlyCap: null,
-                notes: '1% Unlimited Cashback on all other eligible domestic and international retail spends.'
-            }
-        ],
+          {
+                    "rate": 5,
+                    "name": "Amazon.in Shopping (5% Unlimited)",
+                    "categories": [
+                              "shopping"
+                    ],
+                    "merchants": [
+                              "amazon",
+                              "amazon.in",
+                              "amazon shopping"
+                    ],
+                    "monthlyCap": null,
+                    "notes": "5% Unlimited Cashback for Prime members (3% for non-Prime) credited directly to Amazon Pay balance."
+          },
+          {
+                    "rate": 2,
+                    "name": "Amazon Pay Partner Merchants & Bill Payments (2%)",
+                    "categories": [
+                              "utilities",
+                              "bill-payment",
+                              "recharge",
+                              "food-delivery",
+                              "travel"
+                    ],
+                    "merchants": [
+                              "amazon pay",
+                              "electricity",
+                              "water",
+                              "gas",
+                              "dth",
+                              "mobile recharge",
+                              "broadband",
+                              "uber",
+                              "yatra",
+                              "bookmyshow",
+                              "swiggy"
+                    ],
+                    "monthlyCap": null,
+                    "notes": "2% Unlimited Cashback on 100+ partner merchants & bill payments when paid via Amazon Pay portal."
+          },
+          {
+                    "rate": 1,
+                    "name": "All Other Spends (1% Unlimited)",
+                    "categories": [
+                              "all-retail"
+                    ],
+                    "merchants": [],
+                    "monthlyCap": null,
+                    "notes": "1% Unlimited Cashback on all other eligible domestic and international retail spends."
+          }
+],
         exclusions: [
-            { category: 'fuel', reason: 'Fuel transactions earn 0% cashback (1% fuel surcharge waiver ₹400-₹4,000 applies).' },
-            { category: 'rent', reason: 'Rent payments via third-party apps yield 0% cashback.' },
-            { category: 'wallet', reason: 'Adding funds to Amazon Pay balance / prepaid wallets earns 0%.' },
-            { category: 'emi', reason: 'Purchases converted to EMI earn 0% cashback.' },
-            { category: 'gold', reason: 'Gold and silver coin/jewelry purchases on Amazon earn 0% cashback.' },
-            { category: 'jewellery', reason: 'Purchases of gold, silver, and jewellery on Amazon earn 0% cashback.' },
-            { category: 'jewelry', reason: 'Purchases of gold, silver, and jewellery on Amazon earn 0% cashback.' },
-            { category: 'government', reason: 'Government tax and challan payments earn 0% cashback.' }
-        ],
+          {
+                    "category": "fuel",
+                    "reason": "Fuel transactions earn 0% cashback (1% fuel surcharge waiver ₹400-₹4,000 applies)."
+          },
+          {
+                    "category": "rent",
+                    "reason": "Rent payments via third-party apps yield 0% cashback."
+          },
+          {
+                    "category": "wallet",
+                    "reason": "Adding funds to Amazon Pay balance / prepaid wallets earns 0%."
+          },
+          {
+                    "category": "emi",
+                    "reason": "Purchases converted to EMI earn 0% cashback."
+          },
+          {
+                    "category": "gold",
+                    "reason": "Gold and silver coin/jewelry purchases on Amazon earn 0% cashback."
+          },
+          {
+                    "category": "jewellery",
+                    "reason": "Purchases of gold, silver, and jewellery on Amazon earn 0% cashback."
+          },
+          {
+                    "category": "jewelry",
+                    "reason": "Purchases of gold, silver, and jewellery on Amazon earn 0% cashback."
+          },
+          {
+                    "category": "government",
+                    "reason": "Government tax and challan payments earn 0% cashback."
+          }
+],
         lounges: {
-            domesticAirport: {
-                hasAccess: false,
-                visitsPerYear: 0,
-                ruleText: 'No complimentary lounge access (Lifetime Free card).'
-            },
-            internationalAirport: {
-                hasAccess: false,
-                visitsPerYear: 0,
-                ruleText: 'No complimentary international lounge access.'
-            },
-            railwayLounge: {
-                hasAccess: false,
-                visitsPerYear: 0,
-                ruleText: 'No railway lounge access.'
-            }
-        },
+          "domesticAirport": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "No complimentary lounge access (Lifetime Free card)."
+          },
+          "internationalAirport": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "No complimentary international lounge access."
+          },
+          "railwayLounge": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "No railway lounge access."
+          }
+},
         entertainment: {
-            movies: {
-                type: 'cashback',
-                bogo: false,
-                rate: 2.0,
-                platform: 'BookMyShow via Amazon Pay',
-                description: '2% cashback when BookMyShow is paid through Amazon Pay gateway, else 1% direct.'
-            }
-        }
+          "movies": {
+                    "type": "cashback",
+                    "bogo": false,
+                    "rate": 2,
+                    "platform": "BookMyShow via Amazon Pay",
+                    "description": "2% cashback when BookMyShow is paid through Amazon Pay gateway, else 1% direct."
+          }
+}
     },
 
-    'kiwi-rupay': {
-        id: 'kiwi-rupay',
-        name: 'Kiwi RuPay Credit Card',
-        color: '#059669',
-        matcher: /kiwi/i,
-        issuer: 'Yes Bank',
-        network: 'RuPay Credit on UPI',
-        annualFee: 0,
-        feeWaiverSpendTarget: 0,
-        forexMarkupPercent: 3.5,
-        defaultMonthlyAcceleratedCap: null,
-        baseCashbackPercent: 0.5,
-        tiers: [
-            {
-                rate: 2.0,
-                name: 'RuPay UPI Scan & Pay (1.5% - 2%)',
-                categories: ['upi', 'qr-code', 'local-merchant', 'kirana', 'small-vendor'],
-                merchants: ['upi', 'scan & pay', 'qr', 'tea stall', 'kirana', 'local shop', 'street vendor', 'pharmacy', 'bakery', 'auto'],
-                monthlyCap: null,
-                notes: 'Up to 2% cashback (Kiwis/Neon rewards) on Scan & Pay UPI merchant transactions.'
-            },
-            {
-                rate: 0.5,
-                name: 'Non-UPI Online / POS Spends (0.5%)',
-                categories: ['all-retail'],
-                merchants: [],
-                monthlyCap: null,
-                notes: '0.5% base reward on regular e-commerce or POS transactions.'
-            }
-        ],
-        exclusions: [
-            { category: 'p2p', reason: 'Peer-to-peer UPI transfers (friend/family) do not earn rewards; only merchant (P2M) QR codes qualify.' },
-            { category: 'fuel', reason: 'Fuel merchant QR payments earn 0% cashback.' },
-            { category: 'rent', reason: 'Rental payments via UPI earn 0%.' },
-            { category: 'wallet', reason: 'Prepaid wallet reloads via UPI earn 0%.' },
-            { category: 'government', reason: 'Tax payments and traffic challans earn 0%.' },
-            { category: 'jewellery', reason: 'UPI QR merchant payments at jewellery stores are excluded from rewards.' },
-            { category: 'jewelry', reason: 'UPI QR merchant payments at jewellery stores are excluded from rewards.' },
-            { category: 'gold', reason: 'UPI QR merchant payments at jewellery stores are excluded from rewards.' },
-            { category: 'insurance', reason: 'Insurance premium payments via UPI earn 0% rewards.' },
-            { category: 'education', reason: 'Education and school fee payments via UPI earn 0% rewards.' }
-        ],
-        lounges: {
-            domesticAirport: {
-                hasAccess: true,
-                isMilestoneBased: true,
-                visitsPerYear: 3,
-                ruleText: 'Via Kiwi Neon: 1 domestic airport lounge pass unlocked at ₹50,000 annual spend, 2nd at ₹1,00,000, and 3rd at ₹1,50,000 spend.',
-                spendCriteria: '₹50k / ₹1L / ₹1.5L spend milestones'
-            },
-            internationalAirport: {
-                hasAccess: false,
-                visitsPerYear: 0,
-                ruleText: 'No international lounge access.'
-            },
-            railwayLounge: {
-                hasAccess: true,
-                visitsPerYear: 2,
-                ruleText: 'Participating RuPay credit cards have access to select IRCTC Executive Railway Lounges (New Delhi, Agra, Jaipur).'
-            }
-        },
-        entertainment: {
-            movies: {
-                type: 'rupay-campaign',
-                bogo: true,
-                description: 'Periodic RuPay Friday & weekend promotional offers on BookMyShow (BOGO or flat discounts).'
-            }
-        }
-    },
-
-    'sbi-cashback': {
-        id: 'sbi-cashback',
-        name: 'SBI Cashback Credit Card',
-        matcher: /sbi.*cashback/i,
-        issuer: 'SBI Card',
-        network: 'Visa Signature',
+    'hsbc-live-plus': {
+        id: 'hsbc-live-plus',
+        name: 'HSBC Live+ Credit Card',
+        shortName: 'HSBC Live+',
+        color: '#dc2626',
+        matcher: /(live\s*\+|live\s*plus)|((?=.*hsbc)(?=.*(live|cashback)))/i,
+        issuer: 'HSBC',
+        network: 'Visa Infinite',
+        cardType: 'Dining & Grocery Cashback',
         annualFee: 999,
+        joiningFee: 999,
         feeWaiverSpendTarget: 200000,
         forexMarkupPercent: 3.5,
-        defaultMonthlyAcceleratedCap: 5000,
-        baseCashbackPercent: 1.0,
+        defaultMonthlyAcceleratedCap: 1200,
+        baseCashbackPercent: 1.5,
+        bestFor: "Dining, Zomato/Swiggy food delivery, Blinkit/Zepto quick commerce & DMart groceries (10% cashback)",
+        welcomeBenefit: "₹1,000 Amazon voucher on completing first transaction within 30 days",
+        keyBenefitsSummary: ["10% Accelerated Cashback on Dining, Food Delivery & Groceries (up to ₹1,200/billing cycle)","1.5% Unlimited Cashback on all other eligible retail transactions","2 Domestic Airport Lounge visits/year (1 per 6 months via Visa Infinite direct swipe)","Buy 1 Get 1 Free on movie tickets up to ₹250 off on Saturdays via District / BookMyShow","Annual fee waived on ₹2,00,000 annual spend"],
+        pros: ["Highest Grocery & Dining Cashback: 10% cashback on Swiggy, Zomato, Blinkit, Zepto, Instamart, BigBasket, DMart (up to ₹1,200/mo).","Uncapped 1.5% Base Cashback: All other eligible retail spends earn 1.5% unlimited cashback (higher than most competing cards).","BookMyShow / District BOGO: Buy 1 Get 1 free up to ₹250 off on Saturday movie tickets.","Pre-sale tickets & 10% discounts for major live concerts, events & culinary festivals via District.","Jewellery spends count 100% towards the ₹2 Lakh annual fee waiver (saving ₹999 + GST renewal fee)."],
+        cons: ["Monthly accelerated cashback is capped at ₹1,200 (max spend of ₹12,000 at 10%).","Jewellery and gold strictly earn 0% cashback (though they count toward fee waiver).","Utilities, telecom bills, and fuel earn 0% cashback.","Domestic lounge access is limited to 2 visits per year (max 1 visit every 6 months)."],
         tiers: [
-            {
-                rate: 5.0,
-                name: 'All Online Retail Spends (5%)',
-                categories: ['shopping', 'online-retail', 'food-delivery', 'groceries', 'travel'],
-                merchants: ['amazon', 'flipkart', 'myntra', 'swiggy', 'zomato', 'blinkit', 'zepto', 'makemytrip', 'ajio', 'nykaa', 'tata cliq'],
-                monthlyCap: 5000,
-                fallbackRate: 1.0,
-                notes: '5% flat cashback across almost all online merchants. Monthly cap ₹5,000 (max spend ₹1,00,000).'
-            },
-            {
-                rate: 1.0,
-                name: 'Offline Retail Spends (1%)',
-                categories: ['all-retail'],
-                merchants: [],
-                monthlyCap: null,
-                notes: '1% unlimited cashback on offline POS purchases.'
-            }
-        ],
+          {
+                    "rate": 10,
+                    "name": "Dining, Food Delivery & Groceries (10%)",
+                    "categories": [
+                              "dining",
+                              "food-delivery",
+                              "groceries",
+                              "quick-commerce",
+                              "supermarket"
+                    ],
+                    "merchants": [
+                              "swiggy",
+                              "zomato",
+                              "blinkit",
+                              "zepto",
+                              "instamart",
+                              "bigbasket",
+                              "dmart",
+                              "nature's basket",
+                              "star bazaar",
+                              "mcdonalds",
+                              "kfc",
+                              "starbucks",
+                              "dominos",
+                              "eatclub",
+                              "district",
+                              "district app"
+                    ],
+                    "monthlyCap": 1200,
+                    "fallbackRate": 1.5,
+                    "notes": "10% accelerated cashback capped at ₹1,200/billing cycle (spend up to ₹12,000). Drops to 1.5% base afterwards."
+          },
+          {
+                    "rate": 1.5,
+                    "name": "All Other Eligible Retail (1.5%)",
+                    "categories": [
+                              "all-retail"
+                    ],
+                    "merchants": [],
+                    "monthlyCap": null,
+                    "notes": "Unlimited 1.5% cashback on all other eligible spends."
+          }
+],
         exclusions: [
-            { category: 'fuel', reason: 'Fuel is excluded from cashback.' },
-            { category: 'rent', reason: 'Rent payments earn 0% cashback.' },
-            { category: 'wallet', reason: 'Wallet loading earns 0% cashback.' },
-            { category: 'utilities', reason: 'Utility bill payments (electricity, water, gas) earn 0% cashback.' },
-            { category: 'education', reason: 'School/College fees earn 0% cashback.' },
-            { category: 'jewelry', reason: 'Jewelry purchases are excluded.' },
-            { category: 'insurance', reason: 'Insurance payments earn 0% cashback.' }
-        ],
+          {
+                    "category": "fuel",
+                    "reason": "Fuel is excluded from cashback (fuel surcharge waiver applies between ₹400-₹4,000)."
+          },
+          {
+                    "category": "rent",
+                    "reason": "Rental / property payments are strictly excluded from rewards."
+          },
+          {
+                    "category": "wallet",
+                    "reason": "Wallet loading (Paytm, Mobikwik, Amazon Pay balance) yields 0% rewards."
+          },
+          {
+                    "category": "insurance",
+                    "reason": "Insurance premium payments do not earn any cashback on HSBC Live+."
+          },
+          {
+                    "category": "education",
+                    "reason": "Education fees and tuition payments earn 0% cashback."
+          },
+          {
+                    "category": "government",
+                    "reason": "Taxes and government department payments are excluded."
+          },
+          {
+                    "category": "emi",
+                    "reason": "Transactions converted into EMI do not qualify for cashback."
+          },
+          {
+                    "category": "jewellery",
+                    "reason": "Jewellery, gold, and antiques (MCC 5094, 5944) are strictly excluded from earning cashback on HSBC Live+ (spends do count toward the ₹2L annual fee waiver)."
+          },
+          {
+                    "category": "jewelry",
+                    "reason": "Jewellery, gold, and antiques (MCC 5094, 5944) are strictly excluded from earning cashback on HSBC Live+ (spends do count toward the ₹2L annual fee waiver)."
+          },
+          {
+                    "category": "gold",
+                    "reason": "Jewellery, gold, and antiques (MCC 5094, 5944) are strictly excluded from earning cashback on HSBC Live+ (spends do count toward the ₹2L annual fee waiver)."
+          },
+          {
+                    "category": "utilities",
+                    "reason": "Utility bill payments (MCC 4900) are excluded from earning cashback on HSBC Live+."
+          },
+          {
+                    "category": "telecom",
+                    "reason": "Telecom bills and mobile recharges earn 0% cashback on HSBC Live+."
+          }
+],
         lounges: {
-            domesticAirport: { hasAccess: false, visitsPerYear: 0, ruleText: 'Direct domestic lounge access was discontinued.' },
-            internationalAirport: { hasAccess: false, visitsPerYear: 0, ruleText: 'No international lounge access.' },
-            railwayLounge: { hasAccess: false, visitsPerYear: 0, ruleText: 'No railway lounge access.' }
-        },
-        entertainment: { movies: { type: 'cashback', bogo: false, rate: 5.0, description: '5% online cashback on BookMyShow.' } }
+          "domesticAirport": {
+                    "hasAccess": true,
+                    "visitsPerYear": 2,
+                    "ruleText": "2 complimentary visits per calendar year (max 1 visit every 6 months via Visa Infinite direct swipe).",
+                    "spendCriteria": null
+          },
+          "internationalAirport": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "Paid access via LoungeKey / Priority Pass."
+          },
+          "railwayLounge": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "No railway lounge access."
+          }
+},
+        entertainment: {
+          "movies": {
+                    "type": "bogo",
+                    "bogo": true,
+                    "maxDiscount": 250,
+                    "platform": "District App (by Zomato) & BookMyShow",
+                    "description": "Buy 1 Get 1 Free (BOGO) movie tickets (up to ₹250 off on 2nd ticket on Saturdays) on District App & BookMyShow, plus 10% cashback on District dining and events."
+          }
+}
     },
 
-    'airtel-axis': {
-        id: 'airtel-axis',
-        name: 'Airtel Axis Bank Credit Card',
-        matcher: /airtel.*axis/i,
-        issuer: 'Axis Bank',
-        network: 'Mastercard',
-        annualFee: 500,
-        feeWaiverSpendTarget: 200000,
+    'hdfc-millennia': {
+        id: 'hdfc-millennia',
+        name: 'HDFC Millennia Credit Card',
+        shortName: 'HDFC Millennia',
+        color: '#2563eb',
+        matcher: /millennia/i,
+        issuer: 'HDFC Bank',
+        network: 'Mastercard / Visa / RuPay',
+        cardType: 'Online Partner Cashback',
+        annualFee: 1000,
+        joiningFee: 1000,
+        feeWaiverSpendTarget: 100000,
         forexMarkupPercent: 3.5,
         defaultMonthlyAcceleratedCap: 1000,
-        baseCashbackPercent: 1.0,
+        baseCashbackPercent: 1,
+        bestFor: "Amazon, Flipkart, Swiggy, Zomato, Myntra, Uber & 1:1 statement CashPoints redemption",
+        welcomeBenefit: "1,000 CashPoints upon payment of membership fee",
+        keyBenefitsSummary: ["5% CashPoints on 10 Top Merchants: Amazon, Flipkart, Myntra, Swiggy, Zomato, Uber, BMS, Tata CLiQ, Cult.fit, Sony LIV","1% CashPoints on other eligible retail spends","1:1 CashPoints redemption against statement balance (1 CashPoint = ₹1.00 cash)","₹1,00,000 spend annual fee waiver","Quarterly milestone voucher of ₹1,000 on spending ₹1 Lakh in a calendar quarter"],
+        pros: ["Broad 5% Merchant Network: Covers all major Indian online portals (Amazon, Flipkart, Swiggy, Zomato, Myntra, Uber).","True 1:1 Statement Cash Credit: CashPoints redeem directly against credit card statement outstanding at ₹1 = 1 CashPoint.","₹1,000 quarterly brand voucher (or lounge access) on spending ₹1 Lakh in a calendar quarter.","Reasonable ₹1 Lakh annual spend milestone for fee waiver."],
+        cons: ["Monthly 5% CashPoints is capped at 1,000 CashPoints (max spend of ₹20,000/mo).","Domestic airport lounge access is now conditional (requires ₹1 Lakh quarterly spend).","Transactions below ₹100 do not earn any CashPoints.","Rent, wallet reloads, utilities, and telecom bills earn 0% CashPoints."],
+        tiers: [
+          {
+                    "rate": 5,
+                    "name": "Top 10 Merchant Partners (5%)",
+                    "categories": [
+                              "shopping",
+                              "food-delivery",
+                              "entertainment",
+                              "travel"
+                    ],
+                    "merchants": [
+                              "amazon",
+                              "flipkart",
+                              "myntra",
+                              "swiggy",
+                              "zomato",
+                              "tata cliq",
+                              "uber",
+                              "cult.fit",
+                              "cultfit",
+                              "bookmyshow",
+                              "bms",
+                              "sony liv",
+                              "sonyliv"
+                    ],
+                    "monthlyCap": 1000,
+                    "fallbackRate": 1,
+                    "notes": "5% CashPoints on 10 partner merchants (Amazon, Flipkart, Swiggy, Zomato, Myntra, Uber, BMS, Tata CLiQ, Cult.fit, Sony LIV). Capped at 1,000 CashPoints/mo."
+          },
+          {
+                    "rate": 1,
+                    "name": "Other Eligible Retail Spends (1%)",
+                    "categories": [
+                              "all-retail"
+                    ],
+                    "merchants": [],
+                    "monthlyCap": 1000,
+                    "notes": "1% CashPoints on other eligible spends (capped at 1,000 CashPoints/mo)."
+          }
+],
+        exclusions: [
+          {
+                    "category": "fuel",
+                    "reason": "Fuel spends do not earn CashPoints (standard 1% surcharge waiver ₹400-₹5,000 applies)."
+          },
+          {
+                    "category": "rent",
+                    "reason": "Rent transactions earn 0% CashPoints + attract 1% convenience fee."
+          },
+          {
+                    "category": "wallet",
+                    "reason": "Prepaid wallet loading earns 0% CashPoints."
+          },
+          {
+                    "category": "government",
+                    "reason": "Government portals, utilities, and tax payments earn 0%."
+          },
+          {
+                    "category": "education",
+                    "reason": "Education payments on 3rd party apps (Cred, CheQ) earn 0% CashPoints."
+          },
+          {
+                    "category": "emi",
+                    "reason": "EMI transactions earn 0% CashPoints."
+          },
+          {
+                    "category": "utilities",
+                    "reason": "Utility bill payments earn 0% CashPoints on HDFC Millennia."
+          },
+          {
+                    "category": "telecom",
+                    "reason": "Telecom bills and mobile recharges earn 0% CashPoints on HDFC Millennia."
+          }
+],
+        lounges: {
+          "domesticAirport": {
+                    "hasAccess": true,
+                    "isMilestoneBased": true,
+                    "visitsPerYear": 4,
+                    "ruleText": "Milestone-based: Spend ₹1,00,000 or more in a calendar quarter to choose either 1 Lounge Access Voucher OR ₹1,000 brand voucher.",
+                    "spendCriteria": "₹1,00,000 per calendar quarter"
+          },
+          "internationalAirport": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "No complimentary international lounge access."
+          },
+          "railwayLounge": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "No railway lounge access."
+          }
+},
+        entertainment: {
+          "movies": {
+                    "type": "cashback",
+                    "bogo": false,
+                    "rate": 5,
+                    "platform": "BookMyShow",
+                    "description": "5% CashPoints on BookMyShow (counted within the 1,000 CashPoints/mo partner cap)."
+          }
+}
+    },
+
+    'hdfc-regalia-gold': {
+        id: 'hdfc-regalia-gold',
+        name: 'HDFC Regalia Gold Credit Card',
+        shortName: 'Regalia Gold',
+        color: '#d97706',
+        matcher: /(?=.*regalia)(?=.*gold)|regalia/i,
+        issuer: 'HDFC Bank',
+        network: 'Visa Signature / Mastercard',
+        cardType: 'Premium Travel & Lifestyle',
+        annualFee: 2500,
+        joiningFee: 2500,
+        feeWaiverSpendTarget: 400000,
+        forexMarkupPercent: 2,
+        defaultMonthlyAcceleratedCap: null,
+        baseCashbackPercent: 1.33,
+        bestFor: "Frequent domestic and international travelers, fashion shopping (Myntra/Nykaa/M&S)",
+        welcomeBenefit: "Club Vistara Silver, MMT Black Elite, and ₹2,500 retail voucher on fee payment & ₹1L spend in 90 days",
+        keyBenefitsSummary: ["12 Domestic Lounges/year (unconditional direct swipe)","6 International Lounges/year via Priority Pass","5x Reward Points (6.67% value) on Marks & Spencer, Myntra, Nykaa, Reliance Digital","Low 2.0% Forex Markup on international transactions","₹1,500 quarterly milestone vouchers on ₹1.5L quarterly spend"],
+        pros: ["Unconditional Domestic Lounge Access: 12 visits/year (direct swipe without quarterly spend hurdles!).","6 Complimentary International Lounges/year via Priority Pass for primary & add-on members.","Low Forex Markup: 2.0% instead of standard 3.5%, making it great for international travel.","5x Rewards (6.67% return) on partner brands: Marks & Spencer, Myntra, Nykaa, Reliance Digital.","₹1,500 quarterly milestone vouchers from Marriott, Marks & Spencer, or Reliance Digital."],
+        cons: ["Points redemption value on SmartBuy flights/hotels is 0.50p (and 0.35p on shopping catalogue).","₹4,00,000 spend needed for annual fee waiver.","No BookMyShow BOGO offer (only points-based redemption)."],
+        tiers: [
+          {
+                    "rate": 6.67,
+                    "name": "Fashion & Retail Partners (5x RP = 6.67%)",
+                    "categories": [
+                              "shopping"
+                    ],
+                    "merchants": [
+                              "marks & spencer",
+                              "myntra",
+                              "nykaa",
+                              "reliance digital"
+                    ],
+                    "monthlyCap": 5000,
+                    "fallbackRate": 1.33,
+                    "notes": "5x Reward Points on partner brands (Marks & Spencer, Myntra, Nykaa, Reliance Digital)."
+          },
+          {
+                    "rate": 4,
+                    "name": "SmartBuy Flights & Hotels (3x RP = 4%)",
+                    "categories": [
+                              "travel"
+                    ],
+                    "merchants": [
+                              "smartbuy",
+                              "flights",
+                              "hotels"
+                    ],
+                    "monthlyCap": 4000,
+                    "fallbackRate": 1.33,
+                    "notes": "Accelerated reward points on flights & hotels booked through SmartBuy portal."
+          },
+          {
+                    "rate": 1.33,
+                    "name": "All Other Retail Spends (4 RP/₹150 = 1.33%)",
+                    "categories": [
+                              "all-retail"
+                    ],
+                    "merchants": [],
+                    "monthlyCap": null,
+                    "notes": "4 Reward Points per ₹150 spent on all regular retail (1 RP = ₹0.50 on SmartBuy flight/hotel bookings)."
+          }
+],
+        exclusions: [
+          {
+                    "category": "fuel",
+                    "reason": "Fuel excluded."
+          },
+          {
+                    "category": "rent",
+                    "reason": "Rent payments earn 0% rewards."
+          },
+          {
+                    "category": "wallet",
+                    "reason": "Wallet loading earns 0%."
+          },
+          {
+                    "category": "government",
+                    "reason": "Government transactions earn 0%."
+          }
+],
+        lounges: {
+          "domesticAirport": {
+                    "hasAccess": true,
+                    "visitsPerYear": 12,
+                    "ruleText": "12 complimentary domestic airport lounge visits per calendar year (unconditional via direct swipe).",
+                    "spendCriteria": "None (Direct swipe)"
+          },
+          "internationalAirport": {
+                    "hasAccess": true,
+                    "visitsPerYear": 6,
+                    "ruleText": "6 complimentary international airport lounge visits per calendar year via Priority Pass.",
+                    "spendCriteria": "Priority Pass"
+          },
+          "railwayLounge": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "No railway lounge access."
+          }
+},
+        entertainment: {
+          "movies": {
+                    "type": "points",
+                    "bogo": false,
+                    "rate": 1.33,
+                    "platform": "BookMyShow",
+                    "description": "4 Reward Points per ₹150 spent on BookMyShow (1.33% value)."
+          }
+}
+    },
+
+    'hdfc-infinia': {
+        id: 'hdfc-infinia',
+        name: 'HDFC Infinia Metal Credit Card',
+        shortName: 'HDFC Infinia',
+        color: '#111827',
+        matcher: /infinia/i,
+        issuer: 'HDFC Bank',
+        network: 'Visa Infinite',
+        cardType: 'Super-Premium Metal',
+        annualFee: 12500,
+        joiningFee: 12500,
+        feeWaiverSpendTarget: 1000000,
+        forexMarkupPercent: 2,
+        defaultMonthlyAcceleratedCap: null,
+        baseCashbackPercent: 3.33,
+        bestFor: "High-net-worth spenders seeking up to 33.3% travel value, 1:1 flight booking & unlimited global lounges",
+        welcomeBenefit: "12,500 Reward Points (worth ₹12,500 on SmartBuy flights/hotels) + Club Marriott membership upon fee payment",
+        keyBenefitsSummary: ["Unlimited Domestic & International Airport Lounge access globally for primary & add-on cardholders","Up to 33.3% return via SmartBuy 5x multipliers on flights & hotels","Base 3.33% reward rate (5 RP per ₹150, 1 RP = ₹1 on flights/hotels)","Low 2.0% Forex Markup on international spends","Unlimited complimentary golf games worldwide","ITC 1+1 buffet dining offer & Club Marriott benefits"],
+        pros: ["Unrivaled Return: 3.33% base rewards and up to 33.3% on flights/hotels booked via HDFC SmartBuy.","True 1:1 Point Value: 1 Reward Point = ₹1.00 when booking flights and hotels on SmartBuy.","Unlimited Global Lounge Access: Free unlimited lounge access worldwide for both primary and add-on cardholders via Priority Pass.","Low 2% Forex Markup with 3.33% base points gives net positive return on foreign transactions.","Unlimited complimentary golf rounds and lessons across India and abroad."],
+        cons: ["Strict Invitation-Only Eligibility: Demands ₹3,00,000+ monthly net salary or high credit limits.","Very High ₹10 Lakh Annual Spend Target for fee waiver.","Monthly SmartBuy bonus point caps apply (max 10,000 bonus points/calendar month)."],
+        tiers: [
+          {
+                    "rate": 16.67,
+                    "name": "SmartBuy Flights & Hotels (5x RP = 16.67%)",
+                    "categories": [
+                              "travel"
+                    ],
+                    "merchants": [
+                              "smartbuy",
+                              "flights",
+                              "hotels"
+                    ],
+                    "monthlyCap": 10000,
+                    "fallbackRate": 3.33,
+                    "notes": "5x Reward Points (up to 33.3% return) on travel bookings via HDFC SmartBuy."
+          },
+          {
+                    "rate": 9.99,
+                    "name": "SmartBuy Instant Vouchers & Apple (3x RP)",
+                    "categories": [
+                              "shopping"
+                    ],
+                    "merchants": [
+                              "apple",
+                              "gyftr",
+                              "instant vouchers"
+                    ],
+                    "monthlyCap": 5000,
+                    "fallbackRate": 3.33,
+                    "notes": "3x Reward Points on Apple products & gift vouchers via SmartBuy."
+          },
+          {
+                    "rate": 3.33,
+                    "name": "All Other Retail Spends (5 RP/₹150 = 3.33%)",
+                    "categories": [
+                              "all-retail"
+                    ],
+                    "merchants": [],
+                    "monthlyCap": null,
+                    "notes": "5 Reward Points per ₹150 spent on all regular retail (1 RP = ₹1.00 on flights/hotels)."
+          }
+],
+        exclusions: [
+          {
+                    "category": "fuel",
+                    "reason": "Fuel excluded."
+          },
+          {
+                    "category": "rent",
+                    "reason": "Rent excluded."
+          },
+          {
+                    "category": "wallet",
+                    "reason": "Wallet loads excluded."
+          },
+          {
+                    "category": "government",
+                    "reason": "Government transactions excluded."
+          }
+],
+        lounges: {
+          "domesticAirport": {
+                    "hasAccess": true,
+                    "visitsPerYear": 999,
+                    "ruleText": "Unlimited complimentary domestic airport lounge access for primary and add-on cardholders.",
+                    "spendCriteria": "Unlimited (Direct swipe)"
+          },
+          "internationalAirport": {
+                    "hasAccess": true,
+                    "visitsPerYear": 999,
+                    "ruleText": "Unlimited complimentary international lounge access worldwide via Priority Pass for primary & add-on cards.",
+                    "spendCriteria": "Priority Pass"
+          },
+          "railwayLounge": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "No railway lounge access."
+          }
+},
+        entertainment: {
+          "movies": {
+                    "type": "bogo",
+                    "bogo": true,
+                    "platform": "BookMyShow",
+                    "description": "Buy 1 Get 1 Free on BookMyShow (up to ₹250 off)."
+          }
+},
+        golf: {
+          "hasAccess": true,
+          "roundsPerMonth": 999,
+          "description": "Unlimited complimentary golf games and coaching sessions worldwide.",
+          "spendCriteria": "Complimentary"
+}
+    },
+
+    'hdfc-moneyback-plus': {
+        id: 'hdfc-moneyback-plus',
+        name: 'HDFC MoneyBack+ Credit Card',
+        shortName: 'HDFC MoneyBack+',
+        color: '#1d4ed8',
+        matcher: /money\s*back/i,
+        issuer: 'HDFC Bank',
+        network: 'Visa / Mastercard / RuPay',
+        cardType: 'Accelerated CashPoints & Daily Shopping',
+        annualFee: 500,
+        joiningFee: 500,
+        feeWaiverSpendTarget: 50000,
+        forexMarkupPercent: 3.5,
+        defaultMonthlyAcceleratedCap: 625,
+        baseCashbackPercent: 0.25,
+        bestFor: "Amazon, Flipkart, Swiggy, BigBasket, Reliance Smart & entry-level online shopping",
+        welcomeBenefit: "500 CashPoints on payment of joining fee + ₹500 gift voucher on ₹50,000 quarterly spend",
+        keyBenefitsSummary: [
+            "10X CashPoints (2.5% value) on Amazon, Flipkart, Swiggy, BigBasket, and Reliance Smart SuperStore",
+            "2 CashPoints per ₹150 on all other retail and UPI spends (0.25% value)",
+            "₹500 Gift Voucher on spending ₹50,000 or more in each calendar quarter (up to ₹2,000/yr extra return)",
+            "Annual renewal fee of ₹500 waived on annual spends of ₹50,000",
+            "1% Fuel Surcharge waiver (₹400 to ₹5,000, capped at ₹250/statement cycle)"
+        ],
+        pros: [
+            "10X CashPoints (2.5% return) on everyday merchant giants: Amazon, Flipkart, Swiggy, BigBasket, and Reliance Smart.",
+            "Very achievable ₹50,000 annual spend milestone for 100% renewal fee waiver (saving ₹500).",
+            "Quarterly ₹500 milestone gift voucher on ₹50,000 spend in a calendar quarter (up to ₹2,000/yr extra value).",
+            "Available on RuPay network variant, enabling UPI Scan & Pay merchant transactions.",
+            "Zero liability on lost card upon prompt reporting to 24/7 bank hotline."
+        ],
+        cons: [
+            "Base reward rate on general non-partner retail spends is very low at 0.25% (2 CashPoints per ₹150).",
+            "Monthly 10X CashPoints is capped at 2,500 CashPoints (₹625 value, corresponding to ₹25,000 spend/mo).",
+            "CashPoint conversion value is ₹0.25 each against statement balance (compared to ₹1.00 on Millennia).",
+            "Zero complimentary domestic or international airport or railway lounge access.",
+            "Strictly 0 rewards on fuel, wallet reloads, rent payments, government/taxes, and jewellery."
+        ],
         tiers: [
             {
-                rate: 25.0,
-                name: 'Airtel Mobile, Broadband & DTH (25%)',
-                categories: ['recharge', 'broadband', 'telecom'],
-                merchants: ['airtel', 'airtel thanks'],
-                monthlyCap: 250,
-                fallbackRate: 1.0,
-                notes: '25% cashback on Airtel Thanks app (Capped at ₹250/mo).'
+                rate: 2.5,
+                name: "10X Partner Merchants (2.5%)",
+                categories: [
+                    "shopping",
+                    "food-delivery",
+                    "groceries"
+                ],
+                merchants: [
+                    "amazon",
+                    "flipkart",
+                    "swiggy",
+                    "bigbasket",
+                    "reliance smart",
+                    "smart superstore"
+                ],
+                monthlyCap: 625,
+                fallbackRate: 0.25,
+                notes: "10X CashPoints (20 CashPoints per ₹150 = 2.5% value where 1 pt = ₹0.25). Capped at 2,500 CashPoints (₹625) per month."
             },
             {
-                rate: 10.0,
-                name: 'Swiggy, Zomato & BigBasket (10%)',
-                categories: ['food-delivery', 'groceries'],
-                merchants: ['swiggy', 'zomato', 'bigbasket'],
-                monthlyCap: 500,
-                fallbackRate: 1.0,
-                notes: '10% cashback on Swiggy, Zomato, BigBasket (Capped at ₹500/mo combined).'
-            },
-            {
-                rate: 10.0,
-                name: 'Utility Bills via Airtel Thanks (10%)',
-                categories: ['utilities', 'electricity', 'gas', 'water'],
-                merchants: ['electricity', 'water', 'piped gas', 'lpg cylinder'],
-                monthlyCap: 250,
-                fallbackRate: 1.0,
-                notes: '10% on utility bills via Airtel Thanks app (Capped at ₹250/mo).'
-            },
-            {
-                rate: 1.0,
-                name: 'Other Retail Spends (1%)',
-                categories: ['all-retail'],
+                rate: 0.25,
+                name: "Other Eligible Retail Spends (0.25%)",
+                categories: [
+                    "all-retail"
+                ],
                 merchants: [],
                 monthlyCap: null,
-                notes: '1% unlimited on other eligible retail spends.'
+                notes: "2 CashPoints per ₹150 on other eligible retail spends (0.25% return)."
             }
         ],
         exclusions: [
-            { category: 'fuel', reason: 'Fuel excluded (surcharge waiver applies).' },
-            { category: 'rent', reason: 'Rent excluded.' },
-            { category: 'wallet', reason: 'Wallet loads excluded.' },
-            { category: 'gold', reason: 'Gold and jewelry purchases excluded.' }
+            {
+                category: "fuel",
+                reason: "Fuel is excluded from CashPoints (1% fuel surcharge waiver applies between ₹400-₹5,000)."
+            },
+            {
+                category: "rent",
+                reason: "Rental and property management payments earn 0 CashPoints."
+            },
+            {
+                category: "wallet",
+                reason: "Prepaid wallet loading transactions earn 0 CashPoints."
+            },
+            {
+                category: "government",
+                reason: "Government tax, property tax, and challan payments earn 0 CashPoints."
+            },
+            {
+                category: "emi",
+                reason: "Transactions converted into EMI do not qualify for CashPoints."
+            },
+            {
+                category: "jewellery",
+                reason: "Jewellery and gold purchases earn 0 CashPoints."
+            }
         ],
         lounges: {
-            domesticAirport: { hasAccess: true, visitsPerYear: 4, ruleText: '4 complimentary domestic lounge visits per calendar year (1 per quarter).' },
-            internationalAirport: { hasAccess: false, visitsPerYear: 0, ruleText: 'No international lounge access.' },
-            railwayLounge: { hasAccess: false, visitsPerYear: 0, ruleText: 'No railway lounge access.' }
+            domesticAirport: {
+                hasAccess: false,
+                visitsPerYear: 0,
+                ruleText: "No complimentary domestic airport lounge access."
+            },
+            internationalAirport: {
+                hasAccess: false,
+                visitsPerYear: 0,
+                ruleText: "No complimentary international lounge access."
+            },
+            railwayLounge: {
+                hasAccess: false,
+                visitsPerYear: 0,
+                ruleText: "No railway lounge access."
+            }
         },
-        entertainment: { movies: { type: 'cashback', bogo: false, rate: 1.0, description: '1% base cashback.' } }
+        entertainment: {
+            movies: {
+                type: "standard",
+                bogo: false,
+                platform: "SmartBuy / Dineout",
+                description: "Standard platform discounts, no exclusive BOGO movie offer."
+            }
+        }
+    },
+
+    'hdfc-swiggy': {
+        id: 'hdfc-swiggy',
+        name: 'Swiggy HDFC Bank Credit Card',
+        shortName: 'Swiggy HDFC',
+        color: '#f97316',
+        matcher: /swiggy.*hdfc|hdfc.*swiggy/i,
+        issuer: 'HDFC Bank',
+        network: 'Mastercard / RuPay',
+        cardType: 'Co-Branded Dining & Quick Commerce Cashback',
+        annualFee: 500,
+        joiningFee: 500,
+        feeWaiverSpendTarget: 200000,
+        forexMarkupPercent: 3.5,
+        defaultMonthlyAcceleratedCap: 1500,
+        baseCashbackPercent: 1.0,
+        bestFor: "Swiggy food orders, Instamart groceries, Dineout restaurant bills & top 1,000 online shopping portals",
+        welcomeBenefit: "Complimentary 3-month Swiggy One membership on card activation",
+        keyBenefitsSummary: [
+            "10% Cashback on Swiggy application spends (Food delivery, Instamart, Dineout, Genie) capped at ₹1,500/mo",
+            "5% Cashback on 1,000+ top online shopping websites (Amazon, Flipkart, Myntra, Nykaa, etc.) capped at ₹1,500/mo",
+            "1% Unlimited Cashback on all other eligible retail spends",
+            "Direct statement cashback credit without redemption fee (1 Cashback = ₹1.00 cash)",
+            "Annual fee waived on spending ₹2,00,000 in an anniversary year"
+        ],
+        pros: [
+            "Massive 10% cashback on Swiggy Food Delivery, Instamart groceries, and Dineout dining (up to ₹1,500/mo).",
+            "Broad 5% cashback on over 1,000 online partner apps including Amazon, Flipkart, Myntra, Zara, Uber, and Nykaa (up to ₹1,500/mo).",
+            "Cashback directly offsets your monthly card statement balance automatically without manual redemption.",
+            "Free 3-month Swiggy One membership included as a welcome gift.",
+            "Available on RuPay variant for seamless UPI merchant QR payments."
+        ],
+        cons: [
+            "Each cashback bucket (10% and 5%) is strictly capped at ₹1,500 per calendar month.",
+            "Zero complimentary airport or railway lounge access.",
+            "Higher spend waiver hurdle: ₹2,00,000 annual spend required to waive the ₹500 renewal fee.",
+            "Excludes fuel, rent, wallet reloads, utility bills, and government tax payments from cashback."
+        ],
+        tiers: [
+            {
+                rate: 10,
+                name: "Swiggy App Spends (10%)",
+                categories: [
+                    "food-delivery",
+                    "groceries",
+                    "dining"
+                ],
+                merchants: [
+                    "swiggy",
+                    "swiggy instamart",
+                    "instamart",
+                    "dineout",
+                    "swiggy genie"
+                ],
+                monthlyCap: 1500,
+                fallbackRate: 1.0,
+                notes: "10% cashback on Swiggy platform (Food, Instamart, Dineout, Genie). Capped at ₹1,500 per month."
+            },
+            {
+                rate: 5,
+                name: "Online Partner Platforms (5%)",
+                categories: [
+                    "shopping",
+                    "travel"
+                ],
+                merchants: [
+                    "amazon",
+                    "flipkart",
+                    "myntra",
+                    "nykaa",
+                    "uber",
+                    "ola",
+                    "croma",
+                    "tata cliq",
+                    "ajio",
+                    "meesho",
+                    "zara",
+                    "h&m",
+                    "bookmyshow"
+                ],
+                monthlyCap: 1500,
+                fallbackRate: 1.0,
+                notes: "5% cashback across top 1,000+ online shopping apps. Capped at ₹1,500 per month."
+            },
+            {
+                rate: 1.0,
+                name: "Other Eligible Retail Spends (1%)",
+                categories: [
+                    "all-retail"
+                ],
+                merchants: [],
+                monthlyCap: null,
+                notes: "1% unlimited cashback on other eligible retail spends."
+            }
+        ],
+        exclusions: [
+            {
+                category: "fuel",
+                reason: "Fuel is excluded from cashback (1% fuel surcharge waiver applies ₹400-₹5,000)."
+            },
+            {
+                category: "rent",
+                reason: "Rent payments earn 0% cashback."
+            },
+            {
+                category: "wallet",
+                reason: "Wallet loading earns 0% cashback."
+            },
+            {
+                category: "government",
+                reason: "Government tax and challan payments earn 0% cashback."
+            },
+            {
+                category: "utilities",
+                reason: "Utility bills and recharges earn 0% cashback."
+            },
+            {
+                category: "emi",
+                reason: "EMI transactions earn 0% cashback."
+            }
+        ],
+        lounges: {
+            domesticAirport: {
+                hasAccess: false,
+                visitsPerYear: 0,
+                ruleText: "No complimentary domestic airport lounge access."
+            },
+            internationalAirport: {
+                hasAccess: false,
+                visitsPerYear: 0,
+                ruleText: "No complimentary international lounge access."
+            },
+            railwayLounge: {
+                hasAccess: false,
+                visitsPerYear: 0,
+                ruleText: "No railway lounge access."
+            }
+        },
+        entertainment: {
+            movies: {
+                type: "cashback",
+                bogo: false,
+                rate: 5,
+                platform: "BookMyShow",
+                description: "5% cashback on BookMyShow (part of 1,000+ online platforms category)."
+            }
+        }
     },
 
     'tata-neu-infinity': {
         id: 'tata-neu-infinity',
         name: 'Tata Neu Infinity HDFC Credit Card',
-        matcher: /tata.*neu.*infinity/i,
+        shortName: 'Tata Neu Infinity',
+        color: '#6366f1',
+        matcher: /(neu\s*infinity)|((?=.*(tata|neu))(?=.*infinity))/i,
         issuer: 'HDFC Bank',
         network: 'RuPay / Visa',
+        cardType: 'Tata Ecosystem & UPI',
         annualFee: 1499,
+        joiningFee: 1499,
         feeWaiverSpendTarget: 300000,
-        forexMarkupPercent: 2.0,
+        forexMarkupPercent: 2,
         defaultMonthlyAcceleratedCap: null,
         baseCashbackPercent: 1.5,
+        bestFor: "BigBasket, Croma, Tata 1mg, Air India, Taj hotels & 1.5% UPI QR transactions",
+        welcomeBenefit: "1,499 NeuCoins upon payment of membership fee",
+        keyBenefitsSummary: ["Up to 10% NeuCoins on Tata Brands (5% on card + 5% on Tata NeuPass)","1.5% NeuCoins on RuPay UPI QR transactions (capped at 500 NeuCoins/mo)","1.5% Unlimited NeuCoins on other eligible retail spends","8 Domestic Airport Lounges (2/quarter) + 4 International Lounges (1/quarter via Priority Pass)","Low 2.0% Forex Markup on foreign spends"],
+        pros: ["Up to 10% return across the vast Tata ecosystem (BigBasket, Croma, Tata 1mg, Air India, Taj, Westside).","1.5% NeuCoins on RuPay UPI payments at offline merchants and local stores.","8 Domestic + 4 International Airport Lounge visits per year.","Low 2% Forex Markup on international transactions.","1 NeuCoin = ₹1.00 directly usable across any Tata brand app."],
+        cons: ["NeuCoins can only be spent within the Tata ecosystem (cannot be redeemed for direct statement cash credit).","Monthly cap of 500 NeuCoins on RuPay UPI merchant spends.","₹1,499 + GST annual fee with a high ₹3,00,000 spend waiver target."],
         tiers: [
-            {
-                rate: 10.0,
-                name: 'Tata Brands via Tata Neu Pass (Up to 10%)',
-                categories: ['groceries', 'shopping', 'travel', 'pharmacy', 'electronics'],
-                merchants: ['bigbasket', 'tata 1mg', '1mg', 'croma', 'air india', 'air india express', 'ihcl', 'taj', 'westside', 'tata cliq'],
-                monthlyCap: null,
-                notes: '5% NeuCoins on card + 5% additional via Tata NeuPass = 10% total rewards.'
-            },
-            {
-                rate: 1.5,
-                name: 'RuPay UPI Merchant Payments (1.5%)',
-                categories: ['upi', 'qr-code', 'local-merchant'],
-                merchants: ['upi', 'qr', 'scan & pay'],
-                monthlyCap: 500,
-                notes: '1.5% NeuCoins on RuPay UPI merchant QR transactions (capped at 500 NeuCoins/mo).'
-            },
-            {
-                rate: 1.5,
-                name: 'Other Retail Spends (1.5%)',
-                categories: ['all-retail'],
-                merchants: [],
-                monthlyCap: null,
-                notes: '1.5% unlimited NeuCoins on other spends.'
-            }
-        ],
+          {
+                    "rate": 10,
+                    "name": "Tata Brands via Tata Neu Pass (Up to 10%)",
+                    "categories": [
+                              "groceries",
+                              "shopping",
+                              "travel",
+                              "pharmacy",
+                              "electronics"
+                    ],
+                    "merchants": [
+                              "bigbasket",
+                              "tata 1mg",
+                              "1mg",
+                              "croma",
+                              "air india",
+                              "air india express",
+                              "ihcl",
+                              "taj",
+                              "westside",
+                              "tata cliq"
+                    ],
+                    "monthlyCap": null,
+                    "notes": "5% NeuCoins on card + 5% additional via Tata NeuPass = 10% total rewards."
+          },
+          {
+                    "rate": 1.5,
+                    "name": "RuPay UPI Merchant Payments (1.5%)",
+                    "categories": [
+                              "upi",
+                              "qr-code",
+                              "local-merchant"
+                    ],
+                    "merchants": [
+                              "upi",
+                              "qr",
+                              "scan & pay"
+                    ],
+                    "monthlyCap": 500,
+                    "notes": "1.5% NeuCoins on RuPay UPI merchant QR transactions (capped at 500 NeuCoins/mo)."
+          },
+          {
+                    "rate": 1.5,
+                    "name": "Other Retail Spends (1.5%)",
+                    "categories": [
+                              "all-retail"
+                    ],
+                    "merchants": [],
+                    "monthlyCap": null,
+                    "notes": "1.5% unlimited NeuCoins on other spends."
+          }
+],
         exclusions: [
-            { category: 'fuel', reason: 'Fuel excluded.' },
-            { category: 'rent', reason: 'Rent excluded.' },
-            { category: 'wallet', reason: 'Wallet loads excluded.' },
-            { category: 'government', reason: 'Government transactions excluded.' }
-        ],
+          {
+                    "category": "fuel",
+                    "reason": "Fuel excluded."
+          },
+          {
+                    "category": "rent",
+                    "reason": "Rent excluded."
+          },
+          {
+                    "category": "wallet",
+                    "reason": "Wallet loads excluded."
+          },
+          {
+                    "category": "government",
+                    "reason": "Government transactions excluded."
+          }
+],
         lounges: {
-            domesticAirport: { hasAccess: true, visitsPerYear: 8, ruleText: '8 complimentary domestic visits per calendar year (2 per quarter via direct swipe).' },
-            internationalAirport: { hasAccess: true, visitsPerYear: 4, ruleText: '4 complimentary international visits per year (1 per quarter via Priority Pass).' },
-            railwayLounge: { hasAccess: false, visitsPerYear: 0, ruleText: 'No railway lounge access.' }
-        },
-        entertainment: { movies: { type: 'neucoins', bogo: false, rate: 1.5, description: '1.5% NeuCoins on BookMyShow.' } }
+          "domesticAirport": {
+                    "hasAccess": true,
+                    "visitsPerYear": 8,
+                    "ruleText": "8 complimentary domestic visits per calendar year (2 per quarter via direct swipe).",
+                    "spendCriteria": "None (Direct swipe)"
+          },
+          "internationalAirport": {
+                    "hasAccess": true,
+                    "visitsPerYear": 4,
+                    "ruleText": "4 complimentary international visits per year (1 per quarter via Priority Pass).",
+                    "spendCriteria": "Priority Pass"
+          },
+          "railwayLounge": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "No railway lounge access."
+          }
+},
+        entertainment: {
+          "movies": {
+                    "type": "neucoins",
+                    "bogo": false,
+                    "rate": 1.5,
+                    "platform": "BookMyShow",
+                    "description": "1.5% NeuCoins on BookMyShow."
+          }
+}
+    },
+
+    'axis-atlas': {
+        id: 'axis-atlas',
+        name: 'Axis Atlas Credit Card',
+        shortName: 'Axis Atlas',
+        color: '#4338ca',
+        matcher: /atlas/i,
+        issuer: 'Axis Bank',
+        network: 'Visa Signature / Mastercard World',
+        cardType: 'Aviation & Travel Miles',
+        annualFee: 5000,
+        joiningFee: 5000,
+        feeWaiverSpendTarget: null,
+        forexMarkupPercent: 3.5,
+        defaultMonthlyAcceleratedCap: null,
+        baseCashbackPercent: 4,
+        bestFor: "Frequent flyers & hotel stayers maximizing Accor ALL, Singapore Airlines, Qatar, Turkish miles (up to 20% value)",
+        welcomeBenefit: "5,000 EDGE Miles (worth 10,000 partner airmiles or Accor points = ₹18,000+ hotel stay value) on first swipe within 30 days",
+        keyBenefitsSummary: ["5 EDGE Miles/₹100 on direct airline & hotel spends (10% base value back)","2 EDGE Miles/₹100 on other retail (4% base value back)","1:2 Partner Transfer ratio: 1 EDGE Mile = 2 Partner Points/Miles across 15+ airlines & hotels (Accor, KrisFlyer, Qatar)","Tier-based Airport Lounge Access: 8 to 18 domestic lounges + 4 to 12 international lounges/year","Substantial milestone bonuses: up to 17,500 bonus EDGE Miles on hitting tier spend targets"],
+        pros: ["Best Transfer Ratio in India: 1 EDGE Mile = 2 Airline Miles or 2 Accor ALL points (yielding up to 20% effective return!).","Massive Welcome Value: 5,000 EDGE Miles on card activation worth ₹18,000+ at Accor luxury properties.","Accelerated Travel Multiplier: 5 EDGE Miles per ₹100 on all airline and hotel bookings (direct or travel portals).","Tier Milestone Bonuses: Earn 2,500, 5,000, and 10,000 bonus EDGE Miles as you spend ₹3L, ₹7.5L, and ₹15L.","Guest Lounge Access: International lounge allocations can be used for accompanying guests."],
+        cons: ["No Annual Fee Waiver: The ₹5,000 renewal fee cannot be waived via spend thresholds (though 2,500-10,000 renewal miles soften it).","Complex Redemption: Requires understanding airline frequent flyer and hotel points systems to extract maximum value.","Standard 3.5% Forex markup fee applies to overseas spends."],
+        tiers: [
+          {
+                    "rate": 10,
+                    "name": "Direct Airlines & Hotels (5 EDGE Miles = 10%)",
+                    "categories": [
+                              "travel",
+                              "airlines",
+                              "hotels"
+                    ],
+                    "merchants": [
+                              "indigo",
+                              "air india",
+                              "vistara",
+                              "marriott",
+                              "taj",
+                              "accor",
+                              "hilton",
+                              "hyatt",
+                              "makemytrip",
+                              "easemytrip",
+                              "cleartrip"
+                    ],
+                    "monthlyCap": null,
+                    "notes": "5 EDGE Miles per ₹100 spent (worth 10 partner points/miles = 10%–20% return)."
+          },
+          {
+                    "rate": 4,
+                    "name": "All Other Retail Spends (2 EDGE Miles = 4%)",
+                    "categories": [
+                              "all-retail"
+                    ],
+                    "merchants": [],
+                    "monthlyCap": null,
+                    "notes": "2 EDGE Miles per ₹100 spent on all eligible retail (worth 4 partner points/miles = 4%–8% return)."
+          }
+],
+        exclusions: [
+          {
+                    "category": "fuel",
+                    "reason": "Fuel excluded."
+          },
+          {
+                    "category": "rent",
+                    "reason": "Rent excluded."
+          },
+          {
+                    "category": "wallet",
+                    "reason": "Wallet loads excluded."
+          },
+          {
+                    "category": "government",
+                    "reason": "Government transactions excluded."
+          },
+          {
+                    "category": "insurance",
+                    "reason": "Insurance excluded."
+          },
+          {
+                    "category": "gold",
+                    "reason": "Gold excluded."
+          }
+],
+        lounges: {
+          "domesticAirport": {
+                    "hasAccess": true,
+                    "visitsPerYear": 18,
+                    "ruleText": "Tier-based: Silver (8 visits), Gold (12 visits), Platinum (18 visits) per year for cardholder and guests.",
+                    "spendCriteria": "Tier Status"
+          },
+          "internationalAirport": {
+                    "hasAccess": true,
+                    "visitsPerYear": 12,
+                    "ruleText": "Tier-based: Silver (4 visits), Gold (6 visits), Platinum (12 visits) per year via DreamFolks for cardholder and guests.",
+                    "spendCriteria": "Tier Status"
+          },
+          "railwayLounge": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "No railway lounge access."
+          }
+},
+        entertainment: {
+          "movies": {
+                    "type": "points",
+                    "bogo": false,
+                    "rate": 4,
+                    "platform": "BookMyShow",
+                    "description": "2 EDGE Miles per ₹100 spent (4% value)."
+          }
+}
+    },
+
+    'flipkart-axis': {
+        id: 'flipkart-axis',
+        name: 'Flipkart Axis Bank Credit Card',
+        shortName: 'Flipkart Axis',
+        color: '#2563eb',
+        matcher: /(?=.*flipkart)(?=.*axis)|flipkart\s*axis|axis\s*flipkart/i,
+        issuer: 'Axis Bank',
+        network: 'Visa / Mastercard',
+        cardType: 'Shopping Cashback',
+        annualFee: 500,
+        joiningFee: 500,
+        feeWaiverSpendTarget: 350000,
+        forexMarkupPercent: 3.5,
+        defaultMonthlyAcceleratedCap: null,
+        baseCashbackPercent: 1,
+        bestFor: "Flipkart, Cleartrip shoppers, Swiggy food orders & Uber cab rides",
+        welcomeBenefit: "Welcome benefits worth ₹600 (₹500 Flipkart voucher + Swiggy discount)",
+        keyBenefitsSummary: ["5% Unlimited Cashback on Flipkart & Cleartrip","4% Unlimited Cashback on Preferred Partners: Swiggy, Uber, PVR, Cult.fit, Tata 1mg","1% Unlimited Cashback on all other retail spends","Direct statement credit: Cashback auto-credited to next statement cycle","4 Domestic Lounges/year (on ₹50k spend in prev quarter)"],
+        pros: ["Uncapped 5% flat cashback on Flipkart & Cleartrip with zero monthly ceiling.","4% Cashback on key daily lifestyle apps: Swiggy, Uber, PVR, Cult.fit, Tata 1mg.","Direct statement credit with no redemption fees or points conversion hassle.","Low annual fee of ₹500."],
+        cons: ["Domestic lounge access now requires a ₹50,000 spend in the previous calendar quarter.","Fuel, rent, wallet loads, jewellery, insurance, and government utilities earn 0%.","Base offline retail cashback is modest at 1%."],
+        tiers: [
+          {
+                    "rate": 5,
+                    "name": "Flipkart & Cleartrip (5% Unlimited)",
+                    "categories": [
+                              "shopping",
+                              "travel"
+                    ],
+                    "merchants": [
+                              "flipkart",
+                              "cleartrip",
+                              "shopsy"
+                    ],
+                    "monthlyCap": null,
+                    "notes": "5% flat unlimited cashback on Flipkart & Cleartrip."
+          },
+          {
+                    "rate": 4,
+                    "name": "Preferred Partners (4% Unlimited)",
+                    "categories": [
+                              "food-delivery",
+                              "travel",
+                              "entertainment",
+                              "pharmacy"
+                    ],
+                    "merchants": [
+                              "swiggy",
+                              "uber",
+                              "pvr",
+                              "cult.fit",
+                              "cultfit",
+                              "tata 1mg",
+                              "1mg"
+                    ],
+                    "monthlyCap": null,
+                    "notes": "4% flat cashback on Swiggy, Uber, PVR, Cult.fit, and Tata 1mg."
+          },
+          {
+                    "rate": 1,
+                    "name": "All Other Spends (1% Unlimited)",
+                    "categories": [
+                              "all-retail"
+                    ],
+                    "merchants": [],
+                    "monthlyCap": null,
+                    "notes": "1% unlimited cashback on other eligible retail spends."
+          }
+],
+        exclusions: [
+          {
+                    "category": "fuel",
+                    "reason": "Fuel excluded."
+          },
+          {
+                    "category": "rent",
+                    "reason": "Rent excluded."
+          },
+          {
+                    "category": "wallet",
+                    "reason": "Wallet loads excluded."
+          },
+          {
+                    "category": "government",
+                    "reason": "Government transactions excluded."
+          },
+          {
+                    "category": "utilities",
+                    "reason": "Utilities excluded."
+          },
+          {
+                    "category": "insurance",
+                    "reason": "Insurance excluded."
+          },
+          {
+                    "category": "gold",
+                    "reason": "Gold and jewellery excluded."
+          }
+],
+        lounges: {
+          "domesticAirport": {
+                    "hasAccess": true,
+                    "isMilestoneBased": true,
+                    "visitsPerYear": 4,
+                    "ruleText": "4 complimentary domestic airport lounge visits per calendar year (requires ₹50,000 spend in previous quarter).",
+                    "spendCriteria": "₹50,000 in prev quarter"
+          },
+          "internationalAirport": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "No international lounge access."
+          },
+          "railwayLounge": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "No railway lounge access."
+          }
+},
+        entertainment: {
+          "movies": {
+                    "type": "cashback",
+                    "bogo": false,
+                    "rate": 4,
+                    "platform": "PVR & BookMyShow",
+                    "description": "4% cashback on PVR, 1% on other movie platforms."
+          }
+}
+    },
+
+    'axis-ace': {
+        id: 'axis-ace',
+        name: 'Axis Ace Credit Card',
+        shortName: 'Axis Ace',
+        color: '#047857',
+        matcher: /(?=.*axis)(?=.*ace)|axis\s*ace|ace\s*axis|^ace$/i,
+        issuer: 'Axis Bank',
+        network: 'Visa Signature',
+        cardType: 'Utility & Offline Cashback',
+        annualFee: 499,
+        joiningFee: 499,
+        feeWaiverSpendTarget: 200000,
+        forexMarkupPercent: 3.5,
+        defaultMonthlyAcceleratedCap: 500,
+        baseCashbackPercent: 1.5,
+        bestFor: "Electricity bills, DTH, gas recharges via Google Pay & 1.5% offline retail spends",
+        welcomeBenefit: "100% cashback on first utility bill paid via Google Pay (up to ₹250)",
+        keyBenefitsSummary: ["5% Cashback on Bill Payments (Electricity, Water, Gas, LPG) & Mobile Recharges via Google Pay","4% Cashback on Swiggy, Zomato & Ola","1.5% Unlimited Cashback on all other offline POS & retail transactions","4 Domestic Lounges/year (on ₹50k quarterly spend)"],
+        pros: ["Industry-leading 5% cashback on utility bills via Google Pay (capped at ₹500/mo).","4% Cashback on Swiggy, Zomato & Ola.","Strong 1.5% uncapped base rate on offline swipe transactions (better than HDFC Millennia's 1%).","Direct statement cash credit with no minimum redemption threshold."],
+        cons: ["5% utility cashback is exclusive to Google Pay on Android (not available on iOS Google Pay).","Domestic lounge access now requires ₹50k spend in previous quarter.","Fuel, rent, wallet loads earn 0% cashback."],
+        tiers: [
+          {
+                    "rate": 5,
+                    "name": "Utility Bills via Google Pay (5%)",
+                    "categories": [
+                              "utilities",
+                              "electricity",
+                              "gas",
+                              "water",
+                              "recharge"
+                    ],
+                    "merchants": [
+                              "google pay",
+                              "electricity",
+                              "water",
+                              "piped gas",
+                              "lpg cylinder",
+                              "dth"
+                    ],
+                    "monthlyCap": 500,
+                    "fallbackRate": 1.5,
+                    "notes": "5% cashback on bill payments and recharges via Google Pay (capped at ₹500/mo)."
+          },
+          {
+                    "rate": 4,
+                    "name": "Swiggy, Zomato & Ola (4%)",
+                    "categories": [
+                              "food-delivery",
+                              "travel"
+                    ],
+                    "merchants": [
+                              "swiggy",
+                              "zomato",
+                              "ola"
+                    ],
+                    "monthlyCap": 500,
+                    "fallbackRate": 1.5,
+                    "notes": "4% cashback on Swiggy, Zomato, and Ola (capped at ₹500/mo)."
+          },
+          {
+                    "rate": 1.5,
+                    "name": "All Other Retail Spends (1.5%)",
+                    "categories": [
+                              "all-retail"
+                    ],
+                    "merchants": [],
+                    "monthlyCap": null,
+                    "notes": "1.5% unlimited cashback on other eligible retail spends."
+          }
+],
+        exclusions: [
+          {
+                    "category": "fuel",
+                    "reason": "Fuel excluded."
+          },
+          {
+                    "category": "rent",
+                    "reason": "Rent excluded."
+          },
+          {
+                    "category": "wallet",
+                    "reason": "Wallet loads excluded."
+          }
+],
+        lounges: {
+          "domesticAirport": {
+                    "hasAccess": true,
+                    "isMilestoneBased": true,
+                    "visitsPerYear": 4,
+                    "ruleText": "4 complimentary domestic visits per calendar year (on ₹50,000 spend in previous quarter).",
+                    "spendCriteria": "₹50,000 in prev quarter"
+          },
+          "internationalAirport": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "No international lounge access."
+          },
+          "railwayLounge": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "No railway lounge access."
+          }
+},
+        entertainment: {
+          "movies": {
+                    "type": "cashback",
+                    "bogo": false,
+                    "rate": 1.5,
+                    "platform": "BookMyShow",
+                    "description": "1.5% unlimited cashback."
+          }
+}
+    },
+
+    'airtel-axis': {
+        id: 'airtel-axis',
+        name: 'Airtel Axis Bank Credit Card',
+        shortName: 'Airtel Axis',
+        color: '#dc2626',
+        matcher: /(?=.*airtel)(?=.*axis)|airtel\s*axis|axis\s*airtel/i,
+        issuer: 'Axis Bank',
+        network: 'Mastercard',
+        cardType: 'Telecom & Utilities Cashback',
+        annualFee: 500,
+        joiningFee: 500,
+        feeWaiverSpendTarget: 200000,
+        forexMarkupPercent: 3.5,
+        defaultMonthlyAcceleratedCap: 1000,
+        baseCashbackPercent: 1,
+        bestFor: "Airtel users, monthly electricity/gas utility bills & Swiggy/Zomato food orders",
+        welcomeBenefit: "Amazon voucher worth ₹500 upon card activation within 30 days",
+        keyBenefitsSummary: ["25% Cashback on Airtel Mobile, Broadband & DTH recharges via Airtel Thanks app (capped at ₹250/mo)","10% Cashback on Utility Bills (Electricity, Water, Gas) via Airtel Thanks app (capped at ₹250/mo)","10% Cashback on Swiggy, Zomato & BigBasket (capped at ₹500/mo combined)","1% Unlimited Cashback on all other eligible spends","4 Complimentary Domestic Airport Lounges/year (1 per quarter via direct swipe)"],
+        pros: ["Unbeatable 25% cashback on Airtel mobile recharges, fiber broadband, and DTH.","10% Cashback on daily electricity, piped gas, and water utility bills via Airtel Thanks.","10% Cashback on popular delivery apps (Swiggy, Zomato, BigBasket).","4 Domestic Airport Lounge visits per year (1 per calendar quarter).","Low annual fee of ₹500 + GST waived on ₹2 Lakh spend."],
+        cons: ["Strict monthly category cashback caps (₹250/mo on telecom, ₹250/mo on utilities, ₹500/mo on food).","Best rewards require utilizing the Airtel Thanks application.","Fuel, rent, wallet, and jewellery transactions earn 0% cashback."],
+        tiers: [
+          {
+                    "rate": 25,
+                    "name": "Airtel Mobile, Broadband & DTH (25%)",
+                    "categories": [
+                              "recharge",
+                              "broadband",
+                              "telecom"
+                    ],
+                    "merchants": [
+                              "airtel",
+                              "airtel thanks"
+                    ],
+                    "monthlyCap": 250,
+                    "fallbackRate": 1,
+                    "notes": "25% cashback on Airtel Thanks app (Capped at ₹250/mo)."
+          },
+          {
+                    "rate": 10,
+                    "name": "Swiggy, Zomato & BigBasket (10%)",
+                    "categories": [
+                              "food-delivery",
+                              "groceries"
+                    ],
+                    "merchants": [
+                              "swiggy",
+                              "zomato",
+                              "bigbasket"
+                    ],
+                    "monthlyCap": 500,
+                    "fallbackRate": 1,
+                    "notes": "10% cashback on Swiggy, Zomato, BigBasket (Capped at ₹500/mo combined)."
+          },
+          {
+                    "rate": 10,
+                    "name": "Utility Bills via Airtel Thanks (10%)",
+                    "categories": [
+                              "utilities",
+                              "electricity",
+                              "gas",
+                              "water"
+                    ],
+                    "merchants": [
+                              "electricity",
+                              "water",
+                              "piped gas",
+                              "lpg cylinder"
+                    ],
+                    "monthlyCap": 250,
+                    "fallbackRate": 1,
+                    "notes": "10% on utility bills via Airtel Thanks app (Capped at ₹250/mo)."
+          },
+          {
+                    "rate": 1,
+                    "name": "Other Retail Spends (1%)",
+                    "categories": [
+                              "all-retail"
+                    ],
+                    "merchants": [],
+                    "monthlyCap": null,
+                    "notes": "1% unlimited on other eligible retail spends."
+          }
+],
+        exclusions: [
+          {
+                    "category": "fuel",
+                    "reason": "Fuel excluded (surcharge waiver applies)."
+          },
+          {
+                    "category": "rent",
+                    "reason": "Rent excluded."
+          },
+          {
+                    "category": "wallet",
+                    "reason": "Wallet loads excluded."
+          },
+          {
+                    "category": "gold",
+                    "reason": "Gold and jewelry purchases excluded."
+          }
+],
+        lounges: {
+          "domesticAirport": {
+                    "hasAccess": true,
+                    "visitsPerYear": 4,
+                    "ruleText": "4 complimentary domestic lounge visits per calendar year (1 per quarter)."
+          },
+          "internationalAirport": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "No international lounge access."
+          },
+          "railwayLounge": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "No railway lounge access."
+          }
+},
+        entertainment: {
+          "movies": {
+                    "type": "cashback",
+                    "bogo": false,
+                    "rate": 1,
+                    "description": "1% base cashback."
+          }
+}
+    },
+
+    'sbi-cashback': {
+        id: 'sbi-cashback',
+        name: 'SBI Cashback Credit Card',
+        shortName: 'SBI Cashback',
+        color: '#0284c7',
+        matcher: /((?=.*sbi)(?=.*cashback))|(cashback\s*sbi)|(sbi\s*cashback)/i,
+        issuer: 'SBI Card',
+        network: 'Visa Signature',
+        cardType: 'Universal Online Cashback',
+        annualFee: 999,
+        joiningFee: 999,
+        feeWaiverSpendTarget: 200000,
+        forexMarkupPercent: 3.5,
+        defaultMonthlyAcceleratedCap: 5000,
+        baseCashbackPercent: 1,
+        bestFor: "Shopping across diverse online websites with flat 5% cashback without merchant lock-in",
+        welcomeBenefit: "Activation offers and statement cashback on card issuance",
+        keyBenefitsSummary: ["5% Flat Cashback on almost all online retail transactions (Amazon, Flipkart, Myntra, Swiggy, Zomato, Nykaa, etc.)","High Monthly Cap: ₹5,000 monthly cashback (spend up to ₹1,00,000/mo at 5%)","1% Unlimited Cashback on offline retail spends","Direct statement credit: Automatically deducted from card bill balance","Annual fee waived on ₹2,00,000 annual spend"],
+        pros: ["Universal 5% Online Cashback: Works across almost every online platform without needing merchant partnerships.","High ₹5,000 Monthly Cashback Cap: Allows up to ₹1,00,000 spend at 5% every month.","Auto Statement Credit: Cashback automatically reduces credit card statement bill balance.","Simple & Transparent: No complicated reward point ratios, redemption portals, or catalogue fees."],
+        cons: ["Airport lounge access was completely discontinued on this card.","Utility bills, insurance payments, school fees, fuel, rent, and wallet loads earn 0% cashback.","₹999 + GST annual fee with a ₹2 Lakh waiver target."],
+        tiers: [
+          {
+                    "rate": 5,
+                    "name": "All Online Retail Spends (5%)",
+                    "categories": [
+                              "shopping",
+                              "online-retail",
+                              "food-delivery",
+                              "groceries",
+                              "travel"
+                    ],
+                    "merchants": [
+                              "amazon",
+                              "flipkart",
+                              "myntra",
+                              "swiggy",
+                              "zomato",
+                              "blinkit",
+                              "zepto",
+                              "makemytrip",
+                              "ajio",
+                              "nykaa",
+                              "tata cliq"
+                    ],
+                    "monthlyCap": 5000,
+                    "fallbackRate": 1,
+                    "notes": "5% flat cashback across almost all online merchants. Monthly cap ₹5,000 (max spend ₹1,00,000)."
+          },
+          {
+                    "rate": 1,
+                    "name": "Offline Retail Spends (1%)",
+                    "categories": [
+                              "all-retail"
+                    ],
+                    "merchants": [],
+                    "monthlyCap": null,
+                    "notes": "1% unlimited cashback on offline POS purchases."
+          }
+],
+        exclusions: [
+          {
+                    "category": "fuel",
+                    "reason": "Fuel is excluded from cashback."
+          },
+          {
+                    "category": "rent",
+                    "reason": "Rent payments earn 0% cashback."
+          },
+          {
+                    "category": "wallet",
+                    "reason": "Wallet loading earns 0% cashback."
+          },
+          {
+                    "category": "utilities",
+                    "reason": "Utility bill payments (electricity, water, gas) earn 0% cashback."
+          },
+          {
+                    "category": "education",
+                    "reason": "School/College fees earn 0% cashback."
+          },
+          {
+                    "category": "jewelry",
+                    "reason": "Jewelry purchases are excluded."
+          },
+          {
+                    "category": "insurance",
+                    "reason": "Insurance payments earn 0% cashback."
+          }
+],
+        lounges: {
+          "domesticAirport": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "Direct domestic lounge access was discontinued."
+          },
+          "internationalAirport": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "No international lounge access."
+          },
+          "railwayLounge": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "No railway lounge access."
+          }
+},
+        entertainment: {
+          "movies": {
+                    "type": "cashback",
+                    "bogo": false,
+                    "rate": 5,
+                    "description": "5% online cashback on BookMyShow."
+          }
+}
+    },
+
+    'sbi-simplyclick': {
+        id: 'sbi-simplyclick',
+        name: 'SBI SimplyCLICK Credit Card',
+        shortName: 'SBI SimplyCLICK',
+        color: '#0369a1',
+        matcher: /simply.*click/i,
+        issuer: 'SBI Card',
+        network: 'Visa / Mastercard',
+        cardType: 'Online Shopping',
+        annualFee: 499,
+        joiningFee: 499,
+        feeWaiverSpendTarget: 100000,
+        forexMarkupPercent: 3.5,
+        defaultMonthlyAcceleratedCap: null,
+        baseCashbackPercent: 0.25,
+        bestFor: "Beginners shopping online on Amazon, BookMyShow, Cleartrip, Netmeds, Lenskart",
+        welcomeBenefit: "₹500 Amazon gift voucher on payment of annual fee",
+        keyBenefitsSummary: ["10x Reward Points (2.5% return) on Amazon, BookMyShow, Cleartrip, Lenskart, Netmeds, Apollo 24|7","5x Reward Points (1.25% return) on all other online shopping spends","1x Reward Point (0.25% return) on offline POS spends","₹1,00,000 spend annual fee waiver"],
+        pros: ["10x Reward Points (2.5% value) across Amazon, BMS, Cleartrip, Lenskart, Netmeds, Apollo.","Welcome ₹500 Amazon voucher directly neutralizes the ₹499 joining fee.","Low ₹1 Lakh spend milestone to waive the ₹499 renewal fee.","Low eligibility threshold making it easy to acquire for first-time credit card applicants."],
+        cons: ["No complimentary airport or railway lounge access.","Very poor 0.25% return on offline retail swipes.","₹99 + GST reward redemption fee on catalog vouchers."],
+        tiers: [
+          {
+                    "rate": 2.5,
+                    "name": "10x Partner Merchants (2.5%)",
+                    "categories": [
+                              "shopping",
+                              "entertainment",
+                              "pharmacy",
+                              "travel"
+                    ],
+                    "merchants": [
+                              "amazon",
+                              "bookmyshow",
+                              "cleartrip",
+                              "lenskart",
+                              "netmeds",
+                              "apollo 24|7",
+                              "apollo"
+                    ],
+                    "monthlyCap": null,
+                    "notes": "10x Reward Points (2.5% return) on Amazon, BookMyShow, Cleartrip, Lenskart, Netmeds, Apollo."
+          },
+          {
+                    "rate": 1.25,
+                    "name": "All Other Online Spends (5x RP = 1.25%)",
+                    "categories": [
+                              "online-retail"
+                    ],
+                    "merchants": [],
+                    "monthlyCap": null,
+                    "notes": "5x Reward Points (1.25% return) on all other online retail spends."
+          },
+          {
+                    "rate": 0.25,
+                    "name": "Offline Retail Spends (1x RP = 0.25%)",
+                    "categories": [
+                              "all-retail"
+                    ],
+                    "merchants": [],
+                    "monthlyCap": null,
+                    "notes": "1 Reward Point per ₹100 spent offline (0.25% value)."
+          }
+],
+        exclusions: [
+          {
+                    "category": "fuel",
+                    "reason": "Fuel excluded."
+          },
+          {
+                    "category": "rent",
+                    "reason": "Rent excluded."
+          },
+          {
+                    "category": "wallet",
+                    "reason": "Wallet loads excluded."
+          },
+          {
+                    "category": "government",
+                    "reason": "Government transactions excluded."
+          }
+],
+        lounges: {
+          "domesticAirport": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "No airport lounge access."
+          },
+          "internationalAirport": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "No international lounge access."
+          },
+          "railwayLounge": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "No railway lounge access."
+          }
+},
+        entertainment: {
+          "movies": {
+                    "type": "points",
+                    "bogo": false,
+                    "rate": 2.5,
+                    "platform": "BookMyShow",
+                    "description": "10x Reward Points (2.5% value) on BookMyShow."
+          }
+}
+    },
+
+    'sbi-bpcl-octane': {
+        id: 'sbi-bpcl-octane',
+        name: 'BPCL SBI Card Octane',
+        shortName: 'BPCL Octane',
+        color: '#15803d',
+        matcher: /bpcl.*octane|octane/i,
+        issuer: 'SBI Card',
+        network: 'Visa Signature',
+        cardType: 'Fuel & Utility Saver',
+        annualFee: 1499,
+        joiningFee: 1499,
+        feeWaiverSpendTarget: 200000,
+        forexMarkupPercent: 3.5,
+        defaultMonthlyAcceleratedCap: null,
+        baseCashbackPercent: 0.25,
+        bestFor: "High fuel spenders purchasing petrol/diesel at Bharat Petroleum (BPCL) pumps (7.25% value)",
+        welcomeBenefit: "6,000 Reward Points (worth ₹1,500 on BPCL fuel) on fee payment",
+        keyBenefitsSummary: ["7.25% Value Back on Fuel at BPCL pumps (25 Reward Points per ₹100 = 6.25% + 1% fuel surcharge waiver)","25 Reward Points per ₹100 on Bharatgas LPG cylinder booking (6.25% value)","10 Reward Points per ₹100 on Groceries, Supermarket, Dining & Movies (2.5% value)","4 Complimentary Domestic Airport Lounges/year (1 per quarter via direct swipe)","Annual fee waived on ₹2,00,000 annual spend"],
+        pros: ["India’s Best Fuel Card: 7.25% total return on petrol & diesel at Bharat Petroleum pumps.","6.25% Value Back on Bharatgas LPG cylinder bookings.","2.5% Return on daily groceries, dining, and movie tickets.","4 Domestic Airport Lounge visits per year (1 per quarter).","Welcome points (worth ₹1,500) completely neutralize the ₹1,499 joining fee."],
+        cons: ["Fuel benefits are restricted strictly to BPCL petrol pumps (0% on HPCL, IndianOil, Shell).","Base reward rate on general retail is low at 0.25% (1 RP/₹100).","Requires visiting physical BPCL pumps to redeem fuel vouchers via POS machine."],
+        tiers: [
+          {
+                    "rate": 7.25,
+                    "name": "BPCL Fuel & Petrol Pumps (7.25%)",
+                    "categories": [
+                              "fuel"
+                    ],
+                    "merchants": [
+                              "bpcl",
+                              "bharat petroleum"
+                    ],
+                    "monthlyCap": 2500,
+                    "fallbackRate": 0.25,
+                    "notes": "25 Reward Points per ₹100 (6.25%) + 1% fuel surcharge waiver at BPCL petrol pumps."
+          },
+          {
+                    "rate": 6.25,
+                    "name": "Bharatgas LPG Cylinder Bookings (6.25%)",
+                    "categories": [
+                              "utilities",
+                              "gas"
+                    ],
+                    "merchants": [
+                              "bharatgas",
+                              "lpg cylinder"
+                    ],
+                    "monthlyCap": 1000,
+                    "fallbackRate": 0.25,
+                    "notes": "25 Reward Points per ₹100 (6.25% value back) on Bharatgas bookings."
+          },
+          {
+                    "rate": 2.5,
+                    "name": "Groceries, Supermarket & Dining (2.5%)",
+                    "categories": [
+                              "groceries",
+                              "supermarket",
+                              "dining"
+                    ],
+                    "merchants": [
+                              "groceries",
+                              "dmart",
+                              "bigbasket",
+                              "blinkit",
+                              "zepto",
+                              "swiggy",
+                              "zomato"
+                    ],
+                    "monthlyCap": 1500,
+                    "fallbackRate": 0.25,
+                    "notes": "10 Reward Points per ₹100 (2.5% value back) on groceries, dining and movies."
+          },
+          {
+                    "rate": 0.25,
+                    "name": "Other Retail Spends (0.25%)",
+                    "categories": [
+                              "all-retail"
+                    ],
+                    "merchants": [],
+                    "monthlyCap": null,
+                    "notes": "1 Reward Point per ₹100 spent (0.25% return)."
+          }
+],
+        exclusions: [
+          {
+                    "category": "rent",
+                    "reason": "Rent excluded."
+          },
+          {
+                    "category": "wallet",
+                    "reason": "Wallet loads excluded."
+          },
+          {
+                    "category": "government",
+                    "reason": "Government transactions excluded."
+          }
+],
+        lounges: {
+          "domesticAirport": {
+                    "hasAccess": true,
+                    "visitsPerYear": 4,
+                    "ruleText": "4 complimentary domestic airport lounge visits per calendar year (1 per quarter via direct swipe).",
+                    "spendCriteria": "None (Direct swipe)"
+          },
+          "internationalAirport": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "No international lounge access."
+          },
+          "railwayLounge": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "No railway lounge access."
+          }
+},
+        entertainment: {
+          "movies": {
+                    "type": "points",
+                    "bogo": false,
+                    "rate": 2.5,
+                    "platform": "BookMyShow",
+                    "description": "10 Reward Points per ₹100 (2.5% value back) on movie tickets."
+          }
+}
+    },
+
+    'amex-plat-travel': {
+        id: 'amex-plat-travel',
+        name: 'American Express Platinum Travel Credit Card',
+        shortName: 'Amex Plat Travel',
+        color: '#64748b',
+        matcher: /amex.*plat.*travel|platinum.*travel/i,
+        issuer: 'American Express',
+        network: 'American Express',
+        cardType: 'Milestone Travel',
+        annualFee: 5000,
+        joiningFee: 3500,
+        feeWaiverSpendTarget: null,
+        forexMarkupPercent: 3.5,
+        defaultMonthlyAcceleratedCap: null,
+        baseCashbackPercent: 1,
+        bestFor: "Hitting the ₹4 Lakh annual spend milestone for ₹48,000+ reward value (Taj stay + 40k MR points)",
+        welcomeBenefit: "10,000 Membership Rewards (MR) points upon spending ₹15,000 in first 90 days",
+        keyBenefitsSummary: ["15,000 Bonus MR points on hitting ₹1.9 Lakh annual spend","25,000 Bonus MR points + ₹10,000 Taj Stay Voucher on hitting ₹4 Lakh annual spend","8 Complimentary Domestic Airport Lounge visits per year (2 per quarter)","1 MR point per ₹50 spent on all regular retail"],
+        pros: ["Incredible 8%–10% net reward return when spending exactly ₹4 Lakh in a card membership year.","₹10,000 Taj Hotels stay voucher on reaching ₹4 Lakh milestone.","40,000+ total MR points redeemable for Marriott Bonvoy (1:1 during transfer bonus) or statement credit.","World-class American Express fraud protection and customer concierge service."],
+        cons: ["Reward return drops sharply to <0.5% if you spend less than ₹1.9L or more than ₹4L per year.","Lower merchant acceptance compared to Visa and Mastercard at local offline vendors.","No renewal fee waiver spend target (fee is ₹5,000 + GST every year)."],
+        tiers: [
+          {
+                    "rate": 8,
+                    "name": "Milestone Travel Spends (8% Return at ₹4L)",
+                    "categories": [
+                              "travel",
+                              "shopping",
+                              "dining",
+                              "all-retail"
+                    ],
+                    "merchants": [],
+                    "monthlyCap": null,
+                    "notes": "Effective ~8% return in Taj stay vouchers + 40,000 MR points when pacing towards ₹4 Lakh annual milestone."
+          }
+],
+        exclusions: [
+          {
+                    "category": "fuel",
+                    "reason": "Fuel excluded."
+          },
+          {
+                    "category": "rent",
+                    "reason": "Rent excluded."
+          },
+          {
+                    "category": "wallet",
+                    "reason": "Wallet loads excluded."
+          },
+          {
+                    "category": "utilities",
+                    "reason": "Utilities earn 0 MR points."
+          },
+          {
+                    "category": "insurance",
+                    "reason": "Insurance excluded."
+          },
+          {
+                    "category": "emi",
+                    "reason": "EMI transactions excluded."
+          }
+],
+        lounges: {
+          "domesticAirport": {
+                    "hasAccess": true,
+                    "visitsPerYear": 8,
+                    "ruleText": "8 complimentary domestic airport lounge visits per year (2 per calendar quarter via direct swipe).",
+                    "spendCriteria": "None (Direct swipe)"
+          },
+          "internationalAirport": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "No complimentary international lounge access."
+          },
+          "railwayLounge": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "No railway lounge access."
+          }
+},
+        entertainment: {
+          "movies": {
+                    "type": "points",
+                    "bogo": false,
+                    "rate": 1,
+                    "platform": "BookMyShow",
+                    "description": "Standard MR points on BookMyShow."
+          }
+}
+    },
+
+    'idfc-first-wealth': {
+        id: 'idfc-first-wealth',
+        name: 'IDFC FIRST Wealth Credit Card',
+        shortName: 'IDFC FIRST Wealth',
+        color: '#991b1b',
+        matcher: /(first\s*wealth)|wealth/i,
+        issuer: 'IDFC FIRST Bank',
+        network: 'Visa Infinite',
+        cardType: 'Premium Lifetime Free',
+        annualFee: 0,
+        joiningFee: 0,
+        feeWaiverSpendTarget: 0,
+        forexMarkupPercent: 1.5,
+        defaultMonthlyAcceleratedCap: null,
+        baseCashbackPercent: 0.67,
+        bestFor: "Zero annual fee lovers wanting free domestic & international lounges, low 1.5% forex, and BookMyShow BOGO",
+        welcomeBenefit: "Gift voucher worth ₹500 on spending ₹15,000 within 90 days of card issuance",
+        keyBenefitsSummary: ["Lifetime Free (LTF): ₹0 Joining Fee, ₹0 Annual Fee forever","4 Domestic + 4 International Airport Lounges per quarter (on ₹20k monthly spend)","Low 1.5% Forex Markup on international spends","Buy 1 Get 1 Free on movie tickets up to ₹500 off (twice per month)","Complimentary roadside assistance (RSA) worth ₹1,399"],
+        pros: ["Truly Lifetime Free with zero renewal fees and no hidden spend conditions.","Low 1.5% Foreign Currency Markup (saves 2% vs traditional bank credit cards).","Both Domestic (4/quarter) and International (4/quarter) lounge access included via DreamFolks.","Buy 1 Get 1 Free movie tickets up to ₹500 discount twice a month on Paytm / District movies.","Reward points never expire and can be redeemed directly against online purchases."],
+        cons: ["Lounge access now requires spending ₹20,000 in the previous calendar month.","Modest base reward rate of ~0.67% on regular spends (3x points per ₹150, 1 pt = ₹0.25).","High monthly spend threshold (₹30,000) needed to unlock 10x accelerated rewards tier."],
+        tiers: [
+          {
+                    "rate": 2.5,
+                    "name": "Monthly Spends Above ₹30,000 (10x RP = 2.5%)",
+                    "categories": [
+                              "all-retail"
+                    ],
+                    "merchants": [],
+                    "monthlyCap": null,
+                    "notes": "10x Reward Points (2.5% value) on all incremental spends above ₹30,000 in a billing cycle."
+          },
+          {
+                    "rate": 0.67,
+                    "name": "Regular Retail Spends (3x RP = 0.67%)",
+                    "categories": [
+                              "all-retail"
+                    ],
+                    "merchants": [],
+                    "monthlyCap": null,
+                    "notes": "3 Reward Points per ₹150 spent (0.67% return)."
+          }
+],
+        exclusions: [
+          {
+                    "category": "fuel",
+                    "reason": "Fuel excluded."
+          },
+          {
+                    "category": "rent",
+                    "reason": "Rent excluded."
+          },
+          {
+                    "category": "wallet",
+                    "reason": "Wallet loads excluded."
+          },
+          {
+                    "category": "government",
+                    "reason": "Government transactions excluded."
+          }
+],
+        lounges: {
+          "domesticAirport": {
+                    "hasAccess": true,
+                    "isMilestoneBased": true,
+                    "visitsPerYear": 16,
+                    "ruleText": "4 complimentary domestic visits per calendar quarter (on ₹20,000 spend in previous month).",
+                    "spendCriteria": "₹20,000 in prev month"
+          },
+          "internationalAirport": {
+                    "hasAccess": true,
+                    "isMilestoneBased": true,
+                    "visitsPerYear": 16,
+                    "ruleText": "4 complimentary international visits per calendar quarter (on ₹20,000 spend in previous month).",
+                    "spendCriteria": "₹20,000 in prev month"
+          },
+          "railwayLounge": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "No railway lounge access."
+          }
+},
+        entertainment: {
+          "movies": {
+                    "type": "bogo",
+                    "bogo": true,
+                    "platform": "Paytm / District",
+                    "description": "Buy 1 Get 1 Free: Up to ₹500 off on 2nd movie ticket twice a month via Paytm / District."
+          }
+}
+    },
+
+    'scapia-federal': {
+        id: 'scapia-federal',
+        name: 'Scapia Federal Credit Card',
+        shortName: 'Scapia',
+        color: '#0f766e',
+        matcher: /scapia/i,
+        issuer: 'Federal Bank',
+        network: 'Visa Signature',
+        cardType: 'Zero Forex Travel',
+        annualFee: 0,
+        joiningFee: 0,
+        feeWaiverSpendTarget: 0,
+        forexMarkupPercent: 0,
+        defaultMonthlyAcceleratedCap: null,
+        baseCashbackPercent: 2,
+        bestFor: "International travelers and backpackers wanting 0% forex markup and unlimited airport lounges",
+        welcomeBenefit: "Instant digital issuance with zero joining and annual fees",
+        keyBenefitsSummary: ["Zero Forex Markup (0.0%): Flat 0% currency conversion fee worldwide (saves 3.5%–4.13% on all foreign spends)","Unlimited Domestic Airport Lounge Access across India on spending just ₹10,000 per billing cycle","10% Scapia Coins on all flights and hotel bookings on Scapia App","2% Scapia Coins on all other eligible retail spends","100% digital app management with instant onboarding"],
+        pros: ["True 0% Forex Markup: Save ~4.13% (including GST) on every swipe abroad or international website.","Unlimited Domestic Airport Lounges with an exceptionally low ₹10,000 monthly spend requirement.","Lifetime Free: No joining fee, no annual fee, no renewal criteria.","10% Scapia Coins on travel bookings (flights and hotels) booked inside the app."],
+        cons: ["Scapia coins can only be redeemed for flights and hotels on the Scapia travel portal.","No international lounge access (domestic lounges only).","Occasional pauses in new credit card issuance due to Federal Bank regulatory limits."],
+        tiers: [
+          {
+                    "rate": 10,
+                    "name": "Scapia App Flights & Hotels (10%)",
+                    "categories": [
+                              "travel"
+                    ],
+                    "merchants": [
+                              "scapia",
+                              "scapia app",
+                              "flights",
+                              "hotels"
+                    ],
+                    "monthlyCap": null,
+                    "notes": "10% Scapia coins on all travel bookings made inside the Scapia app."
+          },
+          {
+                    "rate": 2,
+                    "name": "All Other Spends & Forex (2%)",
+                    "categories": [
+                              "all-retail",
+                              "forex"
+                    ],
+                    "merchants": [],
+                    "monthlyCap": null,
+                    "notes": "2% Scapia coins on all other eligible spends domestically and internationally."
+          }
+],
+        exclusions: [
+          {
+                    "category": "fuel",
+                    "reason": "Fuel excluded."
+          },
+          {
+                    "category": "rent",
+                    "reason": "Rent excluded."
+          },
+          {
+                    "category": "wallet",
+                    "reason": "Wallet loads excluded."
+          },
+          {
+                    "category": "government",
+                    "reason": "Government transactions excluded."
+          },
+          {
+                    "category": "utilities",
+                    "reason": "Utilities excluded."
+          },
+          {
+                    "category": "gold",
+                    "reason": "Gold excluded."
+          }
+],
+        lounges: {
+          "domesticAirport": {
+                    "hasAccess": true,
+                    "isMilestoneBased": true,
+                    "visitsPerYear": 999,
+                    "ruleText": "Unlimited complimentary domestic airport lounge visits (unlocked on spending ₹10,000 in previous billing cycle).",
+                    "spendCriteria": "₹10,000 in billing cycle"
+          },
+          "internationalAirport": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "No international lounge access."
+          },
+          "railwayLounge": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "No railway lounge access."
+          }
+},
+        entertainment: {
+          "movies": {
+                    "type": "coins",
+                    "bogo": false,
+                    "rate": 2,
+                    "platform": "BookMyShow",
+                    "description": "2% Scapia coins on movie tickets."
+          }
+}
+    },
+
+    'onecard-metal': {
+        id: 'onecard-metal',
+        name: 'OneCard Metal Credit Card',
+        shortName: 'OneCard Metal',
+        color: '#1f2937',
+        matcher: /onecard/i,
+        issuer: 'Federal / BOB / SBM Bank',
+        network: 'Visa Signature',
+        cardType: 'Entry Metal',
+        annualFee: 0,
+        joiningFee: 0,
+        feeWaiverSpendTarget: 0,
+        forexMarkupPercent: 1,
+        defaultMonthlyAcceleratedCap: null,
+        baseCashbackPercent: 1,
+        bestFor: "Sleek metal card experience, zero annual fees, and automatic 5x rewards on top categories",
+        welcomeBenefit: "Full metal credit card with zero joining and annual fees",
+        keyBenefitsSummary: ["Heavy Metal Card: Free premium metal card with zero lifetime fees","5x Rewards automatically applied to your top 2 spending categories each month","Low 1.0% Forex Markup on international spends","Instant fractional point redemption for statement cash credit with no fees"],
+        pros: ["Free premium heavy metal card with zero joining fee and lifetime free validity.","Automatic 5x Rewards on your top 2 highest spend categories every month.","Low 1% Forex Markup (much lower than standard 3.5%).","Instant cash redemption directly against transactions in the OneCard app with zero fees."],
+        cons: ["No complimentary airport or railway lounge access.","Base rewards outside top 2 categories are low at 0.2%–1%.","Fuel and rent excluded from 5x category rewards."],
+        tiers: [
+          {
+                    "rate": 5,
+                    "name": "Top 2 Monthly Spend Categories (5x)",
+                    "categories": [
+                              "shopping",
+                              "dining",
+                              "food-delivery",
+                              "groceries",
+                              "travel"
+                    ],
+                    "merchants": [],
+                    "monthlyCap": null,
+                    "notes": "5x Reward Points automatically applied to your top 2 spending categories of the month."
+          },
+          {
+                    "rate": 1,
+                    "name": "All Other Spends (1%)",
+                    "categories": [
+                              "all-retail"
+                    ],
+                    "merchants": [],
+                    "monthlyCap": null,
+                    "notes": "1 Reward Point per ₹10 spent (1% value)."
+          }
+],
+        exclusions: [
+          {
+                    "category": "fuel",
+                    "reason": "Fuel excluded."
+          },
+          {
+                    "category": "rent",
+                    "reason": "Rent excluded."
+          },
+          {
+                    "category": "wallet",
+                    "reason": "Wallet loads excluded."
+          },
+          {
+                    "category": "government",
+                    "reason": "Government transactions excluded."
+          }
+],
+        lounges: {
+          "domesticAirport": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "No airport lounge access."
+          },
+          "internationalAirport": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "No international lounge access."
+          },
+          "railwayLounge": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "No railway lounge access."
+          }
+},
+        entertainment: {
+          "movies": {
+                    "type": "points",
+                    "bogo": false,
+                    "rate": 5,
+                    "platform": "BookMyShow",
+                    "description": "Up to 5x rewards when movies fall within your top 2 spend categories."
+          }
+}
+    },
+
+    'kiwi-rupay': {
+        id: 'kiwi-rupay',
+        name: 'Kiwi RuPay Credit Card',
+        shortName: 'Kiwi RuPay',
+        color: '#059669',
+        matcher: /kiwi/i,
+        issuer: 'Yes Bank',
+        network: 'RuPay Credit on UPI',
+        cardType: 'UPI Credit on RuPay',
+        annualFee: 0,
+        joiningFee: 0,
+        feeWaiverSpendTarget: 0,
+        forexMarkupPercent: 3.5,
+        defaultMonthlyAcceleratedCap: null,
+        baseCashbackPercent: 1.5,
+        bestFor: "Everyday UPI QR scans, kirana stores, offline payments with up to 2% cashback & lounge milestones",
+        welcomeBenefit: "₹250 flat cashback on first UPI transaction via Kiwi app",
+        keyBenefitsSummary: ["Lifetime Free (LTF): Zero Joining and Annual Fee forever","Up to 2% Cashback on RuPay UPI merchant QR scans via Kiwi app","Zero payment surcharge at local merchants, tea stalls & cafes","Milestone Airport Lounges: Up to 3 domestic airport lounge vouchers via Kiwi Neon milestones (at ₹50k, ₹1L, ₹1.5L spends)","Instant virtual card generation in under 2 minutes"],
+        pros: ["Works on UPI: Scan any merchant QR code and pay directly from credit card with up to 50 days interest-free float.","Up to 2% cashback on daily offline merchant QR transactions where credit cards are usually not accepted.","Completely Lifetime Free with no renewal fee or annual charges.","Milestone Airport Lounges unlocked via Kiwi Neon spends (up to 3 vouchers/year)."],
+        cons: ["Peer-to-peer (P2P) transfers to friends and family do not earn cashback or are restricted per NPCI guidelines.","Accelerated cashback requires using Kiwi mobile app interface.","High value spends at major e-commerce platforms yield better rewards on specialized shopping cards."],
+        tiers: [
+          {
+                    "rate": 2,
+                    "name": "Kiwi Neon UPI Merchant Scan & Pay (2%)",
+                    "categories": [
+                              "upi",
+                              "qr-code",
+                              "local-merchant",
+                              "dining",
+                              "groceries"
+                    ],
+                    "merchants": [
+                              "upi",
+                              "qr",
+                              "scan & pay"
+                    ],
+                    "monthlyCap": null,
+                    "notes": "Up to 2% cashback on UPI QR merchant payments via Kiwi app (1.5% base + 0.5% milestone bonus)."
+          },
+          {
+                    "rate": 1,
+                    "name": "Other Retail Spends (1%)",
+                    "categories": [
+                              "all-retail"
+                    ],
+                    "merchants": [],
+                    "monthlyCap": null,
+                    "notes": "1% cashback on online/e-commerce retail transactions."
+          }
+],
+        exclusions: [
+          {
+                    "category": "fuel",
+                    "reason": "Fuel excluded."
+          },
+          {
+                    "category": "rent",
+                    "reason": "Rent excluded."
+          },
+          {
+                    "category": "wallet",
+                    "reason": "Wallet loads excluded."
+          },
+          {
+                    "category": "p2p",
+                    "reason": "Peer-to-peer transfers to friends/family do not earn cashback."
+          }
+],
+        lounges: {
+          "domesticAirport": {
+                    "hasAccess": true,
+                    "isMilestoneBased": true,
+                    "visitsPerYear": 3,
+                    "ruleText": "Milestone-based via Kiwi Neon: 1 lounge access voucher upon reaching ₹50,000 spend, +1 at ₹1,00,000, and +1 at ₹1,50,000.",
+                    "spendCriteria": "Kiwi Neon Milestones (₹50k / ₹100k / ₹150k)"
+          },
+          "internationalAirport": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "No international lounge access."
+          },
+          "railwayLounge": {
+                    "hasAccess": false,
+                    "visitsPerYear": 0,
+                    "ruleText": "No railway lounge access."
+          }
+},
+        entertainment: {
+          "movies": {
+                    "type": "cashback",
+                    "bogo": false,
+                    "rate": 2,
+                    "platform": "BookMyShow via UPI",
+                    "description": "Up to 2% cashback when BookMyShow is paid via Kiwi UPI Scan & Pay."
+          }
+}
     }
+
 };
 
 // ============================================================================
@@ -482,17 +2651,34 @@ export const MERCHANT_CATEGORY_TAXONOMY = {
         { label: '📦 Amazon', query: 'amazon', category: 'shopping' },
         { label: '🛍️ Flipkart / Myntra', query: 'flipkart', category: 'shopping' },
         { label: '📱 Offline UPI QR', query: 'upi', category: 'upi' },
+        { label: '🎬 BookMyShow BOGO', query: 'bookmyshow', category: 'entertainment' },
+        { label: '⛳ Golf Sessions', query: 'golf', category: 'lifestyle' },
+        { label: '✈️ Flights & Travel', query: 'flights', category: 'travel' },
         { label: '🚕 Uber / Cabs', query: 'uber', category: 'travel' },
         { label: '⚡ Electricity & Bills', query: 'electricity', category: 'utilities' },
-        { label: '🎬 BookMyShow', query: 'bookmyshow', category: 'entertainment' },
         { label: '✈️ Airport Lounge', query: 'airport lounge', category: 'lounge' },
-        { label: '⛽ Fuel / Petrol', query: 'fuel', category: 'fuel' },
-        { label: '🏠 Rent Payment', query: 'rent', category: 'rent' },
-        { label: '👛 Wallet Reload', query: 'wallet', category: 'wallet' }
+        { label: '⛽ Fuel / Petrol', query: 'fuel', category: 'fuel' }
     ],
 
     // Keyword mapping to detect category intent (sorted by length descending during parse)
     keywordMap: {
+        // Golf & Leisure
+        'golf': { category: 'lifestyle', merchant: 'golf' },
+        'golf course': { category: 'lifestyle', merchant: 'golf' },
+        'golf session': { category: 'lifestyle', merchant: 'golf' },
+        'country club': { category: 'lifestyle', merchant: 'golf' },
+
+        // Fuel & Petrol Brands
+        'bpcl': { category: 'fuel', merchant: 'bpcl' },
+        'bharat petroleum': { category: 'fuel', merchant: 'bpcl' },
+        'bharatgas': { category: 'utilities', merchant: 'bharatgas' },
+        'hpcl': { category: 'fuel', merchant: 'hpcl' },
+        'hindustan petroleum': { category: 'fuel', merchant: 'hpcl' },
+        'indian oil': { category: 'fuel', merchant: 'ioc' },
+        'ioc': { category: 'fuel', merchant: 'ioc' },
+        'petrol': { category: 'fuel', merchant: 'fuel' },
+        'diesel': { category: 'fuel', merchant: 'fuel' },
+
         // Groceries & Quick Commerce
         'swiggy instamart': { category: 'groceries', merchant: 'instamart' },
         'instamart': { category: 'groceries', merchant: 'instamart' },
@@ -743,10 +2929,18 @@ export const MERCHANT_CATEGORY_TAXONOMY = {
  * Detects matching preset from registry based on card name & issuer
  */
 export function detectCardPreset(cardName = '', issuer = '') {
-    const searchString = `${cardName} ${issuer}`.trim();
+    const c = (cardName || '').trim();
+    const i = (issuer || '').trim();
+    const s1 = `${c} ${i}`.trim();
+    const s2 = `${i} ${c}`.trim();
+    const s3 = c;
+    const s4 = s1.replace(/[-_.]+/g, ' ');
+
     for (const [presetId, preset] of Object.entries(CARD_PRESETS_REGISTRY)) {
-        if (preset.matcher && preset.matcher.test(searchString)) {
-            return preset;
+        if (preset.matcher) {
+            if (preset.matcher.test(s1) || preset.matcher.test(s2) || preset.matcher.test(s3) || preset.matcher.test(s4)) {
+                return preset;
+            }
         }
     }
     return null;
@@ -804,6 +2998,10 @@ export function resolveCardBenefits(card, cardId) {
         color: (card.color && card.color !== '#ff6b6b' && card.color !== '') ? card.color : (basePreset.color || card.color || '#6366f1'),
         dueDate: card.dueDate || '',
         presetId: basePreset.id,
+        shortName: basePreset.shortName || card.name,
+        network: basePreset.network || card.network || 'Visa / Mastercard',
+        cardType: basePreset.cardType || 'Credit Card',
+        joiningFee: basePreset.joiningFee !== undefined ? basePreset.joiningFee : (basePreset.annualFee || 0),
         annualFee: customBenefits.annualFee !== undefined ? customBenefits.annualFee : basePreset.annualFee,
         feeWaiverSpendTarget: customBenefits.feeWaiverSpendTarget !== undefined ? customBenefits.feeWaiverSpendTarget : basePreset.feeWaiverSpendTarget,
         forexMarkupPercent: customBenefits.forexMarkupPercent !== undefined ? customBenefits.forexMarkupPercent : basePreset.forexMarkupPercent,
@@ -811,7 +3009,13 @@ export function resolveCardBenefits(card, cardId) {
         tiers: customBenefits.tiers && customBenefits.tiers.length > 0 ? customBenefits.tiers : basePreset.tiers,
         exclusions: customBenefits.exclusions && customBenefits.exclusions.length > 0 ? customBenefits.exclusions : basePreset.exclusions,
         lounges: customBenefits.lounges ? { ...basePreset.lounges, ...customBenefits.lounges } : basePreset.lounges,
-        entertainment: customBenefits.entertainment ? { ...basePreset.entertainment, ...customBenefits.entertainment } : basePreset.entertainment
+        entertainment: customBenefits.entertainment ? { ...basePreset.entertainment, ...customBenefits.entertainment } : basePreset.entertainment,
+        golf: customBenefits.golf ? { ...basePreset.golf, ...customBenefits.golf } : (basePreset.golf || null),
+        bestFor: basePreset.bestFor || '',
+        welcomeBenefit: basePreset.welcomeBenefit || '',
+        keyBenefitsSummary: basePreset.keyBenefitsSummary || [],
+        pros: customBenefits.pros && customBenefits.pros.length > 0 ? customBenefits.pros : (basePreset.pros || []),
+        cons: customBenefits.cons && customBenefits.cons.length > 0 ? customBenefits.cons : (basePreset.cons || [])
     };
 }
 
@@ -921,6 +3125,9 @@ export function evaluateCardForSpend(card, cardId, queryText = '', amount = 1000
             creditLimit: resolved.creditLimit,
             applicableRate: 0,
             cashbackEarned: 0,
+            effectiveSavings: 0,
+            perkValue: 0,
+            perkBadge: null,
             isExcluded: true,
             isUpiIncompatible: true,
             isOverLimit,
@@ -933,7 +3140,14 @@ export function evaluateCardForSpend(card, cardId, queryText = '', amount = 1000
             curWarning: checkCURWarning(resolved.creditLimit, currentOutstanding, spendAmount),
             paymentFloatDays: calculatePaymentFloatDays(card.dueDate),
             lounges: resolved.lounges,
-            entertainment: resolved.entertainment
+            entertainment: resolved.entertainment,
+            golf: resolved.golf,
+            pros: resolved.pros,
+            cons: resolved.cons,
+            bestFor: resolved.bestFor,
+            welcomeBenefit: resolved.welcomeBenefit,
+            keyBenefitsSummary: resolved.keyBenefitsSummary,
+            presetId: resolved.presetId
         };
     }
 
@@ -942,6 +3156,11 @@ export function evaluateCardForSpend(card, cardId, queryText = '', amount = 1000
         const cat = typeof ex === 'string' ? ex : ex.category;
         return cat === intent.category || cat === intent.merchant || (intent.raw && intent.raw.includes(cat));
     });
+
+    // BPCL Octane special rule on fuel
+    if (resolved.presetId === 'sbi-bpcl-octane' && (intent.category === 'fuel' || intent.merchant === 'bpcl')) {
+        fuelSurchargeNote = '7.25% Value Back (6.25% rewards + 1% fuel surcharge waiver) at BPCL petrol pumps.';
+    }
 
     if (matchedExclusion) {
         return {
@@ -952,6 +3171,9 @@ export function evaluateCardForSpend(card, cardId, queryText = '', amount = 1000
             creditLimit: resolved.creditLimit,
             applicableRate: 0,
             cashbackEarned: 0,
+            effectiveSavings: 0,
+            perkValue: 0,
+            perkBadge: null,
             isExcluded: true,
             isUpiIncompatible: false,
             isOverLimit,
@@ -970,7 +3192,14 @@ export function evaluateCardForSpend(card, cardId, queryText = '', amount = 1000
             curWarning: checkCURWarning(resolved.creditLimit, currentOutstanding, spendAmount),
             paymentFloatDays: calculatePaymentFloatDays(card.dueDate),
             lounges: resolved.lounges,
-            entertainment: resolved.entertainment
+            entertainment: resolved.entertainment,
+            golf: resolved.golf,
+            pros: resolved.pros,
+            cons: resolved.cons,
+            bestFor: resolved.bestFor,
+            welcomeBenefit: resolved.welcomeBenefit,
+            keyBenefitsSummary: resolved.keyBenefitsSummary,
+            presetId: resolved.presetId
         };
     }
 
@@ -984,6 +3213,9 @@ export function evaluateCardForSpend(card, cardId, queryText = '', amount = 1000
             creditLimit: resolved.creditLimit,
             applicableRate: 0,
             cashbackEarned: 0,
+            effectiveSavings: 0,
+            perkValue: 0,
+            perkBadge: null,
             isExcluded: false,
             isUpiIncompatible: false,
             isOverLimit,
@@ -996,7 +3228,14 @@ export function evaluateCardForSpend(card, cardId, queryText = '', amount = 1000
             curWarning: checkCURWarning(resolved.creditLimit, currentOutstanding, spendAmount),
             paymentFloatDays: calculatePaymentFloatDays(card.dueDate),
             lounges: resolved.lounges,
-            entertainment: resolved.entertainment
+            entertainment: resolved.entertainment,
+            golf: resolved.golf,
+            pros: resolved.pros,
+            cons: resolved.cons,
+            bestFor: resolved.bestFor,
+            welcomeBenefit: resolved.welcomeBenefit,
+            keyBenefitsSummary: resolved.keyBenefitsSummary,
+            presetId: resolved.presetId
         };
     }
 
@@ -1037,7 +3276,47 @@ export function evaluateCardForSpend(card, cardId, queryText = '', amount = 1000
         }
     }
 
-    // I. Forex Markup Fee vs Net Return Check
+    // I. Lifestyle & Category Perks Evaluation (Movies BOGO, Golf, Airport Lounges)
+    let perkValue = 0;
+    let perkBadge = null;
+    const isMovieIntent = intent.category === 'entertainment' || /movie|cinema|district|bookmyshow|bms|theatre|theater|ticket|pvr|inox/i.test(intent.raw);
+    const isGolfIntent = intent.category === 'lifestyle' || /golf/i.test(intent.raw);
+    const isLoungeIntent = intent.category === 'lounge' || /lounge|airport/i.test(intent.raw);
+
+    if (isMovieIntent && resolved.entertainment?.movies) {
+        const moviePerk = resolved.entertainment.movies;
+        if (moviePerk.bogo) {
+            const maxOff = moviePerk.maxDiscount || (resolved.presetId === 'icici-sapphiro-visa' ? 500 : 250);
+            const bogoSaving = Math.min(spendAmount > 0 ? spendAmount / 2 : maxOff, maxOff);
+            perkValue = Math.round(bogoSaving);
+            perkBadge = `BOGO (Up to ₹${maxOff} off)`;
+        } else if (moviePerk.rate && moviePerk.rate > applicableRate) {
+            applicableRate = moviePerk.rate;
+            rawCashback = (spendAmount * applicableRate) / 100;
+        }
+    } else if (isGolfIntent && resolved.golf?.hasAccess) {
+        const golfSaving = spendAmount > 0 ? spendAmount : 2500;
+        perkValue = Math.round(golfSaving);
+        const quota = resolved.golf.roundsPerMonth === 999 ? 'Unlimited' : `${resolved.golf.roundsPerMonth} rounds/mo`;
+        perkBadge = `Free Golf (${quota})`;
+    } else if (isLoungeIntent && (resolved.lounges?.domesticAirport?.hasAccess || resolved.lounges?.internationalAirport?.hasAccess)) {
+        const domVisits = resolved.lounges?.domesticAirport?.visitsPerYear || 0;
+        const intlVisits = resolved.lounges?.internationalAirport?.visitsPerYear || 0;
+        const totalVisits = domVisits + intlVisits;
+        const isMilestone = !!resolved.lounges?.domesticAirport?.isMilestoneBased;
+        
+        // Direct swipe cards and cards with generous domestic + international quotas provide higher value
+        const baseLoungeSaving = isMilestone ? 1200 : 1500;
+        const quotaBonus = Math.min(totalVisits * 40, 700); // e.g. 18 visits = +700; 2 visits = +80
+        perkValue = Math.round(baseLoungeSaving + quotaBonus);
+        perkBadge = domVisits > 0 
+            ? `Free Lounge (${domVisits} Dom/yr${intlVisits > 0 ? ` + ${intlVisits} Intl` : ''})` 
+            : `Free Lounge (${intlVisits} Intl/yr)`;
+    }
+
+    const effectiveSavings = Math.round((perkValue + rawCashback) * 100) / 100;
+
+    // J. Forex Markup Fee vs Net Return Check
     if (intent.category === 'forex') {
         const markupPercent = resolved.forexMarkupPercent || 3.5;
         const totalForexFeePercent = markupPercent * 1.18;
@@ -1055,6 +3334,9 @@ export function evaluateCardForSpend(card, cardId, queryText = '', amount = 1000
         creditLimit: resolved.creditLimit,
         applicableRate,
         cashbackEarned: Math.round(rawCashback * 100) / 100,
+        effectiveSavings,
+        perkValue,
+        perkBadge,
         isExcluded: false,
         isUpiIncompatible: false,
         isOverLimit,
@@ -1075,7 +3357,14 @@ export function evaluateCardForSpend(card, cardId, queryText = '', amount = 1000
         curWarning: checkCURWarning(resolved.creditLimit, currentOutstanding, spendAmount),
         paymentFloatDays: calculatePaymentFloatDays(card.dueDate),
         lounges: resolved.lounges,
-        entertainment: resolved.entertainment
+        entertainment: resolved.entertainment,
+        golf: resolved.golf,
+        pros: resolved.pros,
+        cons: resolved.cons,
+        bestFor: resolved.bestFor,
+        welcomeBenefit: resolved.welcomeBenefit,
+        keyBenefitsSummary: resolved.keyBenefitsSummary,
+        presetId: resolved.presetId
     };
 }
 
@@ -1112,6 +3401,9 @@ export function rankCardsForSpend(cards = {}, queryText = '', amount = 1000, cur
         }
         if (a.isExcluded !== b.isExcluded) {
             return a.isExcluded ? 1 : -1;
+        }
+        if (b.effectiveSavings !== a.effectiveSavings) {
+            return b.effectiveSavings - a.effectiveSavings;
         }
         if (b.cashbackEarned !== a.cashbackEarned) {
             return b.cashbackEarned - a.cashbackEarned;
@@ -1247,7 +3539,16 @@ export function getDiningPrivilegesSummary(cards = {}) {
                 program: 'Swiggy Dineout Partnership',
                 description: 'Extra 10% to 20% instant discount on restaurant dining bills paid through Swiggy Dineout using promo code HDFCCARDS, plus 5% CashPoints.'
             });
-        } else if (resolved.presetId === 'amazon-pay-icici') {
+        } else if (resolved.presetId === 'hdfc-regalia-gold' || resolved.presetId === 'hdfc-infinia') {
+            list.push({
+                cardId,
+                cardName: resolved.cardName,
+                color: resolved.color,
+                badge: 'Good Food Trail',
+                program: 'HDFC Good Food Trail & Club Marriott',
+                description: 'Up to 25% savings on dining bills across premium restaurants, 1+1 buffet offers at select 5-star hotels, and Club Marriott dining benefits.'
+            });
+        } else if (resolved.presetId === 'amazon-pay-icici' || resolved.presetId === 'icici-sapphiro-visa' || resolved.presetId === 'icici-rubyx' || resolved.presetId === 'icici-coral') {
             list.push({
                 cardId,
                 cardName: resolved.cardName,
@@ -1255,6 +3556,15 @@ export function getDiningPrivilegesSummary(cards = {}) {
                 badge: 'Min 15% Off',
                 program: 'ICICI Culinary Treats',
                 description: 'Minimum 15% discount on dining bills at 2,500+ partner restaurants across India via the ICICI Culinary Treats network.'
+            });
+        } else if (resolved.presetId === 'axis-atlas' || resolved.presetId === 'axis-ace' || resolved.presetId === 'airtel-axis' || resolved.presetId === 'flipkart-axis') {
+            list.push({
+                cardId,
+                cardName: resolved.cardName,
+                color: resolved.color,
+                badge: 'Up to 20% Off',
+                program: 'Axis Bank Dining Delights',
+                description: 'Up to 15%–20% discount at 10,000+ partner dining restaurants across India via EazyDiner.'
             });
         } else if (resolved.presetId === 'kiwi-rupay') {
             list.push({
@@ -1271,6 +3581,28 @@ export function getDiningPrivilegesSummary(cards = {}) {
 }
 
 /**
+ * Extracts golf privileges across active cards
+ */
+export function getGolfPrivilegesSummary(cards = {}) {
+    const list = [];
+    for (const [cardId, card] of Object.entries(cards)) {
+        if ((card.type || 'credit-card') !== 'credit-card') continue;
+        const resolved = resolveCardBenefits(card, cardId);
+        if (!resolved || !resolved.golf || !resolved.golf.hasAccess) continue;
+
+        list.push({
+            cardId,
+            cardName: resolved.cardName,
+            color: resolved.color,
+            roundsPerMonth: resolved.golf.roundsPerMonth,
+            description: resolved.golf.description,
+            spendCriteria: resolved.golf.spendCriteria || 'Monthly spend criteria'
+        });
+    }
+    return list;
+}
+
+/**
  * Extracts e-commerce superpowers, partner merchant ecosystems, and brand deals
  */
 export function getBrandSuperpowersSummary(cards = {}) {
@@ -1280,7 +3612,52 @@ export function getBrandSuperpowersSummary(cards = {}) {
         const resolved = resolveCardBenefits(card, cardId);
         if (!resolved) continue;
 
-        if (resolved.presetId === 'amazon-pay-icici') {
+        if (resolved.presetId === 'icici-sapphiro-visa') {
+            list.push({
+                cardId,
+                cardName: resolved.cardName,
+                color: resolved.color,
+                badge: 'Gem Collection',
+                title: 'BookMyShow BOGO + 4 Golf Rounds + 16 Lounges',
+                description: 'Buy 1 Get 1 free on BookMyShow up to ₹500 off (twice a month), 4 complimentary golf games/lessons monthly, and 16 domestic + 2 international airport lounge visits.'
+            });
+        } else if (resolved.presetId === 'hdfc-infinia') {
+            list.push({
+                cardId,
+                cardName: resolved.cardName,
+                color: resolved.color,
+                badge: 'SmartBuy 5x',
+                title: 'Up to 33.3% Return & Unlimited Global Lounges',
+                description: 'Up to 33.3% reward value on SmartBuy flights and hotels, 1:1 points redemption, unlimited worldwide airport lounge access with Priority Pass, and complimentary golf games worldwide.'
+            });
+        } else if (resolved.presetId === 'axis-atlas') {
+            list.push({
+                cardId,
+                cardName: resolved.cardName,
+                color: resolved.color,
+                badge: '1:2 Miles Transfer',
+                title: 'Accor ALL, Singapore Airlines & Qatar Partner Transfer',
+                description: '1:2 points transfer ratio to 15+ airline and hotel partners (e.g. Accor ALL yielding up to 20% stay value), 5 EDGE Miles/₹100 on airlines/hotels.'
+            });
+        } else if (resolved.presetId === 'scapia-federal') {
+            list.push({
+                cardId,
+                cardName: resolved.cardName,
+                color: resolved.color,
+                badge: 'Zero Forex',
+                title: '0% Forex Currency Conversion & Unlimited Lounges',
+                description: 'Zero foreign currency markup fee on international transactions (saves 3.5%–4.13%) and unlimited domestic airport lounge access on spending ₹10,000/mo.'
+            });
+        } else if (resolved.presetId === 'idfc-first-wealth') {
+            list.push({
+                cardId,
+                cardName: resolved.cardName,
+                color: resolved.color,
+                badge: 'LTF Premium',
+                title: 'Lifetime Free Domestic & International Lounges + 1.5% Forex',
+                description: 'Lifetime Free with ₹0 annual fee, 4 domestic + 4 international lounges per quarter, low 1.5% forex markup, and BookMyShow BOGO up to ₹500.'
+            });
+        } else if (resolved.presetId === 'amazon-pay-icici') {
             list.push({
                 cardId,
                 cardName: resolved.cardName,
@@ -1315,6 +3692,15 @@ export function getBrandSuperpowersSummary(cards = {}) {
                 badge: 'RuPay on UPI',
                 title: 'Zero Surcharge Offline QR & Neon Milestone Lounges',
                 description: 'Turns your credit card into a daily UPI scanner with 1.5%–2% cashback on kirana & local vendors. Kiwi Neon milestones unlock up to 3 domestic airport lounge vouchers at ₹50k, ₹1L, and ₹1.5L spends.'
+            });
+        } else if (resolved.presetId === 'tata-neu-infinity') {
+            list.push({
+                cardId,
+                cardName: resolved.cardName,
+                color: resolved.color,
+                badge: 'Tata Neu 10%',
+                title: 'Tata Brand Ecosystem & 1.5% UPI QR',
+                description: 'Up to 10% NeuCoins on BigBasket, Croma, Tata 1mg, Air India, Taj hotels, and 1.5% NeuCoins on RuPay UPI merchant QR transactions.'
             });
         }
     }
@@ -1508,7 +3894,9 @@ export function generateCategoryCheatSheet(cards = {}) {
         { id: 'upi', icon: 'bi-qr-code-scan', title: 'UPI Scan & Pay / Local Store', query: 'upi', sampleAmount: 350 },
         { id: 'cabs', icon: 'bi-car-front', title: 'Uber & Cabs', query: 'uber', sampleAmount: 500 },
         { id: 'bills', icon: 'bi-lightning-charge', title: 'Electricity & Utility Bills', query: 'electricity', sampleAmount: 2500 },
-        { id: 'movies', icon: 'bi-film', title: 'Movie Tickets (BookMyShow)', query: 'bookmyshow', sampleAmount: 700 },
+        { id: 'movies', icon: 'bi-film', title: 'Movie Tickets (BookMyShow BOGO)', query: 'bookmyshow', sampleAmount: 800 },
+        { id: 'golf', icon: 'bi-flag', title: 'Golf Sessions & Coaching', query: 'golf', sampleAmount: 2000 },
+        { id: 'lounge', icon: 'bi-airplane', title: 'Airport Lounge Access', query: 'airport lounge', sampleAmount: 1500 },
         { id: 'jewellery', icon: 'bi-gem', title: 'Jewellery & Gold', query: 'jewellery', sampleAmount: 25000 },
         { id: 'fuel', icon: 'bi-fuel-pump', title: 'Fuel & Petrol', query: 'fuel', sampleAmount: 1500 },
         { id: 'general', icon: 'bi-credit-card-2-back', title: 'All Other General Retail', query: 'other', sampleAmount: 2000 }
@@ -1585,21 +3973,25 @@ export function switchCardOptimizerTab(tabName) {
     activeTab = tabName;
     const spendTab = document.getElementById('cardOptimizerSpendTab');
     const privTab = document.getElementById('cardOptimizerPrivilegesTab');
+    const dirTab = document.getElementById('cardOptimizerDirectoryTab');
     const tabSpendBtn = document.getElementById('tabSpendOptimizerBtn');
     const tabPrivBtn = document.getElementById('tabPrivilegesBtn');
+    const tabDirBtn = document.getElementById('tabCardDirectoryBtn');
+
+    if (spendTab) spendTab.style.display = tabName === 'spend' ? 'block' : 'none';
+    if (privTab) privTab.style.display = tabName === 'privileges' ? 'block' : 'none';
+    if (dirTab) dirTab.style.display = tabName === 'directory' ? 'block' : 'none';
+
+    if (tabSpendBtn) tabSpendBtn.classList.toggle('active', tabName === 'spend');
+    if (tabPrivBtn) tabPrivBtn.classList.toggle('active', tabName === 'privileges');
+    if (tabDirBtn) tabDirBtn.classList.toggle('active', tabName === 'directory');
 
     if (tabName === 'spend') {
-        if (spendTab) spendTab.style.display = 'block';
-        if (privTab) privTab.style.display = 'none';
-        if (tabSpendBtn) tabSpendBtn.classList.add('active');
-        if (tabPrivBtn) tabPrivBtn.classList.remove('active');
         runCardAdvisorSearch();
-    } else {
-        if (spendTab) spendTab.style.display = 'none';
-        if (privTab) privTab.style.display = 'block';
-        if (tabSpendBtn) tabSpendBtn.classList.remove('active');
-        if (tabPrivBtn) tabPrivBtn.classList.add('active');
+    } else if (tabName === 'privileges') {
         renderPrivilegesTab();
+    } else if (tabName === 'directory') {
+        renderCardDirectoryTab();
     }
 }
 
@@ -1673,8 +4065,8 @@ export function runCardAdvisorSearch() {
                 </div>
                 ${!winner.isExcluded ? `
                     <div class="cashback-badge">
-                        <span class="cashback-rate">${winner.applicableRate}%</span>
-                        <span class="cashback-label">Cashback</span>
+                        <span class="cashback-rate">${winner.perkBadge ? escapeHtml(winner.perkBadge.split(' ')[0]) : winner.applicableRate + '%'}</span>
+                        <span class="cashback-label">${winner.perkBadge ? 'Special Perk' : 'Cashback'}</span>
                     </div>
                 ` : `
                     <div class="cashback-badge excluded">
@@ -1695,8 +4087,8 @@ export function runCardAdvisorSearch() {
 
                 <div class="hero-savings">
                     ${!winner.isExcluded ? `
-                        <div class="savings-amount">+${optimizerBridge.formatCurrency(winner.cashbackEarned)}</div>
-                        <div class="savings-note">projected reward on ${optimizerBridge.formatCurrency(amount)} spend</div>
+                        <div class="savings-amount">+${optimizerBridge.formatCurrency(winner.effectiveSavings)}</div>
+                        <div class="savings-note">${winner.perkBadge ? `<span class="badge-perk-inline">${escapeHtml(winner.perkBadge)}</span> + ` : ''}projected reward on ${optimizerBridge.formatCurrency(amount)} spend</div>
                     ` : `
                         <div class="savings-amount warning-text">₹0.00</div>
                         <div class="savings-note">${escapeHtml(winner.exclusionReason)}</div>
@@ -1781,8 +4173,59 @@ export function runCardAdvisorSearch() {
                         <div>${escapeHtml(winner.curWarning.message)}</div>
                     </div>
                 ` : ''}
+                ${(query && /golf/i.test(query) && winner.golf) ? `
+                    <div class="hero-warning golf-bonus">
+                        <i class="bi bi-flag-fill"></i>
+                        <div><strong>Complimentary Golf Privilege:</strong> ${escapeHtml(winner.golf.description)}</div>
+                    </div>
+                ` : ''}
                 <div class="float-tag">
                     <i class="bi bi-calendar-check"></i> ~${winner.paymentFloatDays} days interest-free float
+                </div>
+
+                <!-- Hero Card Benefits, Pros & Cons Toggle -->
+                <div class="hero-pros-cons-action">
+                    <button type="button" class="btn-card-pros-cons" id="btnProsCons_hero" onclick="window.toggleCardProsConsExpand('hero', '${winner.presetId || winner.cardId}')">
+                        <i class="bi bi-star-fill" style="color: #f59e0b;"></i> 
+                        <span>Card Benefits, Pros & Cons (${winner.pros?.length || 0} Pros, ${winner.cons?.length || 0} Cons)</span>
+                        <i class="bi bi-chevron-down pros-cons-arrow"></i>
+                    </button>
+                </div>
+
+                <div id="cardProsConsDetail_hero" class="card-pros-cons-panel" style="display: none;">
+                    ${winner.bestFor ? `
+                        <div class="card-best-for-callout">
+                            <i class="bi bi-bullseye"></i> <strong>Best For:</strong> ${escapeHtml(winner.bestFor)}
+                        </div>
+                    ` : ''}
+
+                    ${winner.welcomeBenefit ? `
+                        <div class="card-welcome-box">
+                            <i class="bi bi-gift-fill"></i>
+                            <div><strong>Welcome Benefit:</strong> ${escapeHtml(winner.welcomeBenefit)}</div>
+                        </div>
+                    ` : ''}
+
+                    ${winner.keyBenefitsSummary && winner.keyBenefitsSummary.length > 0 ? `
+                        <div class="card-quick-perks">
+                            ${winner.keyBenefitsSummary.map(k => `<span class="quick-perk-badge"><i class="bi bi-check2"></i> ${escapeHtml(k)}</span>`).join('')}
+                        </div>
+                    ` : ''}
+
+                    <div class="pros-cons-grid">
+                        <div class="pros-column">
+                            <div class="pros-column-title"><i class="bi bi-hand-thumbs-up-fill"></i> Pros</div>
+                            <ul class="pros-list">
+                                ${(winner.pros || []).map(p => `<li><i class="bi bi-check-circle-fill"></i> <span>${escapeHtml(p)}</span></li>`).join('')}
+                            </ul>
+                        </div>
+                        <div class="cons-column">
+                            <div class="cons-column-title"><i class="bi bi-hand-thumbs-down-fill"></i> Cons & Limitations</div>
+                            <ul class="cons-list">
+                                ${(winner.cons || []).map(c => `<li><i class="bi bi-exclamation-triangle-fill"></i> <span>${escapeHtml(c)}</span></li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1822,6 +4265,26 @@ export function runCardAdvisorSearch() {
                             <div class="runner-return">
                                 <div class="return-rate ${r.isExcluded || r.isOverLimit || r.isUpiIncompatible ? 'rate-zero' : ''}">${r.isOverLimit || r.isUpiIncompatible ? '0%' : `${r.applicableRate}%`}</div>
                                 <div class="return-amount">${r.isExcluded || r.isOverLimit || r.isUpiIncompatible ? '₹0' : `+${optimizerBridge.formatCurrency(r.cashbackEarned)}`}</div>
+                                <button type="button" class="btn-card-pros-cons" style="font-size:0.7rem; padding:3px 8px; margin-top:4px;" onclick="window.toggleCardProsConsExpand('runner_${idx}', '${r.presetId || r.cardId}')">
+                                    <span>Perks</span> <i class="bi bi-chevron-down pros-cons-arrow"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="cardProsConsDetail_runner_${idx}" class="card-pros-cons-panel" style="display: none; margin-bottom: 10px;">
+                            ${r.bestFor ? `<div class="card-best-for-callout"><i class="bi bi-bullseye"></i> <strong>Best For:</strong> ${escapeHtml(r.bestFor)}</div>` : ''}
+                            <div class="pros-cons-grid">
+                                <div class="pros-column">
+                                    <div class="pros-column-title"><i class="bi bi-hand-thumbs-up-fill"></i> Pros</div>
+                                    <ul class="pros-list">
+                                        ${(r.pros || []).slice(0, 3).map(p => `<li><i class="bi bi-check-circle-fill"></i> <span>${escapeHtml(p)}</span></li>`).join('')}
+                                    </ul>
+                                </div>
+                                <div class="cons-column">
+                                    <div class="cons-column-title"><i class="bi bi-hand-thumbs-down-fill"></i> Cons</div>
+                                    <ul class="cons-list">
+                                        ${(r.cons || []).slice(0, 3).map(c => `<li><i class="bi bi-exclamation-triangle-fill"></i> <span>${escapeHtml(c)}</span></li>`).join('')}
+                                    </ul>
+                                </div>
                             </div>
                         </div>
                     `).join('')}
@@ -1850,6 +4313,7 @@ export function renderPrivilegesTab() {
 
     const loungeSummary = getLoungePrivilegesSummary(cards);
     const movieSummary = getMoviePrivilegesSummary(cards);
+    const golfSummary = getGolfPrivilegesSummary(cards);
     const diningSummary = getDiningPrivilegesSummary(cards);
     const brandSummary = getBrandSuperpowersSummary(cards);
     const feeWaiverSummary = getAnnualFeeWaiverSummary(cards, currentMonth);
@@ -1949,6 +4413,32 @@ export function renderPrivilegesTab() {
                 </div>
             ` : `
                 <div class="privilege-empty-text">No entertainment perks found on active cards.</div>
+            `}
+        </div>
+
+        <!-- Section 2.5: Golf & Country Club Privileges -->
+        <div class="privilege-card-section">
+            <div class="privilege-section-title">
+                <i class="bi bi-flag-fill" style="color: #10b981;"></i>
+                <span>Complimentary Golf & Country Club Access</span>
+            </div>
+            ${golfSummary.length > 0 ? `
+                <div class="perk-cards-grid">
+                    ${golfSummary.map(g => `
+                        <div class="perk-card-box">
+                            <div class="perk-card-header">
+                                <span class="card-color-dot-sm" style="background:${g.color};"></span>
+                                <strong>${escapeHtml(g.cardName)}</strong>
+                                <span class="perk-tag-emerald">${g.roundsPerMonth === 999 ? 'Unlimited' : `${g.roundsPerMonth} rounds/mo`}</span>
+                            </div>
+                            <div class="perk-program-title"><i class="bi bi-flag"></i> Golf Privileges</div>
+                            <div class="perk-card-desc">${escapeHtml(g.description)}</div>
+                            <div class="privilege-desc-text" style="margin-top:6px; font-size:0.75rem; color:var(--text-muted);">Spend Criteria: ${escapeHtml(g.spendCriteria)}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : `
+                <div class="privilege-empty-text">No active cards with complimentary golf privileges found (e.g. ICICI Sapphiro, HDFC Infinia, ICICI Rubyx).</div>
             `}
         </div>
 
@@ -2101,7 +4591,7 @@ export function renderCardCheatSheet() {
                     <div class="winner-row">
                         <span class="winner-dot" style="background:${item.winner.color};"></span>
                         <span class="winner-name">${escapeHtml(item.winner.cardName)}</span>
-                        <span class="winner-rate-badge">${item.winner.applicableRate}%</span>
+                        <span class="winner-rate-badge">${item.winner.perkBadge ? escapeHtml(item.winner.perkBadge.split(' ')[0]) : item.winner.applicableRate + '%'}</span>
                     </div>
                     ${item.runnerUp ? `
                         <div class="runner-row">
@@ -2138,5 +4628,256 @@ if (typeof window !== 'undefined') {
     window.clearCardAdvisorSearch = clearCardAdvisorSearch;
     window.toggleCardCheatSheet = toggleCardCheatSheet;
     window.renderCardCheatSheet = renderCardCheatSheet;
+    window.renderCardDirectoryTab = renderCardDirectoryTab;
+    window.runCardDirectoryFilter = runCardDirectoryFilter;
+    window.setDirectoryCategoryFilter = setDirectoryCategoryFilter;
+    window.clearCardDirectorySearch = clearCardDirectorySearch;
+    window.toggleCardProsConsExpand = toggleCardProsConsExpand;
+    window.openAddCardFromPreset = openAddCardFromPreset;
+    window.testCardInSpendFinder = testCardInSpendFinder;
 }
 
+
+
+// ============================================================================
+// 9. CARD GUIDE & DIRECTORY CONTROLLER (PROS, CONS & BENEFITS)
+// ============================================================================
+
+let activeDirectoryCategory = 'all';
+let directorySearchQuery = '';
+
+export function renderCardDirectoryTab() {
+    const container = document.getElementById('cardDirectoryGrid');
+    if (!container) return;
+
+    const financeData = optimizerBridge.getFinanceData();
+    const activeCards = financeData.creditCards || {};
+
+    // Determine presets user already has in wallet
+    const ownedPresetIds = new Set();
+    Object.values(activeCards).forEach(c => {
+        if ((c.type || 'credit-card') !== 'credit-card') return;
+        const detected = detectCardPreset(c.name, c.issuer);
+        if (detected) ownedPresetIds.add(detected.id);
+    });
+
+    const query = (directorySearchQuery || '').toLowerCase().trim();
+    const cat = activeDirectoryCategory;
+
+    const allPresets = Object.values(CARD_PRESETS_REGISTRY);
+
+    const filtered = allPresets.filter(preset => {
+        // Category filtering
+        if (cat === 'icici' && !preset.issuer.toLowerCase().includes('icici')) return false;
+        if (cat === 'hdfc' && !preset.issuer.toLowerCase().includes('hdfc')) return false;
+        if (cat === 'axis' && !preset.issuer.toLowerCase().includes('axis')) return false;
+        if (cat === 'sbi' && !preset.issuer.toLowerCase().includes('sbi')) return false;
+        if (cat === 'amex' && !preset.issuer.toLowerCase().includes('american express')) return false;
+        if (cat === 'ltf' && preset.annualFee !== 0) return false;
+        if (cat === 'travel') {
+            const hasLounge = (preset.lounges?.domesticAirport?.hasAccess || preset.lounges?.internationalAirport?.hasAccess);
+            const isTravelCard = (preset.cardType || '').toLowerCase().includes('travel') || (preset.cardType || '').toLowerCase().includes('miles');
+            if (!hasLounge && !isTravelCard) return false;
+        }
+        if (cat === 'movies' && !(preset.entertainment?.movies?.bogo || preset.entertainment?.movies?.rate >= 5 || preset.entertainment?.movies?.type === 'bogo')) return false;
+        if (cat === 'golf' && !(preset.golf && preset.golf.hasAccess)) return false;
+        if (cat === 'cashback' && !(preset.cardType || '').toLowerCase().includes('cashback')) return false;
+
+        // Query search
+        if (query) {
+            const searchString = `${preset.name} ${preset.shortName || ''} ${preset.issuer} ${preset.network} ${preset.cardType || ''} ${preset.bestFor || ''} ${(preset.keyBenefitsSummary || []).join(' ')} ${(preset.pros || []).join(' ')}`.toLowerCase();
+            if (!searchString.includes(query)) return false;
+        }
+
+        return true;
+    });
+
+    if (filtered.length === 0) {
+        container.innerHTML = `
+            <div style="grid-column: 1/-1; text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                <i class="bi bi-search" style="font-size: 2rem; opacity: 0.4; display: block; margin-bottom: 8px;"></i>
+                <h4>No Matching Cards Found</h4>
+                <p>Try clearing your search query or choosing another category filter.</p>
+                <button type="button" class="btn-finance btn-finance-outline" style="margin-top: 10px;" onclick="window.setDirectoryCategoryFilter('all'); window.clearCardDirectorySearch();">View All Cards</button>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = filtered.map(card => {
+        const isOwned = ownedPresetIds.has(card.id);
+        const joiningDisplay = card.joiningFee === 0 ? '₹0 (LTF)' : `₹${card.joiningFee?.toLocaleString('en-IN')}`;
+        const annualDisplay = card.annualFee === 0 ? '₹0 (LTF)' : `₹${card.annualFee?.toLocaleString('en-IN')}`;
+        const waiverDisplay = card.feeWaiverSpendTarget > 0 ? `₹${(card.feeWaiverSpendTarget / 100000).toFixed(card.feeWaiverSpendTarget % 100000 === 0 ? 0 : 1)}L Spend` : (card.annualFee === 0 ? 'Lifetime Free' : 'N/A');
+        const forexDisplay = card.forexMarkupPercent === 0 ? '0.0% (Zero Forex)' : `${card.forexMarkupPercent}%`;
+
+        return `
+            <div class="directory-card-card">
+                <div class="dir-card-color-stripe" style="background: ${card.color};"></div>
+                <div class="dir-card-header">
+                    <div class="dir-card-ident">
+                        <div class="dir-card-avatar" style="background: ${card.color};">
+                            <i class="bi bi-credit-card-2-front"></i>
+                        </div>
+                        <div>
+                            <div class="dir-card-title">${escapeHtml(card.name)}</div>
+                            <div class="dir-card-issuer">${escapeHtml(card.issuer)} • ${escapeHtml(card.network)}</div>
+                        </div>
+                    </div>
+                    <div class="dir-card-badges">
+                        <span class="dir-category-badge">${escapeHtml(card.cardType || 'Credit Card')}</span>
+                        ${isOwned ? `<span class="dir-wallet-badge"><i class="bi bi-check2-circle"></i> In Your Wallet</span>` : ''}
+                    </div>
+                </div>
+
+                <div class="dir-card-body">
+                    <div class="dir-fees-matrix">
+                        <div class="dir-fee-cell">
+                            <div class="dir-fee-label">Joining</div>
+                            <div class="dir-fee-val">${joiningDisplay}</div>
+                        </div>
+                        <div class="dir-fee-cell">
+                            <div class="dir-fee-label">Annual</div>
+                            <div class="dir-fee-val">${annualDisplay}</div>
+                        </div>
+                        <div class="dir-fee-cell">
+                            <div class="dir-fee-label">Fee Waiver</div>
+                            <div class="dir-fee-val">${waiverDisplay}</div>
+                        </div>
+                        <div class="dir-fee-cell">
+                            <div class="dir-fee-label">Forex Fee</div>
+                            <div class="dir-fee-val">${forexDisplay}</div>
+                        </div>
+                    </div>
+
+                    ${card.bestFor ? `
+                        <div class="card-best-for-callout">
+                            <i class="bi bi-bullseye" style="color: ${card.color};"></i> <strong>Best For:</strong> ${escapeHtml(card.bestFor)}
+                        </div>
+                    ` : ''}
+
+                    ${card.welcomeBenefit ? `
+                        <div class="card-welcome-box">
+                            <i class="bi bi-gift-fill"></i>
+                            <div><strong>Welcome Benefit:</strong> ${escapeHtml(card.welcomeBenefit)}</div>
+                        </div>
+                    ` : ''}
+
+                    ${card.keyBenefitsSummary && card.keyBenefitsSummary.length > 0 ? `
+                        <div class="card-quick-perks">
+                            ${card.keyBenefitsSummary.map(k => `<span class="quick-perk-badge"><i class="bi bi-check-circle"></i> ${escapeHtml(k)}</span>`).join('')}
+                        </div>
+                    ` : ''}
+
+                    <div class="pros-cons-grid">
+                        <div class="pros-column">
+                            <div class="pros-column-title"><i class="bi bi-hand-thumbs-up-fill"></i> Top Benefits & Pros</div>
+                            <ul class="pros-list">
+                                ${(card.pros || []).map(p => `<li><i class="bi bi-check2-circle"></i> <span>${escapeHtml(p)}</span></li>`).join('')}
+                            </ul>
+                        </div>
+                        <div class="cons-column">
+                            <div class="cons-column-title"><i class="bi bi-hand-thumbs-down-fill"></i> Cons & Limitations</div>
+                            <ul class="cons-list">
+                                ${(card.cons || []).map(c => `<li><i class="bi bi-exclamation-triangle"></i> <span>${escapeHtml(c)}</span></li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dir-card-footer">
+                    <button type="button" class="btn-dir-action btn-dir-test" onclick="window.testCardInSpendFinder('${card.id}')">
+                        <i class="bi bi-calculator"></i> Test Spend
+                    </button>
+                    ${!isOwned ? `
+                        <button type="button" class="btn-dir-action btn-dir-add" onclick="window.openAddCardFromPreset('${card.id}')">
+                            <i class="bi bi-plus-lg"></i> Add to My Cards
+                        </button>
+                    ` : `
+                        <button type="button" class="btn-dir-action btn-dir-added" disabled>
+                            <i class="bi bi-check-circle-fill"></i> Active in Wallet
+                        </button>
+                    `}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+export function runCardDirectoryFilter() {
+    const input = document.getElementById('cardDirectorySearchInput');
+    const clearBtn = document.getElementById('cardDirectoryClearBtn');
+    directorySearchQuery = input ? input.value.trim() : '';
+    if (clearBtn) {
+        clearBtn.style.display = directorySearchQuery ? 'flex' : 'none';
+    }
+    renderCardDirectoryTab();
+}
+
+export function setDirectoryCategoryFilter(category) {
+    activeDirectoryCategory = category;
+    const filterPills = document.querySelectorAll('.dir-filter-chip');
+    filterPills.forEach(pill => {
+        pill.classList.toggle('active', pill.getAttribute('data-filter') === category);
+    });
+    renderCardDirectoryTab();
+}
+
+export function clearCardDirectorySearch() {
+    const input = document.getElementById('cardDirectorySearchInput');
+    const clearBtn = document.getElementById('cardDirectoryClearBtn');
+    if (input) input.value = '';
+    if (clearBtn) clearBtn.style.display = 'none';
+    directorySearchQuery = '';
+    renderCardDirectoryTab();
+}
+
+export function toggleCardProsConsExpand(prefix, id) {
+    const detailPanel = document.getElementById(`cardProsConsDetail_${prefix}`);
+    const btn = document.getElementById(`btnProsCons_${prefix}`);
+    if (!detailPanel) return;
+    const isHidden = detailPanel.style.display === 'none' || !detailPanel.style.display;
+    detailPanel.style.display = isHidden ? 'flex' : 'none';
+    if (btn) btn.classList.toggle('expanded', isHidden);
+}
+
+export function openAddCardFromPreset(presetId) {
+    const preset = CARD_PRESETS_REGISTRY[presetId];
+    if (!preset) return;
+
+    optimizerBridge.closeModal('cardOptimizerModal');
+
+    if (window.openAddCreditCardModal) {
+        window.openAddCreditCardModal();
+        setTimeout(() => {
+            const nameInput = document.getElementById('cardName');
+            const issuerInput = document.getElementById('cardIssuer');
+            const limitInput = document.getElementById('cardCreditLimit');
+            if (nameInput) nameInput.value = preset.name;
+            if (issuerInput) issuerInput.value = preset.issuer;
+            if (limitInput && (!limitInput.value || limitInput.value === '0')) {
+                limitInput.value = preset.annualFee > 5000 ? 500000 : 150000;
+            }
+            optimizerBridge.showToast(`Prefilled details for ${preset.name}! Enter your current balance and save.`, 'info');
+        }, 80);
+    }
+}
+
+export function testCardInSpendFinder(presetId) {
+    const preset = CARD_PRESETS_REGISTRY[presetId];
+    if (!preset) return;
+
+    let query = 'Swiggy';
+    if (preset.id === 'icici-sapphiro-visa') query = 'BookMyShow';
+    else if (preset.id === 'amazon-pay-icici') query = 'Amazon';
+    else if (preset.id === 'sbi-bpcl-octane') query = 'BPCL Fuel';
+    else if (preset.id === 'axis-atlas' || preset.id === 'scapia-federal' || preset.id === 'hdfc-regalia-gold') query = 'Flights';
+    else if (preset.id === 'kiwi-rupay') query = 'UPI';
+
+    switchCardOptimizerTab('spend');
+    const searchInput = document.getElementById('cardAdvisorSearchInput');
+    if (searchInput) searchInput.value = query;
+    currentSearchQuery = query;
+    renderQuickChips();
+    runCardAdvisorSearch();
+}
