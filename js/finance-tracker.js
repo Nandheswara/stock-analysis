@@ -94,6 +94,17 @@ import {
 
 import { getFinanceTrackerTour } from './tour-guide.js';
 
+import {
+    registerCardOptimizerBridge,
+    openCardOptimizerModal,
+    closeCardOptimizerModal,
+    switchCardOptimizerTab,
+    selectCardAdvisorChip,
+    runCardAdvisorSearch,
+    clearCardAdvisorSearch,
+    toggleCardCheatSheet,
+    renderCardCheatSheet
+} from './credit-card-optimizer.js';
 
 window.openForecastModal = openForecastModal;
 window.closeForecastModal = closeForecastModal;
@@ -106,8 +117,27 @@ registerHealthScoreBridge({
     getMonthDisplay,
     formatCurrency,
     openModal,
+    closeModal,
     getChartsObject: () => charts
 });
+
+registerCardOptimizerBridge({
+    getFinanceData: () => financeData,
+    getCurrentMonth: () => currentMonth,
+    formatCurrency,
+    openModal,
+    closeModal,
+    showToast
+});
+
+window.openCardOptimizerModal = openCardOptimizerModal;
+window.closeCardOptimizerModal = closeCardOptimizerModal;
+window.switchCardOptimizerTab = switchCardOptimizerTab;
+window.selectCardAdvisorChip = selectCardAdvisorChip;
+window.runCardAdvisorSearch = runCardAdvisorSearch;
+window.clearCardAdvisorSearch = clearCardAdvisorSearch;
+window.toggleCardCheatSheet = toggleCardCheatSheet;
+window.renderCardCheatSheet = renderCardCheatSheet;
 
 window.exportForecastDataAndClose = exportForecastDataAndClose;
 window.exportForecastData = exportForecastData;
@@ -1820,6 +1850,12 @@ function renderCreditCards() {
         </tr>
         `;
     }).join('');
+
+    // Dynamically refresh card cheat sheet matrix if it is currently displayed
+    const cheatSheetContainer = document.getElementById('creditCardCheatSheetContainer');
+    if (cheatSheetContainer && cheatSheetContainer.style.display !== 'none') {
+        renderCardCheatSheet();
+    }
 }
 
 function renderLoans() {
