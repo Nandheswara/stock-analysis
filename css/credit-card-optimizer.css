@@ -1,0 +1,1188 @@
+/**
+ * Credit Card Optimizer & Privileges Hub Styles
+ * 
+ * Supports:
+ * - Dynamic Spend & Cashback Advisor Modal
+ * - Gold/Silver/Bronze recommendation cards with animated glowing badges
+ * - Quick-select merchant chips
+ * - Collapsible Daily Cashback Cheat Sheet Grid
+ * - Airport & Railway Lounge Access Cards
+ * - Movie BOGO / Entertainment Perks
+ * - Annual Fee Waiver Progress Bars
+ * - 0% Exclusion Alert Banners & CIBIL CUR Warnings
+ * - Fully responsive for mobile and desktop, Dark & Light modes
+ */
+
+/* ============================================================================
+   1. Section Header Action Buttons & Cheat Sheet
+   ============================================================================ */
+
+.card-advisor-btn {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-advisor-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(99, 102, 241, 0.45);
+    filter: brightness(1.1);
+}
+
+/* Collapsible Cheat Sheet Container */
+.card-cheat-sheet-collapse {
+    background: var(--card-bg, #1a1e29);
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+    border-radius: 16px;
+    padding: 18px 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    animation: cheatSheetSlideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes cheatSheetSlideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.cheat-sheet-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+}
+
+.cheat-sheet-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-heading, #ffffff);
+}
+
+.cheat-sheet-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.btn-cheat-sheet-close {
+    background: transparent;
+    border: none;
+    color: var(--text-muted, #94a3b8);
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.btn-cheat-sheet-close:hover {
+    color: var(--text-primary, #ffffff);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.cheat-sheet-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 12px;
+}
+
+.cheat-card {
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.07));
+    border-radius: 12px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.cheat-card:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(99, 102, 241, 0.4);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.cheat-card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-secondary, #cbd5e1);
+    margin-bottom: 8px;
+}
+
+.cheat-card-header i {
+    font-size: 0.95rem;
+    color: var(--accent-primary, #6366f1);
+}
+
+.winner-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.84rem;
+    font-weight: 600;
+}
+
+.winner-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.winner-name {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-primary, #ffffff);
+}
+
+.winner-rate-badge {
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 6px;
+    background: rgba(16, 185, 129, 0.18);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.runner-row {
+    margin-top: 4px;
+    padding-top: 4px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.06);
+}
+
+.runner-sub {
+    font-size: 0.72rem;
+    color: var(--text-muted, #94a3b8);
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ============================================================================
+   2. Modal Architecture & Tab Styling
+   ============================================================================ */
+
+.card-optimizer-modal {
+    max-width: 900px !important;
+    width: 94vw !important;
+    max-height: 88vh !important;
+    border-radius: 20px !important;
+    overflow: hidden;
+    background: var(--bg-card, #ffffff);
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.35);
+}
+
+.card-optimizer-icon-badge {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(168, 85, 247, 0.2) 100%);
+    border: 1px solid rgba(99, 102, 241, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #8b5cf6;
+    font-size: 1.3rem;
+}
+
+.card-optimizer-tabs {
+    display: flex;
+    background: var(--bg-tertiary, #f1f5f9);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 12px;
+    margin: 14px 24px 0;
+    padding: 4px;
+    gap: 6px;
+}
+
+.card-optimizer-tab {
+    flex: 1;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 16px;
+    color: var(--text-secondary, #64748b);
+    font-size: 0.86rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-optimizer-tab:hover {
+    color: var(--text-heading, #1e293b);
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.card-optimizer-tab.active {
+    background: var(--bg-card, #ffffff);
+    color: var(--accent-primary, #6366f1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    font-weight: 700;
+}
+
+/* Input Row */
+.card-advisor-input-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.card-advisor-input-group label {
+    display: block;
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: var(--text-secondary, #cbd5e1);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.input-with-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-with-icon i.bi-search {
+    position: absolute;
+    left: 14px;
+    color: var(--text-muted, #94a3b8);
+    font-size: 0.95rem;
+    pointer-events: none;
+}
+
+.input-with-icon span.currency-prefix {
+    position: absolute;
+    left: 14px;
+    color: var(--text-muted, #94a3b8);
+    font-size: 0.95rem;
+    font-weight: 600;
+    pointer-events: none;
+}
+
+.input-with-icon input {
+    width: 100%;
+    padding: 11px 14px 11px 38px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color, #e2e8f0);
+    background: var(--bg-tertiary, #f8fafc);
+    color: var(--text-heading, #0f172a);
+    font-size: 0.92rem;
+    font-family: inherit;
+    transition: all 0.2s ease;
+}
+
+.input-with-icon input:focus {
+    outline: none;
+    border-color: var(--accent-primary, #6366f1);
+    background: var(--bg-card, #ffffff);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+}
+
+.input-clear-btn {
+    position: absolute;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.08);
+    border: none;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted, #94a3b8);
+    font-size: 1rem;
+    cursor: pointer;
+    line-height: 1;
+}
+
+/* Quick Chips */
+.card-advisor-chips-section {
+    margin-bottom: 18px;
+}
+
+.chips-label {
+    font-size: 0.72rem;
+    color: var(--text-muted, #64748b);
+    margin-bottom: 6px;
+}
+
+.card-advisor-chips-scroll {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.advisor-chip {
+    background: var(--bg-tertiary, #f1f5f9);
+    border: 1px solid var(--border-color, #e2e8f0);
+    color: var(--text-secondary, #64748b);
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    user-select: none;
+}
+
+.advisor-chip:hover {
+    background: var(--bg-card, #ffffff);
+    color: var(--accent-primary, #6366f1);
+    border-color: rgba(99, 102, 241, 0.4);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.advisor-chip.active {
+    background: rgba(99, 102, 241, 0.15);
+    border-color: var(--accent-primary, #6366f1);
+    color: var(--accent-primary, #6366f1);
+    font-weight: 700;
+}
+
+/* ============================================================================
+   3. Top Recommendation Hero Card
+   ============================================================================ */
+
+.card-recommendation-hero {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(168, 85, 247, 0.06) 100%);
+    border: 1.5px solid rgba(99, 102, 241, 0.35);
+    border-radius: 16px;
+    padding: 18px 20px;
+    margin-bottom: 18px;
+    position: relative;
+    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.08);
+}
+
+.card-recommendation-hero.is-excluded {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(245, 158, 11, 0.06) 100%);
+    border-color: rgba(239, 68, 68, 0.35);
+}
+
+.hero-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.rank-badge.gold {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    padding: 3px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.card-recommendation-hero.is-excluded .rank-badge.gold {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.cashback-badge {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #ffffff;
+    padding: 4px 12px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
+}
+
+.cashback-badge.excluded {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);
+}
+
+.cashback-rate {
+    font-size: 1.15rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.cashback-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    opacity: 0.9;
+}
+
+.hero-body {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
+.card-identity {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.card-color-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 10px currentColor;
+}
+
+.card-color-dot-sm {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.card-name-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-heading, #ffffff);
+}
+
+.card-issuer-sub {
+    font-size: 0.78rem;
+    color: var(--text-muted, #94a3b8);
+}
+
+.hero-savings {
+    text-align: right;
+}
+
+.savings-amount {
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: #10b981;
+    line-height: 1.1;
+}
+
+.savings-amount.warning-text {
+    color: #ef4444;
+}
+
+.savings-note {
+    font-size: 0.72rem;
+    color: var(--text-muted, #94a3b8);
+    margin-top: 2px;
+}
+
+.hero-footer {
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.tier-info {
+    font-size: 0.78rem;
+    color: var(--text-secondary, #cbd5e1);
+    line-height: 1.35;
+}
+
+.tier-info i {
+    color: var(--accent-primary, #6366f1);
+    margin-right: 4px;
+}
+
+.hero-warning {
+    font-size: 0.76rem;
+    font-weight: 600;
+    padding: 6px 10px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    line-height: 1.3;
+}
+
+.hero-warning.cap-warning {
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    color: #f59e0b;
+}
+
+.hero-warning.forex-warning {
+    background: rgba(245, 158, 11, 0.14);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    color: #f59e0b;
+}
+
+.hero-warning.surcharge-warning {
+    background: rgba(245, 158, 11, 0.14);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    color: #f59e0b;
+}
+
+.hero-warning.surcharge-note {
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #10b981;
+}
+
+.hero-warning.overlimit-warning {
+    background: rgba(239, 68, 68, 0.16);
+    border: 1.5px solid rgba(239, 68, 68, 0.45);
+    color: #ef4444;
+}
+
+.hero-warning.fee-warning,
+.hero-warning.upi-warning {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #f87171;
+}
+
+.hero-warning.milestone-bonus {
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #10b981;
+}
+
+.hero-warning.min-spend-warning {
+    background: rgba(59, 130, 246, 0.12);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    color: #3b82f6;
+}
+
+.hero-warning.movie-bogo-bonus {
+    background: rgba(236, 72, 153, 0.14);
+    border: 1px solid rgba(236, 72, 153, 0.35);
+    color: #f472b6;
+}
+
+.hero-warning.cur-warning {
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    color: #f59e0b;
+}
+
+.hero-warning.cur-danger {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #ef4444;
+}
+
+.float-tag {
+    font-size: 0.72rem;
+    color: var(--text-muted, #94a3b8);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* ============================================================================
+   4. Runners-Up Cards
+   ============================================================================ */
+
+.runners-up-section {
+    margin-top: 14px;
+}
+
+.runners-up-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-muted, #94a3b8);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.runners-up-subtitle {
+    font-size: 0.7rem;
+    font-weight: 400;
+    text-transform: none;
+}
+
+.runners-up-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.runner-card-row {
+    background: var(--bg-card, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.runner-card-row:hover {
+    background: var(--bg-tertiary, #f8fafc);
+    border-color: rgba(99, 102, 241, 0.35);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06);
+}
+
+.runner-card-row.row-excluded {
+    opacity: 0.7;
+}
+
+.runner-card-row.row-overlimit {
+    opacity: 0.65;
+    background: rgba(239, 68, 68, 0.04);
+    border-color: rgba(239, 68, 68, 0.25);
+}
+
+.runner-rank {
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: var(--text-muted, #94a3b8);
+    width: 24px;
+}
+
+.runner-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.runner-name-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.86rem;
+    color: var(--text-primary, #ffffff);
+}
+
+.runner-issuer {
+    font-size: 0.72rem;
+    color: var(--text-muted, #94a3b8);
+    font-weight: normal;
+}
+
+.runner-note-line {
+    font-size: 0.72rem;
+    color: var(--text-muted, #94a3b8);
+    margin-top: 2px;
+}
+
+.badge-exclusion {
+    color: #ef4444;
+    font-weight: 600;
+}
+
+.badge-overlimit {
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    margin-left: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.badge-incompatible {
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    margin-left: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.badge-bogo {
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: rgba(236, 72, 153, 0.2);
+    color: #ec4899;
+    border: 1px solid rgba(236, 72, 153, 0.4);
+    margin-left: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.runner-return {
+    text-align: right;
+}
+
+.return-rate {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #10b981;
+}
+
+.return-rate.rate-zero {
+    color: #ef4444;
+}
+
+.return-amount {
+    font-size: 0.72rem;
+    color: var(--text-muted, #94a3b8);
+}
+
+/* ============================================================================
+   5. Privileges Hub (Lounges, Movies, Fee Waiver)
+   ============================================================================ */
+
+.privilege-card-section {
+    background: var(--bg-tertiary, #f8fafc);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 16px;
+    padding: 18px 20px;
+    margin-bottom: 18px;
+}
+
+.privilege-section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-heading, #0f172a);
+    margin-bottom: 6px;
+}
+
+.privilege-section-badge {
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: rgba(99, 102, 241, 0.12);
+    color: var(--accent-primary, #6366f1);
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    margin-left: auto;
+}
+
+.privilege-section-subtitle {
+    font-size: 0.76rem;
+    color: var(--text-muted, #64748b);
+    margin-bottom: 14px;
+    line-height: 1.4;
+}
+
+.privilege-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+@media (max-width: 600px) {
+    .privilege-grid {
+        grid-template-columns: 1fr;
+    }
+    .card-advisor-input-row {
+        flex-direction: column;
+    }
+}
+
+.privilege-box {
+    background: var(--bg-card, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 14px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.privilege-box-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-secondary, #475569);
+    margin-bottom: 12px;
+}
+
+.privilege-items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.privilege-item-row {
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color, #f1f5f9);
+}
+
+.privilege-item-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.privilege-card-ident {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.p-card-name {
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: var(--text-heading, #0f172a);
+}
+
+.privilege-network-tag {
+    font-size: 0.65rem;
+    padding: 1px 6px;
+    border-radius: 6px;
+    background: var(--bg-tertiary, #f1f5f9);
+    color: var(--text-muted, #64748b);
+    border: 1px solid var(--border-color, #e2e8f0);
+}
+
+.privilege-rule-badge {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 6px;
+    margin-bottom: 4px;
+}
+
+.privilege-rule-badge.badge-free {
+    background: rgba(16, 185, 129, 0.12);
+    color: #059669;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.privilege-rule-badge.badge-milestone {
+    background: rgba(245, 158, 11, 0.12);
+    color: #d97706;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.privilege-desc-text {
+    font-size: 0.74rem;
+    color: var(--text-muted, #64748b);
+    line-height: 1.4;
+}
+
+.privilege-empty-text {
+    font-size: 0.78rem;
+    color: var(--text-muted, #64748b);
+    font-style: italic;
+    padding: 10px 0;
+}
+
+/* Movies */
+.movies-privilege-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+}
+
+.movie-card-perk {
+    background: var(--bg-card, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 14px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.movie-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.84rem;
+    margin-bottom: 6px;
+}
+
+.bogo-tag {
+    font-size: 0.66rem;
+    font-weight: 700;
+    padding: 1px 7px;
+    border-radius: 8px;
+    background: rgba(236, 72, 153, 0.15);
+    color: #db2777;
+    border: 1px solid rgba(236, 72, 153, 0.35);
+    margin-left: auto;
+}
+
+.movie-platform {
+    font-size: 0.74rem;
+    color: var(--accent-primary, #6366f1);
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.movie-desc {
+    font-size: 0.74rem;
+    color: var(--text-muted, #64748b);
+    line-height: 1.35;
+}
+
+/* Dining & Brand Perk Grids */
+.perk-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+}
+
+.perk-card-box {
+    background: var(--bg-card, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.perk-card-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.84rem;
+    margin-bottom: 6px;
+}
+
+.perk-tag-orange {
+    font-size: 0.66rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 8px;
+    background: rgba(249, 115, 22, 0.14);
+    color: #ea580c;
+    border: 1px solid rgba(249, 115, 22, 0.3);
+    margin-left: auto;
+}
+
+.perk-tag-emerald {
+    font-size: 0.66rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 8px;
+    background: rgba(16, 185, 129, 0.14);
+    color: #059669;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    margin-left: auto;
+}
+
+.perk-program-title {
+    font-size: 0.74rem;
+    color: var(--accent-primary, #6366f1);
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.perk-card-desc {
+    font-size: 0.73rem;
+    color: var(--text-muted, #64748b);
+    line-height: 1.35;
+}
+
+/* Fee Waiver Trackers */
+.fee-waiver-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+}
+
+.fee-waiver-item {
+    background: var(--bg-card, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 14px;
+    padding: 12px 14px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    height: auto !important;
+    min-height: 0 !important;
+    flex: 0 0 auto !important;
+}
+
+.fee-waiver-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 0 !important;
+    padding: 0;
+}
+
+.fee-waiver-card-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.fee-card-name {
+    font-size: 0.86rem;
+    font-weight: 700;
+    color: var(--text-heading, #0f172a);
+}
+
+.annual-fee-text {
+    font-size: 0.74rem;
+    color: var(--text-muted, #64748b);
+    font-weight: 500;
+}
+
+.waiver-status {
+    font-size: 0.76rem;
+    font-weight: 600;
+}
+
+.waiver-status.waived {
+    color: #059669;
+    font-weight: 700;
+}
+
+.fee-remaining-pill {
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: #d97706;
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    padding: 2px 8px;
+    border-radius: 8px;
+}
+
+.fee-cycle-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 0 !important;
+    padding: 0;
+    font-size: 0.74rem;
+    flex-wrap: wrap;
+}
+
+.fee-cycle-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: rgba(99, 102, 241, 0.08);
+    color: var(--accent-primary, #6366f1);
+    font-weight: 500;
+}
+
+.fee-cycle-sub {
+    color: var(--text-muted, #64748b);
+    font-size: 0.72rem;
+}
+
+.fee-progress-bar {
+    width: 100% !important;
+    height: 7px !important;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.08);
+    margin: 2px 0 4px !important;
+    padding: 0 !important;
+    overflow: hidden;
+    position: relative;
+    display: block !important;
+    box-sizing: border-box;
+}
+
+body.light-theme .fee-progress-bar {
+    background: rgba(0, 0, 0, 0.08) !important;
+}
+
+.fee-progress-fill {
+    height: 100%;
+    border-radius: 10px;
+    background: var(--accent-primary, #6366f1);
+    transition: width 0.3s ease;
+}
+
+.fee-progress-fill.fill-waived {
+    background: #10b981 !important;
+}
+
+.fee-progress-fill.fill-active {
+    background: #2563eb;
+}
+
+.fee-waiver-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.72rem;
+    color: var(--text-muted, #64748b);
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0 !important;
+    padding: 0;
+}
+
+.fee-pacing-note {
+    font-size: 0.72rem;
+    color: #0284c7;
+    background: rgba(2, 132, 199, 0.08);
+    border: 1px solid rgba(2, 132, 199, 0.25);
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+.card-advisor-empty-state {
+    text-align: center;
+    padding: 30px 20px;
+    color: var(--text-muted, #94a3b8);
+}
+
+.card-advisor-empty-state i {
+    font-size: 2.2rem;
+    opacity: 0.5;
+    margin-bottom: 8px;
+    display: block;
+}

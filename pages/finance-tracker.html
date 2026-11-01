@@ -47,6 +47,7 @@
     <link rel="stylesheet" href="../css/finance-tracker.css">
     <link rel="stylesheet" href="../css/health-score.css">
     <link rel="stylesheet" href="../css/forecast.css">
+    <link rel="stylesheet" href="../css/credit-card-optimizer.css">
 
     <link rel="stylesheet" href="../css/firebase-auth.css">
     <link rel="stylesheet" href="../css/tour-guide.css">
@@ -438,11 +439,35 @@
                         <i class="bi bi-credit-card-2-back" style="color:var(--accent-danger);"></i> Credit Cards
                     </h2>
                     <div class="finance-section-actions">
+                        <button class="btn-finance card-advisor-btn" onclick="openCardOptimizerModal()" id="btnCardOptimizer" title="Find best card for any spend">
+                            <i class="bi bi-stars"></i> Best Card Advisor
+                        </button>
+                        <button class="btn-finance btn-finance-outline" onclick="toggleCardCheatSheet()" id="btnCardCheatSheet" title="Quick Category Cashback Matrix">
+                            <i class="bi bi-grid-3x3-gap"></i> <span id="cheatSheetBtnText">Cheat Sheet</span>
+                        </button>
                         <button class="btn-finance btn-finance-danger" onclick="openAddCreditCardModal()">
                             <i class="bi bi-plus-lg"></i> Add Credit Card
                         </button>
                     </div>
                 </div>
+
+                <!-- Collapsible Cashback Cheat Sheet Grid -->
+                <div id="creditCardCheatSheetContainer" class="card-cheat-sheet-collapse" style="display: none;">
+                    <div class="cheat-sheet-header">
+                        <div class="cheat-sheet-title">
+                            <i class="bi bi-lightning-charge-fill" style="color: #f59e0b;"></i>
+                            <span>Quick Cashback & Card Matrix</span>
+                            <span class="cheat-sheet-badge">Daily Spends</span>
+                        </div>
+                        <div class="cheat-sheet-actions">
+                            <button type="button" class="btn-cheat-sheet-close" onclick="toggleCardCheatSheet()" title="Close Matrix">&times;</button>
+                        </div>
+                    </div>
+                    <div class="cheat-sheet-grid" id="cardCheatSheetGrid">
+                        <!-- Populated dynamically from credit-card-optimizer.js -->
+                    </div>
+                </div>
+
                 <div class="finance-table-wrapper">
                     <table class="finance-table">
                         <thead>
@@ -1054,6 +1079,82 @@
     </main>
 
     <!-- ===== MODALS ===== -->
+
+    <!-- Credit Card Optimizer & Privileges Hub Modal -->
+    <div class="finance-modal-overlay" id="cardOptimizerModal">
+        <div class="finance-modal card-optimizer-modal">
+            <div class="finance-modal-header" style="border-bottom: 1px solid var(--border-color); padding: 18px 24px 14px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div class="card-optimizer-icon-badge">
+                        <i class="bi bi-stars"></i>
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: var(--text-heading);">Smart Credit Card Advisor</h3>
+                        <p style="margin: 2px 0 0; font-size: 0.8rem; color: var(--text-muted);">Max value finder, lounge checker, and CIBIL utilization guard</p>
+                    </div>
+                </div>
+                <button class="finance-modal-close" onclick="closeFinanceModal('cardOptimizerModal')" aria-label="Close optimizer modal">&times;</button>
+            </div>
+
+            <!-- Tab Navigation -->
+            <div class="card-optimizer-tabs">
+                <button type="button" class="card-optimizer-tab active" id="tabSpendOptimizerBtn" onclick="switchCardOptimizerTab('spend')">
+                    <i class="bi bi-cash-coin"></i> Spend & Cashback Finder
+                </button>
+                <button type="button" class="card-optimizer-tab" id="tabPrivilegesBtn" onclick="switchCardOptimizerTab('privileges')">
+                    <i class="bi bi-gift"></i> Lounges, Movies & Perks Hub
+                </button>
+            </div>
+
+            <div class="finance-modal-body" style="padding: 20px 24px;">
+                <!-- TAB 1: Spend & Cashback Finder -->
+                <div id="cardOptimizerSpendTab" class="card-optimizer-tab-panel active">
+                    <!-- Search & Amount Inputs -->
+                    <div class="card-advisor-input-row">
+                        <div class="card-advisor-input-group search-group" style="flex: 2;">
+                            <label for="cardAdvisorSearchInput">Where are you spending?</label>
+                            <div class="input-with-icon">
+                                <i class="bi bi-search"></i>
+                                <input type="text" id="cardAdvisorSearchInput" placeholder="e.g. Swiggy, Blinkit, Amazon, Uber, Fuel..." autocomplete="off" oninput="runCardAdvisorSearch()" onfocus="this.select()">
+                                <button type="button" id="cardAdvisorClearBtn" class="input-clear-btn" style="display:none;" onclick="clearCardAdvisorSearch()">&times;</button>
+                            </div>
+                        </div>
+                        <div class="card-advisor-input-group amount-group" style="flex: 1;">
+                            <label for="cardAdvisorAmountInput">Amount (₹)</label>
+                            <div class="input-with-icon">
+                                <span class="currency-prefix">₹</span>
+                                <input type="number" id="cardAdvisorAmountInput" placeholder="1000" min="1" step="10" value="1000" oninput="runCardAdvisorSearch()" onfocus="this.select()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Chips -->
+                    <div class="card-advisor-chips-section">
+                        <div class="chips-label">Quick select merchant / category:</div>
+                        <div class="card-advisor-chips-scroll" id="cardAdvisorQuickChips">
+                            <!-- Populated dynamically from taxonomy -->
+                        </div>
+                    </div>
+
+                    <!-- Live Results Section -->
+                    <div class="card-advisor-results-section" id="cardAdvisorResultsContainer">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- TAB 2: Lounges, Movies & Milestones -->
+                <div id="cardOptimizerPrivilegesTab" class="card-optimizer-tab-panel" style="display: none;">
+                    <div class="privileges-subsections" id="cardPrivilegesContent">
+                        <!-- Populated dynamically (Airport Lounges, Railway Lounges, Movies BOGO, Annual Fee Progress) -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="finance-modal-footer" style="border-top: 1px solid var(--border-color); padding: 14px 24px;">
+                <button class="btn-finance btn-finance-outline" onclick="closeFinanceModal('cardOptimizerModal')" type="button">Close</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Add Category Modal -->
     <div class="finance-modal-overlay" id="addCategoryModal">
