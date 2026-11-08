@@ -13,8 +13,6 @@ ui-debug.log
 
 # Node Modules
 node_modules/
-package-lock.json
-yarn.lock
 
 # Ignore OS files
 .DS_Store

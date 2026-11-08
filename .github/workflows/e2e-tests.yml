@@ -45,7 +45,7 @@ jobs:
 
       - name: Install Playwright OS Dependencies if cache hit
         if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium
+        run: sudo npx playwright install-deps chromium
 
       - name: Run Playwright Tests (Desktop, Tablet, Mobile)
         run: npx playwright test
