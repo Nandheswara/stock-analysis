@@ -40,7 +40,9 @@ export function getHistoricalMonthsList(count = 12, refMonth = null) {
         months.unshift(curr);
     }
     return months;
-}export function getCibilScoreForMonth(data, monthKey) {
+}
+
+export function getCibilScoreForMonth(data, monthKey) {
     if (!data) return 0;
     // 1. Direct month lookup across all CIBIL schema variations ('cibil', 'cibilScore', 'cibilScores')
     const direct = Number(

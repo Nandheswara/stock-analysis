@@ -1289,6 +1289,86 @@ body.light-theme .fee-progress-bar {
     box-shadow: 0 2px 6px rgba(99, 102, 241, 0.25);
 }
 
+.card-directory-meta-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 9px 14px;
+    background: var(--bg-tertiary, #f8fafc);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 12px;
+    margin-top: 4px;
+}
+
+.card-directory-meta-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.card-directory-count-badge {
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: var(--text-heading, #1e293b);
+    background: var(--bg-card, #ffffff);
+    padding: 3px 9px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color, #e2e8f0);
+}
+
+.card-directory-hint {
+    color: var(--text-muted, #64748b);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.74rem;
+}
+
+.card-directory-hint i {
+    color: var(--accent-primary, #6366f1);
+}
+
+.card-directory-expand-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-dir-meta-action {
+    background: var(--bg-card, #ffffff);
+    border: 1px solid var(--border-color, #cbd5e1);
+    color: var(--text-secondary, #475569);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.73rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.15s ease;
+}
+
+.btn-dir-meta-action:hover {
+    background: var(--bg-secondary, #e2e8f0);
+    color: var(--text-heading, #1e293b);
+    border-color: var(--border-color, #94a3b8);
+}
+
+@media (max-width: 640px) {
+    .card-directory-meta-bar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .card-directory-expand-controls {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}
+
 .card-directory-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
@@ -1310,7 +1390,7 @@ body.light-theme .fee-progress-bar {
     display: flex;
     flex-direction: column;
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
     position: relative;
 }
 
@@ -1319,24 +1399,46 @@ body.light-theme .fee-progress-bar {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
+.directory-card-card.expanded {
+    border-color: rgba(99, 102, 241, 0.35);
+    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.08);
+}
+
 .dir-card-color-stripe {
     height: 5px;
     width: 100%;
 }
 
 .dir-card-header {
-    padding: 16px 18px 12px;
-    border-bottom: 1px solid var(--border-color, rgba(0, 0, 0, 0.05));
+    padding: 14px 18px;
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
     gap: 12px;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.15s ease;
+}
+
+.directory-card-card.expanded .dir-card-header {
+    border-bottom: 1px solid var(--border-color, rgba(0, 0, 0, 0.06));
+}
+
+.dir-card-header:hover {
+    background-color: var(--bg-tertiary, #f8fafc);
+}
+
+.dir-card-header:focus-visible {
+    outline: 2px solid var(--accent-primary, #6366f1);
+    outline-offset: -2px;
 }
 
 .dir-card-ident {
     display: flex;
     align-items: center;
     gap: 10px;
+    min-width: 0;
+    flex: 1;
 }
 
 .dir-card-avatar {
@@ -1354,7 +1456,7 @@ body.light-theme .fee-progress-bar {
 }
 
 .dir-card-title {
-    font-size: 0.98rem;
+    font-size: 0.95rem;
     font-weight: 700;
     color: var(--text-heading, #1e293b);
     line-height: 1.3;
@@ -1364,6 +1466,13 @@ body.light-theme .fee-progress-bar {
     font-size: 0.74rem;
     color: var(--text-muted, #64748b);
     margin-top: 2px;
+}
+
+.dir-card-header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
 }
 
 .dir-card-badges {
@@ -1384,6 +1493,76 @@ body.light-theme .fee-progress-bar {
     border: 1px solid rgba(99, 102, 241, 0.2);
     text-transform: uppercase;
     letter-spacing: 0.3px;
+}
+
+.dir-annual-badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 6px;
+    background: rgba(14, 165, 233, 0.12);
+    color: #0284c7;
+    border: 1px solid rgba(14, 165, 233, 0.25);
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    white-space: nowrap;
+}
+
+body.dark-theme .dir-annual-badge {
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+    border-color: rgba(56, 189, 248, 0.3);
+}
+
+.dir-card-chevron-wrap {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-tertiary, #f1f5f9);
+    border: 1px solid var(--border-color, #e2e8f0);
+    color: var(--text-secondary, #64748b);
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.dir-card-header:hover .dir-card-chevron-wrap {
+    background: var(--bg-secondary, #e2e8f0);
+    color: var(--text-heading, #1e293b);
+    border-color: var(--border-color, #cbd5e1);
+}
+
+.dir-card-chevron {
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 0.85rem;
+}
+
+.directory-card-card.expanded .dir-card-chevron-wrap {
+    background: rgba(99, 102, 241, 0.12);
+    border-color: rgba(99, 102, 241, 0.3);
+    color: var(--accent-primary, #6366f1);
+}
+
+.directory-card-card.expanded .dir-card-chevron {
+    transform: rotate(180deg);
+}
+
+.dir-card-details {
+    animation: dirCardFadeIn 0.2s ease-out;
+}
+
+@keyframes dirCardFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .dir-wallet-badge {

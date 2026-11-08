@@ -19,6 +19,118 @@
 // ============================================================================
 
 export const CARD_PRESETS_REGISTRY = {
+    'icici-emeralde-metal': {
+        id: 'icici-emeralde-metal',
+        name: 'ICICI Emeralde Private Metal Credit Card',
+        shortName: 'ICICI Emeralde Metal',
+        color: '#1e293b',
+        matcher: /emeralde.*metal|metal.*emeralde|emeralde\s*private/i,
+        issuer: 'ICICI Bank',
+        network: 'Visa Infinite',
+        cardType: 'Super-Premium Luxury Metal',
+        annualFee: 12499,
+        joiningFee: 12499,
+        feeWaiverSpendTarget: 1000000,
+        forexMarkupPercent: 2.0,
+        defaultMonthlyAcceleratedCap: null,
+        baseCashbackPercent: 0.75,
+        bestFor: "Luxury travelers, golfers, and movie lovers seeking unconditional global lounges & zero-hurdle BMS BOGO",
+        welcomeBenefit: "Taj Epicure membership + 12,500 bonus reward points + luxury brand vouchers on paying joining fee",
+        keyBenefitsSummary: [
+            "Unlimited Complimentary Domestic & International Airport Lounges worldwide (Zero quarterly spend hurdle)",
+            "BookMyShow BOGO: Buy 1 Get 1 Free up to ₹750 off on 2nd movie ticket up to 4 times a month (saves up to ₹36,000/yr, no spend hurdle)",
+            "Unlimited Complimentary Golf rounds and coaching lessons every month",
+            "Reduced 2.0% Forex Markup Fee on international foreign currency transactions",
+            "6 ICICI Reward Points per ₹200 on retail transactions (0.75% return) with uncapped earning",
+            "Exempt from 1% fuel surcharge fee on spends > ₹10,000 and exempt from utility transaction fee",
+            "1% Fuel Surcharge Waiver on spends between ₹400 and ₹4,000 at all petrol pumps"
+        ],
+        pros: [
+            "Unconditional Global Lounge Access: Unlimited domestic and international airport lounges worldwide for primary and add-on cardholders with zero spend hurdles.",
+            "Highest BookMyShow Allowance: Buy 1 Get 1 Free up to ₹750 off per ticket up to 4 times a month (up to ₹36,000/yr savings) with no minimum quarterly spend required.",
+            "Unlimited Complimentary Golf: Unlimited golf games and coaching lessons every month across top golf clubs in India and abroad.",
+            "Reduced 2.0% Forex Fee: Much lower currency conversion markup compared to standard 3.5% fee on other ICICI cards.",
+            "Special Fee Exemptions: Exempt from the 1% fuel fee on swipes over ₹10k and exempt from the 1% utility processing fee over ₹50k."
+        ],
+        cons: [
+            "High Annual Fee: ₹12,499 + 18% GST joining and annual renewal fee.",
+            "High Fee Waiver Threshold: Requires ₹10,00,000 annual retail spend to waive the annual fee (excludes rent, govt & education).",
+            "Modest Base Reward Rate: Earning 0.75% base return (6 RP/₹200) is modest compared to HDFC Infinia (3.33%).",
+            "Reward Redemption Handling Fee: ₹99 + 18% GST fee applies on every reward points redemption order."
+        ],
+        tiers: [
+            {
+                rate: 1.5,
+                name: "International Spends (12 RP/₹200 = 1.5%)",
+                categories: ["forex", "international"],
+                merchants: [],
+                monthlyCap: null,
+                notes: "12 ICICI Reward Points per ₹200 spent internationally (1.5% return)."
+            },
+            {
+                rate: 0.75,
+                name: "Domestic Retail Spends (6 RP/₹200 = 0.75%)",
+                categories: ["all-retail", "shopping", "dining", "travel"],
+                merchants: [],
+                monthlyCap: null,
+                notes: "6 ICICI Reward Points per ₹200 spent domestically (0.75% return, uncapped)."
+            },
+            {
+                rate: 0.25,
+                name: "Utilities & Insurance (2 RP/₹200 = 0.25%)",
+                categories: ["utilities", "insurance"],
+                merchants: ["electricity", "water", "gas", "lic"],
+                monthlyCap: null,
+                notes: "2 ICICI Reward Points per ₹200 spent on utilities and insurance (0.25% return; ₹80k monthly cap per cycle)."
+            }
+        ],
+        exclusions: [
+            { category: "fuel", reason: "Fuel excluded from reward points (1% surcharge waiver ₹400-₹4,000 applies; exempt from > ₹10k fee)." },
+            { category: "rent", reason: "Rent payments (MCC 6513) earn 0% rewards + 1% processing fee." },
+            { category: "wallet", reason: "Prepaid wallet loads earn 0% rewards (1% fee applies on loads ≥ ₹5,000)." },
+            { category: "government", reason: "Government tax and challan payments earn 0% rewards." },
+            { category: "gaming", reason: "Online skill-based gaming (MCC 5816) earns 0% rewards + 2% fee." },
+            { category: "education", reason: "Education payments via 3rd-party apps (CRED, Paytm) earn 0% + 1% fee. Direct payments earn standard reward points with 0% fee." },
+            { category: "emi", reason: "EMI transactions earn 0% rewards." }
+        ],
+        lounges: {
+            domesticAirport: {
+                hasAccess: true,
+                isMilestoneBased: false,
+                visitsPerYear: 999,
+                ruleText: "Unlimited complimentary domestic airport lounge visits for primary & add-on cardholders (No spend hurdle).",
+                spendCriteria: "None (Direct swipe)"
+            },
+            internationalAirport: {
+                hasAccess: true,
+                visitsPerYear: 999,
+                ruleText: "Unlimited complimentary international airport lounge access worldwide via DreamFolks / Priority Pass.",
+                spendCriteria: "Priority Pass / DreamFolks"
+            },
+            railwayLounge: {
+                hasAccess: true,
+                visitsPerYear: 16,
+                ruleText: "4 complimentary railway lounge visits per quarter across India.",
+                spendCriteria: "Direct swipe"
+            }
+        },
+        entertainment: {
+            movies: {
+                type: "bogo",
+                bogo: true,
+                maxDiscount: 750,
+                platform: "BookMyShow",
+                description: "Buy 1 Get 1 Free: Up to ₹750 off on 2nd movie ticket up to 4 times a month on BookMyShow (exempt from spend hurdle)."
+            }
+        },
+        golf: {
+            hasAccess: true,
+            roundsPerMonth: 999,
+            description: "Unlimited complimentary golf rounds and lessons every month at premier courses worldwide.",
+            spendCriteria: "None (Privileged access)"
+        }
+    },
+
     'icici-sapphiro-visa': {
         id: 'icici-sapphiro-visa',
         name: 'ICICI Sapphiro Visa Credit Card',
@@ -36,108 +148,104 @@ export const CARD_PRESETS_REGISTRY = {
         baseCashbackPercent: 0.5,
         bestFor: "BookMyShow BOGO movie lovers, golf rounds, and travelers with ₹75k+ quarterly spends",
         welcomeBenefit: "Vouchers worth ₹9,000+ (Tata CLiQ, EaseMyTrip, Croma, Uber) on paying joining fee",
-        keyBenefitsSummary: ["4 Domestic Airport Lounges/quarter (on ₹75k spend in prev quarter)","2 Complimentary International Airport Lounges/year via DreamFolks / Priority Pass","BookMyShow BOGO: Buy 1 Get 1 Free up to ₹500 off on second ticket twice a month (saves up to ₹12,000/yr)","Up to 4 complimentary golf rounds or lessons per month","ICICI Culinary Treats: Minimum 15% discount at 2,500+ restaurants","4 ICICI Reward Points per ₹100 on international spends (1% return)","1% Fuel Surcharge Waiver on spends between ₹400 and ₹4,000"],
-        pros: ["High Movie Savings: Buy 1 Get 1 Free up to ₹500 off on 2nd movie ticket twice a month on BookMyShow (saves up to ₹12,000 annually).","Generous Welcome Gift: Brand vouchers worth over ₹9,000–₹13,000 comfortably offset the initial ₹6,500 joining fee.","Generous Domestic Lounge Quota: Up to 16 complimentary domestic airport lounge visits per year (4 per quarter).","Complimentary International Lounges: 2 free international lounge visits per calendar year via DreamFolks membership.","Complimentary Golf: Up to 4 free golf rounds or coaching lessons per month across top golf courses in India.","Accelerated International Rewards: 4 Reward Points per ₹100 spent internationally (1% return).","Frequent LTF for Alumni & Corporates: Widely available as Lifetime Free (LTF) under ICICI Alumni Program (IITs, IIMs, NITs) or corporate salary tiers."],
-        cons: ["Low Base Domestic Rewards: Earning only 2 RP per ₹100 (0.5% return) is uncompetitive compared to dedicated cashback cards (e.g. SBI Cashback at 5%, HSBC Live+ at 10%).","Strict Quarterly Lounge Spend Hurdle: Requires spending ₹75,000 in the previous calendar quarter to unlock domestic airport lounges.","High Annual Fee Waiver Threshold: Requires ₹6,00,000 annual spend to waive the ₹3,500 renewal fee.","Reward Redemption Handling Fee: ICICI levies a ₹99 + 18% GST handling fee on every redemption order.","Standard 3.5% Forex Fee: No reduced forex markup for international spends compared to 0% cards like Scapia."],
+        keyBenefitsSummary: [
+            "4 Domestic Airport Lounges/quarter (on ₹75k spend in prev calendar quarter w.e.f. Jan 01, 2025)",
+            "2 Complimentary International Airport Lounges/year via DreamFolks / Priority Pass",
+            "BookMyShow BOGO: Buy 1 Get 1 Free up to ₹500 off on second ticket twice a month (saves up to ₹12,000/yr, on ₹25k spend in prev quarter w.e.f. Jan 15, 2026)",
+            "Up to 4 complimentary golf rounds or lessons per month",
+            "ICICI Culinary Treats: Minimum 15% discount at 2,500+ restaurants",
+            "4 ICICI Reward Points per ₹100 on international spends (1% return)",
+            "1% Fuel Surcharge Waiver on spends between ₹400 and ₹4,000 (up to ₹50k/cycle)"
+        ],
+        pros: [
+            "High Movie Savings: Buy 1 Get 1 Free up to ₹500 off on 2nd movie ticket twice a month on BookMyShow (saves up to ₹12,000 annually).",
+            "Generous Welcome Gift: Brand vouchers worth over ₹9,000–₹13,000 comfortably offset the initial ₹6,500 joining fee.",
+            "Generous Domestic Lounge Quota: Up to 16 complimentary domestic airport lounge visits per year (4 per quarter).",
+            "Complimentary International Lounges: 2 free international lounge visits per calendar year via DreamFolks membership.",
+            "Complimentary Golf: Up to 4 free golf rounds or coaching lessons per month across top golf courses in India.",
+            "Accelerated International Rewards: 4 Reward Points per ₹100 spent internationally (1% return).",
+            "Frequent LTF for Alumni & Corporates: Widely available as Lifetime Free (LTF) under ICICI Alumni Program (IITs, IIMs, NITs) or corporate salary tiers."
+        ],
+        cons: [
+            "Low Base Domestic Rewards: Earning only 2 RP per ₹100 (0.5% return) is uncompetitive compared to dedicated cashback cards (e.g. SBI Cashback at 5%, HSBC Live+ at 10%).",
+            "Strict Quarterly Lounge Spend Hurdle: Requires spending ₹75,000 in the previous calendar quarter to unlock domestic airport lounges (w.e.f. Jan 01, 2025).",
+            "BookMyShow Spend Hurdle: Requires spending ₹25,000 in the previous calendar quarter to unlock BookMyShow BOGO offers (w.e.f. Jan 15, 2026).",
+            "Monthly Category Cappings: Utility (₹80k), Insurance (₹80k), Grocery (₹40k), Transportation (₹20k w.e.f. Feb 01, 2026) max spend cap per statement cycle.",
+            "High Annual Fee Waiver Threshold: Requires ₹6,00,000 annual spend to waive the ₹3,500 renewal fee (excludes rent, govt & education).",
+            "Reward Redemption Handling Fee: ICICI levies a ₹99 + 18% GST handling fee on every redemption order.",
+            "Standard 3.5% Forex Fee: No reduced forex markup for international spends compared to 0% cards like Scapia."
+        ],
         tiers: [
-          {
-                    "rate": 1,
-                    "name": "International Spends (4 RP/₹100 = 1%)",
-                    "categories": [
-                              "forex",
-                              "international"
-                    ],
-                    "merchants": [],
-                    "monthlyCap": null,
-                    "notes": "4 ICICI Reward Points per ₹100 spent internationally (1 RP = ₹0.25 => 1% return)."
-          },
-          {
-                    "rate": 0.5,
-                    "name": "Domestic Retail Spends (2 RP/₹100 = 0.5%)",
-                    "categories": [
-                              "all-retail",
-                              "shopping",
-                              "dining",
-                              "travel"
-                    ],
-                    "merchants": [],
-                    "monthlyCap": null,
-                    "notes": "2 ICICI Reward Points per ₹100 spent domestically (1 RP = ₹0.25 => 0.5% return)."
-          },
-          {
-                    "rate": 0.25,
-                    "name": "Utilities & Insurance (1 RP/₹100 = 0.25%)",
-                    "categories": [
-                              "utilities",
-                              "insurance"
-                    ],
-                    "merchants": [
-                              "electricity",
-                              "water",
-                              "gas",
-                              "lic"
-                    ],
-                    "monthlyCap": null,
-                    "notes": "1 ICICI Reward Point per ₹100 spent on utilities and insurance (0.25% return)."
-          }
-],
+            {
+                rate: 1,
+                name: "International Spends (4 RP/₹100 = 1%)",
+                categories: ["forex", "international"],
+                merchants: [],
+                monthlyCap: null,
+                notes: "4 ICICI Reward Points per ₹100 spent internationally (1 RP = ₹0.25 => 1% return)."
+            },
+            {
+                rate: 0.5,
+                name: "Domestic Retail Spends (2 RP/₹100 = 0.5%)",
+                categories: ["all-retail", "shopping", "dining", "travel"],
+                merchants: [],
+                monthlyCap: null,
+                notes: "2 ICICI Reward Points per ₹100 spent domestically (1 RP = ₹0.25 => 0.5% return)."
+            },
+            {
+                rate: 0.25,
+                name: "Utilities & Insurance (1 RP/₹100 = 0.25%)",
+                categories: ["utilities", "insurance"],
+                merchants: ["electricity", "water", "gas", "lic"],
+                monthlyCap: null,
+                notes: "1 ICICI Reward Point per ₹100 spent on utilities and insurance (0.25% return; capped at ₹80k spend/cycle)."
+            }
+        ],
         exclusions: [
-          {
-                    "category": "fuel",
-                    "reason": "Fuel excluded from rewards (1% fuel surcharge waiver ₹400-₹4,000 applies)."
-          },
-          {
-                    "category": "rent",
-                    "reason": "Rent payments earn 0% rewards + 1% processing fee."
-          },
-          {
-                    "category": "wallet",
-                    "reason": "Wallet loading earns 0% rewards."
-          },
-          {
-                    "category": "government",
-                    "reason": "Government tax and challan payments earn 0% rewards."
-          },
-          {
-                    "category": "emi",
-                    "reason": "EMI transactions earn 0% rewards."
-          }
-],
+            { category: "fuel", reason: "Fuel excluded from rewards (1% fuel surcharge waiver ₹400-₹4,000 applies up to ₹50k/cycle; 1% fee on spends > ₹10,000)." },
+            { category: "rent", reason: "Rent payments (MCC 6513) earn 0% rewards + 1% processing fee." },
+            { category: "wallet", reason: "Wallet loading earns 0% rewards (1% fee applies on loads ≥ ₹5,000 w.e.f. Jan 2026)." },
+            { category: "government", reason: "Government tax and challan payments earn 0% rewards." },
+            { category: "gaming", reason: "Online skill-based gaming (MCC 5816) earns 0% rewards + 2% transaction fee." },
+            { category: "education", reason: "Education payments via 3rd-party apps (CRED, Paytm) earn 0% + 1% fee. Direct payments earn standard reward points with 0% fee." },
+            { category: "emi", reason: "EMI transactions earn 0% rewards." },
+            { category: "transportation", reason: "Transportation spends > ₹50,000 incur a 1% fee (MCC 4111, 4112, 4784, 4131 w.e.f. Jan 15, 2026)." }
+        ],
         lounges: {
-          "domesticAirport": {
-                    "hasAccess": true,
-                    "isMilestoneBased": true,
-                    "visitsPerYear": 16,
-                    "ruleText": "4 complimentary visits per calendar quarter (requires spending ₹75,000 in previous calendar quarter via Visa direct swipe).",
-                    "spendCriteria": "₹75,000 in prev calendar quarter"
-          },
-          "internationalAirport": {
-                    "hasAccess": true,
-                    "visitsPerYear": 2,
-                    "ruleText": "2 complimentary visits per calendar year via DreamFolks / Priority Pass.",
-                    "spendCriteria": "Priority Pass / DreamFolks"
-          },
-          "railwayLounge": {
-                    "hasAccess": false,
-                    "visitsPerYear": 0,
-                    "ruleText": "No railway lounge access."
-          }
-},
+            domesticAirport: {
+                hasAccess: true,
+                isMilestoneBased: true,
+                visitsPerYear: 16,
+                ruleText: "4 complimentary visits per calendar quarter (requires spending ₹75,000 in previous calendar quarter via Visa direct swipe w.e.f. Jan 01, 2025).",
+                spendCriteria: "₹75,000 in prev calendar quarter"
+            },
+            internationalAirport: {
+                hasAccess: true,
+                visitsPerYear: 2,
+                ruleText: "2 complimentary visits per calendar year via DreamFolks / Priority Pass.",
+                spendCriteria: "Priority Pass / DreamFolks"
+            },
+            railwayLounge: {
+                hasAccess: false,
+                visitsPerYear: 0,
+                ruleText: "No railway lounge access."
+            }
+        },
         entertainment: {
-          "movies": {
-                    "type": "bogo",
-                    "bogo": true,
-                    "maxDiscount": 500,
-                    "platform": "BookMyShow",
-                    "description": "Buy 1 Get 1 Free: Up to ₹500 off on second movie ticket, usable twice per calendar month on BookMyShow."
-          }
-},
+            movies: {
+                type: "bogo",
+                bogo: true,
+                maxDiscount: 500,
+                platform: "BookMyShow",
+                description: "Buy 1 Get 1 Free: Up to ₹500 off on second movie ticket, usable twice per calendar month on BookMyShow (requires spending ₹25,000 in previous quarter w.e.f. Jan 15, 2026)."
+            }
+        },
         golf: {
-          "hasAccess": true,
-          "roundsPerMonth": 4,
-          "description": "Up to 4 complimentary golf rounds or lessons every month based on ₹50,000 monthly retail spend.",
-          "spendCriteria": "₹50,000 monthly spend"
-}
+            hasAccess: true,
+            roundsPerMonth: 4,
+            description: "Up to 4 complimentary golf rounds or lessons every month based on ₹50,000 monthly retail spend.",
+            spendCriteria: "₹50,000 monthly spend"
+        }
     },
 
     'icici-rubyx': {
@@ -157,81 +265,96 @@ export const CARD_PRESETS_REGISTRY = {
         baseCashbackPercent: 0.5,
         bestFor: "Movie lovers (25% off BMS), railway travelers & mid-tier golfers",
         welcomeBenefit: "Shopping and travel vouchers worth ₹5,000+ on paying joining fee",
-        keyBenefitsSummary: ["2 Domestic Airport Lounges/quarter (on ₹50k spend in prev quarter)","2 Railway Lounges/quarter across major railway junctions","25% discount on BookMyShow & Inox up to ₹150 twice a month","2 complimentary golf rounds or lessons per month","ICICI Culinary Treats dining discounts"],
-        pros: ["Both Airport & Railway Lounge Access: 2 airport + 2 railway lounges per quarter.","Movie Ticket Discounts: 25% off up to ₹150 per ticket twice a month on BookMyShow.","Complimentary Golf: 2 free golf rounds/lessons per month.","Welcome Vouchers: ₹5,000+ vouchers offset the ₹3,000 joining fee."],
-        cons: ["Quarterly lounge spend criterion: Requires ₹50,000 quarterly spend for domestic airport lounges.","Low domestic reward rate of 0.5% (2 RP/₹100).","₹99 + GST redemption fee per order."],
+        keyBenefitsSummary: [
+            "2 Domestic Airport Lounges/quarter (on ₹75k spend in prev calendar quarter w.e.f. Jan 01, 2025)",
+            "2 Railway Lounges/quarter across major railway junctions",
+            "25% discount on BookMyShow & Inox up to ₹150 twice a month (requires ₹25k quarterly spend w.e.f. Jan 15, 2026)",
+            "2 complimentary golf rounds or lessons per month",
+            "ICICI Culinary Treats dining discounts"
+        ],
+        pros: [
+            "Both Airport & Railway Lounge Access: 2 airport + 2 railway lounges per quarter.",
+            "Movie Ticket Discounts: 25% off up to ₹150 per ticket twice a month on BookMyShow.",
+            "Complimentary Golf: 2 free golf rounds/lessons per month on ₹50k monthly spend.",
+            "Welcome Vouchers: ₹5,000+ vouchers offset the ₹3,000 joining fee."
+        ],
+        cons: [
+            "Quarterly lounge spend criterion: Requires ₹75,000 quarterly spend for domestic airport lounges (w.e.f. Jan 01, 2025).",
+            "BookMyShow Spend Hurdle: Requires spending ₹25,000 in previous quarter to unlock 25% movie discount (w.e.f. Jan 15, 2026).",
+            "Monthly Category Cappings: Utility (₹80k), Insurance (₹80k), Grocery (₹40k), Transportation (₹20k w.e.f. Feb 01, 2026) monthly cap per cycle.",
+            "Low domestic reward rate of 0.5% (2 RP/₹100).",
+            "₹99 + GST redemption fee per order."
+        ],
         tiers: [
-          {
-                    "rate": 1,
-                    "name": "International Spends (1%)",
-                    "categories": [
-                              "forex",
-                              "international"
-                    ],
-                    "merchants": [],
-                    "monthlyCap": null,
-                    "notes": "4 Reward Points per ₹100 spent internationally (1% return)."
-          },
-          {
-                    "rate": 0.5,
-                    "name": "Domestic Retail Spends (0.5%)",
-                    "categories": [
-                              "all-retail"
-                    ],
-                    "merchants": [],
-                    "monthlyCap": null,
-                    "notes": "2 Reward Points per ₹100 spent domestically (0.5% return)."
-          }
-],
+            {
+                rate: 1,
+                name: "International Spends (1%)",
+                categories: ["forex", "international"],
+                merchants: [],
+                monthlyCap: null,
+                notes: "4 Reward Points per ₹100 spent internationally (1% return)."
+            },
+            {
+                rate: 0.5,
+                name: "Domestic Retail Spends (0.5%)",
+                categories: ["all-retail", "shopping", "dining", "travel"],
+                merchants: [],
+                monthlyCap: null,
+                notes: "2 Reward Points per ₹100 spent domestically (0.5% return)."
+            },
+            {
+                rate: 0.25,
+                name: "Utilities & Insurance (0.25%)",
+                categories: ["utilities", "insurance"],
+                merchants: ["electricity", "water", "gas", "lic"],
+                monthlyCap: null,
+                notes: "1 Reward Point per ₹100 on utilities & insurance (0.25% return; capped at ₹80k spend/cycle)."
+            }
+        ],
         exclusions: [
-          {
-                    "category": "fuel",
-                    "reason": "Fuel excluded."
-          },
-          {
-                    "category": "rent",
-                    "reason": "Rent payments earn 0% rewards."
-          },
-          {
-                    "category": "wallet",
-                    "reason": "Wallet loading earns 0%."
-          }
-],
+            { category: "fuel", reason: "Fuel excluded (1% surcharge waiver ₹400-₹4,000 applies up to ₹50k/cycle; 1% fee on spends > ₹10,000)." },
+            { category: "rent", reason: "Rent payments (MCC 6513) earn 0% rewards + 1% processing fee." },
+            { category: "wallet", reason: "Wallet loading earns 0% (1% fee on loads ≥ ₹5,000 w.e.f. Jan 2026)." },
+            { category: "government", reason: "Government tax and challan payments earn 0% rewards." },
+            { category: "gaming", reason: "Online skill-based gaming (MCC 5816) earns 0% rewards + 2% transaction fee." },
+            { category: "education", reason: "Education payments via 3rd-party apps (CRED, Paytm) earn 0% + 1% fee. Direct payments earn standard reward points with 0% fee." },
+            { category: "transportation", reason: "Transportation spends > ₹50,000 incur a 1% fee (MCC 4111, 4112, 4784, 4131 w.e.f. Jan 15, 2026)." }
+        ],
         lounges: {
-          "domesticAirport": {
-                    "hasAccess": true,
-                    "isMilestoneBased": true,
-                    "visitsPerYear": 8,
-                    "ruleText": "2 complimentary domestic visits per calendar quarter (unlocked on ₹50,000 spend in previous quarter).",
-                    "spendCriteria": "₹50,000 in prev quarter"
-          },
-          "internationalAirport": {
-                    "hasAccess": false,
-                    "visitsPerYear": 0,
-                    "ruleText": "No international lounge access."
-          },
-          "railwayLounge": {
-                    "hasAccess": true,
-                    "visitsPerYear": 8,
-                    "ruleText": "2 complimentary railway lounge visits per quarter across major Indian railway junctions.",
-                    "spendCriteria": "None (Direct swipe)"
-          }
-},
+            domesticAirport: {
+                hasAccess: true,
+                isMilestoneBased: true,
+                visitsPerYear: 8,
+                ruleText: "2 complimentary domestic visits per calendar quarter (unlocked on ₹75,000 spend in previous calendar quarter w.e.f. Jan 01, 2025).",
+                spendCriteria: "₹75,000 in prev quarter"
+            },
+            internationalAirport: {
+                hasAccess: false,
+                visitsPerYear: 0,
+                ruleText: "No international lounge access."
+            },
+            railwayLounge: {
+                hasAccess: true,
+                visitsPerYear: 8,
+                ruleText: "2 complimentary railway lounge visits per quarter across major Indian railway junctions.",
+                spendCriteria: "None (Direct swipe)"
+            }
+        },
         entertainment: {
-          "movies": {
-                    "type": "discount",
-                    "bogo": false,
-                    "rate": 25,
-                    "platform": "BookMyShow",
-                    "description": "25% discount (up to ₹150 off per ticket) twice a month on BookMyShow & Inox."
-          }
-},
+            movies: {
+                type: "discount",
+                bogo: false,
+                rate: 25,
+                platform: "BookMyShow",
+                description: "25% discount (up to ₹150 off per ticket) twice a month on BookMyShow & Inox (requires spending ₹25,000 in previous quarter w.e.f. Jan 15, 2026)."
+            }
+        },
         golf: {
-          "hasAccess": true,
-          "roundsPerMonth": 2,
-          "description": "2 complimentary golf rounds or lessons per month on ₹50,000 monthly spend.",
-          "spendCriteria": "₹50,000 monthly spend"
-}
+            hasAccess: true,
+            roundsPerMonth: 2,
+            description: "2 complimentary golf rounds or lessons per month on ₹50,000 monthly spend.",
+            spendCriteria: "₹50,000 monthly spend"
+        }
     },
 
     'icici-coral': {
@@ -251,64 +374,81 @@ export const CARD_PRESETS_REGISTRY = {
         baseCashbackPercent: 0.5,
         bestFor: "First-time cardholders wanting railway & airport lounge access with low fees",
         welcomeBenefit: "Welcome bonus reward points upon card activation",
-        keyBenefitsSummary: ["1 Domestic Airport Lounge/quarter (on ₹35k spend in prev quarter)","1 Railway Lounge/quarter across India","25% discount on BookMyShow up to ₹100 twice/month","RuPay variant available for UPI QR Scan & Pay"],
-        pros: ["Affordable annual fee (₹500) waived on ₹1.5L annual spend.","Railway Lounge Access: 1 complimentary railway lounge per quarter.","BookMyShow discount: 25% off up to ₹100 twice a month.","RuPay variant connects seamlessly to UPI for payments at local merchants."],
-        cons: ["Requires ₹35,000 spend in previous quarter just to unlock 1 airport lounge visit.","Low domestic reward rate of 0.5% (2 RP/₹100).","No international lounge access."],
+        keyBenefitsSummary: [
+            "1 Domestic Airport Lounge/quarter (on ₹75k spend in prev calendar quarter w.e.f. Jan 01, 2025)",
+            "1 Railway Lounge/quarter across India",
+            "25% discount on BookMyShow up to ₹100 twice/month (requires ₹25k quarterly spend w.e.f. Jan 15, 2026)",
+            "RuPay variant available for UPI QR Scan & Pay"
+        ],
+        pros: [
+            "Affordable annual fee (₹500) waived on ₹1.5L annual spend (excludes rent, govt & education).",
+            "Railway Lounge Access: 1 complimentary railway lounge per quarter.",
+            "BookMyShow discount: 25% off up to ₹100 twice a month.",
+            "RuPay variant connects seamlessly to UPI for payments at local merchants."
+        ],
+        cons: [
+            "Requires ₹75,000 spend in previous quarter to unlock 1 airport lounge visit (w.e.f. Jan 01, 2025).",
+            "BookMyShow Spend Hurdle: Requires spending ₹25,000 in previous quarter to unlock 25% movie discount (w.e.f. Jan 15, 2026).",
+            "Monthly Category Cappings: Utility (₹40k), Insurance (₹40k), Grocery (₹20k), Transportation (₹10k w.e.f. Feb 01, 2026) monthly cap per cycle.",
+            "Low domestic reward rate of 0.5% (2 RP/₹100).",
+            "No international lounge access."
+        ],
         tiers: [
-          {
-                    "rate": 0.5,
-                    "name": "Domestic Retail Spends (0.5%)",
-                    "categories": [
-                              "all-retail"
-                    ],
-                    "merchants": [],
-                    "monthlyCap": null,
-                    "notes": "2 Reward Points per ₹100 spent domestically (0.5% return)."
-          }
-],
+            {
+                rate: 0.5,
+                name: "Domestic Retail Spends (0.5%)",
+                categories: ["all-retail", "shopping", "dining", "travel"],
+                merchants: [],
+                monthlyCap: null,
+                notes: "2 Reward Points per ₹100 spent domestically (0.5% return)."
+            },
+            {
+                rate: 0.25,
+                name: "Utilities & Insurance (0.25%)",
+                categories: ["utilities", "insurance"],
+                merchants: ["electricity", "water", "gas", "lic"],
+                monthlyCap: null,
+                notes: "1 Reward Point per ₹100 on utilities & insurance (0.25% return; capped at ₹40k spend/cycle)."
+            }
+        ],
         exclusions: [
-          {
-                    "category": "fuel",
-                    "reason": "Fuel excluded."
-          },
-          {
-                    "category": "rent",
-                    "reason": "Rent excluded."
-          },
-          {
-                    "category": "wallet",
-                    "reason": "Wallet loading excluded."
-          }
-],
+            { category: "fuel", reason: "Fuel excluded (1% surcharge waiver ₹400-₹4,000 applies up to ₹50k/cycle; 1% fee on spends > ₹10,000)." },
+            { category: "rent", reason: "Rent payments (MCC 6513) earn 0% rewards + 1% processing fee." },
+            { category: "wallet", reason: "Wallet loading excluded (1% fee on loads ≥ ₹5,000 w.e.f. Jan 2026)." },
+            { category: "government", reason: "Government tax and challan payments earn 0% rewards." },
+            { category: "gaming", reason: "Online skill-based gaming (MCC 5816) earns 0% rewards + 2% transaction fee." },
+            { category: "education", reason: "Education payments via 3rd-party apps (CRED, Paytm) earn 0% + 1% fee. Direct payments earn standard reward points with 0% fee." },
+            { category: "transportation", reason: "Transportation spends > ₹50,000 incur a 1% fee (MCC 4111, 4112, 4784, 4131 w.e.f. Jan 15, 2026)." }
+        ],
         lounges: {
-          "domesticAirport": {
-                    "hasAccess": true,
-                    "isMilestoneBased": true,
-                    "visitsPerYear": 4,
-                    "ruleText": "1 complimentary domestic visit per calendar quarter (on ₹35,000 spend in previous quarter).",
-                    "spendCriteria": "₹35,000 in prev quarter"
-          },
-          "internationalAirport": {
-                    "hasAccess": false,
-                    "visitsPerYear": 0,
-                    "ruleText": "No international lounge access."
-          },
-          "railwayLounge": {
-                    "hasAccess": true,
-                    "visitsPerYear": 4,
-                    "ruleText": "1 complimentary railway lounge visit per quarter.",
-                    "spendCriteria": "Direct swipe"
-          }
-},
+            domesticAirport: {
+                hasAccess: true,
+                isMilestoneBased: true,
+                visitsPerYear: 4,
+                ruleText: "1 complimentary domestic visit per calendar quarter (on ₹75,000 spend in previous calendar quarter w.e.f. Jan 01, 2025).",
+                spendCriteria: "₹75,000 in prev quarter"
+            },
+            internationalAirport: {
+                hasAccess: false,
+                visitsPerYear: 0,
+                ruleText: "No international lounge access."
+            },
+            railwayLounge: {
+                hasAccess: true,
+                visitsPerYear: 4,
+                ruleText: "1 complimentary railway lounge visit per quarter.",
+                spendCriteria: "Direct swipe"
+            }
+        },
         entertainment: {
-          "movies": {
-                    "type": "discount",
-                    "bogo": false,
-                    "rate": 25,
-                    "platform": "BookMyShow",
-                    "description": "25% discount up to ₹100 on BookMyShow & Inox twice a month."
-          }
-}
+            movies: {
+                type: "discount",
+                bogo: false,
+                rate: 25,
+                platform: "BookMyShow",
+                description: "25% discount up to ₹100 on BookMyShow & Inox twice a month (requires spending ₹25,000 in previous quarter w.e.f. Jan 15, 2026)."
+            }
+        }
     },
 
     'amazon-pay-icici': {
@@ -323,126 +463,427 @@ export const CARD_PRESETS_REGISTRY = {
         annualFee: 0,
         joiningFee: 0,
         feeWaiverSpendTarget: 0,
-        forexMarkupPercent: 3.5,
+        forexMarkupPercent: 1.99,
         defaultMonthlyAcceleratedCap: null,
         baseCashbackPercent: 1,
         bestFor: "Amazon Prime shoppers, uncapped cashback lovers, lifetime free cardholders",
         welcomeBenefit: "Up to ₹2,000+ in Amazon Pay balance & shopping coupons on card approval",
-        keyBenefitsSummary: ["Lifetime Free (LTF): ₹0 Joining Fee, ₹0 Annual Fee forever","5% Unlimited Cashback on Amazon.in for Prime members (3% for non-Prime)","2% Unlimited Cashback on 100+ Amazon Pay partner merchants (recharges, electricity, Swiggy, Uber)","1% Unlimited Cashback on all other eligible domestic & international retail spends","Auto-credit directly to Amazon Pay balance with zero redemption charges"],
-        pros: ["Zero Annual Fees: Completely Lifetime Free (LTF) with no hidden conditions or renewal charges.","Uncapped 5% Cashback: No monthly limit or ceiling on 5% cashback on Amazon.in shopping.","Automatic Credit: Cashback is automatically added to Amazon Pay balance every month with ₹0 redemption fees.","No Cost EMI options frequently available across high-value electronics and gadgets on Amazon.","Minimum 15% discount at 2,500+ partner restaurants via ICICI Culinary Treats."],
-        cons: ["No complimentary airport or railway lounge access.","Cashback is paid into Amazon Pay balance (cannot be withdrawn as direct bank account cash).","Non-Prime members only earn 3% on Amazon shopping instead of 5%.","Gold, jewellery, fuel, and wallet reloads earn 0% cashback."],
+        keyBenefitsSummary: [
+            "Lifetime Free (LTF): ₹0 Joining Fee, ₹0 Annual Fee forever",
+            "5% Unlimited Cashback on Amazon.in for Prime members (3% for non-Prime)",
+            "2% Unlimited Cashback on 100+ partner apps via Amazon Pay & bills paid inside Amazon Pay",
+            "1% Unlimited Cashback on all other eligible domestic retail merchant spends",
+            "Reduced 1.99% Forex Markup Fee on foreign currency transactions (0% cashback on international spends)",
+            "Auto-credit directly to Amazon Pay balance every month with zero redemption charges"
+        ],
+        pros: [
+            "Zero Annual Fees: Completely Lifetime Free (LTF) with no hidden conditions or renewal charges.",
+            "Uncapped 5% Cashback: No monthly limit or ceiling on 5% cashback on Amazon.in shopping.",
+            "Automatic Credit: Cashback is automatically credited as Amazon Pay balance every billing cycle with ₹0 redemption fees.",
+            "Reduced 1.99% Forex Markup: Lower foreign currency conversion fee (1.99% w.e.f. Oct 1, 2025).",
+            "No Cost EMI: 3-month merchant No Cost EMI frequently available on Amazon.in.",
+            "ICICI Culinary Treats: Minimum 15% discount at 2,500+ partner dining restaurants."
+        ],
+        cons: [
+            "No complimentary airport or railway lounge access.",
+            "International spends earn 0% cashback (w.e.f. Oct 11, 2025, with 1.99% forex markup).",
+            "Utility bills paid outside Amazon platform earn 0% cashback (w.e.f. Oct 11, 2025; pay via Amazon Pay to get 2%).",
+            "Education, government tax, rent, and wallet reloads earn 0% cashback.",
+            "Non-Prime members earn 3% on Amazon shopping instead of 5%.",
+            "Cashback is credited to Amazon Pay wallet (cannot be directly transferred to bank account)."
+        ],
         tiers: [
-          {
-                    "rate": 5,
-                    "name": "Amazon.in Shopping (5% Unlimited)",
-                    "categories": [
-                              "shopping"
-                    ],
-                    "merchants": [
-                              "amazon",
-                              "amazon.in",
-                              "amazon shopping"
-                    ],
-                    "monthlyCap": null,
-                    "notes": "5% Unlimited Cashback for Prime members (3% for non-Prime) credited directly to Amazon Pay balance."
-          },
-          {
-                    "rate": 2,
-                    "name": "Amazon Pay Partner Merchants & Bill Payments (2%)",
-                    "categories": [
-                              "utilities",
-                              "bill-payment",
-                              "recharge",
-                              "food-delivery",
-                              "travel"
-                    ],
-                    "merchants": [
-                              "amazon pay",
-                              "electricity",
-                              "water",
-                              "gas",
-                              "dth",
-                              "mobile recharge",
-                              "broadband",
-                              "uber",
-                              "yatra",
-                              "bookmyshow",
-                              "swiggy"
-                    ],
-                    "monthlyCap": null,
-                    "notes": "2% Unlimited Cashback on 100+ partner merchants & bill payments when paid via Amazon Pay portal."
-          },
-          {
-                    "rate": 1,
-                    "name": "All Other Spends (1% Unlimited)",
-                    "categories": [
-                              "all-retail"
-                    ],
-                    "merchants": [],
-                    "monthlyCap": null,
-                    "notes": "1% Unlimited Cashback on all other eligible domestic and international retail spends."
-          }
-],
+            {
+                "rate": 5,
+                "name": "Amazon.in Shopping (5% Unlimited)",
+                "categories": [],
+                "merchants": [
+                    "amazon",
+                    "amazon.in",
+                    "amazon shopping",
+                    "amazon fresh"
+                ],
+                "monthlyCap": null,
+                "notes": "5% Unlimited Cashback for Prime members (3% for non-Prime) credited directly to Amazon Pay balance."
+            },
+            {
+                "rate": 2,
+                "name": "Amazon Pay Partner Apps & Bill Payments (2%)",
+                "categories": [],
+                "merchants": [
+                    "amazon pay",
+                    "uber",
+                    "swiggy",
+                    "yatra",
+                    "bookmyshow",
+                    "redbus",
+                    "abhibus",
+                    "rapido",
+                    "eazydiner"
+                ],
+                "monthlyCap": null,
+                "notes": "2% Unlimited Cashback on 100+ partner merchants via Amazon Pay and digital bills/recharges paid directly inside Amazon Pay."
+            },
+            {
+                "rate": 1,
+                "name": "All Other Eligible Domestic Spends (1% Unlimited)",
+                "categories": [
+                    "all-retail"
+                ],
+                "merchants": [],
+                "monthlyCap": null,
+                "notes": "1% Unlimited Cashback on all other eligible domestic merchant transactions."
+            }
+        ],
         exclusions: [
-          {
-                    "category": "fuel",
-                    "reason": "Fuel transactions earn 0% cashback (1% fuel surcharge waiver ₹400-₹4,000 applies)."
-          },
-          {
-                    "category": "rent",
-                    "reason": "Rent payments via third-party apps yield 0% cashback."
-          },
-          {
-                    "category": "wallet",
-                    "reason": "Adding funds to Amazon Pay balance / prepaid wallets earns 0%."
-          },
-          {
-                    "category": "emi",
-                    "reason": "Purchases converted to EMI earn 0% cashback."
-          },
-          {
-                    "category": "gold",
-                    "reason": "Gold and silver coin/jewelry purchases on Amazon earn 0% cashback."
-          },
-          {
-                    "category": "jewellery",
-                    "reason": "Purchases of gold, silver, and jewellery on Amazon earn 0% cashback."
-          },
-          {
-                    "category": "jewelry",
-                    "reason": "Purchases of gold, silver, and jewellery on Amazon earn 0% cashback."
-          },
-          {
-                    "category": "government",
-                    "reason": "Government tax and challan payments earn 0% cashback."
-          }
-],
+            {
+                "category": "fuel",
+                "reason": "Fuel transactions earn 0% cashback (1% fuel surcharge waiver applies on all petrol pumps; 1% fee on spends exceeding ₹10,000)."
+            },
+            {
+                "category": "rent",
+                "reason": "Rent payments via third-party apps earn 0% cashback + 1% processing fee (w.e.f. Jun 18, 2024)."
+            },
+            {
+                "category": "wallet",
+                "reason": "Wallet loading (Paytm, Mobikwik, Amazon Pay balance) earns 0% cashback (1% fee applies for loads ≥ ₹5,000 w.e.f. Jan 2026)."
+            },
+            {
+                "category": "emi",
+                "reason": "Purchases converted to EMI earn 0% cashback (No Cost EMI up to 3 months available on Amazon)."
+            },
+            {
+                "category": "gold",
+                "reason": "Gold coins via Amazon Pay, gold, silver, and precious metals earn 0% cashback."
+            },
+            {
+                "category": "jewellery",
+                "reason": "Purchases of gold, silver, and jewellery earn 0% cashback."
+            },
+            {
+                "category": "jewelry",
+                "reason": "Purchases of gold, silver, and jewellery earn 0% cashback."
+            },
+            {
+                "category": "government",
+                "reason": "Government tax and challan payments earn 0% cashback."
+            },
+            {
+                "category": "education",
+                "reason": "Education and school/college fees earn 0% cashback (w.e.f. Oct 11, 2025; 1% fee on third-party apps)."
+            },
+            {
+                "category": "international",
+                "reason": "Per ICICI terms w.e.f. Oct 11, 2025, international and foreign currency spends earn 0% cashback (1.99% forex markup applies)."
+            },
+            {
+                "category": "forex",
+                "reason": "Per ICICI terms w.e.f. Oct 11, 2025, international and foreign currency spends earn 0% cashback (1.99% forex markup applies)."
+            },
+            {
+                "category": "utilities",
+                "reason": "Per ICICI terms w.e.f. Oct 11, 2025, utility bills paid outside the Amazon platform earn 0% cashback. Pay via Amazon Pay app to earn 2% cashback."
+            },
+            {
+                "category": "gaming",
+                "reason": "Skill-based online gaming (MCC 5816) earns 0% cashback + 2% transaction fee."
+            },
+            {
+                "category": "transportation",
+                "reason": "Transportation spends > ₹50,000 incur a 1% fee (MCC 4111, 4112, 4784, 4131 w.e.f. Jan 15, 2026)."
+            }
+        ],
         lounges: {
-          "domesticAirport": {
-                    "hasAccess": false,
-                    "visitsPerYear": 0,
-                    "ruleText": "No complimentary lounge access (Lifetime Free card)."
-          },
-          "internationalAirport": {
-                    "hasAccess": false,
-                    "visitsPerYear": 0,
-                    "ruleText": "No complimentary international lounge access."
-          },
-          "railwayLounge": {
-                    "hasAccess": false,
-                    "visitsPerYear": 0,
-                    "ruleText": "No railway lounge access."
-          }
-},
+            "domesticAirport": {
+                "hasAccess": false,
+                "visitsPerYear": 0,
+                "ruleText": "No complimentary lounge access (Lifetime Free card)."
+            },
+            "internationalAirport": {
+                "hasAccess": false,
+                "visitsPerYear": 0,
+                "ruleText": "No complimentary international lounge access."
+            },
+            "railwayLounge": {
+                "hasAccess": false,
+                "visitsPerYear": 0,
+                "ruleText": "No railway lounge access."
+            }
+        },
         entertainment: {
-          "movies": {
-                    "type": "cashback",
-                    "bogo": false,
-                    "rate": 2,
-                    "platform": "BookMyShow via Amazon Pay",
-                    "description": "2% cashback when BookMyShow is paid through Amazon Pay gateway, else 1% direct."
-          }
-}
+            "movies": {
+                "type": "cashback",
+                "bogo": false,
+                "rate": 2,
+                "platform": "BookMyShow via Amazon Pay",
+                "description": "2% cashback when BookMyShow is paid through Amazon Pay gateway, else 1% direct."
+            }
+        }
+    },
+
+    'icici-platinum-chip': {
+        id: 'icici-platinum-chip',
+        name: 'ICICI Platinum Chip Credit Card',
+        shortName: 'ICICI Platinum Chip',
+        color: '#64748b',
+        matcher: /platinum\s*chip|chip\s*platinum/i,
+        issuer: 'ICICI Bank',
+        network: 'Visa Platinum',
+        cardType: 'Entry Lifetime Free',
+        annualFee: 0,
+        joiningFee: 0,
+        feeWaiverSpendTarget: 0,
+        forexMarkupPercent: 3.5,
+        defaultMonthlyAcceleratedCap: null,
+        baseCashbackPercent: 0.5,
+        bestFor: "First-time cardholders and individuals wanting a zero-fee credit card to build credit history with ICICI Bank",
+        welcomeBenefit: "Lifetime Free card with ₹0 annual fee forever",
+        keyBenefitsSummary: [
+            "Lifetime Free (LTF): ₹0 Joining Fee and ₹0 Annual Fee for life",
+            "2 ICICI Reward Points per ₹100 on retail purchases (0.5% return)",
+            "1 ICICI Reward Point per ₹100 on utilities and insurance (0.25% return)",
+            "1% Fuel Surcharge Waiver on transactions between ₹400 and ₹4,000 at all petrol pumps",
+            "ICICI Culinary Treats: Minimum 15% discount at 2,500+ partner restaurants across India"
+        ],
+        pros: [
+            "Completely Lifetime Free: Zero joining fee and zero annual renewal fee forever with no minimum spend conditions.",
+            "CIBIL Score Building: Excellent starter credit card for students, fresh graduates, and first-time applicants.",
+            "Pre-approved ICICI Upgrades: Regular spending opens pre-approved upgrade offers to Coral, Rubyx, or Sapphiro.",
+            "Fuel Surcharge Waiver: Full 1% waiver across petrol pumps for transactions between ₹400 and ₹4,000."
+        ],
+        cons: [
+            "No Lounge Access: Does not offer complimentary airport or railway lounge visits.",
+            "No Movie Offers: No BookMyShow BOGO or movie ticket discounts.",
+            "Low Base Rewards: 0.5% return (2 RP/₹100) is modest compared to cashback cards.",
+            "Monthly Category Spend Caps: Utility/Insurance capped at ₹40k, Grocery capped at ₹20k, Transportation capped at ₹10k per cycle."
+        ],
+        tiers: [
+            {
+                rate: 0.5,
+                name: "Domestic Retail Spends (0.5%)",
+                categories: ["all-retail", "shopping", "dining", "travel"],
+                merchants: [],
+                monthlyCap: null,
+                notes: "2 ICICI Reward Points per ₹100 spent domestically (0.5% return)."
+            },
+            {
+                rate: 0.25,
+                name: "Utilities & Insurance (0.25%)",
+                categories: ["utilities", "insurance"],
+                merchants: ["electricity", "water", "gas", "lic"],
+                monthlyCap: null,
+                notes: "1 ICICI Reward Point per ₹100 on utilities & insurance (0.25% return; capped at ₹40k spend/cycle)."
+            }
+        ],
+        exclusions: [
+            { category: "fuel", reason: "Fuel excluded (1% surcharge waiver ₹400-₹4,000 applies up to ₹50k/cycle; 1% fee on spends > ₹10,000)." },
+            { category: "rent", reason: "Rent payments (MCC 6513) earn 0% rewards + 1% processing fee." },
+            { category: "wallet", reason: "Wallet loading earns 0% (1% fee on loads ≥ ₹5,000 w.e.f. Jan 2026)." },
+            { category: "government", reason: "Government tax and challan payments earn 0% rewards." },
+            { category: "gaming", reason: "Online skill-based gaming (MCC 5816) earns 0% rewards + 2% transaction fee." },
+            { category: "transportation", reason: "Transportation spends > ₹50,000 incur a 1% fee (MCC 4111, 4112, 4784, 4131 w.e.f. Jan 15, 2026)." }
+        ],
+        lounges: {
+            domesticAirport: { hasAccess: false, visitsPerYear: 0, ruleText: "No complimentary domestic airport lounge access." },
+            internationalAirport: { hasAccess: false, visitsPerYear: 0, ruleText: "No complimentary international lounge access." },
+            railwayLounge: { hasAccess: false, visitsPerYear: 0, ruleText: "No complimentary railway lounge access." }
+        }
+    },
+
+    'icici-makemytrip': {
+        id: 'icici-makemytrip',
+        name: 'MakeMyTrip ICICI Bank Credit Card',
+        shortName: 'MMT ICICI',
+        color: '#dc2626',
+        matcher: /makemytrip|mmt.*icici|icici.*mmt/i,
+        issuer: 'ICICI Bank',
+        network: 'Visa Platinum / Signature',
+        cardType: 'Co-Branded Travel & Forex',
+        annualFee: 999,
+        joiningFee: 999,
+        feeWaiverSpendTarget: 250000,
+        forexMarkupPercent: 0.0,
+        defaultMonthlyAcceleratedCap: null,
+        baseCashbackPercent: 1.0,
+        bestFor: "Frequent travelers booking flights, hotels, and holidays on MakeMyTrip wanting 0% forex markup",
+        welcomeBenefit: "₹1,500 MakeMyTrip My Cash + MMTBLACK Gold membership + ₹2,500 hotel & holiday vouchers",
+        keyBenefitsSummary: [
+            "Zero Forex Markup (0.00%): No foreign currency markup fee on international transactions (w.e.f. Nov 10, 2026)",
+            "4% My Cash on MakeMyTrip Hotel & Holiday bookings (4 My Cash per ₹100 spent)",
+            "2% My Cash on MakeMyTrip Flight bookings (2 My Cash per ₹100 spent)",
+            "1% My Cash on all other domestic retail spends (1 My Cash per ₹100 spent; 1 My Cash = ₹1)",
+            "1 Domestic Airport Lounge per quarter (on ₹75,000 quarterly spend w.e.f. Jan 01, 2025)",
+            "1 Complimentary Railway Lounge visit per quarter across major Indian railway stations",
+            "MMTBLACK Gold Membership: Complimentary room upgrades, early check-in & late checkout"
+        ],
+        pros: [
+            "Zero Forex Fee: 0.00% foreign exchange markup w.e.f. Nov 10, 2026, making it one of the top cards for overseas travel.",
+            "High Travel Return: 4% on hotels and 2% on flights on MakeMyTrip directly usable as ₹1 = 1 My Cash.",
+            "Direct Wallet Credit: My Cash is automatically credited to MakeMyTrip account with 100% redemption on future travel.",
+            "Both Airport & Railway Lounges: 1 domestic airport lounge (on ₹75k spend) + 1 railway lounge per quarter.",
+            "Generous Welcome Bonus: ₹1,500 My Cash plus holiday vouchers exceed the ₹999 joining fee."
+        ],
+        cons: [
+            "Rewards Tied to MakeMyTrip: My Cash can only be redeemed on MakeMyTrip for travel bookings (cannot be taken as cash).",
+            "Quarterly Lounge Hurdle: Domestic airport lounge requires ₹75,000 spend in previous calendar quarter (w.e.f. Jan 01, 2025).",
+            "Excluded Categories: Fuel, rent, wallet, tax, and gaming earn 0% My Cash.",
+            "1% Fuel Fee > ₹10,000: Single fuel transactions exceeding ₹10,000 attract a 1% fee."
+        ],
+        tiers: [
+            {
+                rate: 4,
+                name: "MakeMyTrip Hotels & Holidays (4% My Cash)",
+                categories: [],
+                merchants: ["makemytrip hotel", "mmt hotel", "makemytrip holidays"],
+                monthlyCap: null,
+                notes: "4 My Cash per ₹100 spent on MakeMyTrip hotel and holiday bookings (1 My Cash = ₹1)."
+            },
+            {
+                rate: 2,
+                name: "MakeMyTrip Flights (2% My Cash)",
+                categories: [],
+                merchants: ["makemytrip", "mmt", "makemytrip flight"],
+                monthlyCap: null,
+                notes: "2 My Cash per ₹100 spent on MakeMyTrip flight bookings (1 My Cash = ₹1)."
+            },
+            {
+                rate: 1,
+                name: "All Other Domestic Spends (1% My Cash)",
+                categories: ["all-retail", "shopping", "dining", "travel"],
+                merchants: [],
+                monthlyCap: null,
+                notes: "1 My Cash per ₹100 spent on all other retail transactions (1% return)."
+            }
+        ],
+        exclusions: [
+            { category: "fuel", reason: "Fuel excluded from My Cash (1% surcharge waiver ₹400-₹4,000 applies up to ₹50k/cycle; 1% fee on spends > ₹10,000)." },
+            { category: "rent", reason: "Rent payments (MCC 6513) earn 0% rewards + 1% processing fee." },
+            { category: "wallet", reason: "Prepaid wallet loading earns 0% (1% fee applies on loads ≥ ₹5,000 w.e.f. Jan 2026)." },
+            { category: "government", reason: "Government tax and challan payments earn 0% rewards." },
+            { category: "gaming", reason: "Online skill-based gaming (MCC 5816) earns 0% rewards + 2% transaction fee." },
+            { category: "transportation", reason: "Transportation spends > ₹50,000 incur a 1% fee (MCC 4111, 4112, 4784, 4131 w.e.f. Jan 15, 2026)." }
+        ],
+        lounges: {
+            domesticAirport: {
+                hasAccess: true,
+                isMilestoneBased: true,
+                visitsPerYear: 4,
+                ruleText: "1 complimentary domestic airport lounge visit per quarter (on ₹75,000 spend in preceding calendar quarter w.e.f. Jan 01, 2025).",
+                spendCriteria: "₹75,000 in prev calendar quarter"
+            },
+            internationalAirport: {
+                hasAccess: false,
+                visitsPerYear: 0,
+                ruleText: "No complimentary international airport lounge access."
+            },
+            railwayLounge: {
+                hasAccess: true,
+                visitsPerYear: 4,
+                ruleText: "1 complimentary railway lounge visit per quarter across major Indian railway stations.",
+                spendCriteria: "Direct swipe"
+            }
+        }
+    },
+
+    'icici-hpcl-super-saver': {
+        id: 'icici-hpcl-super-saver',
+        name: 'ICICI HPCL Super Saver Credit Card',
+        shortName: 'ICICI HPCL Saver',
+        color: '#0284c7',
+        matcher: /hpcl.*saver|super\s*saver|icici.*hpcl/i,
+        issuer: 'ICICI Bank',
+        network: 'Visa / RuPay',
+        cardType: 'Co-Branded Fuel & Daily Needs',
+        annualFee: 500,
+        joiningFee: 500,
+        feeWaiverSpendTarget: 150000,
+        forexMarkupPercent: 3.5,
+        defaultMonthlyAcceleratedCap: 400,
+        baseCashbackPercent: 0.5,
+        bestFor: "HPCL fuel customers, daily commuters, grocery shoppers and utility bill payers",
+        welcomeBenefit: "2,000 bonus reward points (worth ₹500) + ₹100 cashback on HPCL fuel via HP Pay app",
+        keyBenefitsSummary: [
+            "5% Total Savings on HPCL Fuel: 4% cashback (16 RP/₹100) + 1% fuel surcharge waiver on HPCL pumps",
+            "5% Cashback on Utilities & Departmental Stores (20 RP/₹100, max 400 RP per month)",
+            "RuPay variant available for seamless UPI QR Scan & Pay at merchant shops",
+            "25% discount up to ₹100 on BookMyShow and Inox movie tickets twice a month (on ₹25k quarterly spend w.e.f. Jan 15, 2026)",
+            "1 Domestic Airport Lounge per quarter (on ₹75,000 spend in preceding calendar quarter w.e.f. Jan 01, 2025)",
+            "Annual Fee waived on ₹1,50,000 annual spend (excludes rent, govt & education)"
+        ],
+        pros: [
+            "Strong Fuel Savings: 5% combined savings on petrol/diesel at HPCL pumps when paid via HP Pay / POS.",
+            "5% on Utilities & Groceries: High 5% accelerated rewards on everyday essential categories.",
+            "RuPay UPI Compatibility: RuPay variant allows UPI payments directly from credit line.",
+            "Low Annual Fee: ₹500/yr easily waived on ₹1.5L annual retail spend.",
+            "Movie Discount: 25% off up to ₹100 on BookMyShow."
+        ],
+        cons: [
+            "Fuel Savings Limited to HPCL: 5% fuel benefit is only valid at Hindustan Petroleum (HPCL) outlets, not IOCL or BPCL.",
+            "Accelerated Category Cap: 5% utilities & groceries capped at 400 RP (₹100) per month.",
+            "Quarterly Lounge Hurdle: Requires ₹75,000 spend in preceding calendar quarter for domestic airport lounge (w.e.f. Jan 01, 2025).",
+            "1% Fuel Fee > ₹10,000: Single fuel transactions exceeding ₹10,000 attract a 1% fee."
+        ],
+        tiers: [
+            {
+                rate: 4,
+                name: "HPCL Petrol & Diesel Spends (4% Cashback)",
+                categories: [],
+                merchants: ["hpcl", "hindustan petroleum", "hp fuel", "hp pay"],
+                monthlyCap: 400,
+                notes: "16 ICICI Reward Points per ₹100 (4% cashback) at HPCL fuel outlets + 1% surcharge waiver."
+            },
+            {
+                rate: 5,
+                name: "Utilities & Departmental Stores (5%)",
+                categories: ["utilities", "groceries"],
+                merchants: ["electricity", "water", "gas", "supermarket", "grocery"],
+                monthlyCap: 100,
+                notes: "20 ICICI Reward Points per ₹100 (5% return, capped at 400 RP = ₹100 per month)."
+            },
+            {
+                rate: 0.5,
+                name: "All Other Domestic Retail Spends (0.5%)",
+                categories: ["all-retail", "shopping", "dining", "travel"],
+                merchants: [],
+                monthlyCap: null,
+                notes: "2 ICICI Reward Points per ₹100 spent domestically (0.5% return)."
+            }
+        ],
+        exclusions: [
+            { category: "rent", reason: "Rent payments (MCC 6513) earn 0% rewards + 1% processing fee." },
+            { category: "wallet", reason: "Prepaid wallet loads earn 0% (1% fee applies on loads ≥ ₹5,000 w.e.f. Jan 2026)." },
+            { category: "government", reason: "Government tax and challan payments earn 0% rewards." },
+            { category: "gaming", reason: "Online skill-based gaming (MCC 5816) earns 0% rewards + 2% transaction fee." },
+            { category: "transportation", reason: "Transportation spends > ₹50,000 incur a 1% fee (MCC 4111, 4112, 4784, 4131 w.e.f. Jan 15, 2026)." }
+        ],
+        lounges: {
+            domesticAirport: {
+                hasAccess: true,
+                isMilestoneBased: true,
+                visitsPerYear: 4,
+                ruleText: "1 complimentary domestic airport lounge visit per quarter (on ₹75,000 spend in preceding calendar quarter w.e.f. Jan 01, 2025).",
+                spendCriteria: "₹75,000 in prev calendar quarter"
+            },
+            internationalAirport: {
+                hasAccess: false,
+                visitsPerYear: 0,
+                ruleText: "No complimentary international airport lounge access."
+            },
+            railwayLounge: {
+                hasAccess: false,
+                visitsPerYear: 0,
+                ruleText: "No railway lounge access."
+            }
+        },
+        entertainment: {
+            movies: {
+                type: "discount",
+                bogo: false,
+                rate: 25,
+                platform: "BookMyShow",
+                description: "25% discount up to ₹100 twice a month on BookMyShow (requires ₹25k spend in prev quarter w.e.f. Jan 15, 2026)."
+            }
+        }
     },
 
     'hsbc-live-plus': {
@@ -453,139 +894,222 @@ export const CARD_PRESETS_REGISTRY = {
         matcher: /(live\s*\+|live\s*plus)|((?=.*hsbc)(?=.*(live|cashback)))/i,
         issuer: 'HSBC',
         network: 'Visa Infinite',
-        cardType: 'Dining & Grocery Cashback',
+        cardType: 'Dining, Grocery & Utility Cashback',
         annualFee: 999,
         joiningFee: 999,
         feeWaiverSpendTarget: 200000,
-        forexMarkupPercent: 3.5,
+        forexMarkupPercent: 1.99,
         defaultMonthlyAcceleratedCap: 1200,
         baseCashbackPercent: 1.5,
-        bestFor: "Dining, Zomato/Swiggy food delivery, Blinkit/Zepto quick commerce & DMart groceries (10% cashback)",
+        bestFor: "Dining, Swiggy/Zomato food delivery, Blinkit/Zepto groceries, utility bills & offline retail shopping (10% cashback)",
         welcomeBenefit: "₹1,000 Amazon voucher on completing first transaction within 30 days",
-        keyBenefitsSummary: ["10% Accelerated Cashback on Dining, Food Delivery & Groceries (up to ₹1,200/billing cycle)","1.5% Unlimited Cashback on all other eligible retail transactions","2 Domestic Airport Lounge visits/year (1 per 6 months via Visa Infinite direct swipe)","Buy 1 Get 1 Free on movie tickets up to ₹250 off on Saturdays via District / BookMyShow","Annual fee waived on ₹2,00,000 annual spend"],
-        pros: ["Highest Grocery & Dining Cashback: 10% cashback on Swiggy, Zomato, Blinkit, Zepto, Instamart, BigBasket, DMart (up to ₹1,200/mo).","Uncapped 1.5% Base Cashback: All other eligible retail spends earn 1.5% unlimited cashback (higher than most competing cards).","BookMyShow / District BOGO: Buy 1 Get 1 free up to ₹250 off on Saturday movie tickets.","Pre-sale tickets & 10% discounts for major live concerts, events & culinary festivals via District.","Jewellery spends count 100% towards the ₹2 Lakh annual fee waiver (saving ₹999 + GST renewal fee)."],
-        cons: ["Monthly accelerated cashback is capped at ₹1,200 (max spend of ₹12,000 at 10%).","Jewellery and gold strictly earn 0% cashback (though they count toward fee waiver).","Utilities, telecom bills, and fuel earn 0% cashback.","Domestic lounge access is limited to 2 visits per year (max 1 visit every 6 months)."],
+        keyBenefitsSummary: [
+            "10% Accelerated Cashback on Dining, Food Delivery, Groceries, Offline Retail Shopping & Utility Bills (up to ₹1,200/billing cycle)",
+            "1.5% Unlimited Cashback on all other eligible domestic retail transactions (Amazon, Flipkart & Myntra earn 1.5%)",
+            "3 Complimentary Airport Lounges/year (2 Domestic: 1 per 6 months + 1 International visit w.e.f. Sept 2026)",
+            "Low 1.99% Forex Markup on international currency transactions (0% cashback on international spends)",
+            "Buy 1 Get 1 Free on movie tickets up to ₹250 off on Saturdays via District / BookMyShow",
+            "Annual fee waived on ₹2,00,000 annual spend across primary and add-on cards"
+        ],
+        pros: [
+            "Highest Grocery, Dining & Utility Cashback: 10% cashback on Swiggy, Zomato, Blinkit, Zepto, Instamart, BigBasket, DMart, Electricity, Water & Broadband bills (MCC 4900, 4814, up to ₹1,200/mo).",
+            "10% on Retail Shopping: Accelerated 10% on offline departmental stores, apparel, and electronics (MCC 5311, 5651, 5732).",
+            "Uncapped 1.5% Base Domestic Cashback: Domestic retail spends earn 1.5% unlimited cashback (Amazon, Flipkart, and Myntra earn 1.5%).",
+            "Domestic & International Airport Lounges: 3 visits per year (2 domestic: 1 every 6 months + 1 international w.e.f. Sept 2026).",
+            "Low 1.99% Forex Markup: Significantly lower than standard bank markup of 3.5%.",
+            "BookMyShow / District BOGO: Buy 1 Get 1 free up to ₹250 off on Saturday movie tickets.",
+            "Jewellery spends count 100% towards the ₹2 Lakh annual fee waiver (saving ₹999 + GST renewal fee)."
+        ],
+        cons: [
+            "Monthly accelerated cashback is capped at ₹1,200 (max spend of ₹12,000 at 10%).",
+            "International spends earn 0% cashback (reduced 1.99% forex markup applies instead).",
+            "No Fuel Surcharge Waiver: Fuel surcharge waiver is not applicable (NA) on HSBC Live+.",
+            "Online shopping at Amazon, Flipkart & Myntra is excluded from 10% and earns 1.5% base cashback.",
+            "Jewellery, insurance, education, hospitals, rent, and wallet reloads earn 0% cashback."
+        ],
         tiers: [
-          {
-                    "rate": 10,
-                    "name": "Dining, Food Delivery & Groceries (10%)",
-                    "categories": [
-                              "dining",
-                              "food-delivery",
-                              "groceries",
-                              "quick-commerce",
-                              "supermarket"
-                    ],
-                    "merchants": [
-                              "swiggy",
-                              "zomato",
-                              "blinkit",
-                              "zepto",
-                              "instamart",
-                              "bigbasket",
-                              "dmart",
-                              "nature's basket",
-                              "star bazaar",
-                              "mcdonalds",
-                              "kfc",
-                              "starbucks",
-                              "dominos",
-                              "eatclub",
-                              "district",
-                              "district app"
-                    ],
-                    "monthlyCap": 1200,
-                    "fallbackRate": 1.5,
-                    "notes": "10% accelerated cashback capped at ₹1,200/billing cycle (spend up to ₹12,000). Drops to 1.5% base afterwards."
-          },
-          {
-                    "rate": 1.5,
-                    "name": "All Other Eligible Retail (1.5%)",
-                    "categories": [
-                              "all-retail"
-                    ],
-                    "merchants": [],
-                    "monthlyCap": null,
-                    "notes": "Unlimited 1.5% cashback on all other eligible spends."
-          }
-],
+            {
+                "rate": 10,
+                "name": "Dining, Food Delivery, Groceries, Shopping & Utilities (10%)",
+                "categories": [
+                    "dining",
+                    "food-delivery",
+                    "groceries",
+                    "quick-commerce",
+                    "supermarket",
+                    "utilities",
+                    "telecom",
+                    "shopping"
+                ],
+                "merchants": [
+                    "swiggy",
+                    "zomato",
+                    "blinkit",
+                    "zepto",
+                    "instamart",
+                    "bigbasket",
+                    "dmart",
+                    "nature's basket",
+                    "star bazaar",
+                    "mcdonalds",
+                    "kfc",
+                    "starbucks",
+                    "dominos",
+                    "eatclub",
+                    "district",
+                    "district app",
+                    "electricity",
+                    "water",
+                    "gas",
+                    "broadband",
+                    "wifi",
+                    "bescom",
+                    "tneb",
+                    "mseb",
+                    "cesc",
+                    "tata power",
+                    "croma",
+                    "reliance digital",
+                    "vijay sales",
+                    "zara",
+                    "h&m",
+                    "marks & spencer",
+                    "shoppers stop",
+                    "lifestyle",
+                    "westside",
+                    "pantaloons",
+                    "decathlon",
+                    "nykaa"
+                ],
+                "monthlyCap": 1200,
+                "fallbackRate": 1.5,
+                "notes": "10% accelerated cashback capped at ₹1,200/billing cycle (spend up to ₹12,000). Drops to 1.5% base afterwards."
+            },
+            {
+                "rate": 1.5,
+                "name": "Amazon, Flipkart & Myntra (1.5% - Excluded from 10%)",
+                "categories": [],
+                "merchants": [
+                    "amazon",
+                    "flipkart",
+                    "myntra"
+                ],
+                "monthlyCap": null,
+                "notes": "Per HSBC terms, shopping spends on Amazon, Flipkart & Myntra are excluded from the 10% category and earn 1.5% cashback."
+            },
+            {
+                "rate": 1.5,
+                "name": "All Other Eligible Domestic Retail (1.5%)",
+                "categories": [
+                    "all-retail"
+                ],
+                "merchants": [],
+                "monthlyCap": null,
+                "notes": "Unlimited 1.5% cashback on all other eligible domestic retail spends."
+            }
+        ],
         exclusions: [
-          {
-                    "category": "fuel",
-                    "reason": "Fuel is excluded from cashback (fuel surcharge waiver applies between ₹400-₹4,000)."
-          },
-          {
-                    "category": "rent",
-                    "reason": "Rental / property payments are strictly excluded from rewards."
-          },
-          {
-                    "category": "wallet",
-                    "reason": "Wallet loading (Paytm, Mobikwik, Amazon Pay balance) yields 0% rewards."
-          },
-          {
-                    "category": "insurance",
-                    "reason": "Insurance premium payments do not earn any cashback on HSBC Live+."
-          },
-          {
-                    "category": "education",
-                    "reason": "Education fees and tuition payments earn 0% cashback."
-          },
-          {
-                    "category": "government",
-                    "reason": "Taxes and government department payments are excluded."
-          },
-          {
-                    "category": "emi",
-                    "reason": "Transactions converted into EMI do not qualify for cashback."
-          },
-          {
-                    "category": "jewellery",
-                    "reason": "Jewellery, gold, and antiques (MCC 5094, 5944) are strictly excluded from earning cashback on HSBC Live+ (spends do count toward the ₹2L annual fee waiver)."
-          },
-          {
-                    "category": "jewelry",
-                    "reason": "Jewellery, gold, and antiques (MCC 5094, 5944) are strictly excluded from earning cashback on HSBC Live+ (spends do count toward the ₹2L annual fee waiver)."
-          },
-          {
-                    "category": "gold",
-                    "reason": "Jewellery, gold, and antiques (MCC 5094, 5944) are strictly excluded from earning cashback on HSBC Live+ (spends do count toward the ₹2L annual fee waiver)."
-          },
-          {
-                    "category": "utilities",
-                    "reason": "Utility bill payments (MCC 4900) are excluded from earning cashback on HSBC Live+."
-          },
-          {
-                    "category": "telecom",
-                    "reason": "Telecom bills and mobile recharges earn 0% cashback on HSBC Live+."
-          }
-],
+            {
+                "category": "fuel",
+                "reason": "Fuel is excluded from cashback. Fuel surcharge waiver is NOT applicable (NA) on HSBC Live+."
+            },
+            {
+                "category": "rent",
+                "reason": "Rental and property management payments (MCC 6513, 7349, 7012) earn 0% cashback + 1% processing fee."
+            },
+            {
+                "category": "wallet",
+                "reason": "E-wallet loading and quasi-cash transactions (MCC 6540, 6051) earn 0% cashback."
+            },
+            {
+                "category": "financial",
+                "reason": "Financial institutions, security broker services, and money transfers (MCC 6010, 6011, 6012, 6211, 4829) earn 0% cashback."
+            },
+            {
+                "category": "insurance",
+                "reason": "Insurance premium payments (MCC 5960, 6300) earn 0% cashback on HSBC Live+."
+            },
+            {
+                "category": "education",
+                "reason": "Education fees, schools, and university payments (MCC 8211, 8220, 8241, 8244, 8249, 8299, 8351) earn 0% cashback."
+            },
+            {
+                "category": "government",
+                "reason": "Government taxes, fines, and challan payments (MCC 9211, 9222, 9223, 9311, 9399, 9402, 9405, 9950) earn 0% cashback."
+            },
+            {
+                "category": "emi",
+                "reason": "Instant EMI (IEMI) and loan facilities are strictly excluded from earning cashback."
+            },
+            {
+                "category": "jewellery",
+                "reason": "Jewellery, gold, and antique items (MCC 5094, 5932, 5937, 5944) earn 0% cashback (spends count 100% towards the ₹2L annual fee waiver)."
+            },
+            {
+                "category": "jewelry",
+                "reason": "Jewellery, gold, and antique items (MCC 5094, 5932, 5937, 5944) earn 0% cashback (spends count 100% towards the ₹2L annual fee waiver)."
+            },
+            {
+                "category": "gold",
+                "reason": "Jewellery, gold, and antique items (MCC 5094, 5932, 5937, 5944) earn 0% cashback (spends count 100% towards the ₹2L annual fee waiver)."
+            },
+            {
+                "category": "hospital",
+                "reason": "Hospitals and healthcare institutions (MCC 8062) earn 0% cashback on HSBC Live+."
+            },
+            {
+                "category": "transit",
+                "reason": "Tolls, bridge fees, and local bus transit (MCC 4784, 4111) earn 0% cashback."
+            },
+            {
+                "category": "charity",
+                "reason": "Charity and social service organizations (MCC 8398, 8641) earn 0% cashback."
+            },
+            {
+                "category": "b2b",
+                "reason": "Business-to-business commercial spends and wholesale clubs (MCC 5300, etc.) earn 0% cashback."
+            },
+            {
+                "category": "gambling",
+                "reason": "Gambling, betting, and lottery transactions (MCC 7995) earn 0% cashback."
+            },
+            {
+                "category": "forex",
+                "reason": "Per HSBC terms w.e.f. Sept 2026, 1.5% cashback is no longer earned on international spends (1.99% forex markup applies)."
+            },
+            {
+                "category": "international",
+                "reason": "Per HSBC terms w.e.f. Sept 2026, 1.5% cashback is no longer earned on international spends (1.99% forex markup applies)."
+            }
+        ],
         lounges: {
-          "domesticAirport": {
-                    "hasAccess": true,
-                    "visitsPerYear": 2,
-                    "ruleText": "2 complimentary visits per calendar year (max 1 visit every 6 months via Visa Infinite direct swipe).",
-                    "spendCriteria": null
-          },
-          "internationalAirport": {
-                    "hasAccess": false,
-                    "visitsPerYear": 0,
-                    "ruleText": "Paid access via LoungeKey / Priority Pass."
-          },
-          "railwayLounge": {
-                    "hasAccess": false,
-                    "visitsPerYear": 0,
-                    "ruleText": "No railway lounge access."
-          }
-},
+            "domesticAirport": {
+                "hasAccess": true,
+                "visitsPerYear": 2,
+                "ruleText": "2 complimentary domestic airport lounge visits per calendar year (limited to 1 usage every 6 calendar months via Visa Infinite direct swipe).",
+                "spendCriteria": "1 visit every 6 months (Direct swipe)"
+            },
+            "internationalAirport": {
+                "hasAccess": true,
+                "visitsPerYear": 1,
+                "ruleText": "1 complimentary international airport lounge visit per year (w.e.f. 1st September 2026). Total 3 airport lounge visits/year.",
+                "spendCriteria": "1 visit/year complimentary"
+            },
+            "railwayLounge": {
+                "hasAccess": false,
+                "visitsPerYear": 0,
+                "ruleText": "No railway lounge access."
+            }
+        },
         entertainment: {
-          "movies": {
-                    "type": "bogo",
-                    "bogo": true,
-                    "maxDiscount": 250,
-                    "platform": "District App (by Zomato) & BookMyShow",
-                    "description": "Buy 1 Get 1 Free (BOGO) movie tickets (up to ₹250 off on 2nd ticket on Saturdays) on District App & BookMyShow, plus 10% cashback on District dining and events."
-          }
-}
+            "movies": {
+                "type": "bogo",
+                "bogo": true,
+                "maxDiscount": 250,
+                "platform": "District App (by Zomato) & BookMyShow",
+                "description": "Buy 1 Get 1 Free (BOGO) movie tickets (up to ₹250 off on 2nd ticket on Saturdays) on District App & BookMyShow, plus 10% cashback on District dining and events."
+            }
+        }
     },
 
     'hdfc-millennia': {
@@ -603,113 +1127,132 @@ export const CARD_PRESETS_REGISTRY = {
         forexMarkupPercent: 3.5,
         defaultMonthlyAcceleratedCap: 1000,
         baseCashbackPercent: 1,
-        bestFor: "Amazon, Flipkart, Swiggy, Zomato, Myntra, Uber & 1:1 statement CashPoints redemption",
+        bestFor: "Amazon, Flipkart, Swiggy, Zomato, Myntra, Uber, PayZapp & 1:1 statement CashPoints redemption",
         welcomeBenefit: "1,000 CashPoints upon payment of membership fee",
-        keyBenefitsSummary: ["5% CashPoints on 10 Top Merchants: Amazon, Flipkart, Myntra, Swiggy, Zomato, Uber, BMS, Tata CLiQ, Cult.fit, Sony LIV","1% CashPoints on other eligible retail spends","1:1 CashPoints redemption against statement balance (1 CashPoint = ₹1.00 cash)","₹1,00,000 spend annual fee waiver","Quarterly milestone voucher of ₹1,000 on spending ₹1 Lakh in a calendar quarter"],
-        pros: ["Broad 5% Merchant Network: Covers all major Indian online portals (Amazon, Flipkart, Swiggy, Zomato, Myntra, Uber).","True 1:1 Statement Cash Credit: CashPoints redeem directly against credit card statement outstanding at ₹1 = 1 CashPoint.","₹1,000 quarterly brand voucher (or lounge access) on spending ₹1 Lakh in a calendar quarter.","Reasonable ₹1 Lakh annual spend milestone for fee waiver."],
-        cons: ["Monthly 5% CashPoints is capped at 1,000 CashPoints (max spend of ₹20,000/mo).","Domestic airport lounge access is now conditional (requires ₹1 Lakh quarterly spend).","Transactions below ₹100 do not earn any CashPoints.","Rent, wallet reloads, utilities, and telecom bills earn 0% CashPoints."],
+        keyBenefitsSummary: [
+            "5% CashPoints on 10 Top Merchants: Amazon, Flipkart, Myntra, Swiggy, Zomato, Uber, BMS, Tata CLiQ, Cult.fit, Sony LIV (max 1,000 CP/mo)",
+            "1% CashPoints on other eligible retail spends, utilities, telecom & direct education (max 1,000 CP/mo)",
+            "1:1 CashPoints redemption against statement balance (1 CashPoint = ₹1.00 cash, ₹50 fee per redemption)",
+            "₹1,00,000 spend annual fee waiver (saving ₹1,000 renewal fee)",
+            "Quarterly milestone voucher of ₹1,000 on spending ₹1 Lakh in a calendar quarter"
+        ],
+        pros: [
+            "Broad 5% Merchant Network: Covers all major Indian online portals (Amazon, Flipkart, Swiggy, Zomato, Myntra, Uber, BMS, Tata CLiQ).",
+            "True 1:1 Statement Cash Credit: CashPoints redeem directly against credit card statement outstanding at ₹1 = 1 CashPoint (min 500 CP, up to 3,000 CP/mo).",
+            "1% CashPoints on utilities, telecom and direct education payments (via PayZapp or SmartPay).",
+            "₹1,000 quarterly brand voucher from Gyftr (BigBasket, BookMyShow, Pizza Hut, Uber) on spending ₹1 Lakh in a calendar quarter.",
+            "Reasonable ₹1 Lakh annual spend milestone for 100% renewal fee waiver."
+        ],
+        cons: [
+            "Monthly 5% CashPoints is capped at 1,000 CashPoints (max spend of ₹20,000/mo).",
+            "No complimentary domestic airport lounge access (discontinued w.e.f. 1st Dec 2023).",
+            "Transactions below ₹100 do not earn any CashPoints (multiples of ₹100 rule).",
+            "₹50 + GST fee on redeeming CashPoints against statement credit balance.",
+            "Fuel, wallet reloads, rent payments, and third-party education earn 0% CashPoints."
+        ],
         tiers: [
-          {
-                    "rate": 5,
-                    "name": "Top 10 Merchant Partners (5%)",
-                    "categories": [
-                              "shopping",
-                              "food-delivery",
-                              "entertainment",
-                              "travel"
-                    ],
-                    "merchants": [
-                              "amazon",
-                              "flipkart",
-                              "myntra",
-                              "swiggy",
-                              "zomato",
-                              "tata cliq",
-                              "uber",
-                              "cult.fit",
-                              "cultfit",
-                              "bookmyshow",
-                              "bms",
-                              "sony liv",
-                              "sonyliv"
-                    ],
-                    "monthlyCap": 1000,
-                    "fallbackRate": 1,
-                    "notes": "5% CashPoints on 10 partner merchants (Amazon, Flipkart, Swiggy, Zomato, Myntra, Uber, BMS, Tata CLiQ, Cult.fit, Sony LIV). Capped at 1,000 CashPoints/mo."
-          },
-          {
-                    "rate": 1,
-                    "name": "Other Eligible Retail Spends (1%)",
-                    "categories": [
-                              "all-retail"
-                    ],
-                    "merchants": [],
-                    "monthlyCap": 1000,
-                    "notes": "1% CashPoints on other eligible spends (capped at 1,000 CashPoints/mo)."
-          }
-],
+            {
+                "rate": 5,
+                "name": "Top 10 Merchant Partners (5%)",
+                "categories": [
+                    "shopping",
+                    "food-delivery",
+                    "entertainment",
+                    "travel"
+                ],
+                "merchants": [
+                    "amazon",
+                    "flipkart",
+                    "myntra",
+                    "swiggy",
+                    "zomato",
+                    "tata cliq",
+                    "uber",
+                    "cult.fit",
+                    "cultfit",
+                    "bookmyshow",
+                    "bms",
+                    "sony liv",
+                    "sonyliv"
+                ],
+                "monthlyCap": 1000,
+                "fallbackRate": 1,
+                "notes": "5% CashPoints on 10 partner merchants (Amazon, Flipkart, Swiggy, Zomato, Myntra, Uber, BMS, Tata CLiQ, Cult.fit, Sony LIV). Capped at 1,000 CashPoints/mo."
+            },
+            {
+                "rate": 1,
+                "name": "Other Eligible Spends & Utilities (1%)",
+                "categories": [
+                    "all-retail",
+                    "utilities",
+                    "telecom",
+                    "education"
+                ],
+                "merchants": [
+                    "payzapp",
+                    "smartpay"
+                ],
+                "monthlyCap": 1000,
+                "notes": "1% CashPoints on other eligible retail spends, utilities, telecom and direct education (capped at 1,000 CashPoints/mo)."
+            }
+        ],
         exclusions: [
-          {
-                    "category": "fuel",
-                    "reason": "Fuel spends do not earn CashPoints (standard 1% surcharge waiver ₹400-₹5,000 applies)."
-          },
-          {
-                    "category": "rent",
-                    "reason": "Rent transactions earn 0% CashPoints + attract 1% convenience fee."
-          },
-          {
-                    "category": "wallet",
-                    "reason": "Prepaid wallet loading earns 0% CashPoints."
-          },
-          {
-                    "category": "government",
-                    "reason": "Government portals, utilities, and tax payments earn 0%."
-          },
-          {
-                    "category": "education",
-                    "reason": "Education payments on 3rd party apps (Cred, CheQ) earn 0% CashPoints."
-          },
-          {
-                    "category": "emi",
-                    "reason": "EMI transactions earn 0% CashPoints."
-          },
-          {
-                    "category": "utilities",
-                    "reason": "Utility bill payments earn 0% CashPoints on HDFC Millennia."
-          },
-          {
-                    "category": "telecom",
-                    "reason": "Telecom bills and mobile recharges earn 0% CashPoints on HDFC Millennia."
-          }
-],
+            {
+                "category": "fuel",
+                "reason": "Fuel spends do not earn CashPoints (standard 1% surcharge waiver ₹400-₹5,000 applies; 1% fee on spends > ₹15,000)."
+            },
+            {
+                "category": "rent",
+                "reason": "Rent transactions earn 0% CashPoints + attract 1% processing fee (capped at ₹4,999)."
+            },
+            {
+                "category": "wallet",
+                "reason": "Prepaid wallet loading earns 0% CashPoints (1% fee applies on spends > ₹10,000/mo)."
+            },
+            {
+                "category": "government",
+                "reason": "Government portals, taxes, and challan payments earn 0% CashPoints."
+            },
+            {
+                "category": "education",
+                "reason": "Education payments via 3rd party apps (CRED, Cheq, Paytm) earn 0% CashPoints + 1% fee. Direct institute portal payments earn 1% CashPoints with 0% fee."
+            },
+            {
+                "category": "emi",
+                "reason": "EMI transactions earn 0% CashPoints."
+            },
+            {
+                "category": "gaming",
+                "reason": "Online skill-based gaming earns 0% CashPoints (1% fee on spends > ₹10,000/mo)."
+            }
+        ],
         lounges: {
-          "domesticAirport": {
-                    "hasAccess": true,
-                    "isMilestoneBased": true,
-                    "visitsPerYear": 4,
-                    "ruleText": "Milestone-based: Spend ₹1,00,000 or more in a calendar quarter to choose either 1 Lounge Access Voucher OR ₹1,000 brand voucher.",
-                    "spendCriteria": "₹1,00,000 per calendar quarter"
-          },
-          "internationalAirport": {
-                    "hasAccess": false,
-                    "visitsPerYear": 0,
-                    "ruleText": "No complimentary international lounge access."
-          },
-          "railwayLounge": {
-                    "hasAccess": false,
-                    "visitsPerYear": 0,
-                    "ruleText": "No railway lounge access."
-          }
-},
+            "domesticAirport": {
+                "hasAccess": false,
+                "visitsPerYear": 0,
+                "ruleText": "Complimentary domestic lounge access discontinued w.e.f. 1st Dec 2023. Cardholders receive a ₹1,000 Quarterly Milestone Gift Voucher (BigBasket, BMS, Uber, etc.) on ₹1 Lakh quarterly spend.",
+                "spendCriteria": "₹1,00,000 per calendar quarter (Voucher only)"
+            },
+            "internationalAirport": {
+                "hasAccess": false,
+                "visitsPerYear": 0,
+                "ruleText": "No complimentary international lounge access."
+            },
+            "railwayLounge": {
+                "hasAccess": false,
+                "visitsPerYear": 0,
+                "ruleText": "No railway lounge access."
+            }
+        },
         entertainment: {
-          "movies": {
-                    "type": "cashback",
-                    "bogo": false,
-                    "rate": 5,
-                    "platform": "BookMyShow",
-                    "description": "5% CashPoints on BookMyShow (counted within the 1,000 CashPoints/mo partner cap)."
-          }
-}
+            "movies": {
+                "type": "cashback",
+                "bogo": false,
+                "rate": 5,
+                "platform": "BookMyShow",
+                "description": "5% CashPoints on BookMyShow (counted within the 1,000 CashPoints/mo partner cap)."
+            }
+        }
     },
 
     'hdfc-regalia-gold': {
@@ -729,9 +1272,9 @@ export const CARD_PRESETS_REGISTRY = {
         baseCashbackPercent: 1.33,
         bestFor: "Frequent domestic and international travelers, fashion shopping (Myntra/Nykaa/M&S)",
         welcomeBenefit: "Club Vistara Silver, MMT Black Elite, and ₹2,500 retail voucher on fee payment & ₹1L spend in 90 days",
-        keyBenefitsSummary: ["12 Domestic Lounges/year (unconditional direct swipe)","6 International Lounges/year via Priority Pass","5x Reward Points (6.67% value) on Marks & Spencer, Myntra, Nykaa, Reliance Digital","Low 2.0% Forex Markup on international transactions","₹1,500 quarterly milestone vouchers on ₹1.5L quarterly spend"],
-        pros: ["Unconditional Domestic Lounge Access: 12 visits/year (direct swipe without quarterly spend hurdles!).","6 Complimentary International Lounges/year via Priority Pass for primary & add-on members.","Low Forex Markup: 2.0% instead of standard 3.5%, making it great for international travel.","5x Rewards (6.67% return) on partner brands: Marks & Spencer, Myntra, Nykaa, Reliance Digital.","₹1,500 quarterly milestone vouchers from Marriott, Marks & Spencer, or Reliance Digital."],
-        cons: ["Points redemption value on SmartBuy flights/hotels is 0.50p (and 0.35p on shopping catalogue).","₹4,00,000 spend needed for annual fee waiver.","No BookMyShow BOGO offer (only points-based redemption)."],
+        keyBenefitsSummary: ["Up to 12 Domestic Lounges/year on meeting quarterly spend criteria","6 International Lounges/year via Priority Pass (min 4 txns)","5x Reward Points (6.67% value) on Marks & Spencer, Myntra, Nykaa, Reliance Digital","Low 2.0% Forex Markup on international transactions","₹1,500 quarterly milestone vouchers on ₹1.5L quarterly spend"],
+        pros: ["Domestic Lounge Access: Up to 12 visits/year on meeting quarterly spend criteria (e.g. April–June spends unlock July–Sept access).","6 Complimentary International Lounges/year via Priority Pass for primary & add-on members (after 4 transactions).","Low Forex Markup: 2.0% instead of standard 3.5%, making it great for international travel.","5x Rewards (6.67% return) on partner brands: Marks & Spencer, Myntra, Nykaa, Reliance Digital.","₹1,500 quarterly milestone vouchers from Marriott, Marks & Spencer, or Reliance Digital."],
+        cons: ["Domestic lounge access requires meeting quarterly spends hurdle.","Points redemption value on SmartBuy flights/hotels is ₹0.50 per point.","Statement credit redemption rate revised to 15 paise per point w.e.f. 1st Nov 2025 (₹50 redemption fee applies).","Reward points on grocery transactions capped at 2,000/mo, utility & telecom capped at 2,000/mo.","₹4,00,000 spend needed for annual fee waiver."],
         tiers: [
           {
                     "rate": 6.67,
@@ -768,43 +1311,52 @@ export const CARD_PRESETS_REGISTRY = {
                     "rate": 1.33,
                     "name": "All Other Retail Spends (4 RP/₹150 = 1.33%)",
                     "categories": [
-                              "all-retail"
+                              "all-retail",
+                              "education"
                     ],
                     "merchants": [],
                     "monthlyCap": null,
-                    "notes": "4 Reward Points per ₹150 spent on all regular retail (1 RP = ₹0.50 on SmartBuy flight/hotel bookings)."
+                    "notes": "4 Reward Points per ₹150 spent on all regular retail and direct education (1 RP = ₹0.50 on SmartBuy flight/hotel bookings)."
           }
 ],
         exclusions: [
           {
                     "category": "fuel",
-                    "reason": "Fuel excluded."
+                    "reason": "Fuel excluded (1% surcharge waiver ₹400-₹5,000 applies; 1% fee on spends > ₹15,000)."
           },
           {
                     "category": "rent",
-                    "reason": "Rent payments earn 0% rewards."
+                    "reason": "Rent payments earn 0% rewards + attract 1% processing fee (capped at ₹4,999)."
           },
           {
                     "category": "wallet",
-                    "reason": "Wallet loading earns 0%."
+                    "reason": "Wallet loading earns 0% (1% fee on spends > ₹10,000/mo)."
           },
           {
                     "category": "government",
                     "reason": "Government transactions earn 0%."
+          },
+          {
+                    "category": "education",
+                    "reason": "Education payments via 3rd party apps earn 0% + 1% fee. Direct payments earn 1.33% with 0% fee."
+          },
+          {
+                    "category": "gaming",
+                    "reason": "Online skill-based gaming earns 0% (1% fee on spends > ₹10,000/mo)."
           }
 ],
         lounges: {
           "domesticAirport": {
                     "hasAccess": true,
                     "visitsPerYear": 12,
-                    "ruleText": "12 complimentary domestic airport lounge visits per calendar year (unconditional via direct swipe).",
-                    "spendCriteria": "None (Direct swipe)"
+                    "ruleText": "12 complimentary domestic airport lounge visits per calendar year on meeting quarterly spend criteria.",
+                    "spendCriteria": "Quarterly Spend Hurdle"
           },
           "internationalAirport": {
                     "hasAccess": true,
                     "visitsPerYear": 6,
-                    "ruleText": "6 complimentary international airport lounge visits per calendar year via Priority Pass.",
-                    "spendCriteria": "Priority Pass"
+                    "ruleText": "6 complimentary international airport lounge visits per calendar year via Priority Pass (after 4 transactions).",
+                    "spendCriteria": "Priority Pass (min 4 txns)"
           },
           "railwayLounge": {
                     "hasAccess": false,
@@ -840,9 +1392,9 @@ export const CARD_PRESETS_REGISTRY = {
         baseCashbackPercent: 3.33,
         bestFor: "High-net-worth spenders seeking up to 33.3% travel value, 1:1 flight booking & unlimited global lounges",
         welcomeBenefit: "12,500 Reward Points (worth ₹12,500 on SmartBuy flights/hotels) + Club Marriott membership upon fee payment",
-        keyBenefitsSummary: ["Unlimited Domestic & International Airport Lounge access globally for primary & add-on cardholders","Up to 33.3% return via SmartBuy 5x multipliers on flights & hotels","Base 3.33% reward rate (5 RP per ₹150, 1 RP = ₹1 on flights/hotels)","Low 2.0% Forex Markup on international spends","Unlimited complimentary golf games worldwide","ITC 1+1 buffet dining offer & Club Marriott benefits"],
-        pros: ["Unrivaled Return: 3.33% base rewards and up to 33.3% on flights/hotels booked via HDFC SmartBuy.","True 1:1 Point Value: 1 Reward Point = ₹1.00 when booking flights and hotels on SmartBuy.","Unlimited Global Lounge Access: Free unlimited lounge access worldwide for both primary and add-on cardholders via Priority Pass.","Low 2% Forex Markup with 3.33% base points gives net positive return on foreign transactions.","Unlimited complimentary golf rounds and lessons across India and abroad."],
-        cons: ["Strict Invitation-Only Eligibility: Demands ₹3,00,000+ monthly net salary or high credit limits.","Very High ₹10 Lakh Annual Spend Target for fee waiver.","Monthly SmartBuy bonus point caps apply (max 10,000 bonus points/calendar month)."],
+        keyBenefitsSummary: ["Unlimited Domestic & International Airport Lounge access globally for primary & add-on cardholders","Up to 33.3% return via SmartBuy 5x multipliers on flights & hotels","Base 3.33% reward rate (5 RP per ₹150, 1 RP = ₹1 on flights/hotels)","Low 2.0% Forex Markup on international spends","Zero Late Payment, Overlimit, Cash Advance, and Redemption Fees (MITC Exempt)","Unlimited complimentary golf games worldwide","ITC 1+1 buffet dining offer & Club Marriott benefits"],
+        pros: ["Unrivaled Return: 3.33% base rewards and up to 33.3% on flights/hotels booked via HDFC SmartBuy.","True 1:1 Point Value: 1 Reward Point = ₹1.00 when booking flights and hotels on SmartBuy.","Unlimited Global Lounge Access: Free unlimited lounge access worldwide for both primary and add-on cardholders via Priority Pass.","Low 2% Forex Markup with 3.33% base points gives net positive return on foreign transactions.","Exempt from Fees: Nil Late Payment Fee, Nil Cash Advance Fee, Nil Overlimit Fee, and Nil Reward Redemption Fee under HDFC MITC.","Unlimited complimentary golf rounds and lessons across India and abroad."],
+        cons: ["Strict Invitation-Only Eligibility: Demands ₹3,00,000+ monthly net salary or high credit limits.","Very High ₹10 Lakh Annual Spend Target for fee waiver.","Effective 1st April 2026, continued access to Infinia requires ₹18 Lakhs annual spend OR ₹50 Lakhs Relationship Value (RLV).","Monthly SmartBuy bonus point caps apply (max 10,000 bonus points/calendar month)."],
         tiers: [
           {
                     "rate": 16.67,
@@ -878,29 +1430,38 @@ export const CARD_PRESETS_REGISTRY = {
                     "rate": 3.33,
                     "name": "All Other Retail Spends (5 RP/₹150 = 3.33%)",
                     "categories": [
-                              "all-retail"
+                              "all-retail",
+                              "education"
                     ],
                     "merchants": [],
                     "monthlyCap": null,
-                    "notes": "5 Reward Points per ₹150 spent on all regular retail (1 RP = ₹1.00 on flights/hotels)."
+                    "notes": "5 Reward Points per ₹150 spent on all regular retail and direct education payments (1 RP = ₹1.00 on flights/hotels)."
           }
 ],
         exclusions: [
           {
                     "category": "fuel",
-                    "reason": "Fuel excluded."
+                    "reason": "Fuel excluded (1% surcharge waiver ₹400-₹5,000 applies; 1% fee on spends > ₹15,000)."
           },
           {
                     "category": "rent",
-                    "reason": "Rent excluded."
+                    "reason": "Rent excluded (1% fee capped at ₹4,999 applies)."
           },
           {
                     "category": "wallet",
-                    "reason": "Wallet loads excluded."
+                    "reason": "Wallet loads excluded (1% fee applies on spends > ₹10,000/mo)."
           },
           {
                     "category": "government",
                     "reason": "Government transactions excluded."
+          },
+          {
+                    "category": "education",
+                    "reason": "Education payments via 3rd party apps earn 0% + 1% fee. Direct payments earn 3.33% with 0% fee."
+          },
+          {
+                    "category": "gaming",
+                    "reason": "Online skill-based gaming earns 0% (1% fee on spends > ₹10,000/mo)."
           }
 ],
         lounges: {
@@ -972,9 +1533,9 @@ export const CARD_PRESETS_REGISTRY = {
         cons: [
             "Base reward rate on general non-partner retail spends is very low at 0.25% (2 CashPoints per ₹150).",
             "Monthly 10X CashPoints is capped at 2,500 CashPoints (₹625 value, corresponding to ₹25,000 spend/mo).",
-            "CashPoint conversion value is ₹0.25 each against statement balance (compared to ₹1.00 on Millennia).",
+            "CashPoint conversion value against statement credit is 20 paise per point w.e.f. 1st Nov 2025 (₹50 redemption fee applies).",
             "Zero complimentary domestic or international airport or railway lounge access.",
-            "Strictly 0 rewards on fuel, wallet reloads, rent payments, government/taxes, and jewellery."
+            "Strictly 0 rewards on fuel, wallet reloads, rent payments, third-party education, and gaming."
         ],
         tiers: [
             {
@@ -1001,29 +1562,38 @@ export const CARD_PRESETS_REGISTRY = {
                 rate: 0.25,
                 name: "Other Eligible Retail Spends (0.25%)",
                 categories: [
-                    "all-retail"
+                    "all-retail",
+                    "education"
                 ],
                 merchants: [],
                 monthlyCap: null,
-                notes: "2 CashPoints per ₹150 on other eligible retail spends (0.25% return)."
+                notes: "2 CashPoints per ₹150 on other eligible retail spends and direct education (0.25% return)."
             }
         ],
         exclusions: [
             {
                 category: "fuel",
-                reason: "Fuel is excluded from CashPoints (1% fuel surcharge waiver applies between ₹400-₹5,000)."
+                reason: "Fuel is excluded from CashPoints (1% fuel surcharge waiver ₹400-₹5,000 applies; 1% fee on spends > ₹15,000)."
             },
             {
                 category: "rent",
-                reason: "Rental and property management payments earn 0 CashPoints."
+                reason: "Rental payments earn 0 CashPoints + 1% fee (capped at ₹4,999)."
             },
             {
                 category: "wallet",
-                reason: "Prepaid wallet loading transactions earn 0 CashPoints."
+                reason: "Prepaid wallet loading earns 0 CashPoints (1% fee applies on spends > ₹10,000/mo)."
             },
             {
                 category: "government",
                 reason: "Government tax, property tax, and challan payments earn 0 CashPoints."
+            },
+            {
+                category: "education",
+                reason: "Education payments via 3rd party apps earn 0% + 1% fee. Direct portal payments earn 0.25% with 0% fee."
+            },
+            {
+                category: "gaming",
+                reason: "Online skill-based gaming earns 0% (1% fee on spends > ₹10,000/mo)."
             },
             {
                 category: "emi",
@@ -1094,9 +1664,10 @@ export const CARD_PRESETS_REGISTRY = {
         ],
         cons: [
             "Each cashback bucket (10% and 5%) is strictly capped at ₹1,500 per calendar month.",
+            "Overall cashback across all categories capped at ₹3,500 per statement cycle (MITC Page 26).",
             "Zero complimentary airport or railway lounge access.",
             "Higher spend waiver hurdle: ₹2,00,000 annual spend required to waive the ₹500 renewal fee.",
-            "Excludes fuel, rent, wallet reloads, utility bills, and government tax payments from cashback."
+            "Excludes fuel, rent, wallet reloads, utility bills, third-party education, and government payments from cashback."
         ],
         tiers: [
             {
@@ -1152,25 +1723,33 @@ export const CARD_PRESETS_REGISTRY = {
                 ],
                 merchants: [],
                 monthlyCap: null,
-                notes: "1% unlimited cashback on other eligible retail spends."
+                notes: "1% unlimited cashback on other eligible retail spends (overall card cashback capped at ₹3,500/cycle)."
             }
         ],
         exclusions: [
             {
                 category: "fuel",
-                reason: "Fuel is excluded from cashback (1% fuel surcharge waiver applies ₹400-₹5,000)."
+                reason: "Fuel is excluded from cashback (1% fuel surcharge waiver applies ₹400-₹5,000; 1% fee on spends > ₹15,000)."
             },
             {
                 category: "rent",
-                reason: "Rent payments earn 0% cashback."
+                reason: "Rent payments earn 0% cashback + 1% processing fee (capped at ₹4,999)."
             },
             {
                 category: "wallet",
-                reason: "Wallet loading earns 0% cashback."
+                reason: "Wallet loading earns 0% cashback (1% fee applies on spends > ₹10,000/mo)."
             },
             {
                 category: "government",
                 reason: "Government tax and challan payments earn 0% cashback."
+            },
+            {
+                category: "education",
+                reason: "Education payments earn 0% cashback (w.e.f. 1st Sept 2024 per MITC Page 24 Section l)."
+            },
+            {
+                category: "gaming",
+                reason: "Online skill-based gaming earns 0% cashback (1% fee on spends > ₹10,000/mo)."
             },
             {
                 category: "utilities",
@@ -1209,6 +1788,90 @@ export const CARD_PRESETS_REGISTRY = {
         }
     },
 
+    'hdfc-pixel-play': {
+        id: 'hdfc-pixel-play',
+        name: 'HDFC Bank PIXEL Play Credit Card',
+        shortName: 'PIXEL Play',
+        color: '#0ea5e9',
+        matcher: /pixel(\s*play)?/i,
+        issuer: 'HDFC Bank',
+        network: 'RuPay Credit on UPI / Visa',
+        cardType: 'Digital Customizable RuPay Credit Card',
+        annualFee: 500,
+        joiningFee: 500,
+        feeWaiverSpendTarget: 100000,
+        forexMarkupPercent: 3.5,
+        defaultMonthlyAcceleratedCap: 15000,
+        baseCashbackPercent: 1.0,
+        bestFor: "Customizable 5% cashback on 2 chosen merchant packs, 3% dining, and RuPay UPI Scan & Pay",
+        welcomeBenefit: "Joining fee waived on spending ₹20,000 in first 90 days",
+        keyBenefitsSummary: [
+            "5% CashPoints on your choice of 2 merchant categories (Dining, Travel, E-Commerce, Grocery)",
+            "3% CashPoints on your choice of 1 food delivery/dining platform (Zomato/Swiggy)",
+            "1% Unlimited CashPoints on all other eligible retail and UPI spends (max ₹15,000/mo)",
+            "RuPay Credit on UPI: Scan & Pay at merchant QR codes directly with 50-day interest-free float",
+            "1:1 CashPoints redemption against statement balance via PayZapp app (1 CashPoint = ₹1.00)"
+        ],
+        pros: [
+            "Customizable Rewards: Choose your own favorite 5% and 3% cashback merchant packs in the PayZapp app.",
+            "RuPay Credit on UPI enabled: Instant merchant QR code scan and pay with zero surcharge.",
+            "True 1:1 Statement Cashback: 1 CashPoint = ₹1.00 directly credited to card statement / PayZapp balance.",
+            "High Monthly Cap: Up to ₹15,000 cashback per calendar month under Fair Usage Policy.",
+            "Achievable Fee Waiver: Joining fee waived on ₹20,000 in 90 days; annual fee waived on ₹1,00,000 annual spend."
+        ],
+        cons: [
+            "UPI mode rewards capped at 500 points per calendar month (MITC Page 23/44).",
+            "No complimentary airport lounge access.",
+            "Excludes fuel, wallet loads, rent, and third-party education from cashback.",
+            "3.5% foreign currency transaction markup."
+        ],
+        tiers: [
+            {
+                rate: 5,
+                name: "Selected 5% Merchant Packs (5%)",
+                categories: ["shopping", "travel", "groceries"],
+                merchants: ["amazon", "flipkart", "makemytrip", "blinkit", "zepto"],
+                monthlyCap: null,
+                fallbackRate: 1.0,
+                notes: "5% CashPoints on 2 chosen merchant categories customized in PayZapp."
+            },
+            {
+                rate: 3,
+                name: "Selected Dining Pack (3%)",
+                categories: ["dining", "food-delivery"],
+                merchants: ["swiggy", "zomato"],
+                monthlyCap: null,
+                fallbackRate: 1.0,
+                notes: "3% CashPoints on chosen dining delivery platform in PayZapp."
+            },
+            {
+                rate: 1,
+                name: "All Other Retail & UPI Spends (1%)",
+                categories: ["all-retail", "upi", "qr-code", "local-merchant", "utilities", "telecom"],
+                merchants: ["upi", "qr"],
+                monthlyCap: 15000,
+                notes: "1% CashPoints across other retail and RuPay UPI spends (capped at ₹15,000/mo, UPI mode max 500 pts/mo)."
+            }
+        ],
+        exclusions: [
+            { category: "fuel", reason: "Fuel spends do not earn CashPoints (1% surcharge waiver ₹400-₹5,000 applies; 1% fee on spends > ₹15,000)." },
+            { category: "rent", reason: "Rent transactions earn 0% CashPoints + 1% processing fee (capped at ₹4,999)." },
+            { category: "wallet", reason: "Wallet loads earn 0% CashPoints (1% fee applies on spends > ₹10,000/mo)." },
+            { category: "government", reason: "Government transactions earn 0% CashPoints." },
+            { category: "education", reason: "Education payments via 3rd party apps earn 0% CashPoints + 1% fee. Direct payments earn 1% with 0% fee." },
+            { category: "emi", reason: "EMI transactions earn 0% CashPoints." },
+            { category: "gaming", reason: "Online skill-based gaming earns 0% CashPoints (1% fee on spends > ₹10,000/mo)." }
+        ],
+        lounges: {
+            domesticAirport: { hasAccess: false, visitsPerYear: 0, ruleText: "No complimentary domestic lounge access." },
+            internationalAirport: { hasAccess: false, visitsPerYear: 0, ruleText: "No complimentary international lounge access." },
+            railwayLounge: { hasAccess: false, visitsPerYear: 0, ruleText: "No railway lounge access." }
+        },
+        entertainment: {
+            movies: { type: "cashback", bogo: false, rate: 1, platform: "PayZapp / BMS", description: "Standard 1% CashPoints on movie tickets." }
+        }
+    },
+
     'tata-neu-infinity': {
         id: 'tata-neu-infinity',
         name: 'Tata Neu Infinity HDFC Credit Card',
@@ -1227,8 +1890,8 @@ export const CARD_PRESETS_REGISTRY = {
         bestFor: "BigBasket, Croma, Tata 1mg, Air India, Taj hotels & 1.5% UPI QR transactions",
         welcomeBenefit: "1,499 NeuCoins upon payment of membership fee",
         keyBenefitsSummary: ["Up to 10% NeuCoins on Tata Brands (5% on card + 5% on Tata NeuPass)","1.5% NeuCoins on RuPay UPI QR transactions (capped at 500 NeuCoins/mo)","1.5% Unlimited NeuCoins on other eligible retail spends","8 Domestic Airport Lounges (2/quarter) + 4 International Lounges (1/quarter via Priority Pass)","Low 2.0% Forex Markup on foreign spends"],
-        pros: ["Up to 10% return across the vast Tata ecosystem (BigBasket, Croma, Tata 1mg, Air India, Taj, Westside).","1.5% NeuCoins on RuPay UPI payments at offline merchants and local stores.","8 Domestic + 4 International Airport Lounge visits per year.","Low 2% Forex Markup on international transactions.","1 NeuCoin = ₹1.00 directly usable across any Tata brand app."],
-        cons: ["NeuCoins can only be spent within the Tata ecosystem (cannot be redeemed for direct statement cash credit).","Monthly cap of 500 NeuCoins on RuPay UPI merchant spends.","₹1,499 + GST annual fee with a high ₹3,00,000 spend waiver target."],
+        pros: ["Up to 10% return across the vast Tata ecosystem (BigBasket, Croma, Tata 1mg, Air India, Taj, Westside).","1.5% NeuCoins on RuPay UPI payments at offline merchants and local stores.","8 Domestic + 4 International Airport Lounge visits per year.","Low 2% Forex Markup on international transactions.","No reward redemption fee for NeuCoins (exempt under HDFC MITC Section I.f).","1 NeuCoin = ₹1.00 directly usable across any Tata brand app."],
+        cons: ["NeuCoins can only be spent within the Tata ecosystem (cannot be redeemed for direct statement cash credit).","Monthly cap of 500 NeuCoins on RuPay UPI merchant spends (MITC Page 23).","₹1,499 + GST annual fee with a high ₹3,00,000 spend waiver target."],
         tiers: [
           {
                     "rate": 10,
@@ -1269,35 +1932,44 @@ export const CARD_PRESETS_REGISTRY = {
                               "scan & pay"
                     ],
                     "monthlyCap": 500,
-                    "notes": "1.5% NeuCoins on RuPay UPI merchant QR transactions (capped at 500 NeuCoins/mo)."
+                    "notes": "1.5% NeuCoins on RuPay UPI merchant QR transactions (capped at 500 NeuCoins/mo per MITC Page 23)."
           },
           {
                     "rate": 1.5,
                     "name": "Other Retail Spends (1.5%)",
                     "categories": [
-                              "all-retail"
+                              "all-retail",
+                              "education"
                     ],
                     "merchants": [],
                     "monthlyCap": null,
-                    "notes": "1.5% unlimited NeuCoins on other spends."
+                    "notes": "1.5% unlimited NeuCoins on other retail spends and direct education."
           }
 ],
         exclusions: [
           {
                     "category": "fuel",
-                    "reason": "Fuel excluded."
+                    "reason": "Fuel excluded (1% surcharge waiver ₹400-₹5,000 applies; 1% fee on spends > ₹15,000)."
           },
           {
                     "category": "rent",
-                    "reason": "Rent excluded."
+                    "reason": "Rent excluded (1% fee capped at ₹4,999 applies)."
           },
           {
                     "category": "wallet",
-                    "reason": "Wallet loads excluded."
+                    "reason": "Wallet loads excluded (1% fee applies on spends > ₹10,000/mo)."
           },
           {
                     "category": "government",
                     "reason": "Government transactions excluded."
+          },
+          {
+                    "category": "education",
+                    "reason": "Education payments via 3rd party apps earn 0% + 1% fee. Direct payments earn 1.5% with 0% fee."
+          },
+          {
+                    "category": "gaming",
+                    "reason": "Online skill-based gaming earns 0% (1% fee on spends > ₹10,000/mo)."
           }
 ],
         lounges: {
@@ -1466,10 +2138,7 @@ export const CARD_PRESETS_REGISTRY = {
           {
                     "rate": 5,
                     "name": "Flipkart & Cleartrip (5% Unlimited)",
-                    "categories": [
-                              "shopping",
-                              "travel"
-                    ],
+                    "categories": [],
                     "merchants": [
                               "flipkart",
                               "cleartrip",
@@ -1481,12 +2150,7 @@ export const CARD_PRESETS_REGISTRY = {
           {
                     "rate": 4,
                     "name": "Preferred Partners (4% Unlimited)",
-                    "categories": [
-                              "food-delivery",
-                              "travel",
-                              "entertainment",
-                              "pharmacy"
-                    ],
+                    "categories": [],
                     "merchants": [
                               "swiggy",
                               "uber",
@@ -2592,15 +3256,23 @@ export const CARD_PRESETS_REGISTRY = {
         exclusions: [
           {
                     "category": "fuel",
-                    "reason": "Fuel excluded."
+                    "reason": "Fuel excluded from cashback (UPI fuel does not get surcharge waiver; 1% fee on spends > ₹10,000)."
           },
           {
                     "category": "rent",
-                    "reason": "Rent excluded."
+                    "reason": "Rent payments earn 0% cashback + incur 1% or ₹199 min fee on YES Bank (max 5 transactions per 30 days)."
           },
           {
                     "category": "wallet",
-                    "reason": "Wallet loads excluded."
+                    "reason": "Wallet loads earn 0% cashback (1% fee applies on loads exceeding ₹2,000 w.e.f. YES Bank MITC)."
+          },
+          {
+                    "category": "education",
+                    "reason": "Education payments via third-party apps incur 1% fee (0% fee if paid directly on institute portal)."
+          },
+          {
+                    "category": "government",
+                    "reason": "Government tax and challan payments earn 0% cashback."
           },
           {
                     "category": "p2p",
@@ -2635,6 +3307,226 @@ export const CARD_PRESETS_REGISTRY = {
                     "description": "Up to 2% cashback when BookMyShow is paid via Kiwi UPI Scan & Pay."
           }
 }
+    },
+
+    'yes-bank-marquee': {
+        id: 'yes-bank-marquee',
+        name: 'YES Bank Marquee Credit Card',
+        shortName: 'YES Marquee',
+        color: '#1e3a8a',
+        matcher: /marquee|yes.*marquee/i,
+        issuer: 'YES Bank',
+        network: 'Mastercard World Elite / Visa Infinite',
+        cardType: 'Super-Premium Lifestyle & Travel',
+        annualFee: 4999,
+        joiningFee: 9999,
+        feeWaiverSpendTarget: 1000000,
+        forexMarkupPercent: 1.0,
+        defaultMonthlyAcceleratedCap: null,
+        baseCashbackPercent: 2.25,
+        bestFor: "Luxury travel, ultra-low 1% forex markup, BookMyShow BOGO, and extensive airport lounge access",
+        welcomeBenefit: "60,000 YES Rewardz points (worth ₹15,000 on flights/hotels) on paying joining fee",
+        keyBenefitsSummary: [
+            "Ultra-low 1% Forex Markup on foreign currency transactions (saves 2.5% vs standard cards)",
+            "Unlimited/Generous Airport Lounge Access: 24 Domestic + 24 International visits/year via Priority Pass",
+            "Complimentary Guest Lounge Access: 4 International + 2 Domestic guest visits per calendar year",
+            "BookMyShow BOGO: Buy 1 Get 1 Free up to ₹800 off per month on movies and events",
+            "Up to 4 complimentary golf rounds or coaching lessons per month across top Indian golf courses",
+            "4.5% Return (36 Reward Points/₹200) on online retail; 2.25% (18 Reward Points/₹200) on offline retail",
+            "1% Fuel Surcharge Waiver on transactions between ₹500 and ₹5,000 (up to ₹1,000/statement cycle)"
+        ],
+        pros: [
+            "Ultra-Low 1% Forex Markup: One of the lowest in India, saving ₹2,500 per ₹1 Lakh spent internationally.",
+            "Exceptional Lounge Benefits: 24 domestic + 24 international lounge visits with dedicated free guest access.",
+            "High Entertainment Savings: BookMyShow BOGO up to ₹800/month (saves up to ₹9,600 annually).",
+            "Strong Reward Rates: 4.5% effective reward value online and 2.25% offline.",
+            "Complimentary Golf: 4 free rounds/lessons per month."
+        ],
+        cons: [
+            "Domestic airport lounge access requires spending ₹1,00,000 in the previous calendar quarter.",
+            "Reward points on utility spends are capped at 1,250 points per statement cycle (1% fee on utility spends > ₹50,000).",
+            "Fuel spends > ₹10,000 incur a 1% fee.",
+            "Wallet loads > ₹2,000 incur 1% fee; rent payments incur 1% or ₹199 minimum fee.",
+            "High ₹10 Lakh annual spend hurdle to waive the ₹4,999 renewal fee."
+        ],
+        tiers: [
+            {
+                rate: 4.5,
+                name: "Online Retail Spends (36 RP/₹200 = 4.5%)",
+                categories: [
+                    "shopping",
+                    "online-retail",
+                    "food-delivery",
+                    "travel"
+                ],
+                merchants: [],
+                monthlyCap: null,
+                notes: "36 YES Rewardz Points per ₹200 spent on online retail (1 RP = ₹0.25 => 4.5% value)."
+            },
+            {
+                rate: 2.25,
+                name: "Offline & General Retail Spends (18 RP/₹200 = 2.25%)",
+                categories: [
+                    "all-retail"
+                ],
+                merchants: [],
+                monthlyCap: null,
+                notes: "18 YES Rewardz Points per ₹200 spent on offline retail (1 RP = ₹0.25 => 2.25% value)."
+            }
+        ],
+        exclusions: [
+            { category: "fuel", reason: "Fuel excluded from reward points (1% surcharge waiver applies between ₹500-₹5,000 up to ₹1,000/mo; 1% fee on spends > ₹10,000)." },
+            { category: "rent", reason: "Rent payments earn 0% rewards + incur 1% or ₹199 min fee (max 5 transactions per 30 days)." },
+            { category: "wallet", reason: "Wallet loads earn 0% rewards (1% fee applies on loads exceeding ₹2,000)." },
+            { category: "education", reason: "Education payments via third-party platforms incur 1% fee (0% fee if paid directly on institute portal)." },
+            { category: "government", reason: "Government tax and challan payments earn 0% rewards." }
+        ],
+        lounges: {
+            domesticAirport: {
+                hasAccess: true,
+                visitsPerYear: 24,
+                isMilestoneBased: true,
+                ruleText: "Up to 6 domestic airport lounge visits per quarter (24/year) on spending ₹1,00,000 in previous calendar quarter + 2 guest visits/year.",
+                spendCriteria: "₹1,00,000 in previous quarter"
+            },
+            internationalAirport: {
+                hasAccess: true,
+                visitsPerYear: 24,
+                isMilestoneBased: false,
+                ruleText: "Up to 24 complimentary international airport lounge visits per year via Priority Pass (no spend hurdle) + 4 guest visits/year.",
+                spendCriteria: "Priority Pass (Unconditional)"
+            },
+            railwayLounge: {
+                hasAccess: false,
+                visitsPerYear: 0,
+                ruleText: "No railway lounge access."
+            }
+        },
+        entertainment: {
+            movies: {
+                type: "bogo",
+                bogo: true,
+                maxDiscount: 800,
+                rate: 50,
+                platform: "BookMyShow",
+                description: "Buy 1 Get 1 Free on BookMyShow up to ₹800 off per month on movie and event tickets."
+            }
+        },
+        golf: {
+            hasAccess: true,
+            roundsPerMonth: 4,
+            spendCriteria: "Complimentary benefit",
+            description: "Up to 4 complimentary golf rounds or coaching lessons per calendar month across premier golf courses in India."
+        }
+    },
+
+    'yes-bank-reserv': {
+        id: 'yes-bank-reserv',
+        name: 'YES Bank Reserv Credit Card',
+        shortName: 'YES Reserv',
+        color: '#475569',
+        matcher: /reserv|yes.*reserv/i,
+        issuer: 'YES Bank',
+        network: 'Mastercard World / Visa Signature',
+        cardType: 'Premium Lifestyle & Dining',
+        annualFee: 2499,
+        joiningFee: 2499,
+        feeWaiverSpendTarget: 300000,
+        forexMarkupPercent: 2.0,
+        defaultMonthlyAcceleratedCap: null,
+        baseCashbackPercent: 1.5,
+        bestFor: "Dining, movies (BOGO), and frequent domestic/international travelers",
+        welcomeBenefit: "Welcome gift vouchers / reward points on paying joining fee or ₹40,000 spend in 30 days",
+        keyBenefitsSummary: [
+            "Low 2% Forex Markup on foreign currency spends (w.e.f. June 15, 2026)",
+            "Domestic Airport Lounges: 12 visits/year (3/quarter on ₹1,00,000 quarterly spend)",
+            "International Airport Lounges: 6 visits/year via Priority Pass (unconditional)",
+            "BookMyShow BOGO: Buy 1 Get 1 Free up to ₹250 off (twice a month = up to ₹6,000/year)",
+            "1 complimentary golf round or coaching lesson per month",
+            "3% Return (24 RP/₹200) on online retail; 1.5% (12 RP/₹200) on offline retail",
+            "1% Fuel Surcharge Waiver on spends between ₹500 and ₹4,000 (up to ₹500/statement cycle)"
+        ],
+        pros: [
+            "Low 2% forex markup compared to standard 3.5% fee on competitor cards.",
+            "BookMyShow BOGO up to ₹250 off twice a month saves up to ₹6,000 annually.",
+            "Includes 6 complimentary international lounge visits via Priority Pass without quarterly spend hurdle.",
+            "Moderate annual fee waiver threshold of ₹3,00,000."
+        ],
+        cons: [
+            "Domestic airport lounge access requires spending ₹1,00,000 in the previous calendar quarter.",
+            "Utility reward points capped at 750 points per statement cycle (1% fee on utility spends > ₹50,000).",
+            "1% fee on fuel spends exceeding ₹10,000; surcharge waiver capped at ₹500/month.",
+            "Wallet loads > ₹2,00,0 incur 1% fee; rent payments incur 1% or ₹199 minimum fee."
+        ],
+        tiers: [
+            {
+                rate: 3.0,
+                name: "Online Retail Spends (24 RP/₹200 = 3%)",
+                categories: [
+                    "shopping",
+                    "online-retail",
+                    "food-delivery",
+                    "travel"
+                ],
+                merchants: [],
+                monthlyCap: null,
+                notes: "24 YES Rewardz Points per ₹200 spent on online retail (1 RP = ₹0.25 => 3% value)."
+            },
+            {
+                rate: 1.5,
+                name: "Offline & General Retail Spends (12 RP/₹200 = 1.5%)",
+                categories: [
+                    "all-retail"
+                ],
+                merchants: [],
+                monthlyCap: null,
+                notes: "12 YES Rewardz Points per ₹200 spent on offline retail (1 RP = ₹0.25 => 1.5% value)."
+            }
+        ],
+        exclusions: [
+            { category: "fuel", reason: "Fuel excluded from rewards (1% surcharge waiver applies between ₹500-₹4,000 up to ₹500/mo; 1% fee on spends > ₹10,000)." },
+            { category: "rent", reason: "Rent payments earn 0% rewards + incur 1% or ₹199 min fee (max 5 transactions per 30 days)." },
+            { category: "wallet", reason: "Wallet loads earn 0% rewards (1% fee applies on loads exceeding ₹2,000)." },
+            { category: "education", reason: "Education payments via third-party platforms incur 1% fee (0% fee if paid directly on institute portal)." },
+            { category: "government", reason: "Government tax and challan payments earn 0% rewards." }
+        ],
+        lounges: {
+            domesticAirport: {
+                hasAccess: true,
+                visitsPerYear: 12,
+                isMilestoneBased: true,
+                ruleText: "Up to 3 domestic airport lounge visits per quarter (12/year) on spending ₹1,00,000 in previous calendar quarter.",
+                spendCriteria: "₹1,00,000 in previous quarter"
+            },
+            internationalAirport: {
+                hasAccess: true,
+                visitsPerYear: 6,
+                isMilestoneBased: false,
+                ruleText: "Up to 6 complimentary international airport lounge visits per year via Priority Pass (no spend hurdle).",
+                spendCriteria: "Priority Pass (Unconditional)"
+            },
+            railwayLounge: {
+                hasAccess: false,
+                visitsPerYear: 0,
+                ruleText: "No railway lounge access."
+            }
+        },
+        entertainment: {
+            movies: {
+                type: "bogo",
+                bogo: true,
+                maxDiscount: 250,
+                rate: 50,
+                platform: "BookMyShow",
+                description: "Buy 1 Get 1 Free on BookMyShow up to ₹250 off twice a month on movie tickets."
+            }
+        },
+        golf: {
+            hasAccess: true,
+            roundsPerMonth: 1,
+            spendCriteria: "Complimentary benefit",
+            description: "1 complimentary golf round or coaching lesson per calendar month across premier golf courses in India."
+        }
     }
 
 };
@@ -2917,7 +3809,16 @@ export const MERCHANT_CATEGORY_TAXONOMY = {
         'usd': { category: 'forex', merchant: 'forex' },
         'chatgpt': { category: 'forex', merchant: 'chatgpt' },
         'github': { category: 'forex', merchant: 'github' },
-        'aws': { category: 'forex', merchant: 'aws' }
+        'aws': { category: 'forex', merchant: 'aws' },
+
+        // Gaming & Fantasy Sports (MCC 5816)
+        'dream11': { category: 'gaming', merchant: 'dream11' },
+        'mpl': { category: 'gaming', merchant: 'mpl' },
+        'rummy': { category: 'gaming', merchant: 'rummy' },
+        'poker': { category: 'gaming', merchant: 'poker' },
+        'gaming': { category: 'gaming', merchant: 'gaming' },
+        'gamescraft': { category: 'gaming', merchant: 'gaming' },
+        'winzo': { category: 'gaming', merchant: 'gaming' }
     }
 };
 
@@ -3072,7 +3973,7 @@ export function evaluateCardForSpend(card, cardId, queryText = '', amount = 1000
     const overLimitDeficit = isOverLimit ? Math.round(spendAmount - availableLimit) : 0;
 
     // B. Check UPI Compatibility (RuPay vs Visa/Mastercard)
-    const isUpiIntent = intent.category === 'upi' || intent.merchant === 'upi';
+    const isUpiIntent = intent.category === 'upi' || intent.merchant === 'upi' || (intent.raw && (intent.raw.includes('upi') || intent.raw.includes('qr')));
     const cardNetwork = (resolved.network || '').toLowerCase();
     const cardNameLower = (resolved.cardName || '').toLowerCase();
     const isRupay = resolved.presetId === 'kiwi-rupay' || cardNetwork.includes('rupay') || cardNameLower.includes('rupay');
@@ -3089,12 +3990,65 @@ export function evaluateCardForSpend(card, cardId, queryText = '', amount = 1000
     let rentWarning = null;
     let walletWarning = null;
 
+    let utilityFeeWarning = null;
+    let educationWarning = null;
+    let gamingWarning = null;
+    let transportFeeWarning = null;
+
+    if (intent.category === 'forex') {
+        const markupPercent = resolved.forexMarkupPercent || 3.5;
+        const totalForexFeePercent = markupPercent * 1.18;
+        forexCost = (spendAmount * totalForexFeePercent) / 100;
+        forexWarning = `Forex Markup of ${markupPercent}% + 18% GST (~${totalForexFeePercent.toFixed(2)}% = ₹${Math.round(forexCost)}) applies. Consider a Zero Forex card.`;
+    }
+
     if (intent.category === 'jewellery' && resolved.presetId === 'hsbc-live-plus') {
         specialMilestoneNote = 'Spends count 100% towards the ₹2 Lakh Annual Fee Waiver (saving ₹999 + GST renewal fee).';
     }
 
+    const isYesBank = (resolved.cardIssuer || '').toLowerCase().includes('yes bank') || resolved.presetId === 'kiwi-rupay' || resolved.presetId === 'yes-bank-marquee' || resolved.presetId === 'yes-bank-reserv';
+    const isHdfc = (resolved.cardIssuer || '').toLowerCase().includes('hdfc') || (resolved.presetId || '').startsWith('hdfc-') || resolved.presetId === 'tata-neu-infinity';
+    const isIcici = (resolved.cardIssuer || '').toLowerCase().includes('icici');
+
     if (intent.category === 'fuel') {
-        if (spendAmount < 400) {
+        if (resolved.presetId === 'hsbc-live-plus') {
+            fuelSurchargeWarning = 'Fuel Surcharge Waiver is NOT applicable (NA) on HSBC Live+. 1% surcharge is debited at pump with 0% cashback.';
+        } else if (isIcici) {
+            if (resolved.presetId === 'icici-emeralde-metal') {
+                fuelSurchargeNote = 'Complimentary Fuel Surcharge Waiver: Emeralde Private Metal is completely exempt from fuel surcharges and transaction fees across all petrol pumps.';
+            } else if (resolved.presetId === 'icici-hpcl-super-saver' && (intent.merchant === 'hpcl' || (intent.raw && intent.raw.includes('hpcl')))) {
+                fuelSurchargeNote = '5% Total Fuel Savings (4% cashback up to ₹400/cycle + 1% surcharge waiver for ₹400–₹4,000) at HPCL petrol pumps.';
+            } else if (spendAmount > 10000) {
+                fuelSurchargeWarning = 'Over ₹10,000: ICICI Bank levies a 1% fee on fuel spends exceeding ₹10,000 (standard 1% surcharge is waived at all pumps).';
+            } else if (spendAmount < 400) {
+                fuelSurchargeWarning = 'Under ₹400: Surcharge waiver does NOT apply on ICICI Bank (valid between ₹400 and ₹4,000). 0% cashback.';
+            } else if (spendAmount > 4000) {
+                fuelSurchargeWarning = 'Over ₹4,000: Surcharge waiver only applies up to ₹4,000 per swipe on ICICI Bank. Split bill into ₹4,000 chunks to get full 1% waiver.';
+            } else {
+                fuelSurchargeNote = '1% Fuel Surcharge waived across petrol pumps (valid between ₹400 and ₹4,000 up to ₹50,000 spend/cycle, 0% cashback).';
+            }
+        } else if (isYesBank) {
+            if (spendAmount > 10000) {
+                fuelSurchargeWarning = 'Over ₹10,000: YES Bank levies a 1% fee on fuel spends exceeding ₹10,000 (0% rewards).';
+            } else if (resolved.presetId === 'kiwi-rupay' && isUpiIntent) {
+                fuelSurchargeWarning = 'Fuel surcharge waiver is NOT applicable for UPI payments on YES Bank credit cards (0% cashback).';
+            } else if (spendAmount < 500) {
+                fuelSurchargeWarning = 'Under ₹500: Surcharge waiver does not apply on YES Bank (valid between ₹500 and ₹3,000–₹5,000).';
+            } else {
+                fuelSurchargeNote = '1% Fuel Surcharge waived (valid between ₹500 and ₹3,000–₹5,000, 0% cashback).';
+            }
+        } else if (isHdfc) {
+            if (spendAmount > 15000) {
+                fuelSurchargeWarning = 'Over ₹15,000: HDFC Bank levies a 1% fee on fuel spends exceeding ₹15,000 (capped at ₹4,999, 0% rewards).';
+            } else if (spendAmount < 400) {
+                fuelSurchargeWarning = 'Under ₹400: Surcharge waiver does NOT apply on HDFC Bank (valid between ₹400 and ₹5,000). 0% cashback.';
+            } else if (spendAmount > 5000) {
+                fuelSurchargeWarning = 'Over ₹5,000: Surcharge waiver only applies up to ₹5,000 per swipe on HDFC Bank. Split bill into ₹5,000 chunks to get full 1% waiver.';
+            } else {
+                const maxWaiver = resolved.presetId === 'hdfc-infinia' ? '₹1,000' : (resolved.presetId === 'hdfc-regalia-gold' || resolved.presetId === 'tata-neu-infinity' ? '₹500' : '₹250');
+                fuelSurchargeNote = `1% Fuel Surcharge waived across petrol pumps (valid ₹400–₹5,000, max waiver ${maxWaiver}/cycle, 0% cashback).`;
+            }
+        } else if (spendAmount < 400) {
             fuelSurchargeWarning = 'Under ₹400: Surcharge waiver does NOT apply. Bank will charge ~₹10 + 18% GST out of pocket (0% cashback).';
         } else if (spendAmount > 4000) {
             fuelSurchargeWarning = 'Over ₹4,000: Surcharge waiver only applies up to ₹4,000 per swipe. Split bill into ₹4,000 chunks to get full 1% waiver.';
@@ -3108,11 +4062,76 @@ export function evaluateCardForSpend(card, cardId, queryText = '', amount = 1000
     }
 
     if (intent.category === 'rent') {
-        rentWarning = 'Credit card rent payments incur 0% rewards plus a 1% + 18% GST bank processing fee on most issuers.';
+        if (isYesBank && spendAmount > 1000) {
+            rentWarning = 'YES Bank levies a 1% or ₹199 minimum fee (+ 18% GST) on rent payments above ₹1,000, capped at 5 transactions per 30 days (0% rewards).';
+        } else if (isHdfc) {
+            rentWarning = 'HDFC Bank levies a 1% + 18% GST fee on rental transactions done via third-party merchants (CRED, Paytm, Cheq, etc.), capped at ₹4,999 per transaction (0% rewards).';
+        } else if (isIcici) {
+            rentWarning = 'ICICI Bank levies a 1% + 18% GST processing fee on all rental payments (MCC 6513) with 0% reward points.';
+        } else {
+            rentWarning = 'Credit card rent payments incur 0% rewards plus a 1% + 18% GST bank processing fee on most issuers.';
+        }
     }
 
     if (intent.category === 'wallet') {
-        walletWarning = 'Wallet loading earns 0% rewards and several banks levy a 1% + GST fee on credit card wallet reloads.';
+        if (isIcici && spendAmount >= 5000) {
+            walletWarning = 'Wallet loading earns 0% rewards. ICICI Bank levies a 1% + 18% GST fee on wallet load transactions of ₹5,000 or more (w.e.f. Jan 2026).';
+        } else if (isYesBank && spendAmount > 2000) {
+            walletWarning = 'Wallet loading earns 0% rewards. YES Bank levies a 1% + 18% GST fee on wallet loads exceeding ₹2,000 (max fee ₹5,000).';
+        } else if (isHdfc && spendAmount > 10000) {
+            walletWarning = 'Wallet loading earns 0% rewards. HDFC Bank levies a 1% + 18% GST fee on wallet loading (excl. PayZapp) exceeding ₹10,000 in a calendar month (capped at ₹4,999).';
+        } else {
+            walletWarning = 'Wallet loading earns 0% rewards and several banks levy a 1% + GST fee on credit card wallet reloads.';
+        }
+    }
+
+    if (intent.category === 'utilities') {
+        const isYesPremium = resolved.presetId === 'yes-bank-marquee' || resolved.presetId === 'yes-bank-reserv';
+        const yesThreshold = isYesPremium ? 50000 : 25000;
+        if (spendAmount > 50000 && isIcici && resolved.presetId !== 'icici-emeralde-metal') {
+            utilityFeeWarning = 'Transactions exceeding ₹50,000 incur a 1% + 18% GST utility processing fee on ICICI Bank credit cards.';
+        } else if (isYesBank && spendAmount > yesThreshold) {
+            utilityFeeWarning = `Transactions exceeding ₹${yesThreshold.toLocaleString('en-IN')} incur a 1% + 18% GST utility processing fee on YES Bank credit cards.`;
+        } else if (isHdfc && spendAmount > 50000) {
+            utilityFeeWarning = 'Transactions exceeding ₹50,000 per month incur a 1% + 18% GST utility processing fee on HDFC Bank consumer credit cards (capped at ₹4,999/mo).';
+        }
+    }
+
+    if (intent.category === 'education') {
+        const isThirdPartyApp = intent.merchant === 'cred' || intent.merchant === 'paytm' || intent.merchant === 'cheq' || intent.merchant === 'phonepe' || intent.merchant === 'mobikwik' || intent.merchant === 'nobroker' || (intent.raw && (intent.raw.includes('cred') || intent.raw.includes('cheq') || intent.raw.includes('paytm') || intent.raw.includes('phonepe') || intent.raw.includes('mobikwik') || intent.raw.includes('nobroker')));
+
+        if (isIcici) {
+            if (resolved.presetId === 'amazon-pay-icici') {
+                educationWarning = 'Education spends earn 0% cashback on Amazon Pay ICICI (w.e.f. Oct 11, 2025). Third-party apps (CRED, Paytm) also incur a 1% + GST processing fee.';
+            } else if (isThirdPartyApp) {
+                educationWarning = 'ICICI Bank levies a 1% + 18% GST fee on education spends paid via third-party platforms (CRED, Cheq, Paytm) with 0% rewards. Pay directly on school/college portal to earn rewards and avoid fee.';
+            } else {
+                specialMilestoneNote = 'Education payments made directly at school/college websites or POS machines earn standard ICICI Reward Points with 0% fee.';
+            }
+        } else if (isYesBank) {
+            educationWarning = 'YES Bank levies a 1% + 18% GST fee on education spends paid via third-party platforms (CRED, PhonePe). Pay directly on school/college portal to avoid fee.';
+        } else if (isHdfc) {
+            if (isThirdPartyApp) {
+                educationWarning = 'HDFC Bank levies a 1% + 18% GST fee (capped at ₹4,999) on education paid via third-party apps (CRED, Cheq, etc.) with 0% rewards. Pay directly on school/college portal to earn rewards and avoid fee.';
+            } else {
+                specialMilestoneNote = 'Education payments made directly on school/college websites or POS machines earn standard rewards (1% CashPoints on Millennia) with 0% fee on HDFC Bank.';
+            }
+        }
+    }
+
+    if (intent.category === 'gaming') {
+        if (isIcici) {
+            gamingWarning = 'Skill-based gaming spends earn 0% cashback. ICICI Bank levies a 2% + 18% GST fee (MCC 5816 w.e.f. Jan 2026).';
+        } else if (isHdfc && spendAmount > 10000) {
+            gamingWarning = 'Online skill-based gaming earns 0% rewards. HDFC Bank levies a 1% + 18% GST fee on gaming spends exceeding ₹10,000 in a calendar month (capped at ₹4,999).';
+        } else {
+            gamingWarning = 'Online gaming and lottery transactions earn 0% rewards and may attract bank convenience fees.';
+        }
+    }
+
+    const isTransportIntent = intent.category === 'travel' || intent.category === 'transportation' || intent.merchant === 'fastag' || intent.merchant === 'toll' || (intent.raw && (intent.raw.includes('irctc') || intent.raw.includes('rail') || intent.raw.includes('train') || intent.raw.includes('bus') || intent.raw.includes('toll') || intent.raw.includes('fastag') || intent.raw.includes('metro') || intent.raw.includes('commuter') || intent.raw.includes('transport')));
+    if (isTransportIntent && isIcici && spendAmount > 50000) {
+        transportFeeWarning = 'Transactions exceeding ₹50,000 under Transportation (MCC 4111, 4112, 4784, 4131: IRCTC/trains, buses, tolls, FASTag) incur a 1% + 18% GST processing fee on ICICI Bank credit cards (w.e.f. Jan 15, 2026).';
     }
 
     // D. UPI Incompatible Handling
@@ -3154,6 +4173,31 @@ export function evaluateCardForSpend(card, cardId, queryText = '', amount = 1000
     // E. Check for Exclusions (0% Return)
     const matchedExclusion = resolved.exclusions.find(ex => {
         const cat = typeof ex === 'string' ? ex : ex.category;
+
+        // Special case: Amazon Pay ICICI utility bills earn 2% when paid via Amazon Pay!
+        if (resolved.presetId === 'amazon-pay-icici' && cat === 'utilities') {
+            const isViaAmazonPay = intent.merchant === 'amazon pay' || (intent.raw && (intent.raw.includes('amazon pay') || intent.raw.includes('amazon')));
+            if (isViaAmazonPay) return false; // Do not exclude if paying via Amazon Pay!
+        }
+
+        // Special case for ICICI HPCL Super Saver: HPCL fuel earns 4% cashback!
+        if (resolved.presetId === 'icici-hpcl-super-saver' && cat === 'fuel') {
+            const isHpcl = intent.merchant === 'hpcl' || (intent.raw && intent.raw.includes('hpcl'));
+            if (isHpcl) return false; // Do not exclude if HPCL pump!
+        }
+
+        // Special case for ICICI core cards: direct school/college education earns standard rewards with 0% fee! (Amazon Pay ICICI excludes all education)
+        if (isIcici && resolved.presetId !== 'amazon-pay-icici' && cat === 'education') {
+            const isThirdPartyApp = intent.merchant === 'cred' || intent.merchant === 'paytm' || intent.merchant === 'cheq' || intent.merchant === 'phonepe' || intent.merchant === 'mobikwik' || intent.merchant === 'nobroker' || (intent.raw && (intent.raw.includes('cred') || intent.raw.includes('cheq') || intent.raw.includes('paytm') || intent.raw.includes('phonepe') || intent.raw.includes('mobikwik') || intent.raw.includes('nobroker')));
+            if (!isThirdPartyApp) return false; // Do not exclude if direct institute payment!
+        }
+
+        // Special case for HDFC: direct school/college education earns standard rewards with 0% fee!
+        if (isHdfc && cat === 'education') {
+            const isThirdPartyApp = intent.merchant === 'cred' || intent.merchant === 'paytm' || intent.merchant === 'cheq' || intent.merchant === 'phonepe' || intent.merchant === 'mobikwik' || intent.merchant === 'nobroker' || (intent.raw && (intent.raw.includes('cred') || intent.raw.includes('cheq') || intent.raw.includes('paytm') || intent.raw.includes('phonepe') || intent.raw.includes('mobikwik') || intent.raw.includes('nobroker')));
+            if (!isThirdPartyApp) return false; // Do not exclude if direct institute payment!
+        }
+
         return cat === intent.category || cat === intent.merchant || (intent.raw && intent.raw.includes(cat));
     });
 
@@ -3188,6 +4232,12 @@ export function evaluateCardForSpend(card, cardId, queryText = '', amount = 1000
             taxWarning,
             rentWarning,
             walletWarning,
+            utilityFeeWarning,
+            educationWarning,
+            gamingWarning,
+            transportFeeWarning,
+            forexWarning,
+            forexCost: Math.round(forexCost),
             projectedCUR: calculateProjectedCUR(resolved.creditLimit, currentOutstanding, spendAmount),
             curWarning: checkCURWarning(resolved.creditLimit, currentOutstanding, spendAmount),
             paymentFloatDays: calculatePaymentFloatDays(card.dueDate),
@@ -3248,9 +4298,20 @@ export function evaluateCardForSpend(card, cardId, queryText = '', amount = 1000
         const matchesMerchant = tier.merchants && tier.merchants.some(m => intent.raw.includes(m) || intent.merchant.includes(m));
 
         if (matchesMerchant) {
+            // For Amazon Pay ICICI, utility or bill payments cannot match the 5% Amazon.in retail shopping tier
+            if (resolved.presetId === 'amazon-pay-icici' && tier.rate === 5 && (intent.category === 'utilities' || intent.category === 'telecom' || intent.raw.includes('amazon pay'))) {
+                continue;
+            }
             matchedTier = tier;
             applicableRate = tier.rate;
             break; // Exact merchant match is highest priority
+        }
+
+        // For Amazon Pay ICICI, utility bills paid via Amazon Pay match the 2% tier
+        if (resolved.presetId === 'amazon-pay-icici' && tier.rate === 2 && (intent.category === 'utilities' || intent.category === 'telecom')) {
+            matchedTier = tier;
+            applicableRate = tier.rate;
+            break;
         }
 
         if (matchesCategory && !matchedTier && tier.rate > applicableRate) {
@@ -3349,6 +4410,10 @@ export function evaluateCardForSpend(card, cardId, queryText = '', amount = 1000
         taxWarning,
         rentWarning,
         walletWarning,
+        utilityFeeWarning,
+        educationWarning,
+        gamingWarning,
+        transportFeeWarning,
         fuelSurchargeWarning,
         fuelSurchargeNote,
         specialMilestoneNote,
@@ -3548,7 +4613,7 @@ export function getDiningPrivilegesSummary(cards = {}) {
                 program: 'HDFC Good Food Trail & Club Marriott',
                 description: 'Up to 25% savings on dining bills across premium restaurants, 1+1 buffet offers at select 5-star hotels, and Club Marriott dining benefits.'
             });
-        } else if (resolved.presetId === 'amazon-pay-icici' || resolved.presetId === 'icici-sapphiro-visa' || resolved.presetId === 'icici-rubyx' || resolved.presetId === 'icici-coral') {
+        } else if ((resolved.cardIssuer || '').toLowerCase().includes('icici') || resolved.presetId === 'amazon-pay-icici' || resolved.presetId === 'icici-sapphiro-visa' || resolved.presetId === 'icici-rubyx' || resolved.presetId === 'icici-coral') {
             list.push({
                 cardId,
                 cardName: resolved.cardName,
@@ -3565,6 +4630,15 @@ export function getDiningPrivilegesSummary(cards = {}) {
                 badge: 'Up to 20% Off',
                 program: 'Axis Bank Dining Delights',
                 description: 'Up to 15%–20% discount at 10,000+ partner dining restaurants across India via EazyDiner.'
+            });
+        } else if (resolved.presetId === 'yes-bank-marquee' || resolved.presetId === 'yes-bank-reserv') {
+            list.push({
+                cardId,
+                cardName: resolved.cardName,
+                color: resolved.color,
+                badge: 'Up to 20% Off',
+                program: 'YES Bank Gourmet Dining',
+                description: 'Up to 15%–20% off on dining bills across participating premium and fine dining restaurants.'
             });
         } else if (resolved.presetId === 'kiwi-rupay') {
             list.push({
@@ -3612,7 +4686,34 @@ export function getBrandSuperpowersSummary(cards = {}) {
         const resolved = resolveCardBenefits(card, cardId);
         if (!resolved) continue;
 
-        if (resolved.presetId === 'icici-sapphiro-visa') {
+        if (resolved.presetId === 'icici-emeralde-metal') {
+            list.push({
+                cardId,
+                cardName: resolved.cardName,
+                color: resolved.color,
+                badge: 'Luxury Metal',
+                title: 'Unlimited Lounges & Golf + 4x BMS BOGO',
+                description: 'Unlimited domestic and international airport lounges with zero spend hurdles, Buy 1 Get 1 free up to ₹750 off 4 times/mo on BookMyShow, unlimited golf rounds, and reduced 2% forex markup.'
+            });
+        } else if (resolved.presetId === 'icici-makemytrip') {
+            list.push({
+                cardId,
+                cardName: resolved.cardName,
+                color: resolved.color,
+                badge: 'Zero Forex Travel',
+                title: '0.00% Forex + 4% My Cash on MMT Hotels',
+                description: '0.00% Zero Forex Markup w.e.f. Nov 10, 2026, 4% My Cash on MakeMyTrip hotels, 2% on flights, and domestic airport + railway lounge access.'
+            });
+        } else if (resolved.presetId === 'icici-hpcl-super-saver') {
+            list.push({
+                cardId,
+                cardName: resolved.cardName,
+                color: resolved.color,
+                badge: '5% Fuel Savings',
+                title: '5% on HPCL Fuel & 5% on Utilities & Groceries',
+                description: '4% cashback + 1% surcharge waiver on HPCL fuel, 5% on utilities and departmental stores, and 25% off on BookMyShow.'
+            });
+        } else if (resolved.presetId === 'icici-sapphiro-visa') {
             list.push({
                 cardId,
                 cardName: resolved.cardName,
@@ -3680,9 +4781,18 @@ export function getBrandSuperpowersSummary(cards = {}) {
                 cardId,
                 cardName: resolved.cardName,
                 color: resolved.color,
-                badge: '10% Grocery & Food',
-                title: 'Everyday Spends & Concert Pre-Sale Access',
-                description: '10% accelerated return on Swiggy, Zomato, Blinkit, Zepto, Instamart, BigBasket, DMart, plus pre-sale tickets and 10% promotional discounts on major music concerts & events via District / BookMyShow.'
+                badge: '10% Dining, Grocery, Shopping & Utilities',
+                title: 'Everyday Essentials, 1.99% Forex & 3 Airport Lounges',
+                description: '10% accelerated return on Swiggy, Zomato, Blinkit, Zepto, Instamart, BigBasket, DMart, Electricity/Water/Broadband utility bills (MCC 4900, 4814), and offline retail shopping. Plus 3 complimentary airport lounges/yr (2 Dom + 1 Intl) and low 1.99% forex markup.'
+            });
+        } else if (resolved.presetId === 'yes-bank-marquee') {
+            list.push({
+                cardId,
+                cardName: resolved.cardName,
+                color: resolved.color,
+                badge: '1% Forex & Luxury Travel',
+                title: '1% Forex + 48 Lounges + BookMyShow BOGO',
+                description: 'Ultra-low 1% forex markup on foreign currency spends, 24 domestic + 24 international airport lounges with complimentary guest access, BookMyShow BOGO up to ₹800/mo, 4 golf games/mo, and 4.5% online reward rate.'
             });
         } else if (resolved.presetId === 'kiwi-rupay') {
             list.push({
@@ -4153,6 +5263,30 @@ export function runCardAdvisorSearch() {
                     <div class="hero-warning fee-warning">
                         <i class="bi bi-wallet-fill"></i>
                         <div>${escapeHtml(winner.walletWarning)}</div>
+                    </div>
+                ` : ''}
+                ${winner.utilityFeeWarning ? `
+                    <div class="hero-warning fee-warning">
+                        <i class="bi bi-lightning-charge-fill"></i>
+                        <div>${escapeHtml(winner.utilityFeeWarning)}</div>
+                    </div>
+                ` : ''}
+                ${winner.educationWarning ? `
+                    <div class="hero-warning fee-warning">
+                        <i class="bi bi-mortarboard-fill"></i>
+                        <div>${escapeHtml(winner.educationWarning)}</div>
+                    </div>
+                ` : ''}
+                ${winner.gamingWarning ? `
+                    <div class="hero-warning fee-warning">
+                        <i class="bi bi-controller"></i>
+                        <div>${escapeHtml(winner.gamingWarning)}</div>
+                    </div>
+                ` : ''}
+                ${winner.transportFeeWarning ? `
+                    <div class="hero-warning fee-warning">
+                        <i class="bi bi-train-front-fill"></i>
+                        <div>${escapeHtml(winner.transportFeeWarning)}</div>
                     </div>
                 ` : ''}
                 ${winner.specialMilestoneNote ? `
@@ -4632,6 +5766,8 @@ if (typeof window !== 'undefined') {
     window.runCardDirectoryFilter = runCardDirectoryFilter;
     window.setDirectoryCategoryFilter = setDirectoryCategoryFilter;
     window.clearCardDirectorySearch = clearCardDirectorySearch;
+    window.toggleDirectoryCard = toggleDirectoryCard;
+    window.toggleAllDirectoryCards = toggleAllDirectoryCards;
     window.toggleCardProsConsExpand = toggleCardProsConsExpand;
     window.openAddCardFromPreset = openAddCardFromPreset;
     window.testCardInSpendFinder = testCardInSpendFinder;
@@ -4645,6 +5781,7 @@ if (typeof window !== 'undefined') {
 
 let activeDirectoryCategory = 'all';
 let directorySearchQuery = '';
+const expandedDirectoryCards = new Set();
 
 export function renderCardDirectoryTab() {
     const container = document.getElementById('cardDirectoryGrid');
@@ -4665,6 +5802,12 @@ export function renderCardDirectoryTab() {
     const cat = activeDirectoryCategory;
 
     const allPresets = Object.values(CARD_PRESETS_REGISTRY);
+
+    // Keep "All Cards (N)" filter chip text in sync with actual registry size
+    const allFilterChip = document.querySelector('.dir-filter-chip[data-filter="all"]');
+    if (allFilterChip) {
+        allFilterChip.textContent = `All Cards (${allPresets.length})`;
+    }
 
     const filtered = allPresets.filter(preset => {
         // Category filtering
@@ -4692,6 +5835,13 @@ export function renderCardDirectoryTab() {
         return true;
     });
 
+    const countBadge = document.getElementById('cardDirectoryCountBadge');
+    if (countBadge) {
+        countBadge.textContent = filtered.length === allPresets.length 
+            ? `Showing all ${filtered.length} cards` 
+            : `Showing ${filtered.length} of ${allPresets.length} cards`;
+    }
+
     if (filtered.length === 0) {
         container.innerHTML = `
             <div style="grid-column: 1/-1; text-align: center; padding: 40px 20px; color: var(--text-muted);">
@@ -4706,15 +5856,16 @@ export function renderCardDirectoryTab() {
 
     container.innerHTML = filtered.map(card => {
         const isOwned = ownedPresetIds.has(card.id);
+        const isExpanded = expandedDirectoryCards.has(card.id);
         const joiningDisplay = card.joiningFee === 0 ? '₹0 (LTF)' : `₹${card.joiningFee?.toLocaleString('en-IN')}`;
         const annualDisplay = card.annualFee === 0 ? '₹0 (LTF)' : `₹${card.annualFee?.toLocaleString('en-IN')}`;
         const waiverDisplay = card.feeWaiverSpendTarget > 0 ? `₹${(card.feeWaiverSpendTarget / 100000).toFixed(card.feeWaiverSpendTarget % 100000 === 0 ? 0 : 1)}L Spend` : (card.annualFee === 0 ? 'Lifetime Free' : 'N/A');
         const forexDisplay = card.forexMarkupPercent === 0 ? '0.0% (Zero Forex)' : `${card.forexMarkupPercent}%`;
 
         return `
-            <div class="directory-card-card">
+            <div class="directory-card-card ${isExpanded ? 'expanded' : ''}" id="directoryCard_${card.id}" data-card-id="${card.id}">
                 <div class="dir-card-color-stripe" style="background: ${card.color};"></div>
-                <div class="dir-card-header">
+                <div class="dir-card-header" onclick="window.toggleDirectoryCard('${card.id}')" role="button" tabindex="0" aria-expanded="${isExpanded ? 'true' : 'false'}" aria-controls="dirCardDetails_${card.id}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); window.toggleDirectoryCard('${card.id}');}">
                     <div class="dir-card-ident">
                         <div class="dir-card-avatar" style="background: ${card.color};">
                             <i class="bi bi-credit-card-2-front"></i>
@@ -4724,80 +5875,88 @@ export function renderCardDirectoryTab() {
                             <div class="dir-card-issuer">${escapeHtml(card.issuer)} • ${escapeHtml(card.network)}</div>
                         </div>
                     </div>
-                    <div class="dir-card-badges">
-                        <span class="dir-category-badge">${escapeHtml(card.cardType || 'Credit Card')}</span>
-                        ${isOwned ? `<span class="dir-wallet-badge"><i class="bi bi-check2-circle"></i> In Your Wallet</span>` : ''}
-                    </div>
-                </div>
-
-                <div class="dir-card-body">
-                    <div class="dir-fees-matrix">
-                        <div class="dir-fee-cell">
-                            <div class="dir-fee-label">Joining</div>
-                            <div class="dir-fee-val">${joiningDisplay}</div>
+                    <div class="dir-card-header-right">
+                        <div class="dir-card-badges">
+                            <span class="dir-category-badge">${escapeHtml(card.cardType || 'Credit Card')}</span>
+                            ${isOwned ? `<span class="dir-wallet-badge"><i class="bi bi-check2-circle"></i> In Your Wallet</span>` : ''}
+                            <span class="dir-annual-badge"><i class="bi bi-tag-fill"></i> ${annualDisplay}</span>
                         </div>
-                        <div class="dir-fee-cell">
-                            <div class="dir-fee-label">Annual</div>
-                            <div class="dir-fee-val">${annualDisplay}</div>
-                        </div>
-                        <div class="dir-fee-cell">
-                            <div class="dir-fee-label">Fee Waiver</div>
-                            <div class="dir-fee-val">${waiverDisplay}</div>
-                        </div>
-                        <div class="dir-fee-cell">
-                            <div class="dir-fee-label">Forex Fee</div>
-                            <div class="dir-fee-val">${forexDisplay}</div>
-                        </div>
-                    </div>
-
-                    ${card.bestFor ? `
-                        <div class="card-best-for-callout">
-                            <i class="bi bi-bullseye" style="color: ${card.color};"></i> <strong>Best For:</strong> ${escapeHtml(card.bestFor)}
-                        </div>
-                    ` : ''}
-
-                    ${card.welcomeBenefit ? `
-                        <div class="card-welcome-box">
-                            <i class="bi bi-gift-fill"></i>
-                            <div><strong>Welcome Benefit:</strong> ${escapeHtml(card.welcomeBenefit)}</div>
-                        </div>
-                    ` : ''}
-
-                    ${card.keyBenefitsSummary && card.keyBenefitsSummary.length > 0 ? `
-                        <div class="card-quick-perks">
-                            ${card.keyBenefitsSummary.map(k => `<span class="quick-perk-badge"><i class="bi bi-check-circle"></i> ${escapeHtml(k)}</span>`).join('')}
-                        </div>
-                    ` : ''}
-
-                    <div class="pros-cons-grid">
-                        <div class="pros-column">
-                            <div class="pros-column-title"><i class="bi bi-hand-thumbs-up-fill"></i> Top Benefits & Pros</div>
-                            <ul class="pros-list">
-                                ${(card.pros || []).map(p => `<li><i class="bi bi-check2-circle"></i> <span>${escapeHtml(p)}</span></li>`).join('')}
-                            </ul>
-                        </div>
-                        <div class="cons-column">
-                            <div class="cons-column-title"><i class="bi bi-hand-thumbs-down-fill"></i> Cons & Limitations</div>
-                            <ul class="cons-list">
-                                ${(card.cons || []).map(c => `<li><i class="bi bi-exclamation-triangle"></i> <span>${escapeHtml(c)}</span></li>`).join('')}
-                            </ul>
+                        <div class="dir-card-chevron-wrap" title="${isExpanded ? 'Collapse card details' : 'Expand card details'}">
+                            <i class="bi bi-chevron-down dir-card-chevron"></i>
                         </div>
                     </div>
                 </div>
 
-                <div class="dir-card-footer">
-                    <button type="button" class="btn-dir-action btn-dir-test" onclick="window.testCardInSpendFinder('${card.id}')">
-                        <i class="bi bi-calculator"></i> Test Spend
-                    </button>
-                    ${!isOwned ? `
-                        <button type="button" class="btn-dir-action btn-dir-add" onclick="window.openAddCardFromPreset('${card.id}')">
-                            <i class="bi bi-plus-lg"></i> Add to My Cards
+                <div class="dir-card-details" id="dirCardDetails_${card.id}" style="${isExpanded ? 'display: block;' : 'display: none;'}">
+                    <div class="dir-card-body">
+                        <div class="dir-fees-matrix">
+                            <div class="dir-fee-cell">
+                                <div class="dir-fee-label">Joining</div>
+                                <div class="dir-fee-val">${joiningDisplay}</div>
+                            </div>
+                            <div class="dir-fee-cell">
+                                <div class="dir-fee-label">Annual</div>
+                                <div class="dir-fee-val">${annualDisplay}</div>
+                            </div>
+                            <div class="dir-fee-cell">
+                                <div class="dir-fee-label">Fee Waiver</div>
+                                <div class="dir-fee-val">${waiverDisplay}</div>
+                            </div>
+                            <div class="dir-fee-cell">
+                                <div class="dir-fee-label">Forex Fee</div>
+                                <div class="dir-fee-val">${forexDisplay}</div>
+                            </div>
+                        </div>
+
+                        ${card.bestFor ? `
+                            <div class="card-best-for-callout">
+                                <i class="bi bi-bullseye" style="color: ${card.color};"></i> <strong>Best For:</strong> ${escapeHtml(card.bestFor)}
+                            </div>
+                        ` : ''}
+
+                        ${card.welcomeBenefit ? `
+                            <div class="card-welcome-box">
+                                <i class="bi bi-gift-fill"></i>
+                                <div><strong>Welcome Benefit:</strong> ${escapeHtml(card.welcomeBenefit)}</div>
+                            </div>
+                        ` : ''}
+
+                        ${card.keyBenefitsSummary && card.keyBenefitsSummary.length > 0 ? `
+                            <div class="card-quick-perks">
+                                ${card.keyBenefitsSummary.map(k => `<span class="quick-perk-badge"><i class="bi bi-check-circle"></i> ${escapeHtml(k)}</span>`).join('')}
+                            </div>
+                        ` : ''}
+
+                        <div class="pros-cons-grid">
+                            <div class="pros-column">
+                                <div class="pros-column-title"><i class="bi bi-hand-thumbs-up-fill"></i> Top Benefits & Pros</div>
+                                <ul class="pros-list">
+                                    ${(card.pros || []).map(p => `<li><i class="bi bi-check2-circle"></i> <span>${escapeHtml(p)}</span></li>`).join('')}
+                                </ul>
+                            </div>
+                            <div class="cons-column">
+                                <div class="cons-column-title"><i class="bi bi-hand-thumbs-down-fill"></i> Cons & Limitations</div>
+                                <ul class="cons-list">
+                                    ${(card.cons || []).map(c => `<li><i class="bi bi-exclamation-triangle"></i> <span>${escapeHtml(c)}</span></li>`).join('')}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dir-card-footer">
+                        <button type="button" class="btn-dir-action btn-dir-test" onclick="window.testCardInSpendFinder('${card.id}')">
+                            <i class="bi bi-calculator"></i> Test Spend
                         </button>
-                    ` : `
-                        <button type="button" class="btn-dir-action btn-dir-added" disabled>
-                            <i class="bi bi-check-circle-fill"></i> Active in Wallet
-                        </button>
-                    `}
+                        ${!isOwned ? `
+                            <button type="button" class="btn-dir-action btn-dir-add" onclick="window.openAddCardFromPreset('${card.id}')">
+                                <i class="bi bi-plus-lg"></i> Add to My Cards
+                            </button>
+                        ` : `
+                            <button type="button" class="btn-dir-action btn-dir-added" disabled>
+                                <i class="bi bi-check-circle-fill"></i> Active in Wallet
+                            </button>
+                        `}
+                    </div>
                 </div>
             </div>
         `;
@@ -4830,6 +5989,60 @@ export function clearCardDirectorySearch() {
     if (clearBtn) clearBtn.style.display = 'none';
     directorySearchQuery = '';
     renderCardDirectoryTab();
+}
+
+export function toggleDirectoryCard(cardId) {
+    const cardEl = document.getElementById(`directoryCard_${cardId}`);
+    const detailsEl = document.getElementById(`dirCardDetails_${cardId}`);
+    if (!detailsEl) return;
+
+    const isCurrentlyExpanded = expandedDirectoryCards.has(cardId);
+    if (isCurrentlyExpanded) {
+        expandedDirectoryCards.delete(cardId);
+        detailsEl.style.display = 'none';
+        if (cardEl) {
+            cardEl.classList.remove('expanded');
+            const header = cardEl.querySelector('.dir-card-header');
+            if (header) header.setAttribute('aria-expanded', 'false');
+            const chevronWrap = cardEl.querySelector('.dir-card-chevron-wrap');
+            if (chevronWrap) chevronWrap.setAttribute('title', 'Expand card details');
+        }
+    } else {
+        expandedDirectoryCards.add(cardId);
+        detailsEl.style.display = 'block';
+        if (cardEl) {
+            cardEl.classList.add('expanded');
+            const header = cardEl.querySelector('.dir-card-header');
+            if (header) header.setAttribute('aria-expanded', 'true');
+            const chevronWrap = cardEl.querySelector('.dir-card-chevron-wrap');
+            if (chevronWrap) chevronWrap.setAttribute('title', 'Collapse card details');
+        }
+    }
+}
+
+export function toggleAllDirectoryCards(expand) {
+    const cards = document.querySelectorAll('.directory-card-card');
+    cards.forEach(cardEl => {
+        const id = cardEl.getAttribute('data-card-id');
+        const detailsEl = cardEl.querySelector('.dir-card-details');
+        const header = cardEl.querySelector('.dir-card-header');
+        const chevronWrap = cardEl.querySelector('.dir-card-chevron-wrap');
+        if (!detailsEl) return;
+
+        if (expand) {
+            if (id) expandedDirectoryCards.add(id);
+            detailsEl.style.display = 'block';
+            cardEl.classList.add('expanded');
+            if (header) header.setAttribute('aria-expanded', 'true');
+            if (chevronWrap) chevronWrap.setAttribute('title', 'Collapse card details');
+        } else {
+            if (id) expandedDirectoryCards.delete(id);
+            detailsEl.style.display = 'none';
+            cardEl.classList.remove('expanded');
+            if (header) header.setAttribute('aria-expanded', 'false');
+            if (chevronWrap) chevronWrap.setAttribute('title', 'Expand card details');
+        }
+    });
 }
 
 export function toggleCardProsConsExpand(prefix, id) {
@@ -4868,11 +6081,13 @@ export function testCardInSpendFinder(presetId) {
     if (!preset) return;
 
     let query = 'Swiggy';
-    if (preset.id === 'icici-sapphiro-visa') query = 'BookMyShow';
-    else if (preset.id === 'amazon-pay-icici') query = 'Amazon';
+    if (preset.id === 'icici-sapphiro-visa' || preset.id === 'icici-emeralde-metal') query = 'BookMyShow';
+    else if (preset.id === 'amazon-pay-icici' || preset.id === 'hdfc-millennia') query = 'Amazon';
     else if (preset.id === 'sbi-bpcl-octane') query = 'BPCL Fuel';
+    else if (preset.id === 'icici-hpcl-super-saver') query = 'HPCL Fuel';
+    else if (preset.id === 'icici-makemytrip') query = 'MakeMyTrip';
     else if (preset.id === 'axis-atlas' || preset.id === 'scapia-federal' || preset.id === 'hdfc-regalia-gold') query = 'Flights';
-    else if (preset.id === 'kiwi-rupay') query = 'UPI';
+    else if (preset.id === 'kiwi-rupay' || preset.id === 'hdfc-pixel-play') query = 'UPI';
 
     switchCardOptimizerTab('spend');
     const searchInput = document.getElementById('cardAdvisorSearchInput');
