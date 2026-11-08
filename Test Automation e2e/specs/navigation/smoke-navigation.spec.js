@@ -62,7 +62,7 @@ test.describe('Navigation: Core Smoke & Layout', () => {
     const navbar = new NavbarComponent(page);
     await navbar.clickNews();
 
-    await page.waitForURL('**/pages/news.html');
+    await page.waitForURL('**/pages/news.html', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('h1')).toContainText(/Stock Market News/i);
   });
 

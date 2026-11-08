@@ -13,9 +13,13 @@ concurrency:
 
 jobs:
   test:
-    name: Run E2E Test Suite
-    timeout-minutes: 20
+    name: E2E Tests (${{ matrix.project }})
+    timeout-minutes: 8
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [desktop, tablet, mobile]
 
     steps:
       - name: Checkout repository
@@ -25,9 +29,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'npm'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Cache Playwright Browsers
         id: playwright-cache
@@ -44,14 +49,14 @@ jobs:
 
       - name: Install Playwright OS Dependencies if cache hit
         if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: sudo npx playwright install-deps chromium
+        run: npx playwright install-deps chromium
 
-      - name: Run Playwright Tests (Desktop, Tablet, Mobile)
-        run: npx playwright test
+      - name: Run Playwright Tests (${{ matrix.project }})
+        run: npx playwright test --project=${{ matrix.project }}
         env:
           CI: true
-          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL || 'testing@gmail.com' }}
-          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD || 'Test@1234' }}
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
 
       - name: Generate E2E Test Dashboard & Job Summary
         if: ${{ !cancelled() }}
@@ -61,6 +66,6 @@ jobs:
         uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.project }}
           path: playwright-report/
           retention-days: 14

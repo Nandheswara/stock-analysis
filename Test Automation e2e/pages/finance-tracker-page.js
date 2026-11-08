@@ -100,8 +100,16 @@ export class FinanceTrackerPage extends BasePage {
    */
   async login(email = TEST_CREDENTIALS.email, password = TEST_CREDENTIALS.password) {
     await this.goto();
+
+    // Fast-path: Check if already authenticated or session auto-restored
     if (await this.financeMainContent.isVisible()) {
       return;
+    }
+    try {
+      await this.financeMainContent.waitFor({ state: 'visible', timeout: 1500 });
+      return;
+    } catch {
+      // Proceed with form authentication
     }
 
     // Open login modal across desktop, tablet, and mobile
@@ -116,21 +124,28 @@ export class FinanceTrackerPage extends BasePage {
         const toggler = this.page.locator('.navbar-toggler');
         if (await toggler.isVisible()) {
           await toggler.click();
-          await this.page.locator('#loginBtn').waitFor({ state: 'visible' });
+          await this.page.locator('#loginBtn').waitFor({ state: 'visible', timeout: 5000 });
           await this.page.locator('#loginBtn').click();
         }
       }
     }
 
-    await this.authModal.waitFor({ state: 'visible' });
+    await this.authModal.waitFor({ state: 'visible', timeout: 8000 });
 
     // Fill credentials and submit
-    await this.page.locator('#loginEmail').fill(email);
-    await this.page.locator('#loginPassword').fill(password);
+    await this.page.locator('#loginEmail').fill(email.trim());
+    await this.page.locator('#loginPassword').fill(password.trim());
     await this.page.locator('#loginForm button[type="submit"]').click();
 
-    // Wait for session initialization and main content
-    await this.financeMainContent.waitFor({ state: 'visible', timeout: 15000 });
+    // Fail-fast race: Wait for either finance workspace unlock or an auth error alert
+    const successPromise = this.financeMainContent.waitFor({ state: 'visible', timeout: 15000 }).then(() => 'success');
+    const failureAlert = this.page.locator('#authAlertContainer .alert-danger');
+    const failurePromise = failureAlert.waitFor({ state: 'visible', timeout: 15000 }).then(async () => {
+      const errText = await failureAlert.innerText().catch(() => 'Unknown authentication error');
+      throw new Error(`Firebase Auth rejected login for [${email}]: ${errText}`);
+    });
+
+    await Promise.race([successPromise, failurePromise]);
 
     // Collapse mobile navbar menu if left open so it doesn't overlay page content
     const navbarCollapse = this.page.locator('.navbar-collapse');

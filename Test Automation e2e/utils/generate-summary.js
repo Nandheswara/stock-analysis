@@ -141,8 +141,10 @@ function generateSummary() {
   };
 
   for (const [projKey, info] of Object.entries(deviceMap)) {
-    const s = projectStats[projKey] || { passed: 0, failed: 0 };
-    const status = s.failed === 0 && s.passed > 0 ? '🟢 All Passed' : s.failed > 0 ? '🔴 Failed' : '⚪ Skipped';
+    const s = projectStats[projKey];
+    const total = s ? (s.passed + s.failed + s.flaky + s.skipped) : 0;
+    if (total === 0) continue;
+    const status = s.failed === 0 && s.passed > 0 ? '🟢 All Passed' : s.failed > 0 ? '🔴 Failed' : s.flaky > 0 ? '🟡 Flaky' : '⚪ Skipped';
     md += `| **${info.name}** | ${info.target} | \`${info.res}\` | ${s.passed} | ${s.failed} | ${status} |\n`;
   }
   md += `\n`;
