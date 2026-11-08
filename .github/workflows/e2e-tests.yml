@@ -25,10 +25,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Cache Playwright Browsers
         id: playwright-cache
@@ -65,4 +64,3 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 14
-
