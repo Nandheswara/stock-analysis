@@ -1162,7 +1162,7 @@
                             <button type="button" id="cardDirectoryClearBtn" class="input-clear-btn" style="display: none;" onclick="clearCardDirectorySearch()">&times;</button>
                         </div>
                         <div class="card-directory-filters">
-                            <button type="button" class="dir-filter-chip active" data-filter="all" onclick="setDirectoryCategoryFilter('all')">All Cards (23)</button>
+                            <button type="button" class="dir-filter-chip active" data-filter="all" onclick="setDirectoryCategoryFilter('all')">All Cards (30)</button>
                             <button type="button" class="dir-filter-chip" data-filter="icici" onclick="setDirectoryCategoryFilter('icici')">ICICI Bank</button>
                             <button type="button" class="dir-filter-chip" data-filter="hdfc" onclick="setDirectoryCategoryFilter('hdfc')">HDFC Bank</button>
                             <button type="button" class="dir-filter-chip" data-filter="axis" onclick="setDirectoryCategoryFilter('axis')">Axis Bank</button>
@@ -1172,6 +1172,20 @@
                             <button type="button" class="dir-filter-chip" data-filter="movies" onclick="setDirectoryCategoryFilter('movies')">Movie BOGO</button>
                             <button type="button" class="dir-filter-chip" data-filter="golf" onclick="setDirectoryCategoryFilter('golf')">Golf Privileges</button>
                             <button type="button" class="dir-filter-chip" data-filter="ltf" onclick="setDirectoryCategoryFilter('ltf')">Lifetime Free (₹0)</button>
+                        </div>
+                        <div class="card-directory-meta-bar">
+                            <div class="card-directory-meta-info">
+                                <span class="card-directory-count-badge" id="cardDirectoryCountBadge">Showing 30 cards</span>
+                                <span class="card-directory-hint"><i class="bi bi-info-circle"></i> Click any card to expand perks, fees & pros/cons</span>
+                            </div>
+                            <div class="card-directory-expand-controls">
+                                <button type="button" class="btn-dir-meta-action" id="btnExpandAllDirCards" onclick="window.toggleAllDirectoryCards(true)" title="Expand all card details">
+                                    <i class="bi bi-arrows-expand"></i> Expand All
+                                </button>
+                                <button type="button" class="btn-dir-meta-action" id="btnCollapseAllDirCards" onclick="window.toggleAllDirectoryCards(false)" title="Collapse all card details">
+                                    <i class="bi bi-arrows-collapse"></i> Collapse All
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div class="card-directory-grid" id="cardDirectoryGrid">
