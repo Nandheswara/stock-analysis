@@ -45,4 +45,11 @@ build/
 # Testing
 coverage/
 .nyc_output/
+playwright-report/
+test-results/
+.playwright/
+.auth/
+e2e/.auth/
+"Test Automation e2e"/.auth/
+Test\ Automation\ e2e/.auth/
 /.claude-plugin*

@@ -58,6 +58,29 @@ node js/cors-proxy.js
 
 > ⚠️ **Note:** Do not open the HTML files directly using the `file://` protocol, as this will block Firebase Authentication and Database operations. Always use a local HTTP server.
 
+## 🧪 End-to-End Test Automation (Playwright)
+
+The project includes an enterprise-grade, 100% free Playwright automated test suite configured with Page Object Models (POM) and GitHub Actions CI.
+
+### Running Tests Locally
+
+```bash
+# Run all end-to-end test suites headlessly
+npm test
+
+# Run tests in interactive UI mode
+npm run test:ui
+
+# View generated HTML test execution report
+npm run test:report
+
+# Run specific suite (e.g. smoke & navigation)
+npm run test:smoke
+```
+
+### GitHub Actions CI/CD Pipeline
+Tests automatically execute on every push and pull request via [`.github/workflows/e2e-tests.yml`](.github/workflows/e2e-tests.yml), caching browsers and dependencies for lightning-fast sub-2-minute execution.
+
 ## 📁 File Structure
 
 ```
