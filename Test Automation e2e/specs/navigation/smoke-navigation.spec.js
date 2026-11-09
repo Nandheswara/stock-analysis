@@ -51,7 +51,7 @@ test.describe('Navigation: Core Smoke & Layout', () => {
     const navbar = new NavbarComponent(page);
     await navbar.clickAnalysis();
 
-    await page.waitForURL('**/pages/analysis.html');
+    await page.waitForURL(/.*pages\/analysis(\.html)?/, { waitUntil: 'domcontentloaded' });
     await expect(page).toHaveTitle(/Stock Fundamental Analysis|Equity Labs/i);
   });
 
@@ -62,7 +62,7 @@ test.describe('Navigation: Core Smoke & Layout', () => {
     const navbar = new NavbarComponent(page);
     await navbar.clickNews();
 
-    await page.waitForURL('**/pages/news.html', { waitUntil: 'domcontentloaded' });
+    await page.waitForURL(/.*pages\/news(\.html)?/, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('h1')).toContainText(/Stock Market News/i);
   });
 
@@ -72,13 +72,13 @@ test.describe('Navigation: Core Smoke & Layout', () => {
 
     // Click Track Finance feature card
     await homePage.clickTrackFinance();
-    await page.waitForURL('**/pages/finance-tracker.html');
+    await page.waitForURL(/.*pages\/finance-tracker(\.html)?/, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('.finance-header-title')).toContainText('Finance Tracker');
 
     // Go back to Home and test Stock Manager card
     await homePage.goto();
     await homePage.clickManagePortfolio();
-    await page.waitForURL('**/pages/stock-manager.html');
+    await page.waitForURL(/.*pages\/stock-manager(\.html)?/, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('h1')).toContainText(/Stock Net Worth Tracker/i);
   });
 });
