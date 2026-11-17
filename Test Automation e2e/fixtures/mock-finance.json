@@ -1,0 +1,50 @@
+{
+  "summary": {
+    "month": "2026-11",
+    "totalIncome": 120000,
+    "totalAssets": 350000,
+    "totalLiabilities": 80000,
+    "netWorth": 270000
+  },
+  "banks": [
+    {
+      "id": "bank_1",
+      "name": "HDFC Savings",
+      "accountNumber": "XXXX1234",
+      "balance": 150000
+    },
+    {
+      "id": "bank_2",
+      "name": "SBI Salary",
+      "accountNumber": "XXXX5678",
+      "balance": 200000
+    }
+  ],
+  "creditCards": [
+    {
+      "id": "cc_1",
+      "name": "Infinia",
+      "limit": 500000,
+      "outstanding": 35000,
+      "dueDate": "2026-11-20"
+    },
+    {
+      "id": "cc_2",
+      "name": "Amazon Pay ICICI",
+      "limit": 200000,
+      "outstanding": 15000,
+      "dueDate": "2026-11-25"
+    }
+  ],
+  "loans": [
+    {
+      "id": "loan_1",
+      "name": "Personal Loan",
+      "principal": 500000,
+      "interestRate": 10.5,
+      "tenureMonths": 24,
+      "outstanding": 30000
+    }
+  ]
+}
+
