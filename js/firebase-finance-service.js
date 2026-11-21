@@ -483,7 +483,8 @@ export {
     addCreditCard, 
     updateCreditCard, 
     deleteCreditCard, 
-    deleteCreditCardForMonth 
+    deleteCreditCardForMonth,
+    saveCardMonthlyCashback
 } from './services/finance/liabilities.js';
 
 // ========================================

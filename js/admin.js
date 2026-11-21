@@ -2676,6 +2676,7 @@ async function saveSystemSettings(event) {
         enableStockManager: document.getElementById('enableStockManager').checked,
         enableNews: document.getElementById('enableNews').checked,
         enableFinanceTracker: document.getElementById('enableFinanceTracker').checked,
+        enableCardAIAdvisor: document.getElementById('enableCardAIAdvisor')?.checked !== false,
         maxStocksPerUser: parseInt(document.getElementById('maxStocksPerUser').value),
         maxPortfolioItems: parseInt(document.getElementById('maxPortfolioItems').value),
         updatedAt: Date.now(),
@@ -3096,12 +3097,19 @@ async function loadSystemSettings() {
             document.getElementById('enableStockManager').checked = settings.enableStockManager !== false;
             document.getElementById('enableNews').checked = settings.enableNews !== false;
             document.getElementById('enableFinanceTracker').checked = settings.enableFinanceTracker !== false;
+            const enableCardAIAdvisorEl = document.getElementById('enableCardAIAdvisor');
+            if (enableCardAIAdvisorEl) {
+                enableCardAIAdvisorEl.checked = settings.enableCardAIAdvisor !== false;
+            }
             document.getElementById('maxStocksPerUser').value = settings.maxStocksPerUser || 100;
             document.getElementById('maxPortfolioItems').value = settings.maxPortfolioItems || 200;
         } else {
             // Ensure defaults are explicit when settings do not exist yet.
             document.getElementById('enableNews').checked = true;
             document.getElementById('enableFinanceTracker').checked = true;
+            if (document.getElementById('enableCardAIAdvisor')) {
+                document.getElementById('enableCardAIAdvisor').checked = true;
+            }
         }
     } catch (error) {
         // Error:('Error loading system settings:', error);

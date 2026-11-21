@@ -2,10 +2,10 @@
 // Usage: `node js/cors-proxy.js`
 // Requires Node 18+ (for global fetch). Listens on port 8080 by default.
 
-const http = require('http')
-const { URL } = require('url')
+import http from 'http';
+import { URL } from 'url';
 
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 8080
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 8080;
 
 function sendJSON(res, code, obj) {
   res.writeHead(code, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' })
@@ -39,8 +39,35 @@ const server = http.createServer(async (req, res) => {
         return
       }
 
+      // NVIDIA AI Chat Proxy Endpoint
+      if (urlObj.pathname === '/nvidia/chat' && req.method === 'POST') {
+        let body = ''
+        for await (const chunk of req) body += chunk
+
+        const apiKey = req.headers['authorization'] || process.env.NVIDIA_API_KEY || 'Bearer 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'
+        const authHeader = apiKey.startsWith('Bearer ') ? apiKey : `Bearer ${apiKey}`
+
+        try {
+          const nvidiaRes = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': authHeader,
+              'User-Agent': 'EquityLabs/1.0'
+            },
+            body: body
+          })
+
+          const data = await nvidiaRes.json()
+          sendJSON(res, nvidiaRes.status, data)
+        } catch (err) {
+          sendJSON(res, 500, { error: err.message || 'NVIDIA proxy forwarding failed' })
+        }
+        return
+      }
+
       if (urlObj.pathname !== '/proxy') {
-        sendJSON(res, 404, { error: 'Use /proxy?url=<target> or POST /save' })
+        sendJSON(res, 404, { error: 'Use /proxy?url=<target>, POST /nvidia/chat or POST /save' })
         return
       }
 
