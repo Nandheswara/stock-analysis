@@ -51,3 +51,7 @@ e2e/.auth/
 "Test Automation e2e"/.auth/
 Test\ Automation\ e2e/.auth/
 /.claude-plugin*
+
+
+#AI
+.agents
