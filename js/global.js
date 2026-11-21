@@ -410,6 +410,21 @@ const FEATURE_ACCESS_RULES = [
     { settingKey: 'enableFinanceTracker', pagePath: 'finance-tracker.html', featureName: 'Finance Tracker' }
 ];
 
+window.getSystemSettings = function() {
+    try {
+        const cached = localStorage.getItem('system_settings_cache');
+        return cached ? JSON.parse(cached) : null;
+    } catch (_) {
+        return null;
+    }
+};
+
+window.isFeatureEnabled = function(key, defaultValue = true) {
+    const s = window.getSystemSettings();
+    if (!s || s[key] === undefined) return defaultValue;
+    return s[key] !== false;
+};
+
 /**
  * Check system settings and enforce restrictions
  */
@@ -441,6 +456,7 @@ async function checkSystemSettings() {
         }
         
         if (settings) {
+            window.dispatchEvent(new CustomEvent('systemSettingsLoaded', { detail: settings }));
             const currentPath = window.location.pathname;
 
             FEATURE_ACCESS_RULES.forEach(({ settingKey, pagePath, featureName }) => {
@@ -448,6 +464,21 @@ async function checkSystemSettings() {
                     showFeatureDisabledOverlay(featureName);
                 }
             });
+
+            // Sub-feature toggles (e.g. AI Card Hub in Finance Tracker)
+            if (settings.enableCardAIAdvisor === false) {
+                const aiBtn = document.getElementById('btnCardAIAdvisor');
+                if (aiBtn) aiBtn.style.display = 'none';
+                const aiModal = document.getElementById('creditCardAIModal');
+                if (aiModal && aiModal.classList.contains('active')) {
+                    aiModal.classList.remove('active');
+                }
+            } else if (settings.enableCardAIAdvisor !== false) {
+                const aiBtn = document.getElementById('btnCardAIAdvisor');
+                if (aiBtn && aiBtn.style.display === 'none') {
+                    aiBtn.style.display = '';
+                }
+            }
         }
     } catch (error) {
         // Error checking system settings - use defaults

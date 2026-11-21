@@ -4170,7 +4170,181 @@ export function evaluateCardForSpend(card, cardId, queryText = '', amount = 1000
         };
     }
 
-    // E. Check for Exclusions (0% Return)
+    // E. Special Fuel Surcharge Waiver Handling:
+    // Standard credit cards waive the 1% fuel surcharge for eligible transactions (typically ₹400–₹4,000 / ₹5,000),
+    // delivering direct 1.0% savings back to the user. Cards without waiver (e.g. HSBC Live+) incur 1% surcharge.
+    if (intent.category === 'fuel') {
+        const hasFuelSurchargeWaiver = resolved.presetId !== 'hsbc-live-plus' && !(resolved.presetId === 'kiwi-rupay' && isUpiIntent);
+        const minSpend = (isYesBank || (resolved.presetId || '').startsWith('sbi-')) ? 500 : 400;
+        const maxSwipe = (isHdfc || resolved.presetId === 'yes-bank-marquee') ? 5000 : 4000;
+
+        // If card has a co-branded fuel tier (ICICI HPCL at HPCL pump, or SBI BPCL Octane at BPCL), let it pass to Step G
+        const isHpclCoBranded = resolved.presetId === 'icici-hpcl-super-saver' && (intent.merchant === 'hpcl' || (intent.raw && intent.raw.includes('hpcl')));
+        const isBpclCoBranded = resolved.presetId === 'sbi-bpcl-octane' && (intent.category === 'fuel' || intent.merchant === 'bpcl');
+
+        if (!isHpclCoBranded && !isBpclCoBranded) {
+            if (!hasFuelSurchargeWaiver) {
+                const surchargeDebited = Math.round(spendAmount * 0.01);
+                return {
+                    cardId,
+                    cardName: resolved.cardName,
+                    cardIssuer: resolved.cardIssuer,
+                    color: resolved.color,
+                    creditLimit: resolved.creditLimit,
+                    applicableRate: 0,
+                    cashbackEarned: 0,
+                    effectiveSavings: 0,
+                    perkValue: 0,
+                    perkBadge: null,
+                    isExcluded: true,
+                    isUpiIncompatible: false,
+                    isOverLimit,
+                    overLimitDeficit,
+                    availableLimit,
+                    exclusionReason: resolved.presetId === 'hsbc-live-plus'
+                        ? `Fuel Surcharge Waiver is NOT applicable on HSBC Live+. 1% surcharge (~₹${surchargeDebited} + GST) debited at pump with 0% cashback.`
+                        : 'Fuel surcharge waiver is not applicable for UPI payments on YES Bank credit cards (0% cashback).',
+                    tierName: 'Excluded Spend (0%)',
+                    notes: resolved.presetId === 'hsbc-live-plus'
+                        ? 'Fuel surcharge waiver is not applicable on HSBC Live+. Use HDFC Millennia or Amazon Pay ICICI to save the 1% surcharge.'
+                        : 'Fuel on UPI does not receive surcharge waiver. Use physical card directly at POS.',
+                    fuelSurchargeNote,
+                    fuelSurchargeWarning: resolved.presetId === 'hsbc-live-plus'
+                        ? `Fuel Surcharge Waiver is NOT applicable (NA) on HSBC Live+. 1% surcharge (~₹${surchargeDebited} + 18% GST) is debited with 0% cashback. Use HDFC Millennia or Amazon Pay ICICI instead.`
+                        : fuelSurchargeWarning,
+                    projectedCUR: calculateProjectedCUR(resolved.creditLimit, currentOutstanding, spendAmount),
+                    curWarning: checkCURWarning(resolved.creditLimit, currentOutstanding, spendAmount),
+                    paymentFloatDays: calculatePaymentFloatDays(card.dueDate),
+                    lounges: resolved.lounges,
+                    entertainment: resolved.entertainment,
+                    golf: resolved.golf,
+                    pros: resolved.pros,
+                    cons: resolved.cons,
+                    bestFor: resolved.bestFor,
+                    welcomeBenefit: resolved.welcomeBenefit,
+                    keyBenefitsSummary: resolved.keyBenefitsSummary,
+                    presetId: resolved.presetId
+                };
+            }
+
+            if (spendAmount < minSpend) {
+                return {
+                    cardId,
+                    cardName: resolved.cardName,
+                    cardIssuer: resolved.cardIssuer,
+                    color: resolved.color,
+                    creditLimit: resolved.creditLimit,
+                    applicableRate: 0,
+                    cashbackEarned: 0,
+                    effectiveSavings: 0,
+                    perkValue: 0,
+                    perkBadge: null,
+                    isExcluded: true,
+                    isUpiIncompatible: false,
+                    isOverLimit,
+                    overLimitDeficit,
+                    availableLimit,
+                    exclusionReason: `Under ₹${minSpend}: Surcharge waiver does NOT apply on swipes below ₹${minSpend} (bank debits ~₹10 + 18% GST out of pocket).`,
+                    tierName: `Sub-₹${minSpend} Swipe (0%)`,
+                    notes: `Minimum swipe of ₹${minSpend} required for 1% fuel surcharge waiver (0% base rewards).`,
+                    fuelSurchargeNote,
+                    fuelSurchargeWarning: `Under ₹${minSpend}: Surcharge waiver does NOT apply on swipes below ₹${minSpend}. Bank will debit ~₹10 + 18% GST out of pocket (0% cashback).`,
+                    projectedCUR: calculateProjectedCUR(resolved.creditLimit, currentOutstanding, spendAmount),
+                    curWarning: checkCURWarning(resolved.creditLimit, currentOutstanding, spendAmount),
+                    paymentFloatDays: calculatePaymentFloatDays(card.dueDate),
+                    lounges: resolved.lounges,
+                    entertainment: resolved.entertainment,
+                    golf: resolved.golf,
+                    pros: resolved.pros,
+                    cons: resolved.cons,
+                    bestFor: resolved.bestFor,
+                    welcomeBenefit: resolved.welcomeBenefit,
+                    keyBenefitsSummary: resolved.keyBenefitsSummary,
+                    presetId: resolved.presetId
+                };
+            }
+
+            if (spendAmount > 10000 && (isIcici || isYesBank)) {
+                return {
+                    cardId,
+                    cardName: resolved.cardName,
+                    cardIssuer: resolved.cardIssuer,
+                    color: resolved.color,
+                    creditLimit: resolved.creditLimit,
+                    applicableRate: 0,
+                    cashbackEarned: 0,
+                    effectiveSavings: 0,
+                    perkValue: 0,
+                    perkBadge: null,
+                    isExcluded: true,
+                    isUpiIncompatible: false,
+                    isOverLimit,
+                    overLimitDeficit,
+                    availableLimit,
+                    exclusionReason: `Over ₹10,000: Bank levies a 1% fee on fuel spends exceeding ₹10,000 (standard 1% surcharge waived, 0% net rewards).`,
+                    tierName: 'Fuel Spend > ₹10,000 (0% Net)',
+                    notes: 'Bank levies a 1% processing fee on fuel transactions exceeding ₹10,000. Split into smaller swipes below ₹4,000 to avoid fee and maximize waiver.',
+                    fuelSurchargeNote,
+                    fuelSurchargeWarning: `Over ₹10,000: Bank levies a 1% fee on fuel spends exceeding ₹10,000. Split swipe to avoid fee.`,
+                    projectedCUR: calculateProjectedCUR(resolved.creditLimit, currentOutstanding, spendAmount),
+                    curWarning: checkCURWarning(resolved.creditLimit, currentOutstanding, spendAmount),
+                    paymentFloatDays: calculatePaymentFloatDays(card.dueDate),
+                    lounges: resolved.lounges,
+                    entertainment: resolved.entertainment,
+                    golf: resolved.golf,
+                    pros: resolved.pros,
+                    cons: resolved.cons,
+                    bestFor: resolved.bestFor,
+                    welcomeBenefit: resolved.welcomeBenefit,
+                    keyBenefitsSummary: resolved.keyBenefitsSummary,
+                    presetId: resolved.presetId
+                };
+            }
+
+            // Standard 1% Fuel Surcharge Waiver successfully applied!
+            const eligibleSwipe = Math.min(spendAmount, maxSwipe);
+            const waiverAmount = Math.round(eligibleSwipe * 0.01);
+            const effectiveRate = Number((waiverAmount / spendAmount * 100).toFixed(2));
+
+            return {
+                cardId,
+                cardName: resolved.cardName,
+                cardIssuer: resolved.cardIssuer,
+                color: resolved.color,
+                creditLimit: resolved.creditLimit,
+                applicableRate: effectiveRate,
+                cashbackEarned: waiverAmount,
+                effectiveSavings: waiverAmount,
+                perkValue: waiverAmount,
+                perkBadge: '1% Surcharge Waived',
+                isExcluded: false,
+                isUpiIncompatible: false,
+                isOverLimit,
+                overLimitDeficit,
+                availableLimit,
+                tierName: '1% Fuel Surcharge Waiver',
+                notes: fuelSurchargeNote || `1% Fuel Surcharge waived across petrol pumps (valid ₹${minSpend}–₹${maxSwipe.toLocaleString('en-IN')}, 0% base rewards).`,
+                fuelSurchargeNote,
+                fuelSurchargeWarning: spendAmount > maxSwipe 
+                    ? `Over ₹${maxSwipe.toLocaleString('en-IN')}: Surcharge waiver only applies up to ₹${maxSwipe.toLocaleString('en-IN')} per swipe. Split bill into ₹${maxSwipe.toLocaleString('en-IN')} chunks to get full 1% waiver.`
+                    : fuelSurchargeWarning,
+                projectedCUR: calculateProjectedCUR(resolved.creditLimit, currentOutstanding, spendAmount),
+                curWarning: checkCURWarning(resolved.creditLimit, currentOutstanding, spendAmount),
+                paymentFloatDays: calculatePaymentFloatDays(card.dueDate),
+                lounges: resolved.lounges,
+                entertainment: resolved.entertainment,
+                golf: resolved.golf,
+                pros: resolved.pros,
+                cons: resolved.cons,
+                bestFor: resolved.bestFor,
+                welcomeBenefit: resolved.welcomeBenefit,
+                keyBenefitsSummary: resolved.keyBenefitsSummary,
+                presetId: resolved.presetId
+            };
+        }
+    }
+
+    // F. Check for Exclusions (0% Return)
     const matchedExclusion = resolved.exclusions.find(ex => {
         const cat = typeof ex === 'string' ? ex : ex.category;
 
@@ -4337,14 +4511,26 @@ export function evaluateCardForSpend(card, cardId, queryText = '', amount = 1000
         }
     }
 
-    // I. Lifestyle & Category Perks Evaluation (Movies BOGO, Golf, Airport Lounges)
+    // I. Lifestyle & Category Perks Evaluation (Movies BOGO, Golf, Airport Lounges, Co-branded Fuel)
     let perkValue = 0;
     let perkBadge = null;
     const isMovieIntent = intent.category === 'entertainment' || /movie|cinema|district|bookmyshow|bms|theatre|theater|ticket|pvr|inox/i.test(intent.raw);
     const isGolfIntent = intent.category === 'lifestyle' || /golf/i.test(intent.raw);
     const isLoungeIntent = intent.category === 'lounge' || /lounge|airport/i.test(intent.raw);
 
-    if (isMovieIntent && resolved.entertainment?.movies) {
+    if (intent.category === 'fuel') {
+        if (resolved.presetId === 'icici-hpcl-super-saver') {
+            const isHpcl = intent.merchant === 'hpcl' || (intent.raw && intent.raw.includes('hpcl'));
+            if (isHpcl && spendAmount >= 400) {
+                const surchargeWaiver = Math.round(Math.min(spendAmount, 4000) * 0.01);
+                perkValue = surchargeWaiver;
+                perkBadge = '5% HPCL Savings';
+                fuelSurchargeNote = '5% Total Fuel Savings (4% cashback up to ₹400/cycle + 1% surcharge waiver for ₹400–₹4,000) at HPCL petrol pumps.';
+            }
+        } else if (resolved.presetId === 'sbi-bpcl-octane') {
+            perkBadge = '7.25% BPCL Value Back';
+        }
+    } else if (isMovieIntent && resolved.entertainment?.movies) {
         const moviePerk = resolved.entertainment.movies;
         if (moviePerk.bogo) {
             const maxOff = moviePerk.maxDiscount || (resolved.presetId === 'icici-sapphiro-visa' ? 500 : 250);
