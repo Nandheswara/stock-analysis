@@ -1446,30 +1446,86 @@
                 <h3 id="addBankModalTitle"><i class="bi bi-bank"></i> Add Bank Account</h3>
                 <button class="finance-modal-close" onclick="closeFinanceModal('addBankModal')">&times;</button>
             </div>
+
+            <!-- Modal Tabs: Bank Details & Linked Debit Card -->
+            <div class="finance-modal-tabs">
+                <button type="button" class="finance-modal-tab-btn active" id="btnBankTabDetails" onclick="switchBankModalTab('details')">
+                    <i class="bi bi-bank"></i> Account Details
+                </button>
+                <button type="button" class="finance-modal-tab-btn" id="btnBankTabDebit" onclick="switchBankModalTab('debitCard')">
+                    <i class="bi bi-credit-card-2-front"></i> Linked Debit Card
+                </button>
+            </div>
+
             <div class="finance-modal-body">
                 <form id="addBankForm">
                     <input type="hidden" id="editBankId">
-                    <div class="form-group">
-                        <label for="bankAccountName">Account Name *</label>
-                        <input type="text" id="bankAccountName" placeholder="e.g., HDFC Savings" required>
+
+                    <!-- Tab 1: Bank Account Details -->
+                    <div id="bankTabPane-details">
+                        <div class="form-group">
+                            <label for="bankAccountName">Account Name *</label>
+                            <input type="text" id="bankAccountName" placeholder="e.g., HDFC Savings" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="bankBankName">Bank Name</label>
+                            <input type="text" id="bankBankName" placeholder="e.g., HDFC Bank">
+                        </div>
+                        <div class="form-group">
+                            <label for="bankAccountType">Account Type</label>
+                            <select id="bankAccountType">
+                                <option value="savings">Savings</option>
+                                <option value="current">Current</option>
+                                <option value="salary">Salary</option>
+                                <option value="fd">Fixed Deposit</option>
+                                <option value="rd">Recurring Deposit</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="bankBalance">Available Balance (₹) *</label>
+                            <input type="number" id="bankBalance" placeholder="0" min="0" step="0.01" required>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="bankBankName">Bank Name</label>
-                        <input type="text" id="bankBankName" placeholder="e.g., HDFC Bank">
-                    </div>
-                    <div class="form-group">
-                        <label for="bankAccountType">Account Type</label>
-                        <select id="bankAccountType">
-                            <option value="savings">Savings</option>
-                            <option value="current">Current</option>
-                            <option value="salary">Salary</option>
-                            <option value="fd">Fixed Deposit</option>
-                            <option value="rd">Recurring Deposit</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="bankBalance">Available Balance (₹) *</label>
-                        <input type="number" id="bankBalance" placeholder="0" min="0" step="0.01" required>
+
+                    <!-- Tab 2: Linked Debit Card Details -->
+                    <div id="bankTabPane-debitCard" style="display: none;">
+                        <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 8px; padding: 10px 12px; margin-bottom: 14px; font-size: 0.82rem; color: var(--text-secondary); line-height: 1.4;">
+                            <i class="bi bi-stars text-primary" style="font-size: 0.95rem; margin-right: 4px;"></i>
+                            <strong>AI Card Advisor Integration:</strong> Add your debit card details to discover exclusive perks like HDFC 1% bill payment cashback, RuPay Platinum movie/lounge deals, and debit card discounts.
+                        </div>
+
+                        <div class="form-group">
+                            <label for="bankDebitCardName">Debit Card Name</label>
+                            <input type="text" id="bankDebitCardName" placeholder="e.g., HDFC Millennia / Platinum Debit Card, SBI Global">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="bankDebitCardNetwork">Card Network</label>
+                            <select id="bankDebitCardNetwork">
+                                <option value="visa">Visa</option>
+                                <option value="mastercard">Mastercard</option>
+                                <option value="rupay">RuPay</option>
+                                <option value="maestro">Maestro</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="bankDebitCardVariant">Card Variant / Tier</label>
+                            <select id="bankDebitCardVariant">
+                                <option value="platinum">Platinum (e.g. HDFC Platinum, SBI Platinum)</option>
+                                <option value="infinite">Infinite / World (Ultra Premium)</option>
+                                <option value="signature">Signature / Select</option>
+                                <option value="gold">Gold</option>
+                                <option value="classic">Classic / Standard</option>
+                                <option value="business">Business / Commercial</option>
+                                <option value="titanium">Titanium</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="bankDebitCardNotes">Special Perks / Notes (Optional)</label>
+                            <input type="text" id="bankDebitCardNotes" placeholder="e.g., 1% cashback on HDFC BillPay / PayZapp up to ₹750/mo">
+                        </div>
                     </div>
                 </form>
             </div>

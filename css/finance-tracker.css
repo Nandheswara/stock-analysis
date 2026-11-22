@@ -1196,6 +1196,40 @@
     overflow: hidden;
 }
 
+.finance-modal-tabs {
+    display: flex;
+    gap: 6px;
+    padding: 8px 24px;
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.finance-modal-tab-btn {
+    background: transparent;
+    border: none;
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+.finance-modal-tab-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.finance-modal-tab-btn.active {
+    background: #6366f1;
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
 .finance-settings-modal {
     max-width: 640px;
 }

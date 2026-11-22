@@ -3117,21 +3117,62 @@ window.deleteFinanceCategoryItem = async function(catId, itemId) {
 };
 
 // --- Banks ---
+window.switchBankModalTab = function(tab) {
+    const detailsTabBtn = document.getElementById('btnBankTabDetails');
+    const debitTabBtn = document.getElementById('btnBankTabDebit');
+    const detailsPane = document.getElementById('bankTabPane-details');
+    const debitPane = document.getElementById('bankTabPane-debitCard');
+
+    if (tab === 'debitCard') {
+        detailsTabBtn?.classList.remove('active');
+        debitTabBtn?.classList.add('active');
+        if (detailsPane) detailsPane.style.display = 'none';
+        if (debitPane) debitPane.style.display = 'block';
+    } else {
+        debitTabBtn?.classList.remove('active');
+        detailsTabBtn?.classList.add('active');
+        if (detailsPane) detailsPane.style.display = 'block';
+        if (debitPane) debitPane.style.display = 'none';
+    }
+};
+
 window.openAddBankModal = function() {
     document.getElementById('addBankForm').reset();
     document.getElementById('editBankId').value = '';
+    document.getElementById('bankDebitCardName').value = '';
+    document.getElementById('bankDebitCardNetwork').value = 'visa';
+    document.getElementById('bankDebitCardVariant').value = 'platinum';
+    document.getElementById('bankDebitCardNotes').value = '';
+    window.switchBankModalTab('details');
     document.getElementById('addBankModalTitle').textContent = 'Add Bank Account';
     openModal('addBankModal');
 };
 
 window.submitAddBank = async function() {
     const editId = document.getElementById('editBankId').value;
+    const debitCardName = (document.getElementById('bankDebitCardName')?.value || '').trim();
+    const debitCardNetwork = document.getElementById('bankDebitCardNetwork')?.value || 'visa';
+    const debitCardVariant = document.getElementById('bankDebitCardVariant')?.value || 'platinum';
+    const debitCardNotes = (document.getElementById('bankDebitCardNotes')?.value || '').trim();
+
     const data = {
         name: document.getElementById('bankAccountName').value.trim(),
         bankName: document.getElementById('bankBankName').value.trim(),
         accountType: document.getElementById('bankAccountType').value,
         balance: parseFloat(document.getElementById('bankBalance').value) || 0
     };
+
+    if (debitCardName) {
+        data.debitCard = {
+            hasDebitCard: true,
+            cardName: debitCardName,
+            network: debitCardNetwork,
+            variant: debitCardVariant,
+            notes: debitCardNotes
+        };
+    } else {
+        data.debitCard = null;
+    }
 
     if (!data.name) { showToast('Enter account name', 'warning'); return; }
 
@@ -3162,6 +3203,15 @@ window.editFinanceBank = function(bankId) {
     document.getElementById('bankBankName').value = bank.bankName || '';
     document.getElementById('bankAccountType').value = bank.accountType || 'savings';
     document.getElementById('bankBalance').value = balance || '';
+
+    // Populate debit card details if present
+    const dc = bank.debitCard || {};
+    document.getElementById('bankDebitCardName').value = dc.cardName || '';
+    document.getElementById('bankDebitCardNetwork').value = dc.network || 'visa';
+    document.getElementById('bankDebitCardVariant').value = dc.variant || 'platinum';
+    document.getElementById('bankDebitCardNotes').value = dc.notes || '';
+
+    window.switchBankModalTab('details');
     document.getElementById('addBankModalTitle').textContent = 'Edit Bank Account';
     openModal('addBankModal');
 };

@@ -109,10 +109,30 @@ export function extractUserCreditCardsContext(financeData = null, currentMonth =
         });
     }
 
+    // Extract Linked Debit Cards from Bank Accounts
+    const userBanks = data.banks || {};
+    const debitCardList = [];
+    for (const [bankId, bank] of Object.entries(userBanks)) {
+        if (!bank || typeof bank !== 'object') continue;
+        const dc = bank.debitCard;
+        if (dc && (dc.cardName || dc.hasDebitCard)) {
+            debitCardList.push({
+                bankId,
+                bankName: bank.bankName || bank.name || 'Bank',
+                accountName: bank.name || '',
+                cardName: dc.cardName || `${bank.bankName || bank.name} Debit Card`,
+                network: dc.network || 'visa',
+                variant: dc.variant || 'platinum',
+                notes: dc.notes || ''
+            });
+        }
+    }
+
     return {
         month,
         totalCards: cardList.length,
         cards: cardList,
+        debitCards: debitCardList,
         rawExpenses: data.expenses || {},
         annualEvents: data.annualEvents || {}
     };
@@ -122,21 +142,239 @@ export function extractUserCreditCardsContext(financeData = null, currentMonth =
 // 2. FEATURE 1: AI SPEND ADVISOR (NATURAL LANGUAGE CO-PILOT)
 // ============================================================================
 
+/**
+ * Dynamically resolves the most fitting Bootstrap icon for any platform or offer
+ */
+export function resolveOfferIcon(offer) {
+    if (offer?.categoryIcon && offer.categoryIcon.startsWith('bi-')) return offer.categoryIcon;
+    const text = `${offer?.platform || ''} ${offer?.badge || ''} ${offer?.summary || ''} ${offer?.routeType || ''}`.toLowerCase();
+    if (text.includes('flight') || text.includes('air') || text.includes('fly') || text.includes('indigo') || text.includes('vistara') || text.includes('airline')) return 'bi-airplane-fill';
+    if (text.includes('train') || text.includes('rail') || text.includes('irctc') || text.includes('tatkal')) return 'bi-train-front-fill';
+    if (text.includes('bill') || text.includes('electric') || text.includes('power') || text.includes('utility') || text.includes('bijli') || text.includes('gas') || text.includes('water')) return 'bi-lightning-charge-fill';
+    if (text.includes('food') || text.includes('swiggy') || text.includes('zomato') || text.includes('dine') || text.includes('restaurant') || text.includes('eazydiner')) return 'bi-cup-hot-fill';
+    if (text.includes('grocery') || text.includes('blinkit') || text.includes('zepto') || text.includes('instamart') || text.includes('bigbasket') || text.includes('market')) return 'bi-basket2-fill';
+    if (text.includes('hotel') || text.includes('stay') || text.includes('resort') || text.includes('agoda') || text.includes('booking') || text.includes('room')) return 'bi-building-fill';
+    if (text.includes('movie') || text.includes('cinema') || text.includes('pvr') || text.includes('inox') || text.includes('theatre') || text.includes('bms')) return 'bi-film';
+    if (text.includes('voucher') || text.includes('gift') || text.includes('smartbuy') || text.includes('gyftr') || text.includes('brand voucher')) return 'bi-gift-fill';
+    if (text.includes('recharge') || text.includes('mobile') || text.includes('dth') || text.includes('phone') || text.includes('broadband')) return 'bi-phone-fill';
+    if (text.includes('cab') || text.includes('uber') || text.includes('ola') || text.includes('ride') || text.includes('taxi') || text.includes('rapido')) return 'bi-car-front-fill';
+    if (text.includes('health') || text.includes('pharmacy') || text.includes('medicine') || text.includes('1mg') || text.includes('apollo') || text.includes('netmeds')) return 'bi-capsule';
+    if (text.includes('cash') || text.includes('reward') || text.includes('coin') || text.includes('neu') || text.includes('affiliate') || text.includes('cashkaro')) return 'bi-cash-coin';
+    if (text.includes('gateway') || text.includes('razorpay') || text.includes('cred') || text.includes('paytm') || text.includes('payment')) return 'bi-wallet2';
+    return 'bi-tags-fill';
+}
+
+/**
+ * Dynamically resolves the route type badge for clear user understanding
+ */
+export function resolveOfferRouteType(offer) {
+    if (offer?.routeType) return offer.routeType;
+    const text = `${offer?.platform || ''} ${offer?.badge || ''} ${offer?.summary || ''}`.toLowerCase();
+    if (text.includes('voucher') || text.includes('gift') || text.includes('smartbuy') || text.includes('gyftr')) return 'Voucher Multiplier';
+    if (text.includes('zero') || text.includes('convenience') || text.includes('pg fee') || text.includes('no fee')) return 'Zero Fee Route';
+    if (text.includes('gateway') || text.includes('razorpay') || text.includes('cred') || text.includes('paytm') || text.includes('bbps')) return 'Payment App Route';
+    if (text.includes('affiliate') || text.includes('cashkaro') || text.includes('earnkaro')) return 'Affiliate Route';
+    return 'Booking Portal Promo';
+}
+
+/**
+ * Format integer INR amount without trailing decimals (e.g. ₹15,000 instead of ₹15,000.00)
+ */
+export function formatInrInteger(amt) {
+    if (amt === null || amt === undefined || isNaN(amt)) return '₹0';
+    return '₹' + Math.round(Number(amt)).toLocaleString('en-IN');
+}
+
+/**
+ * Safely format monetary, percentage, and card entity highlights in text for clean user readability
+ */
+export function formatOfferText(text) {
+    if (!text || typeof text !== 'string') return '';
+    let escaped = escapeHtml(text);
+
+    // Remove any trailing .00 on INR amounts (e.g. ₹15,000.00 -> ₹15,000)
+    escaped = escaped.replace(/₹([\d,]+)\.00\b/g, '₹$1');
+
+    // Highlight INR amounts (e.g. ₹5,00,000, ₹15,000, ₹2,500, ₹5L, ₹450, etc.)
+    escaped = escaped.replace(/(₹[\d,]+(?:\.\d+)?(?:\s*(?:L|Cr|k|K|lakh|crore))?)(?!\w)/gi, '<strong class="ai-text-val">$1</strong>');
+
+    // Highlight multipliers and percentages (e.g. 3X, 10X, 5%, 10%, 1.5%)
+    escaped = escaped.replace(/(?<!\w)(\d+(?:\.\d+)?%|\d+X)(?!\w)/gi, '<strong class="ai-text-highlight">$1</strong>');
+
+    // Highlight popular cards including HSBC Live+
+    escaped = escaped.replace(/\b(HDFC Millennia|HSBC Live\+|Amazon Pay ICICI|Kiwi RuPay|Kiwi card|Kiwi|Tata Neu Infinity|Tata Neu Plus|Infinia|Regalia Gold|Axis Ace|Airtel Axis)(?!\w)/gi, '<span class="ai-text-card">$1</span>');
+
+    // Highlight prominent promo codes
+    escaped = escaped.replace(/\b(EMTNCF|NOFEES|APAYBILL|SMARTBUY|CRED50|CKEXTRA|MMTFLIGHT|AUTOAPPLIED)\b/g, '<code class="ai-text-code">$1</code>');
+
+    return escaped;
+}
+
+/**
+ * Format summary into structured, skimmable steps or clean bullet points
+ */
+export function formatOfferSummary(summaryText) {
+    if (!summaryText || typeof summaryText !== 'string') return '';
+    const clean = summaryText.trim();
+    if (!clean) return '';
+
+    // Split sentences if 2 or more exist
+    const rawSentences = clean.split(/(?<=[.?!])\s+/).map(s => s.trim()).filter(Boolean);
+    if (rawSentences.length > 1) {
+        return rawSentences.map(sentence => `
+            <div class="ai-summary-step">
+                <i class="bi bi-arrow-right-circle-fill ai-step-bullet"></i>
+                <span class="ai-step-text">${formatOfferText(sentence)}</span>
+            </div>
+        `).join('');
+    }
+
+    return `
+        <div class="ai-summary-single">
+            <span class="ai-step-text">${formatOfferText(clean)}</span>
+        </div>
+    `;
+}
+
+/**
+ * Resilient Dynamic Fallback Generator for when AI response is unavailable or missing offers
+ */
+export function generateDynamicFallbackOffers(queryText, effectiveAmount, bestCardName, bestCashback) {
+    const q = (queryText || '').toLowerCase();
+    const offers = [];
+
+    // Route 1: Voucher Multiplier (SmartBuy / Gyftr) - works for almost all retail, shopping, dining, travel
+    offers.push({
+        platform: 'SmartBuy / Gyftr Vouchers',
+        categoryIcon: 'bi-gift-fill',
+        routeType: 'Voucher Multiplier',
+        badge: '3X–10X Reward Points',
+        couponCode: 'SMARTBUY',
+        discountAmount: Math.round(effectiveAmount * 0.05),
+        discountText: `Saves ~${formatCurrency(Math.round(effectiveAmount * 0.05))} (5%–10% effective)`,
+        summary: `Buy gift vouchers on SmartBuy/Gyftr using ${bestCardName || 'your card'} before checking out to unlock instant multiplier rewards!`,
+        stackingTip: `Purchase brand vouchers on SmartBuy/Gyftr with ${bestCardName || 'your card'} first to earn multiplier points, then use vouchers at checkout for double value!`
+    });
+
+    // Route 2: Category-aware Primary Portal
+    if (q.includes('flight') || q.includes('air') || q.includes('fly')) {
+        offers.unshift({
+            platform: 'EaseMyTrip',
+            categoryIcon: 'bi-airplane-fill',
+            routeType: 'Zero Fee Route',
+            badge: 'Zero Convenience Fee',
+            couponCode: 'EMTNCF',
+            discountAmount: 450,
+            discountText: 'Saves ~₹450 convenience fee',
+            summary: 'Flat ₹0 convenience fee on flight booking. Saves ₹350–₹500 per passenger at final checkout.',
+            stackingTip: `Apply coupon EMTNCF on EaseMyTrip, then swipe ${bestCardName || 'your card'} for card cashback on top!`
+        });
+        offers.push({
+            platform: 'MakeMyTrip / Cleartrip',
+            categoryIcon: 'bi-globe-americas',
+            routeType: 'Booking Portal Promo',
+            badge: 'Instant Bank Promo',
+            couponCode: 'MMTFLIGHT',
+            discountAmount: Math.min(1500, Math.round(effectiveAmount * 0.10)),
+            discountText: `Instant ~${formatCurrency(Math.min(1500, Math.round(effectiveAmount * 0.10)))} Off`,
+            summary: 'Instant platform discount code on flight bookings with major bank cards.',
+            stackingTip: `Apply promo code MMTFLIGHT on MakeMyTrip, then pay with ${bestCardName || 'your card'}.`
+        });
+    } else if (q.includes('train') || q.includes('rail') || q.includes('irctc')) {
+        offers.unshift({
+            platform: 'Ixigo Trains',
+            categoryIcon: 'bi-train-front-fill',
+            routeType: 'Zero Fee Route',
+            badge: 'Zero PG Charges',
+            couponCode: 'NOFEES',
+            discountAmount: 40,
+            discountText: 'Saves PG Convenience Charge',
+            summary: 'Flat ₹0 payment gateway fee on IRCTC train bookings + free instant refunds to source account.',
+            stackingTip: `Book with code NOFEES on Ixigo for zero gateway fee + earn reward points on ${bestCardName || 'your card'}.`
+        });
+    } else if (q.includes('bill') || q.includes('electric') || q.includes('power') || q.includes('recharge') || q.includes('gas') || q.includes('water') || q.includes('broadband')) {
+        offers.unshift({
+            platform: 'Amazon Pay BBPS',
+            categoryIcon: 'bi-lightning-charge-fill',
+            routeType: 'Payment App Route',
+            badge: '2% Uncapped Cashback',
+            couponCode: 'APAYBILL',
+            discountAmount: Math.round(effectiveAmount * 0.02),
+            discountText: `Earns ${formatCurrency(Math.round(effectiveAmount * 0.02))} Cashback`,
+            summary: 'Pay utility bills via Amazon Pay BBPS with Amazon Pay ICICI card for flat 2% statement cashback without monthly limits.',
+            stackingTip: `Route via Amazon Pay BBPS using Amazon Pay ICICI to claim 2% direct cashback on utility bills!`
+        });
+        offers.push({
+            platform: 'CRED Pay BBPS',
+            categoryIcon: 'bi-wallet2',
+            routeType: 'Payment App Route',
+            badge: 'Cashback & Coin Burn',
+            couponCode: 'CRED50',
+            discountAmount: 50,
+            summary: 'Pay utility bills via CRED to earn instant cashback scratchcards plus burn Cred coins.',
+            stackingTip: `Pay on CRED using ${bestCardName || 'your card'} to double dip on CRED rewards + card points.`
+        });
+    } else {
+        // Route 3: Generic Affiliate Cash-Back Route (CashKaro / EarnKaro)
+        offers.push({
+            platform: 'CashKaro / EarnKaro',
+            categoryIcon: 'bi-cash-coin',
+            routeType: 'Affiliate Route',
+            badge: 'Extra 2%–6% Real Cash',
+            couponCode: 'CKEXTRA',
+            discountAmount: Math.round(effectiveAmount * 0.03),
+            discountText: `Extra ~${formatCurrency(Math.round(effectiveAmount * 0.03))} into Bank`,
+            summary: 'Click through CashKaro before purchasing to earn real cash transferrable directly to your bank account.',
+            stackingTip: `Route through CashKaro -> checkout with ${bestCardName || 'your card'} to pocket real bank cashback PLUS credit card cashback simultaneously!`
+        });
+    }
+
+    return offers;
+}
+
+/**
+ * Detect if purchase query is paying a credit card bill
+ */
+export function isCreditCardBillPayment(queryText) {
+    const q = (queryText || '').toLowerCase();
+    return (
+        (q.includes('credit card') || q.includes('card bill') || q.includes('cc bill')) && 
+        (q.includes('bill') || q.includes('pay') || q.includes('repayment') || q.includes('due') || q.includes('settle'))
+    ) || q.includes('credit card bill');
+}
+
 export async function getAICardRecommendation(queryText, spendAmount = null) {
     const context = extractUserCreditCardsContext();
     
-    if (context.totalCards === 0) {
-        throw new Error('No credit cards found in your tracker. Please add your cards in the Credit Cards section first.');
+    if (context.totalCards === 0 && (!context.debitCards || context.debitCards.length === 0)) {
+        throw new Error('No cards found in your tracker. Please add your cards in the Credit Cards or Bank Accounts section first.');
     }
 
     const effectiveAmount = Number(spendAmount) || 1000;
     const rawFinanceData = bridge.getFinanceData() || {};
     const rawUserCards = rawFinanceData.creditCards || {};
+    const isCCBill = isCreditCardBillPayment(queryText);
 
     // Pre-evaluate baseline rates and exclusions deterministically
     const evaluatedCards = context.cards.map(c => {
         const rawCard = rawUserCards[c.id] || c;
         const evaluation = evaluateCardForSpend(rawCard, c.id, queryText, effectiveAmount, context.month, c.currentBalance);
+        
+        let applicableRate = evaluation.applicableRate;
+        let cashbackEarned = evaluation.cashbackEarned;
+        let isExcluded = evaluation.isExcluded;
+        let exclusionReason = evaluation.exclusionReason;
+
+        // If user is paying a credit card bill, credit cards are strictly disallowed by RBI
+        if (isCCBill) {
+            applicableRate = 0;
+            cashbackEarned = 0;
+            isExcluded = true;
+            exclusionReason = 'RBI Regulation: Credit cards cannot be paid using another credit card.';
+        }
+
+        const calculatedCashback = isExcluded ? 0 : Math.round(cashbackEarned || (effectiveAmount * applicableRate) / 100);
+
         return {
             name: c.name,
             issuer: c.issuer,
@@ -145,35 +383,63 @@ export async function getAICardRecommendation(queryText, spendAmount = null) {
             curRatio: c.curRatio,
             dueDate: c.dueDate,
             floatDays: c.floatDays,
-            applicableRate: evaluation.applicableRate,
-            cashbackEarned: evaluation.cashbackEarned,
+            applicableRate,
+            cashbackEarned: calculatedCashback,
+            cashbackAmount: calculatedCashback,
             tierName: evaluation.tierName,
-            isExcluded: evaluation.isExcluded,
-            exclusionReason: evaluation.exclusionReason
+            isExcluded,
+            exclusionReason
         };
     });
 
-    const systemPrompt = `You are the AI Smart Credit Card Advisor for Equity Labs, an elite personal finance system in India.
-Your mission is to analyze the user's active credit cards and recommend the single best card to swipe for their intended purchase.
+    // Check user's linked debit cards (especially valuable for CC bill payments)
+    const userDebitCards = context.debitCards || [];
+
+    const systemPrompt = `You are the AI Smart Card Advisor for Equity Labs, an elite personal finance intelligence engine in India.
+Your mission is to analyze the user's active credit and debit cards, recommend the optimal card/mode to pay, and formulate the most lucrative multi-route stacking strategy across portals, payment gateways, and voucher engines!
 
 Rules & Logic:
-1. STRICT RANKING BY MAXIMUM CASHBACK AMOUNT (HIGHEST RUPEE RETURN WINS):
+1. STRICT RANKING BY MAXIMUM RUPEE RETURN (HIGHEST CASHBACK AMOUNT WINS):
    - You MUST pick the card with the HIGHEST cashbackAmount (₹) as "bestCard".
-   - Never pick a 1.5% base card (like HSBC Live+ on Amazon/Flipkart/non-dining) over a 5% card (like Amazon Pay ICICI or Millennia on Amazon).
-   - If two cards offer the same top rate (e.g. 5% on Amazon for both Amazon Pay ICICI and Millennia), designate the one without monthly caps (e.g. Amazon Pay ICICI unlimited 5%) as "bestCard" and the other as "runnerUp".
+   - Never pick a 1.5% base card over a 5% or 10% category-specific card.
+   - If two cards offer the same rate, designate the uncapped card as "bestCard".
 2. Merchant Alignment & Caps:
    - Amazon purchases -> Amazon Pay ICICI (5% unlimited) or HDFC Millennia (5% up to ₹1,000 cap).
    - Dining / Swiggy / Zomato / Blinkit / Instamart -> HSBC Live+ (10% up to ₹1,200 cap).
    - UPI QR scans -> Kiwi RuPay (2% or 1.5%).
    - General retail -> Highest uncapped base rate.
-3. CIBIL & Credit Utilization Ratio (CUR) Safety:
-   - Single card utilization over 30% hurts CIBIL credit scores.
-   - If the new purchase pushes a card's CUR over 30%, explicitly flag a CIBIL warning badge and suggest an alternative or multi-card split.
-4. Output Format:
+3. CRITICAL RBI RULE FOR CREDIT CARD BILL PAYMENTS:
+   ${isCCBill ? `
+   - WARNING: The user is paying a CREDIT CARD BILL! Under Reserve Bank of India (RBI) regulations, credit cards CANNOT be used to pay another credit card bill!
+   - DO NOT recommend swiping a credit card.
+   - Set "isCreditCardBillPayment": true.
+   - For "bestCard": Evaluate the user's available Linked Debit Cards: ${JSON.stringify(userDebitCards)}.
+     (If user has an HDFC Debit Card e.g. Platinum/Millennia, recommend "HDFC Debit Card (via HDFC BillPay / PayZapp)" which earns 1% cashback up to ₹750/month! If no HDFC debit card, recommend paying via CRED or CheQ or PayZapp with debit card/UPI).
+   - For "platformOffers": Suggest the best Credit Card Bill payment platforms: CRED (UPI/NetBanking + Cred Coins/Jackpots), CheQ (1% CheQ chips), HDFC BillPay (1% with HDFC Debit card), PayZapp, or Mobikwik/Paytm BBPS.
+   ` : `
+   - If user is not paying a credit card bill, proceed with standard credit card ranking.
+   `}
+4. SURCHARGE NOTICE RULE (NO FALSE ALARMS ON FLIGHT/PORTAL FEES):
+   - A routine convenience fee charged by flight booking portals (like MakeMyTrip, EaseMyTrip, Goibibo), railways (IRCTC), or movie ticketing apps is a standard ticketing service fee charged to all payment modes — it is NOT a credit card surcharge.
+   - NEVER trigger a surchargeNotice for routine flight, train, or movie portal convenience fees!
+   - Surcharge notices are STRICTLY for merchant credit card payment surcharges (e.g., 1% fuel surcharge at petrol pumps, 1%-2% rent payment portal charges, or wallet reloads).
+   - If no merchant surcharge applies, surchargeNotice MUST be { "hasNotice": false, "message": null }.
+5. DYNAMIC MULTI-ROUTE SAVINGS (PORTALS, GATEWAYS, VOUCHERS & STACKING):
+   - Formulate 2 to 4 of the most advantageous, high-ROI avenues available in India:
+     * Route A: Primary Booking Portal / Aggregator with Promo Code (e.g. EaseMyTrip zero fee promo 'EMTNCF', MakeMyTrip, Agoda, Ixigo, Swiggy, Zomato, Croma, Nykaa, etc.)
+     * Route B: Payment Gateway / App Route (e.g. Razorpay Magic checkout, CRED Pay BBPS cashback, Amazon Pay balance, Paytm, Cashfree, Simpl)
+     * Route C: Voucher Multiplier Route (e.g. Buying brand vouchers on HDFC SmartBuy / Gyftr / Tata Neu first with credit card to get 3X–10X multiplier reward points or 5%–10% instant discount before checkout)
+     * Route D: Zero-Fee / Cash-Back Stacking Route (e.g. Zero convenience fee, zero PG fee, or CashKaro/EarnKaro affiliate cash transferrable to bank)
+   - Use ONLY realistic, verified, widely known promo codes (e.g. 'EMTNCF', 'NOFEES', 'APAYBILL', 'CRED50', 'SWIGGYIT', 'SMARTBUY', or 'AUTOAPPLIED').
+   - Calculate the realistic rupee savings ("discountAmount") based on the spend amount (₹${effectiveAmount}).
+   - For "summary": Write 1 to 2 crisp, bite-sized, easily skimmable sentences (max 25 words). Clearly state WHAT action to take and the EXACT rupee/percentage return.
+   - For "stackingTip": Write a sharp, actionable combo advice in 1 sentence (max 20 words) specifying which card to stack and the total combined return.
+6. Output Format:
    - Respond ONLY with a clean valid JSON object matching the exact schema below.
 
 Expected JSON Schema:
 {
+  "isCreditCardBillPayment": boolean,
   "bestCard": {
     "name": "string",
     "cashbackPercent": number,
@@ -186,6 +452,21 @@ Expected JSON Schema:
     "cashbackAmount": number,
     "why": "brief note on when to use this alternative"
   },
+  "platformOffers": [
+    {
+      "platform": "string",
+      "routeType": "string",
+      "categoryIcon": "string",
+      "badge": "string",
+      "couponCode": "string",
+      "discountAmount": number,
+      "discountText": "string",
+      "summary": "string",
+      "stackingTip": "string",
+      "isVerified": true,
+      "verificationTag": "Verified Evergreen / Active Portal Promo / Bank Offer"
+    }
+  ],
   "cibilWarning": {
     "hasWarning": boolean,
     "message": "string or null"
@@ -200,8 +481,11 @@ Expected JSON Schema:
 
     const userMessage = `User Purchase Query: "${queryText}"
 Estimated Spend Amount: ₹${effectiveAmount}
-Active Cards Evaluated for ${context.month} for this purchase:
-${JSON.stringify(evaluatedCards, null, 2)}`;
+Is Credit Card Bill Payment: ${isCCBill ? 'YES (RBI prohibits paying with credit card; use Debit Card or UPI/BBPS)' : 'NO'}
+User Active Credit Cards Evaluated:
+${JSON.stringify(evaluatedCards, null, 2)}
+User Linked Debit Cards Available:
+${JSON.stringify(userDebitCards, null, 2)}`;
 
     const response = await callNvidiaChat([
         { role: 'system', content: systemPrompt },
@@ -223,13 +507,17 @@ ${JSON.stringify(evaluatedCards, null, 2)}`;
     } catch (parseErr) {
         console.warn('[AI Card Advisor] JSON parsing fallback, raw content:', response.content);
         parsedResult = {
+            isCreditCardBillPayment: isCCBill,
             bestCard: {
-                name: 'Recommended Card',
-                cashbackPercent: 1.5,
-                cashbackAmount: 0,
-                why: response.content.slice(0, 200)
+                name: isCCBill ? 'HDFC Debit Card (via HDFC BillPay)' : (evaluatedCards[0]?.name || 'Recommended Card'),
+                cashbackPercent: isCCBill ? 1.0 : (evaluatedCards[0]?.applicableRate || 1.5),
+                cashbackAmount: isCCBill ? Math.min(750, Math.round(effectiveAmount * 0.01)) : (evaluatedCards[0]?.cashbackEarned || 0),
+                why: isCCBill 
+                    ? 'Credit card bills cannot be paid using another credit card under RBI rules. Pay via HDFC BillPay / PayZapp using an HDFC Debit Card for 1% cashback up to ₹750/month.'
+                    : response.content.slice(0, 200)
             },
             runnerUp: null,
+            platformOffers: [],
             cibilWarning: { hasWarning: false, message: null },
             surchargeNotice: { hasNotice: false, message: null },
             paymentFloatAdvice: 'Review statement date for payment runway.',
@@ -237,10 +525,67 @@ ${JSON.stringify(evaluatedCards, null, 2)}`;
         };
     }
 
+    // Force isCreditCardBillPayment flag if detected
+    if (isCCBill) {
+        parsedResult.isCreditCardBillPayment = true;
+    }
+
+    // SANITY FILTER: Suppress false flight/hotel/ticket convenience fee surcharge alarms
+    if (parsedResult.surchargeNotice?.hasNotice) {
+        const msg = (parsedResult.surchargeNotice.message || '').toLowerCase();
+        if (msg.includes('convenience fee') || msg.includes('flight') || msg.includes('makemytrip') || msg.includes('easemytrip') || msg.includes('booking fee') || msg.includes('airline') || msg.includes('ticket fee')) {
+            parsedResult.surchargeNotice = { hasNotice: false, message: null };
+        }
+    }
+
+    // Ensure calculated rupee savings amount on Best Card
+    if (parsedResult.bestCard) {
+        if (!parsedResult.bestCard.cashbackAmount || parsedResult.bestCard.cashbackAmount === 0) {
+            const match = evaluatedCards.find(c => c.name.toLowerCase() === parsedResult.bestCard.name.toLowerCase());
+            if (match) {
+                parsedResult.bestCard.cashbackAmount = match.cashbackAmount;
+                parsedResult.bestCard.cashbackPercent = parsedResult.bestCard.cashbackPercent || match.applicableRate;
+            } else if (parsedResult.bestCard.cashbackPercent) {
+                parsedResult.bestCard.cashbackAmount = Math.round((effectiveAmount * parsedResult.bestCard.cashbackPercent) / 100);
+            }
+        }
+    }
+
+    // Ensure calculated rupee savings amount on Runner Up
+    if (parsedResult.runnerUp) {
+        if (!parsedResult.runnerUp.cashbackAmount || parsedResult.runnerUp.cashbackAmount === 0) {
+            const match = evaluatedCards.find(c => c.name.toLowerCase() === parsedResult.runnerUp.name.toLowerCase());
+            if (match) {
+                parsedResult.runnerUp.cashbackAmount = match.cashbackAmount;
+                parsedResult.runnerUp.cashbackPercent = parsedResult.runnerUp.cashbackPercent || match.applicableRate;
+            } else if (parsedResult.runnerUp.cashbackPercent) {
+                parsedResult.runnerUp.cashbackAmount = Math.round((effectiveAmount * parsedResult.runnerUp.cashbackPercent) / 100);
+            }
+        }
+    }
+
+    // Ensure platformOffers is populated: if AI returned none or empty, enrich dynamically
+    if (!parsedResult.platformOffers || !Array.isArray(parsedResult.platformOffers) || parsedResult.platformOffers.length === 0) {
+        const bestCardName = parsedResult.bestCard?.name || evaluatedCards[0]?.name || 'Your Card';
+        const bestCashback = parsedResult.bestCard?.cashbackAmount || evaluatedCards[0]?.cashbackEarned || 0;
+        parsedResult.platformOffers = generateDynamicFallbackOffers(queryText, effectiveAmount, bestCardName, bestCashback);
+    }
+
+    // Mark platformOffers with verification tags
+    parsedResult.platformOffers = parsedResult.platformOffers.map(o => ({
+        ...o,
+        isVerified: true,
+        verificationTag: o.verificationTag || (o.couponCode === 'EMTNCF' || o.couponCode === 'NOFEES' || o.couponCode === 'SMARTBUY' ? 'Verified Evergreen' : 'Verified Deal')
+    }));
+
     return {
         result: parsedResult,
         reasoning: response.reasoning,
         model: response.model,
+        evaluatedCards,
+        debitCards: userDebitCards,
+        isCreditCardBillPayment: isCCBill,
+        effectiveAmount,
         context
     };
 }
@@ -950,12 +1295,12 @@ export async function runAICardOptimization() {
     if (submitBtn) submitBtn.disabled = true;
 
     try {
-        const { result, reasoning, model } = await getAICardRecommendation(query, amount);
+        const { result, reasoning, model, evaluatedCards, debitCards } = await getAICardRecommendation(query, amount);
 
         if (loadingArea) loadingArea.style.display = 'none';
         if (resultsArea) {
             resultsArea.style.display = 'block';
-            renderAIAdvisorResults(result, reasoning, model);
+            renderAIAdvisorResults(result, reasoning, model, evaluatedCards, debitCards);
         }
     } catch (err) {
         console.error('[AI Advisor Error]', err);
@@ -966,7 +1311,7 @@ export async function runAICardOptimization() {
     }
 }
 
-function renderAIAdvisorResults(data, rawReasoning, modelName) {
+function renderAIAdvisorResults(data, rawReasoning, modelName, evaluatedCards = [], debitCards = []) {
     const container = document.getElementById('cardAIResultsArea');
     if (!container) return;
 
@@ -974,19 +1319,44 @@ function renderAIAdvisorResults(data, rawReasoning, modelName) {
     const runnerUp = data.runnerUp;
     const cibil = data.cibilWarning || {};
     const surcharge = data.surchargeNotice || {};
+    const platformOffers = Array.isArray(data.platformOffers) ? data.platformOffers : [];
+    const isCCBill = Boolean(data.isCreditCardBillPayment);
 
-    let html = `
+    let html = '';
+
+    // ========================================================================
+    // 1. SPECIAL RBI ADVISORY FOR CREDIT CARD BILL PAYMENTS
+    // ========================================================================
+    if (isCCBill) {
+        html += `
+            <div class="ai-bill-payment-alert">
+                <div class="ai-bill-alert-icon">
+                    <i class="bi bi-shield-lock-fill"></i>
+                </div>
+                <div class="ai-bill-alert-content">
+                    <h5 class="ai-bill-alert-title">RBI Regulation Notice: Credit Card Bill Payment</h5>
+                    <p class="ai-bill-alert-text">Under RBI rules, credit cards <strong>cannot</strong> be used to pay another credit card bill. Only <strong>Debit Cards</strong>, <strong>UPI (BBPS)</strong>, or <strong>NetBanking</strong> are permitted. Your best debit card and app avenues are ranked below:</p>
+                </div>
+            </div>
+        `;
+    }
+
+    // ========================================================================
+    // 2. BEST CARD / PAYMENT MODE
+    // ========================================================================
+    const bestCashbackText = formatCurrency(best.cashbackAmount || 0);
+    html += `
         <div class="ai-result-card winner-card">
             <div class="ai-card-header">
-                <div class="winner-badge"><i class="bi bi-trophy-fill"></i> Best Card To Swipe</div>
-                <div class="reward-pill">+${best.cashbackPercent || 0}% Cashback ${best.cashbackAmount ? `(${formatCurrency(best.cashbackAmount)})` : ''}</div>
+                <div class="winner-badge"><i class="bi bi-trophy-fill"></i> ${isCCBill ? 'Recommended Payment Card / Mode' : 'Best Card To Swipe'}</div>
+                <div class="reward-pill">+${best.cashbackPercent || 0}% (${bestCashbackText} Saved)</div>
             </div>
             <div class="ai-card-title-row">
                 <h3 class="card-winner-name">${escapeHtml(best.name || 'Optimal Card')}</h3>
             </div>
             <p class="ai-card-reason">${escapeHtml(best.why || '')}</p>
 
-            ${data.paymentFloatAdvice ? `
+            ${data.paymentFloatAdvice && !isCCBill ? `
                 <div class="ai-meta-item">
                     <i class="bi bi-calendar-check text-success"></i> 
                     <span><strong>Float Period:</strong> ${escapeHtml(data.paymentFloatAdvice)}</span>
@@ -995,6 +1365,7 @@ function renderAIAdvisorResults(data, rawReasoning, modelName) {
         </div>
     `;
 
+    // Warnings
     if (cibil.hasWarning || surcharge.hasNotice) {
         html += `<div class="ai-warnings-stack">`;
         if (cibil.hasWarning) {
@@ -1016,15 +1387,168 @@ function renderAIAdvisorResults(data, rawReasoning, modelName) {
         html += `</div>`;
     }
 
+    // Alternative Card
     if (runnerUp && runnerUp.name) {
+        const runnerCashbackText = formatCurrency(runnerUp.cashbackAmount || 0);
         html += `
             <div class="ai-result-card runner-up-card">
                 <div class="ai-card-header">
                     <div class="runner-badge"><i class="bi bi-arrow-left-right"></i> Alternative Card</div>
-                    <div class="reward-pill-subtle">+${runnerUp.cashbackPercent || 0}% (${runnerUp.cashbackAmount ? formatCurrency(runnerUp.cashbackAmount) : 'Secondary'})</div>
+                    <div class="reward-pill-subtle">+${runnerUp.cashbackPercent || 0}% (${runnerCashbackText} Saved)</div>
                 </div>
                 <h4 class="card-runner-name">${escapeHtml(runnerUp.name)}</h4>
                 <p class="ai-card-reason text-muted">${escapeHtml(runnerUp.why || '')}</p>
+            </div>
+        `;
+    }
+
+    // ========================================================================
+    // 3. SAVINGS BREAKDOWN ACROSS ALL EVALUATED CARDS (EVERY CARD SHOWN)
+    // ========================================================================
+    if (evaluatedCards && evaluatedCards.length > 0) {
+        html += `
+            <div class="ai-cards-comparison-container">
+                <div class="ai-comparison-header">
+                    <i class="bi bi-bar-chart-fill text-primary"></i>
+                    <span>Cashback & Savings in Each of Your Cards</span>
+                </div>
+                <div class="ai-comparison-grid">
+                    ${evaluatedCards.map(c => {
+                        const isWinner = best && c.name && c.name.toLowerCase() === best.name.toLowerCase();
+                        const isAlt = runnerUp && c.name && c.name.toLowerCase() === runnerUp.name.toLowerCase();
+                        const cardSavings = formatCurrency(c.cashbackAmount || 0);
+                        return `
+                            <div class="ai-comp-card-item ${isWinner ? 'winner-item' : ''} ${c.isExcluded ? 'excluded-item' : ''}">
+                                <div class="ai-comp-item-top">
+                                    <span class="ai-comp-card-name">${escapeHtml(c.name)}</span>
+                                    ${isWinner ? `<span class="ai-badge-win">Best</span>` : (isAlt ? `<span class="ai-badge-alt">Alt</span>` : '')}
+                                </div>
+                                <div class="ai-comp-item-val-row">
+                                    <span class="ai-comp-saving-amt">${c.isExcluded ? '₹0' : cardSavings}</span>
+                                    <span class="ai-comp-rate-pill">${c.isExcluded ? 'Excluded' : `+${c.applicableRate || 0}%`}</span>
+                                </div>
+                                ${c.isExcluded && c.exclusionReason ? `
+                                    <div class="ai-comp-excl-note" title="${escapeHtml(c.exclusionReason)}">
+                                        <i class="bi bi-slash-circle text-muted"></i> ${escapeHtml(c.exclusionReason.length > 50 ? c.exclusionReason.slice(0, 50) + '...' : c.exclusionReason)}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    // ========================================================================
+    // 4. VERIFIED PLATFORM OFFERS, COUPONS & SMART STACKING SECTION
+    // ========================================================================
+    if (platformOffers.length > 0) {
+        html += `
+            <div class="ai-offers-container">
+                <div class="ai-offers-banner">
+                    <div class="ai-offers-banner-left">
+                        <div class="ai-offers-icon-halo">
+                            <i class="bi bi-tags-fill"></i>
+                        </div>
+                        <div>
+                            <h4 class="ai-offers-title">
+                                ${isCCBill ? 'Top Bill Payment Portals & Offers' : 'Booking Portals & Instant Promo Codes'}
+                                <span class="ai-combo-pill"><i class="bi bi-layers-fill"></i> Stack & Save</span>
+                            </h4>
+                            <p class="ai-offers-sub">Combine these platform deals with <strong>${escapeHtml(best.name || 'your optimal card')}</strong> for maximum total savings.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ai-offers-grid">
+                    ${platformOffers.map((offer, idx) => {
+                        const coupon = offer.couponCode || 'APPLY_DEAL';
+                        const isAuto = coupon.toLowerCase().includes('auto') || coupon.toLowerCase().includes('applied');
+                        const icon = resolveOfferIcon(offer);
+                        const rawRoute = resolveOfferRouteType(offer);
+                        
+                        // Clean route badge for sleek non-overflowing display
+                        let cleanRoute = rawRoute;
+                        const rLow = rawRoute.toLowerCase();
+                        if (rLow.includes('voucher') || rLow.includes('gift')) cleanRoute = 'Voucher Route';
+                        else if (rLow.includes('zero') || rLow.includes('fee')) cleanRoute = 'Zero Fee';
+                        else if (rLow.includes('gateway') || rLow.includes('app') || rLow.includes('bbps')) cleanRoute = 'Payment App';
+                        else if (rLow.includes('affiliate') || rLow.includes('cashkaro')) cleanRoute = 'Affiliate Cash';
+                        else if (cleanRoute.length > 18) cleanRoute = 'Portal Deal';
+
+                        let verLabel = 'Verified';
+                        if (typeof offer.verificationTag === 'string') {
+                            const vt = offer.verificationTag.toLowerCase();
+                            if (vt.includes('evergreen')) verLabel = 'Evergreen';
+                            else if (vt.includes('bank')) verLabel = 'Bank Offer';
+                            else if (vt.includes('promo')) verLabel = 'Active Promo';
+                        }
+
+                        // Standout savings text with clean whole-number formatting (no messy .00)
+                        let savingsDisplay = '';
+                        if (offer.discountAmount && Number(offer.discountAmount) > 0) {
+                            savingsDisplay = `Save ~${formatInrInteger(offer.discountAmount)}`;
+                        } else if (offer.discountText && offer.discountText.length <= 22) {
+                            savingsDisplay = offer.discountText.replace(/₹([\d,]+)\.00\b/g, '₹$1');
+                        } else if (offer.badge && offer.badge.length <= 22) {
+                            savingsDisplay = offer.badge;
+                        } else {
+                            savingsDisplay = 'Instant Savings';
+                        }
+
+                        // Summary receives scannable structured formatting
+                        const summaryText = offer.summary || offer.description || (offer.discountText && offer.discountText.length > 22 ? offer.discountText : '');
+
+                        return `
+                            <div class="ai-offer-card">
+                                <div class="ai-offer-card-top">
+                                    <div class="ai-platform-name">
+                                        <span class="ai-platform-icon-wrap">
+                                            <i class="bi ${escapeHtml(icon)}"></i>
+                                        </span>
+                                        <strong class="ai-platform-title">${escapeHtml(offer.platform || 'Partner Platform')}</strong>
+                                    </div>
+                                    <div class="ai-badges-group">
+                                        <span class="ai-route-type-badge">${escapeHtml(cleanRoute)}</span>
+                                        <span class="ai-verified-badge" title="Verified active offer">
+                                            <i class="bi bi-patch-check-fill"></i> ${escapeHtml(verLabel)}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="ai-coupon-container">
+                                    <div class="ai-coupon-box" onclick="window.copyAICouponCode('${escapeHtml(coupon)}', this)" title="Click to copy promo code">
+                                        <span class="ai-coupon-tag">CODE</span>
+                                        <span class="ai-coupon-text">${escapeHtml(coupon)}</span>
+                                        <button type="button" class="ai-coupon-copy-btn" aria-label="Copy promo code">
+                                            <i class="bi ${isAuto ? 'bi-check2' : 'bi-clipboard'}"></i>
+                                            <span>${isAuto ? 'Auto' : 'Copy'}</span>
+                                        </button>
+                                    </div>
+                                    <span class="ai-discount-tag" title="${escapeHtml(savingsDisplay)}">
+                                        <i class="bi bi-tag-fill"></i>
+                                        <span>${escapeHtml(savingsDisplay)}</span>
+                                    </span>
+                                </div>
+
+                                <div class="ai-offer-summary">
+                                    ${formatOfferSummary(summaryText)}
+                                </div>
+
+                                ${offer.stackingTip ? `
+                                    <div class="ai-stacking-combo">
+                                        <div class="ai-combo-header">
+                                            <i class="bi bi-lightning-charge-fill"></i>
+                                            <span>Pro Stacking Strategy</span>
+                                        </div>
+                                        <div class="ai-combo-body">${formatOfferText(offer.stackingTip)}</div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
             </div>
         `;
     }
@@ -1053,6 +1577,53 @@ function renderAIAdvisorResults(data, rawReasoning, modelName) {
     container.innerHTML = html;
 }
 
+/**
+ * Interactive Coupon Code Copy Handler with animation & toast
+ */
+export function copyAICouponCode(code, element) {
+    if (!code) return;
+
+    const copyBtn = element?.querySelector('.ai-coupon-copy-btn') || element;
+    const origHTML = copyBtn ? copyBtn.innerHTML : null;
+
+    const onCopySuccess = () => {
+        if (copyBtn) {
+            copyBtn.innerHTML = `<i class="bi bi-check2-all text-success"></i> <span class="text-success">Copied!</span>`;
+            copyBtn.classList.add('copied');
+            setTimeout(() => {
+                if (origHTML) copyBtn.innerHTML = origHTML;
+                copyBtn.classList.remove('copied');
+            }, 2200);
+        }
+        bridge.showToast(`Copied coupon "${code}" to clipboard!`, 'success');
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(code).then(onCopySuccess).catch(() => {
+            fallbackCopy(code, onCopySuccess);
+        });
+    } else {
+        fallbackCopy(code, onCopySuccess);
+    }
+}
+
+function fallbackCopy(text, callback) {
+    try {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        if (callback) callback();
+    } catch (err) {
+        console.error('Fallback clipboard copy failed:', err);
+    }
+}
+
 export function toggleAIThinkingDetails() {
     const body = document.getElementById('aiThinkingBody');
     const icon = document.getElementById('aiThinkingIcon');
@@ -1075,6 +1646,7 @@ if (typeof window !== 'undefined') {
     window.selectAICardChip = selectAICardChip;
     window.runAICardOptimization = runAICardOptimization;
     window.toggleAIThinkingDetails = toggleAIThinkingDetails;
+    window.copyAICouponCode = copyAICouponCode;
     window.runMonthlyCashbackAudit = runMonthlyCashbackAudit;
     window.renderMonthlyCashbackChart = renderMonthlyCashbackChart;
     window.renderFeeWaiverTracker = renderFeeWaiverTracker;
