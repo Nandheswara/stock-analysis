@@ -3729,6 +3729,9 @@ export const MERCHANT_CATEGORY_TAXONOMY = {
         'hp gas': { category: 'utilities', merchant: 'gas' },
         'bharat gas': { category: 'utilities', merchant: 'gas' },
         'recharge': { category: 'utilities', merchant: 'recharge' },
+        'mobile recharge': { category: 'utilities', merchant: 'recharge' },
+        'mobile reacharge': { category: 'utilities', merchant: 'recharge' },
+        'reacharge': { category: 'utilities', merchant: 'recharge' },
         'mobile bill': { category: 'utilities', merchant: 'recharge' },
         'broadband': { category: 'utilities', merchant: 'broadband' },
         'wifi': { category: 'utilities', merchant: 'broadband' },
@@ -3921,18 +3924,216 @@ export function resolveCardBenefits(card, cardId) {
 }
 
 // ============================================================================
-// 4. TRANSACTION EVALUATION ENGINE
+// 4. TRANSACTION EVALUATION ENGINE & SEMANTIC INTENT PATTERNS
 // ============================================================================
 
 /**
- * Normalizes query string and resolves matching category and merchant
- * Sorts keywords by length descending so longer compound phrases (e.g. 'swiggy instamart', 'amazon pay', 'cred rent')
- * always match before single words (e.g. 'swiggy', 'amazon', 'rent').
+ * High-precision semantic intent patterns for natural language queries.
+ * Evaluates semantic roots, common typos, contextual exclusions, currencies, and compound phrases.
+ */
+export const SEMANTIC_CATEGORY_PATTERNS = [
+    // 1. Forex & International Spends (Currencies, Global SaaS, Foreign destinations)
+    {
+        category: 'forex',
+        pattern: /(?:\$|€|£|¥|\b(?:usd|eur|gbp|aed|sgd|aud|cad|jpy|thb|forex|foreign|international|overseas|abroad|london|dubai|singapore|paris|bangkok|bali|europe|new\s*york|chatgpt|openai|claude|anthropic|midjourney|aws|github|digitalocean|heroku|vercel|steam|patreon)\b)/i,
+        resolveMerchant: (raw) => {
+            if (/chatgpt|openai/i.test(raw)) return 'chatgpt';
+            if (/claude|anthropic/i.test(raw)) return 'claude';
+            if (/aws/i.test(raw)) return 'aws';
+            if (/github/i.test(raw)) return 'github';
+            return 'forex';
+        }
+    },
+    // 2. Fuel & Petrol Pumps
+    {
+        category: 'fuel',
+        pattern: /\b(?:fuel|petrol|diesel|cng|lpg\s*auto|petrol\s*pump|gas\s*station|hpcl|bpcl|iocl|indian\s*oil|bharat\s*petroleum|hindustan\s*petroleum|shell|nayara|speed\s*petrol|xp95|power\s*petrol)\b/i,
+        resolveMerchant: (raw) => {
+            if (/hpcl|hindustan\s*petroleum/i.test(raw)) return 'hpcl';
+            if (/bpcl|bharat\s*petroleum/i.test(raw)) return 'bpcl';
+            if (/ioc|iocl|indian\s*oil/i.test(raw)) return 'ioc';
+            if (/shell/i.test(raw)) return 'shell';
+            return 'fuel';
+        }
+    },
+    // 3. Rent & Society Maintenance
+    {
+        category: 'rent',
+        pattern: /\b(?:rent|landlord|house\s*rent|flat\s*rent|room\s*rent|office\s*rent|society\s*maintenance|flat\s*maintenance|mygate|nobroker|cred\s*rent)\b/i,
+        resolveMerchant: () => 'rent'
+    },
+    // 4. Wallet Loads & Balances
+    {
+        category: 'wallet',
+        pattern: /\b(?:wallet|load\s*wallet|add\s*money|wallet\s*reload|wallet\s*topup|paytm\s*wallet|mobikwik\s*wallet|amazon\s*pay\s*balance)\b/i,
+        resolveMerchant: () => 'wallet'
+    },
+    // 5. Government & Taxes
+    {
+        category: 'government',
+        pattern: /\b(?:tax|income\s*tax|advance\s*tax|property\s*tax|municipal\s*tax|gst|itr|challan|e-?challan|traffic\s*fine|police\s*fine|rto|passport\s*fee|visa\s*fee|stamp\s*duty)\b/i,
+        resolveMerchant: () => 'tax'
+    },
+    // 6. Education & School/College Fees
+    {
+        category: 'education',
+        pattern: /\b(?:education|tuition|tution|school|college|university|univ|institute|coaching|allen|aakash|fiitjee|byjus|unacademy|semester|admission\s*fee|exam\s*fee)\b/i,
+        resolveMerchant: (raw) => {
+            if (/allen/i.test(raw)) return 'allen';
+            if (/aakash/i.test(raw)) return 'aakash';
+            if (/fiitjee/i.test(raw)) return 'fiitjee';
+            return 'education';
+        }
+    },
+    // 7. Gaming & Fantasy Sports
+    {
+        category: 'gaming',
+        pattern: /\b(?:gaming|dream11|mpl|rummy|poker|gamescraft|winzo|fantasy\s*sports|casino)\b/i,
+        resolveMerchant: (raw) => {
+            if (/dream11/i.test(raw)) return 'dream11';
+            if (/mpl/i.test(raw)) return 'mpl';
+            return 'gaming';
+        }
+    },
+    // 8. Jewellery & Precious Metals
+    {
+        category: 'jewellery',
+        pattern: /\b(?:jewel|jewellery|jewelry|jeweller|gold|silver|diamond|platinum|necklace|ring|bangles|ornaments|tanishq|malabar|kalyan|joyalukkas|caratlane|bluestone|giva|precious\s*metal)\b/i,
+        resolveMerchant: (raw) => {
+            if (/tanishq/i.test(raw)) return 'tanishq';
+            if (/caratlane/i.test(raw)) return 'caratlane';
+            if (/malabar/i.test(raw)) return 'malabar';
+            if (/gold/i.test(raw)) return 'gold';
+            return 'jewellery';
+        }
+    },
+    // 9. Groceries & Quick Commerce (Evaluated before general dining/shopping)
+    {
+        category: 'groceries',
+        pattern: /\b(?:grocery|groceries|instamart|blinkit|zepto|bigbasket|bbnow|dmart|jiomart|vegetables|fruits|milk|dairy|milkbasket|freshtohome|licious|supermarket|kirana|nature'?s\s*basket)\b/i,
+        resolveMerchant: (raw) => {
+            if (/instamart/i.test(raw)) return 'instamart';
+            if (/blinkit/i.test(raw)) return 'blinkit';
+            if (/zepto/i.test(raw)) return 'zepto';
+            if (/bigbasket|bbnow/i.test(raw)) return 'bigbasket';
+            if (/dmart/i.test(raw)) return 'dmart';
+            if (/jiomart/i.test(raw)) return 'jiomart';
+            return 'groceries';
+        }
+    },
+    // 10. Dining & Food Delivery
+    {
+        category: 'food-delivery',
+        pattern: /\b(?:dining|dineout|restaurant|cafe|coffee|starbucks|barista|eatsure|eatclub|magicpin|swiggy|zomato|domino'?s|mcdonald'?s|kfc|pizza|burger|subway|haldiram'?s|barbeque\s*nation|barbeque|bakingo|biryani|bakery|food|lunch|dinner|breakfast|foodcourt|darshini)\b/i,
+        resolveMerchant: (raw) => {
+            if (/swiggy/i.test(raw) && !/instamart/i.test(raw)) return 'swiggy';
+            if (/zomato/i.test(raw)) return 'zomato';
+            if (/domino/i.test(raw)) return 'dominos';
+            if (/mcdonald/i.test(raw)) return 'mcdonalds';
+            if (/starbucks/i.test(raw)) return 'starbucks';
+            if (/eazydiner/i.test(raw)) return 'eazydiner';
+            if (/dineout/i.test(raw)) return 'dineout';
+            return 'dining';
+        }
+    },
+    // 11. Utilities & Bill Payments
+    {
+        category: 'utilities',
+        pattern: /\b(?:recharg\w*|reacharg\w*|bill|bills|electricity|electric|power|current\s*bill|bijli|water|piped\s*gas|lpg|cylinder|indane|hp\s*gas|bharat\s*gas|bescom|tneb|cesc|mseb|tata\s*power|broadband|wifi|dth|tata\s*play|fastag|toll)\b/i,
+        resolveMerchant: (raw) => {
+            if (/electricity|electric|power|bescom|tneb|cesc|mseb|bijli/i.test(raw)) return 'electricity';
+            if (/water/i.test(raw)) return 'water';
+            if (/gas|lpg|cylinder|indane/i.test(raw)) return 'gas';
+            if (/broadband|wifi/i.test(raw)) return 'broadband';
+            if (/dth|tata\s*play/i.test(raw)) return 'dth';
+            if (/fastag/i.test(raw)) return 'fastag';
+            if (/toll/i.test(raw)) return 'toll';
+            return 'recharge';
+        }
+    },
+    // 12. Telecom
+    {
+        category: 'telecom',
+        pattern: /\b(?:airtel|jio|vodafone|vi|bsnl|mtnl|sim|postpaid|prepaid)\b/i,
+        resolveMerchant: (raw) => {
+            if (/airtel/i.test(raw)) return 'airtel';
+            if (/jio/i.test(raw)) return 'jio';
+            if (/vi|vodafone/i.test(raw)) return 'vi';
+            return 'telecom';
+        }
+    },
+    // 13. Travel & Cabs
+    {
+        category: 'travel',
+        pattern: /\b(?:flight|flights|air\s*ticket|hotel|hotels|stay|resort|makemytrip|mmt|easemytrip|cleartrip|ixigo|yatra|goibibo|irctc|train|railway|uber|ola|rapido|namma\s*yatri|blusmart|cab|cabs|taxi|indigo|air\s*india|spicejet|vistara|akasa)\b/i,
+        resolveMerchant: (raw) => {
+            if (/uber/i.test(raw)) return 'uber';
+            if (/ola/i.test(raw)) return 'ola';
+            if (/rapido/i.test(raw)) return 'rapido';
+            if (/makemytrip|mmt/i.test(raw)) return 'makemytrip';
+            if (/easemytrip/i.test(raw)) return 'easemytrip';
+            if (/cleartrip/i.test(raw)) return 'cleartrip';
+            if (/ixigo/i.test(raw)) return 'ixigo';
+            if (/irctc|train|railway/i.test(raw)) return 'irctc';
+            return 'travel';
+        }
+    },
+    // 14. Entertainment & Movies
+    {
+        category: 'entertainment',
+        pattern: /\b(?:movie|movies|cinema|theatre|theater|pvr|inox|cinepolis|bookmyshow|bms|district|bogo|ticket|tickets|concert|show|events|netflix|hotstar|sony\s*liv|sonyliv|spotify|prime\s*video|cult\.?fit|gym)\b/i,
+        resolveMerchant: (raw) => {
+            if (/bookmyshow|bms/i.test(raw)) return 'bookmyshow';
+            if (/district/i.test(raw)) return 'district';
+            if (/pvr/i.test(raw)) return 'pvr';
+            if (/inox/i.test(raw)) return 'inox';
+            return 'movie';
+        }
+    },
+    // 15. E-Commerce & Retail Shopping
+    {
+        category: 'shopping',
+        pattern: /\b(?:shopping|amazon|flipkart|myntra|ajio|tata\s*cliq|tatacliq|meesho|nykaa|purplle|croma|reliance\s*digital|vijay\s*sales|zara|h&m|uniqlo|westside|decathlon|ikea|zudio|clothing|fashion|shoes|electronics)\b/i,
+        resolveMerchant: (raw) => {
+            if (/amazon\s*pay/i.test(raw)) return 'amazon pay';
+            if (/amazon\s*fresh/i.test(raw)) return 'amazon';
+            if (/amazon/i.test(raw)) return 'amazon';
+            if (/flipkart/i.test(raw)) return 'flipkart';
+            if (/myntra/i.test(raw)) return 'myntra';
+            if (/ajio/i.test(raw)) return 'ajio';
+            if (/croma/i.test(raw)) return 'croma';
+            return 'shopping';
+        }
+    },
+    // 16. UPI & Local Vendors
+    {
+        category: 'upi',
+        pattern: /\b(?:upi|qr|scan\s*&\s*pay|scan\s*and\s*pay|local\s*store|chai|tea\s*stall)\b/i,
+        resolveMerchant: () => 'upi'
+    }
+];
+
+/**
+ * Normalizes query string and resolves matching category and merchant.
+ * Combines flexible semantic patterns (typos, stemming, natural language)
+ * with exact keyword overrides.
  */
 export function parseTransactionIntent(queryText = '') {
     const raw = (queryText || '').toLowerCase().trim();
     if (!raw) return { category: 'all-retail', merchant: 'general', raw: '' };
 
+    // 1. Check Smart Semantic Patterns First (Flexible regex with root/stem matching & typo tolerance)
+    for (const rule of SEMANTIC_CATEGORY_PATTERNS) {
+        if (rule.pattern.test(raw)) {
+            return {
+                category: rule.category,
+                merchant: rule.resolveMerchant(raw),
+                raw
+            };
+        }
+    }
+
+    // 2. Fallback to keywordMap for any exact or custom merchant mappings
     const sortedKeywords = Object.keys(MERCHANT_CATEGORY_TAXONOMY.keywordMap)
         .sort((a, b) => b.length - a.length);
 
@@ -4004,6 +4205,22 @@ export function evaluateCardForSpend(card, cardId, queryText = '', amount = 1000
 
     if (intent.category === 'jewellery' && resolved.presetId === 'hsbc-live-plus') {
         specialMilestoneNote = 'Spends count 100% towards the ₹2 Lakh Annual Fee Waiver (saving ₹999 + GST renewal fee).';
+    }
+
+    if (resolved.presetId === 'amazon-pay-icici' && (intent.category === 'utilities' || intent.category === 'telecom')) {
+        specialMilestoneNote = 'Route via Amazon Pay app to earn 2% unlimited cashback (direct card swipes on external operator sites/apps earn 0%).';
+    }
+
+    if (resolved.presetId === 'airtel-axis' && (intent.raw.includes('airtel') || intent.category === 'utilities' || intent.category === 'telecom')) {
+        specialMilestoneNote = 'Route via Airtel Thanks app for 25% on Airtel & 10% on utility bills (capped at ₹250/mo each).';
+    }
+
+    if (resolved.presetId === 'axis-ace' && (intent.category === 'utilities' || intent.category === 'telecom')) {
+        specialMilestoneNote = 'Pay via Google Pay (Android) to unlock flat 5% statement cashback (capped at ₹500/mo).';
+    }
+
+    if (resolved.presetId === 'tata-neu-infinity' && (intent.category === 'utilities' || intent.raw.includes('tata'))) {
+        specialMilestoneNote = 'Pay via the Tata Neu app to claim 5% NeuCoins.';
     }
 
     const isYesBank = (resolved.cardIssuer || '').toLowerCase().includes('yes bank') || resolved.presetId === 'kiwi-rupay' || resolved.presetId === 'yes-bank-marquee' || resolved.presetId === 'yes-bank-reserv';
@@ -4348,10 +4565,9 @@ export function evaluateCardForSpend(card, cardId, queryText = '', amount = 1000
     const matchedExclusion = resolved.exclusions.find(ex => {
         const cat = typeof ex === 'string' ? ex : ex.category;
 
-        // Special case: Amazon Pay ICICI utility bills earn 2% when paid via Amazon Pay!
-        if (resolved.presetId === 'amazon-pay-icici' && cat === 'utilities') {
-            const isViaAmazonPay = intent.merchant === 'amazon pay' || (intent.raw && (intent.raw.includes('amazon pay') || intent.raw.includes('amazon')));
-            if (isViaAmazonPay) return false; // Do not exclude if paying via Amazon Pay!
+        // Special case: Amazon Pay ICICI utility bills & recharges earn 2% when paid via Amazon Pay!
+        if (resolved.presetId === 'amazon-pay-icici' && (cat === 'utilities' || cat === 'telecom')) {
+            return false; // Do not exclude: can be routed via Amazon Pay for flat 2% uncapped cashback!
         }
 
         // Special case for ICICI HPCL Super Saver: HPCL fuel earns 4% cashback!
