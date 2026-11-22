@@ -33,6 +33,10 @@ export async function addBank(bankData, month) {
             updatedAt: Date.now(),
             balances: {}
         };
+        // Linked Debit Card details
+        if (bankData.debitCard) {
+            data.debitCard = bankData.debitCard;
+        }
         // Store balance under the specified month
         if (month) {
             data.balances[month] = parseFloat(bankData.balance) || 0;
@@ -58,6 +62,7 @@ export async function updateBank(bankId, updates, month) {
         if (updates.bankName !== undefined) updateData.bankName = updates.bankName;
         if (updates.accountType !== undefined) updateData.accountType = updates.accountType;
         if (updates.color !== undefined) updateData.color = updates.color;
+        if (updates.debitCard !== undefined) updateData.debitCard = updates.debitCard;
 
         // Store balance under the specific month
         if (updates.balance !== undefined && month) {

@@ -161,6 +161,25 @@
     padding: 1.25rem 1.5rem;
     overflow-y: auto;
     flex: 1;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.ai-modal-body-scrollable::-webkit-scrollbar {
+    width: 6px;
+}
+
+.ai-modal-body-scrollable::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.ai-modal-body-scrollable::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+
+.ai-modal-body-scrollable::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.35);
 }
 
 .ai-tab-pane {
@@ -528,6 +547,554 @@
     overflow-y: auto;
 }
 
+/* ============================================================================
+   PORTAL OFFERS, PROMO CODES & SMART STACKING SECTION
+   ============================================================================ */
+.ai-offers-container {
+    margin: 1.25rem 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+    scroll-margin-top: 1.25rem;
+}
+
+.ai-offers-banner {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(99, 102, 241, 0.05) 100%);
+    border-bottom: 1px solid var(--border-color);
+    padding: 0.85rem 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.ai-offers-banner-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.ai-offers-icon-halo {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.05rem;
+    flex-shrink: 0;
+}
+
+.ai-offers-title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-heading);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.ai-combo-pill {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #ffffff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.ai-offers-sub {
+    margin: 2px 0 0 0;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+
+.ai-offers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 14px;
+    padding: 1.25rem;
+}
+
+.ai-offer-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 1.15rem;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    min-width: 0;
+    word-break: break-word;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+    scroll-margin-top: 1rem;
+}
+
+.ai-offer-card:hover {
+    border-color: rgba(99, 102, 241, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 0 16px rgba(99, 102, 241, 0.1);
+}
+
+.ai-offer-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    min-width: 0;
+}
+
+.ai-platform-name {
+    font-weight: 700;
+    font-size: 0.96rem;
+    color: var(--text-heading);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.ai-platform-icon-wrap {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: rgba(99, 102, 241, 0.12);
+    color: #818cf8;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+}
+
+.ai-platform-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ai-badges-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    margin-left: auto;
+}
+
+.ai-route-type-badge {
+    background: rgba(99, 102, 241, 0.1);
+    color: #a5b4fc;
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(99, 102, 241, 0.22);
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.ai-verified-badge {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 12px;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.ai-verified-badge i {
+    font-size: 0.72rem;
+}
+
+.ai-coupon-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+    min-width: 0;
+    background: rgba(15, 23, 42, 0.35);
+    padding: 7px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+}
+
+.ai-coupon-box {
+    border: 1.5px dashed rgba(99, 102, 241, 0.45);
+    background: rgba(99, 102, 241, 0.08);
+    border-radius: 7px;
+    padding: 3px 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.ai-coupon-box:hover {
+    background: rgba(99, 102, 241, 0.18);
+    border-color: #6366f1;
+    transform: scale(1.02);
+}
+
+.ai-coupon-tag {
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: #818cf8;
+    background: rgba(99, 102, 241, 0.2);
+    padding: 1px 4px;
+    border-radius: 3px;
+    letter-spacing: 0.05em;
+}
+
+.ai-coupon-text {
+    font-family: ui-monospace, 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    font-size: 0.88rem;
+    color: #e0e7ff;
+}
+
+.ai-coupon-copy-btn {
+    background: transparent;
+    border: none;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 0;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.ai-coupon-copy-btn:hover {
+    color: #6366f1;
+}
+
+.ai-coupon-copy-btn.copied {
+    color: #10b981 !important;
+}
+
+.ai-discount-tag {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.18) 0%, rgba(5, 150, 105, 0.08) 100%);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    font-weight: 700;
+    font-size: 0.78rem;
+    padding: 4px 10px;
+    border-radius: 8px;
+    white-space: nowrap;
+    max-width: 170px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* User-friendly structured text styling */
+.ai-offer-summary {
+    font-size: 0.86rem;
+    color: var(--text-primary, #e2e8f0);
+    line-height: 1.55;
+    margin: 2px 0;
+}
+
+.ai-summary-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.ai-summary-step:last-child {
+    margin-bottom: 0;
+}
+
+.ai-step-bullet {
+    color: #6366f1;
+    margin-top: 3px;
+    font-size: 0.82rem;
+    flex-shrink: 0;
+}
+
+.ai-step-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.ai-summary-single {
+    display: block;
+    line-height: 1.55;
+}
+
+/* Highlights inside summary and stacking text */
+.ai-text-val {
+    color: var(--text-heading, #ffffff);
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.06);
+    padding: 0 4px;
+    border-radius: 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.ai-text-highlight {
+    color: #34d399;
+    font-weight: 700;
+}
+
+.ai-text-card {
+    color: #818cf8;
+    font-weight: 600;
+}
+
+.ai-text-code {
+    font-family: ui-monospace, 'SFMono-Regular', Consolas, Menlo, monospace;
+    font-size: 0.8rem;
+    color: #a5b4fc;
+    background: rgba(99, 102, 241, 0.15);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+/* Modernized Pro Stacking Strategy Box */
+.ai-stacking-combo {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(139, 92, 246, 0.04) 100%);
+    border: 1px solid rgba(99, 102, 241, 0.22);
+    border-left: 3.5px solid #6366f1;
+    border-radius: 9px;
+    padding: 9px 12px;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: var(--text-primary, #cbd5e1);
+}
+
+.ai-combo-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 700;
+    font-size: 0.74rem;
+    color: #a5b4fc;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.ai-combo-header i {
+    color: #f59e0b;
+    font-size: 0.82rem;
+}
+
+.ai-combo-body {
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: var(--text-primary, #cbd5e1);
+}
+
+.ai-combo-body strong {
+    color: var(--text-heading);
+}
+
+/* ============================================================================
+   CARD SAVINGS COMPARISON GRID (ALL EVALUATED CARDS IN PORTFOLIO)
+   ============================================================================ */
+.ai-cards-comparison-container {
+    margin: 1.25rem 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 1.25rem;
+}
+
+.ai-comparison-header {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-heading);
+    margin-bottom: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ai-comparison-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 10px;
+}
+
+.ai-comp-card-item {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: all 0.2s ease;
+}
+
+.ai-comp-card-item:hover {
+    border-color: #6366f1;
+    transform: translateY(-1.5px);
+}
+
+.ai-comp-card-item.winner-item {
+    border-color: #6366f1;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(139, 92, 246, 0.04) 100%);
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.12);
+}
+
+.ai-comp-card-item.excluded-item {
+    opacity: 0.65;
+}
+
+.ai-comp-item-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+}
+
+.ai-comp-card-name {
+    font-weight: 700;
+    font-size: 0.88rem;
+    color: var(--text-heading);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ai-badge-win {
+    background: #6366f1;
+    color: #ffffff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.ai-badge-alt {
+    background: rgba(100, 116, 139, 0.25);
+    color: var(--text-secondary);
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+
+.ai-comp-item-val-row {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-top: 2px;
+}
+
+.ai-comp-saving-amt {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-heading);
+}
+
+.ai-comp-card-item.winner-item .ai-comp-saving-amt {
+    color: #6366f1;
+}
+
+.ai-comp-rate-pill {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.12);
+    padding: 1px 6px;
+    border-radius: 10px;
+}
+
+.ai-comp-card-item.excluded-item .ai-comp-rate-pill {
+    color: var(--text-muted);
+    background: rgba(100, 116, 139, 0.15);
+}
+
+.ai-comp-excl-note {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    line-height: 1.3;
+    margin-top: 2px;
+}
+
+/* ============================================================================
+   SPECIAL RBI CREDIT CARD BILL PAYMENT ADVISORY
+   ============================================================================ */
+.ai-bill-payment-alert {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.06) 100%);
+    border: 1.5px solid rgba(99, 102, 241, 0.35);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.ai-bill-alert-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: #6366f1;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    flex-shrink: 0;
+    box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
+}
+
+.ai-bill-alert-title {
+    margin: 0 0 4px 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-heading);
+}
+
+.ai-bill-alert-text {
+    margin: 0;
+    font-size: 0.84rem;
+    line-height: 1.45;
+    color: var(--text-secondary);
+}
+
 /* Footer Note */
 .ai-footer-note {
     display: flex;
@@ -873,6 +1440,58 @@
     /* Cheatsheet grid: single column */
     .ai-cheatsheet-grid {
         grid-template-columns: 1fr;
+    }
+
+    /* All Cards Comparison Grid on Mobile */
+    .ai-cards-comparison-container {
+        padding: 0.85rem;
+    }
+
+    .ai-comparison-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .ai-bill-payment-alert {
+        padding: 0.85rem 1rem;
+    }
+
+    /* Portal Offers & Coupons Section on Mobile */
+    .ai-offers-banner {
+        padding: 0.75rem 0.85rem;
+    }
+
+    .ai-offers-title {
+        font-size: 0.88rem;
+    }
+
+    .ai-offers-grid {
+        grid-template-columns: 1fr;
+        padding: 0.75rem;
+        gap: 10px;
+    }
+
+    .ai-offer-card {
+        padding: 0.95rem;
+        gap: 10px;
+    }
+
+    .ai-coupon-container {
+        padding: 6px 8px;
+        gap: 6px;
+    }
+
+    .ai-coupon-box {
+        padding: 3px 8px;
+    }
+
+    .ai-coupon-text {
+        font-size: 0.82rem;
+    }
+
+    .ai-discount-tag {
+        font-size: 0.74rem;
+        padding: 3px 8px;
     }
 
     /* Thinking pre: smaller on mobile */
