@@ -1,0 +1,47 @@
+{
+  "stocks": [
+    {
+      "symbol": "RELIANCE",
+      "name": "Reliance Industries Limited",
+      "marketCap": "2054320",
+      "pe": "28.5",
+      "pb": "2.4",
+      "roe": "9.8",
+      "roce": "11.2",
+      "debtToEquity": "0.35",
+      "currentPrice": "2980.50",
+      "high52": "3024.90",
+      "low52": "2220.30",
+      "beta": "1.05"
+    },
+    {
+      "symbol": "TCS",
+      "name": "Tata Consultancy Services",
+      "marketCap": "1450200",
+      "pe": "32.1",
+      "pb": "14.2",
+      "roe": "48.2",
+      "roce": "59.1",
+      "debtToEquity": "0.0",
+      "currentPrice": "4150.00",
+      "high52": "4250.00",
+      "low52": "3310.00",
+      "beta": "0.72"
+    },
+    {
+      "symbol": "INFY",
+      "name": "Infosys Limited",
+      "marketCap": "780000",
+      "pe": "27.8",
+      "pb": "9.1",
+      "roe": "31.5",
+      "roce": "40.2",
+      "debtToEquity": "0.0",
+      "currentPrice": "1880.00",
+      "high52": "1940.00",
+      "low52": "1355.00",
+      "beta": "0.85"
+    }
+  ]
+}
+

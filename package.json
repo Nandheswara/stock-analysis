@@ -1,0 +1,39 @@
+{
+  "name": "equity-labs",
+  "version": "1.0.0",
+  "description": "Indian Stock Fundamental Analysis & Personal Finance Tracker",
+  "main": "index.html",
+  "type": "module",
+  "scripts": {
+    "start": "npx serve -l 8080 .",
+    "test": "npx playwright test",
+    "test:desktop": "npx playwright test --project=desktop",
+    "test:tablet": "npx playwright test --project=tablet",
+    "test:mobile": "npx playwright test --project=mobile",
+    "test:finance": "npx playwright test \"Test Automation e2e/specs/finance-tracker\"",
+    "test:smoke": "npx playwright test \"Test Automation e2e/specs/navigation/smoke-navigation.spec.js\"",
+    "test:ui": "npx playwright test --ui",
+    "test:headed": "npx playwright test --headed",
+    "test:report": "npx playwright show-report",
+    "test:summary": "node \"Test Automation e2e/utils/generate-summary.js\"",
+    "test:ci": "npx playwright test"
+  },
+  "keywords": [
+    "stocks",
+    "finance",
+    "fundamental-analysis",
+    "playwright",
+    "testing"
+  ],
+  "author": "Equity Labs",
+  "license": "ISC",
+  "dependencies": {
+    "cheerio": "^1.2.0",
+    "node-fetch": "^2.7.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.50.0",
+    "serve": "^14.2.4"
+  }
+}
+

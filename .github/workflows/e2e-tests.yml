@@ -1,0 +1,122 @@
+name: Playwright E2E Tests
+
+on:
+  push:
+    branches: [ main, master, 'feature/**', 'bugfix/**' ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: E2E Tests (${{ matrix.project }})
+    timeout-minutes: 8
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [desktop, tablet, mobile]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Cache Playwright Browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Install Playwright Browsers & System Dependencies
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Playwright OS Dependencies if cache hit
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      - name: Run Playwright Tests (${{ matrix.project }})
+        run: npx playwright test --project=${{ matrix.project }}
+        env:
+          CI: true
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+
+      - name: Generate E2E Test Dashboard & Job Summary
+        if: ${{ !cancelled() }}
+        run: node "Test Automation e2e/utils/generate-summary.js"
+
+      - name: Upload Test Report & Artifacts
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report-${{ matrix.project }}
+          path: playwright-report/
+          retention-days: 14
+
+  notify:
+    name: Send Email Report
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Download all matrix test reports
+        uses: actions/download-artifact@v4
+        with:
+          path: all-reports
+
+      - name: Generate Aggregated Email Report
+        run: node "Test Automation e2e/utils/generate-email-report.js"
+        env:
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          TEST_JOB_STATUS: ${{ needs.test.result }}
+
+      - name: Check Email Secrets Configuration
+        id: check-creds
+        run: |
+          if [ -n "${{ secrets.MAIL_USERNAME }}" ] && [ -n "${{ secrets.MAIL_PASSWORD }}" ]; then
+            echo "configured=true" >> $GITHUB_OUTPUT
+          else
+            echo "configured=false" >> $GITHUB_OUTPUT
+            echo "::warning::MAIL_USERNAME and MAIL_PASSWORD secrets are not configured in GitHub repository secrets. To enable emails, add MAIL_USERNAME and MAIL_PASSWORD in repo Settings -> Secrets."
+          fi
+
+      - name: Send Email Notification
+        if: steps.check-creds.outputs.configured == 'true'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: ${{ env.EMAIL_SUBJECT }}
+          to: harido2580@gmail.com,nandheswara21@gmail.com
+          from: "Equity Labs CI <${{ secrets.MAIL_USERNAME }}>"
+          html_body: file://all-reports/email-report.html

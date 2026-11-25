@@ -13,8 +13,6 @@ ui-debug.log
 
 # Node Modules
 node_modules/
-package-lock.json
-yarn.lock
 
 # Ignore OS files
 .DS_Store
@@ -45,4 +43,15 @@ build/
 # Testing
 coverage/
 .nyc_output/
+playwright-report/
+test-results/
+.playwright/
+.auth/
+e2e/.auth/
+"Test Automation e2e"/.auth/
+Test\ Automation\ e2e/.auth/
 /.claude-plugin*
+
+
+#AI
+.agents
