@@ -107,6 +107,13 @@ import {
 } from './credit-card-optimizer.js';
 
 import {
+    registerCardAIAdvisorBridge,
+    openCreditCardAIModal,
+    closeCreditCardAIModal,
+    renderMonthlyCashbackChart
+} from './credit-card-ai-advisor.js';
+
+import {
     registerQuickActionsBridge,
     renderLiabilityStatusDropdown
 } from './finance-quick-actions.js';
@@ -135,6 +142,29 @@ registerCardOptimizerBridge({
     showToast
 });
 
+registerCardAIAdvisorBridge({
+    getFinanceData: () => financeData,
+    getCurrentMonth: () => currentMonth,
+    showToast,
+    saveCardMonthlyCashback: async (cardId, month, amount) => {
+        try {
+            const { saveCardMonthlyCashback } = await import('./firebase-finance-service.js');
+            const res = await saveCardMonthlyCashback(cardId, month, amount);
+            if (res.success && financeData.creditCards?.[cardId]) {
+                if (!financeData.creditCards[cardId].cashbacks) financeData.creditCards[cardId].cashbacks = {};
+                financeData.creditCards[cardId].cashbacks[month] = parseFloat(amount) || 0;
+            }
+            return res;
+        } catch (err) {
+            console.error('Error saving cashback:', err);
+            return { success: false, error: err.message };
+        }
+    }
+});
+
+window.openCreditCardAIModal = openCreditCardAIModal;
+window.closeCreditCardAIModal = closeCreditCardAIModal;
+
 registerQuickActionsBridge({
     getFinanceData: () => financeData,
     getCurrentMonth: () => currentMonth,
@@ -149,13 +179,13 @@ registerQuickActionsBridge({
     }
 });
 
-window.openCardOptimizerModal = openCardOptimizerModal;
-window.closeCardOptimizerModal = closeCardOptimizerModal;
-window.switchCardOptimizerTab = switchCardOptimizerTab;
+window.openCardOptimizerModal = (q) => openCreditCardAIModal(q, 'spendAdvisor');
+window.closeCardOptimizerModal = closeCreditCardAIModal;
+window.switchCardOptimizerTab = (tab) => switchAIAdvisorTab(tab === 'feeWaivers' ? 'feeWaivers' : tab === 'monthlyAudit' ? 'monthlyAudit' : tab === 'portfolioReview' ? 'portfolioReview' : 'spendAdvisor');
 window.selectCardAdvisorChip = selectCardAdvisorChip;
 window.runCardAdvisorSearch = runCardAdvisorSearch;
 window.clearCardAdvisorSearch = clearCardAdvisorSearch;
-window.toggleCardCheatSheet = toggleCardCheatSheet;
+window.toggleCardCheatSheet = () => openCreditCardAIModal('', 'spendAdvisor');
 window.renderCardCheatSheet = renderCardCheatSheet;
 
 window.exportForecastDataAndClose = exportForecastDataAndClose;
@@ -275,13 +305,14 @@ const WIDGET_PREFERENCE_META = Object.freeze([
     { key: 'analyticsIncomeExpense', elementId: 'analyticsIncomeExpenseCard', label: 'Analytics: Income vs Expenditure', description: 'Bar chart for income/expense/invested.' },
     { key: 'analyticsCategoryTrend', elementId: 'analyticsCategoryTrendCard', label: 'Analytics: Category Trends', description: 'Line chart by investment category.' },
     { key: 'analyticsCibil', elementId: 'analyticsCibilCard', label: 'Analytics: Credit Score Trend', description: 'Line chart for CIBIL score history.' },
+    { key: 'analyticsCashbackTrend', elementId: 'analyticsCashbackTrendCard', label: 'Analytics: Monthly Cashback Trend', description: 'Credit card cashback earned and monthly rewards.' },
     { key: 'analyticsSmartInsights', elementId: 'analyticsSmartInsightsCard', label: 'Analytics: Smart Financial Insights', description: 'Automated data-driven financial insights and alerts.' }
 ]);
 
 const SECTION_WIDGET_GROUPS = Object.freeze({
     financialSummary: Object.freeze(['summaryIncome', 'summaryExpenditure', 'summaryInvested', 'summaryBankBalance', 'summaryTax']),
     netWorth: Object.freeze(['netWorthAssets', 'netWorthLiabilities', 'netWorthTotal', 'netWorthEPFO', 'netWorthCibil']),
-    analytics: Object.freeze(['analyticsSmartInsights', 'analyticsInvestmentBreakdown', 'analyticsNetWorthTrend', 'analyticsIncomeExpense', 'analyticsCategoryTrend', 'analyticsCibil'])
+    analytics: Object.freeze(['analyticsSmartInsights', 'analyticsInvestmentBreakdown', 'analyticsNetWorthTrend', 'analyticsIncomeExpense', 'analyticsCategoryTrend', 'analyticsCibil', 'analyticsCashbackTrend'])
 });
 
 const WIDGET_SECTION_MAP = Object.freeze(
@@ -2259,6 +2290,12 @@ function renderCharts() {
         charts.cibilTrend.destroy();
         delete charts.cibilTrend;
     }
+
+    if (isWidgetEnabled('analyticsCashbackTrend')) {
+        try {
+            renderMonthlyCashbackChart('monthlyCashbackChart', financeData);
+        } catch (_) {}
+    }
 }
 
 function buildChartSnapshots() {
@@ -3080,21 +3117,62 @@ window.deleteFinanceCategoryItem = async function(catId, itemId) {
 };
 
 // --- Banks ---
+window.switchBankModalTab = function(tab) {
+    const detailsTabBtn = document.getElementById('btnBankTabDetails');
+    const debitTabBtn = document.getElementById('btnBankTabDebit');
+    const detailsPane = document.getElementById('bankTabPane-details');
+    const debitPane = document.getElementById('bankTabPane-debitCard');
+
+    if (tab === 'debitCard') {
+        detailsTabBtn?.classList.remove('active');
+        debitTabBtn?.classList.add('active');
+        if (detailsPane) detailsPane.style.display = 'none';
+        if (debitPane) debitPane.style.display = 'block';
+    } else {
+        debitTabBtn?.classList.remove('active');
+        detailsTabBtn?.classList.add('active');
+        if (detailsPane) detailsPane.style.display = 'block';
+        if (debitPane) debitPane.style.display = 'none';
+    }
+};
+
 window.openAddBankModal = function() {
     document.getElementById('addBankForm').reset();
     document.getElementById('editBankId').value = '';
+    document.getElementById('bankDebitCardName').value = '';
+    document.getElementById('bankDebitCardNetwork').value = 'visa';
+    document.getElementById('bankDebitCardVariant').value = 'platinum';
+    document.getElementById('bankDebitCardNotes').value = '';
+    window.switchBankModalTab('details');
     document.getElementById('addBankModalTitle').textContent = 'Add Bank Account';
     openModal('addBankModal');
 };
 
 window.submitAddBank = async function() {
     const editId = document.getElementById('editBankId').value;
+    const debitCardName = (document.getElementById('bankDebitCardName')?.value || '').trim();
+    const debitCardNetwork = document.getElementById('bankDebitCardNetwork')?.value || 'visa';
+    const debitCardVariant = document.getElementById('bankDebitCardVariant')?.value || 'platinum';
+    const debitCardNotes = (document.getElementById('bankDebitCardNotes')?.value || '').trim();
+
     const data = {
         name: document.getElementById('bankAccountName').value.trim(),
         bankName: document.getElementById('bankBankName').value.trim(),
         accountType: document.getElementById('bankAccountType').value,
         balance: parseFloat(document.getElementById('bankBalance').value) || 0
     };
+
+    if (debitCardName) {
+        data.debitCard = {
+            hasDebitCard: true,
+            cardName: debitCardName,
+            network: debitCardNetwork,
+            variant: debitCardVariant,
+            notes: debitCardNotes
+        };
+    } else {
+        data.debitCard = null;
+    }
 
     if (!data.name) { showToast('Enter account name', 'warning'); return; }
 
@@ -3125,6 +3203,15 @@ window.editFinanceBank = function(bankId) {
     document.getElementById('bankBankName').value = bank.bankName || '';
     document.getElementById('bankAccountType').value = bank.accountType || 'savings';
     document.getElementById('bankBalance').value = balance || '';
+
+    // Populate debit card details if present
+    const dc = bank.debitCard || {};
+    document.getElementById('bankDebitCardName').value = dc.cardName || '';
+    document.getElementById('bankDebitCardNetwork').value = dc.network || 'visa';
+    document.getElementById('bankDebitCardVariant').value = dc.variant || 'platinum';
+    document.getElementById('bankDebitCardNotes').value = dc.notes || '';
+
+    window.switchBankModalTab('details');
     document.getElementById('addBankModalTitle').textContent = 'Edit Bank Account';
     openModal('addBankModal');
 };
@@ -3338,6 +3425,7 @@ window.submitAddCreditCard = async function() {
                 ? totalLoanAmount
                 : (parseFloat(document.getElementById('cardOutstanding').value) || 0),
         creditLimit: type === 'credit-card' ? parseFloat(document.getElementById('cardLimit').value) || 0 : 0,
+        cashback: type === 'credit-card' ? parseFloat(document.getElementById('cardMonthlyCashback')?.value) || 0 : 0,
         totalLoanAmount,
         interestRate,
         tenure,
@@ -3400,6 +3488,10 @@ window.submitAddCreditCard = async function() {
                     if (!card.balances) card.balances = {};
                     card.balances[currentMonth] = data.outstandingBalance;
                 }
+                if (data.cashback !== undefined && currentMonth) {
+                    if (!card.cashbacks) card.cashbacks = {};
+                    card.cashbacks[currentMonth] = data.cashback;
+                }
                 if (data.isPaid !== undefined && currentMonth) {
                     if (!card.paymentStatusByMonth) card.paymentStatusByMonth = {};
                     card.paymentStatusByMonth[currentMonth] = data.isPaid;
@@ -3440,6 +3532,11 @@ window.editFinanceCreditCard = function(cardId) {
     document.getElementById('cardOutstanding').value = outstanding || '';
     document.getElementById('insurancePremiumAmount').value = outstanding || '';
     document.getElementById('cardLimit').value = getCreditCardLimit(card, currentMonth) || '';
+    const actualCb = (card.cashbacks && card.cashbacks[currentMonth] !== undefined)
+        ? card.cashbacks[currentMonth]
+        : '';
+    const cbInput = document.getElementById('cardMonthlyCashback');
+    if (cbInput) cbInput.value = actualCb;
     document.getElementById('cardTotalLoanAmount').value = card.totalLoanAmount || '';
     document.getElementById('cardInterestRate').value = card.interestRate || '';
     document.getElementById('cardTenure').value = card.tenure || '';

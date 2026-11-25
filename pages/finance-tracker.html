@@ -48,6 +48,7 @@
     <link rel="stylesheet" href="../css/health-score.css">
     <link rel="stylesheet" href="../css/forecast.css">
     <link rel="stylesheet" href="../css/credit-card-optimizer.css">
+    <link rel="stylesheet" href="../css/credit-card-ai-advisor.css">
     <link rel="stylesheet" href="../css/finance-quick-actions.css">
 
     <link rel="stylesheet" href="../css/firebase-auth.css">
@@ -440,32 +441,12 @@
                         <i class="bi bi-credit-card-2-back" style="color:var(--accent-danger);"></i> Credit Cards
                     </h2>
                     <div class="finance-section-actions">
-                        <button class="btn-finance card-advisor-btn" onclick="openCardOptimizerModal()" id="btnCardOptimizer" title="Find best card for any spend">
-                            <i class="bi bi-stars"></i> Best Card Advisor
-                        </button>
-                        <button class="btn-finance btn-finance-outline" onclick="toggleCardCheatSheet()" id="btnCardCheatSheet" title="Quick Category Cashback Matrix">
-                            <i class="bi bi-grid-3x3-gap"></i> <span id="cheatSheetBtnText">Cheat Sheet</span>
+                        <button class="btn-finance btn-finance-ai" onclick="window.openCreditCardAIModal ? window.openCreditCardAIModal() : import('../js/credit-card-ai-advisor.js').then(m => m.openCreditCardAIModal())" id="btnCardAIAdvisor" title="All-in-one AI Card Optimizer, Cheat Sheet & Privileges Hub">
+                            <i class="bi bi-stars"></i> AI Card Hub & Advisor
                         </button>
                         <button class="btn-finance btn-finance-danger" onclick="openAddCreditCardModal()">
                             <i class="bi bi-plus-lg"></i> Add Credit Card
                         </button>
-                    </div>
-                </div>
-
-                <!-- Collapsible Cashback Cheat Sheet Grid -->
-                <div id="creditCardCheatSheetContainer" class="card-cheat-sheet-collapse" style="display: none;">
-                    <div class="cheat-sheet-header">
-                        <div class="cheat-sheet-title">
-                            <i class="bi bi-lightning-charge-fill" style="color: #f59e0b;"></i>
-                            <span>Quick Cashback & Card Matrix</span>
-                            <span class="cheat-sheet-badge">Daily Spends</span>
-                        </div>
-                        <div class="cheat-sheet-actions">
-                            <button type="button" class="btn-cheat-sheet-close" onclick="toggleCardCheatSheet()" title="Close Matrix">&times;</button>
-                        </div>
-                    </div>
-                    <div class="cheat-sheet-grid" id="cardCheatSheetGrid">
-                        <!-- Populated dynamically from credit-card-optimizer.js -->
                     </div>
                 </div>
 
@@ -690,6 +671,14 @@
                         </div>
                         <div class="chart-container">
                             <canvas id="cibilTrendChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card" id="analyticsCashbackTrendCard" data-widget-preference="analyticsCashbackTrend">
+                        <div class="chart-card-title">
+                            <i class="bi bi-cash-coin" style="color: #10b981;"></i> Monthly Cashback & Card Rewards
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="monthlyCashbackChart"></canvas>
                         </div>
                     </div>
                 </div>
@@ -1081,110 +1070,141 @@
 
     <!-- ===== MODALS ===== -->
 
-    <!-- Credit Card Optimizer & Privileges Hub Modal -->
-    <div class="finance-modal-overlay" id="cardOptimizerModal">
-        <div class="finance-modal card-optimizer-modal">
-            <div class="finance-modal-header" style="border-bottom: 1px solid var(--border-color); padding: 18px 24px 14px;">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <div class="card-optimizer-icon-badge">
+    <!-- Unified AI Credit Card Hub & Advisor Modal -->
+    <div class="finance-modal-overlay" id="creditCardAIModal">
+        <div class="finance-modal ai-modal-container">
+            <div class="ai-modal-header">
+                <div class="ai-header-left">
+                    <div class="ai-icon-pulse">
                         <i class="bi bi-stars"></i>
                     </div>
                     <div>
-                        <h3 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: var(--text-heading);">Smart Credit Card Advisor</h3>
-                        <p style="margin: 2px 0 0; font-size: 0.8rem; color: var(--text-muted);">Max value finder, lounge checker, and CIBIL utilization guard</p>
+                        <h3 class="ai-modal-title">AI Credit Card Hub & Advisor</h3>
+                        <p class="ai-modal-subtitle">Autonomous reward optimization powered by NVIDIA Nemotron-3.5</p>
                     </div>
                 </div>
-                <button class="finance-modal-close" onclick="closeFinanceModal('cardOptimizerModal')" aria-label="Close optimizer modal">&times;</button>
+                <div class="ai-header-right">
+                    <span class="ai-card-count-badge" id="aiModalCardCount">4 Active Cards</span>
+                    <button class="finance-modal-close" onclick="closeCreditCardAIModal()" aria-label="Close AI Hub">&times;</button>
+                </div>
             </div>
 
-            <!-- Tab Navigation -->
-            <div class="card-optimizer-tabs">
-                <button type="button" class="card-optimizer-tab active" id="tabSpendOptimizerBtn" onclick="switchCardOptimizerTab('spend')">
-                    <i class="bi bi-cash-coin"></i> Spend & Cashback Finder
+            <!-- Tab Navigation Bar -->
+            <div class="ai-tabs-nav">
+                <button type="button" class="ai-tab-btn active" data-tab="spendAdvisor" onclick="switchAIAdvisorTab('spendAdvisor')">
+                    <i class="bi bi-robot"></i> Spend Advisor
                 </button>
-                <button type="button" class="card-optimizer-tab" id="tabPrivilegesBtn" onclick="switchCardOptimizerTab('privileges')">
-                    <i class="bi bi-gift"></i> Lounges, Movies & Perks Hub
+                <button type="button" class="ai-tab-btn" data-tab="monthlyAudit" onclick="switchAIAdvisorTab('monthlyAudit')">
+                    <i class="bi bi-pie-chart-fill"></i> Monthly Audit
                 </button>
-                <button type="button" class="card-optimizer-tab" id="tabCardDirectoryBtn" onclick="switchCardOptimizerTab('directory')">
-                    <i class="bi bi-grid-3x3-gap"></i> Popular Cards & Perks Directory
+                <button type="button" class="ai-tab-btn" data-tab="feeWaivers" onclick="switchAIAdvisorTab('feeWaivers')">
+                    <i class="bi bi-trophy-fill"></i> Fee Waivers
+                </button>
+                <button type="button" class="ai-tab-btn" data-tab="portfolioReview" onclick="switchAIAdvisorTab('portfolioReview')">
+                    <i class="bi bi-shield-check"></i> Portfolio Review
                 </button>
             </div>
 
-            <div class="finance-modal-body" style="padding: 20px 24px;">
-                <!-- TAB 1: Spend & Cashback Finder -->
-                <div id="cardOptimizerSpendTab" class="card-optimizer-tab-panel active">
-                    <!-- Search & Amount Inputs -->
-                    <div class="card-advisor-input-row">
-                        <div class="card-advisor-input-group search-group" style="flex: 2;">
-                            <label for="cardAdvisorSearchInput">Where are you spending?</label>
-                            <div class="input-with-icon">
-                                <i class="bi bi-search"></i>
-                                <input type="text" id="cardAdvisorSearchInput" placeholder="e.g. Swiggy, Blinkit, Amazon, Uber, Fuel..." autocomplete="off" oninput="runCardAdvisorSearch()" onfocus="this.select()">
-                                <button type="button" id="cardAdvisorClearBtn" class="input-clear-btn" style="display:none;" onclick="clearCardAdvisorSearch()">&times;</button>
+            <!-- Scrollable Tab Content Container -->
+            <div class="ai-modal-body-scrollable">
+                <!-- Tab 1: AI Spend Advisor -->
+                <div class="ai-tab-pane active" id="tabPane-spendAdvisor">
+                    <div class="ai-input-form-card">
+                        <form onsubmit="event.preventDefault(); runAICardOptimization();">
+                            <div class="ai-input-row mb-2">
+                                <div class="ai-search-group">
+                                    <i class="bi bi-search"></i>
+                                    <input type="text" id="cardAIQueryInput" class="ai-query-input" placeholder="What are you buying? (e.g. Swiggy, Blinkit, Flight, Amazon)..." required>
+                                </div>
+                                <div class="ai-amount-group">
+                                    <span>₹</span>
+                                    <input type="number" id="cardAIAmountInput" class="ai-amount-input" placeholder="Amount" min="1" step="1">
+                                </div>
+                                <button type="submit" class="btn-ai-submit" id="btnSubmitAICardQuery">
+                                    <i class="bi bi-stars"></i> Ask AI
+                                </button>
+                            </div>
+                        </form>
+                        <div class="ai-chips-scroll" id="cardAIQuickChips"></div>
+                    </div>
+
+                    <div id="cardAILoadingArea" class="ai-loading-box" style="display: none;">
+                        <div class="ai-spinner-halo"></div>
+                        <div class="ai-loading-text">Analyzing your cards & limits...</div>
+                        <div class="ai-loading-subtext">Evaluating reward tiers, caps, float days, and CIBIL impact</div>
+                    </div>
+
+                    <div id="cardAIResultsArea" style="display: none;"></div>
+                </div>
+
+                <!-- Tab 2: Monthly Cashback Audit -->
+                <div class="ai-tab-pane" id="tabPane-monthlyAudit">
+                    <!-- Interactive Monthly Cashback Earned Chart -->
+                    <div class="ai-chart-wrapper" style="margin-bottom: 1.25rem; background: var(--bg-card); padding: 1.25rem; border-radius: 12px; border: 1px solid var(--border-color);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 8px;">
+                            <div>
+                                <h5 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--text-heading);">
+                                    <i class="bi bi-graph-up-arrow" style="color: #10b981;"></i> Monthly Cashback Earned Trend
+                                </h5>
+                                <small style="color: var(--text-muted); font-size: 0.78rem;">Month-by-month rewards breakdown across all your active credit cards</small>
+                            </div>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <span class="ai-card-count-badge" id="aiTotalCashbackBadge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; font-weight: 700; border: 1px solid rgba(16, 185, 129, 0.3);">Calculating...</span>
                             </div>
                         </div>
-                        <div class="card-advisor-input-group amount-group" style="flex: 1;">
-                            <label for="cardAdvisorAmountInput">Amount (₹)</label>
-                            <div class="input-with-icon">
-                                <span class="currency-prefix">₹</span>
-                                <input type="number" id="cardAdvisorAmountInput" placeholder="1000" min="1" step="10" value="1000" oninput="runCardAdvisorSearch()" onfocus="this.select()">
-                            </div>
+                        <div style="height: 220px; position: relative;">
+                            <canvas id="aiMonthlyCashbackChart"></canvas>
                         </div>
                     </div>
 
-                    <!-- Quick Chips -->
-                    <div class="card-advisor-chips-section">
-                        <div class="chips-label">Quick select merchant / category:</div>
-                        <div class="card-advisor-chips-scroll" id="cardAdvisorQuickChips">
-                            <!-- Populated dynamically from taxonomy -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; background: var(--bg-card); padding: 1rem; border-radius: 12px; border: 1px solid var(--border-color);">
+                        <div>
+                            <h4 style="margin: 0; font-size: 1rem; font-weight: 700; color: var(--text-heading);">Monthly Cashback & Spend Retro</h4>
+                            <p style="margin: 2px 0 0; font-size: 0.82rem; color: var(--text-muted);">Audits your logged credit card transactions for missed money & card efficiency.</p>
                         </div>
+                        <button type="button" class="btn-finance btn-finance-ai" onclick="runMonthlyCashbackAudit()">
+                            <i class="bi bi-play-circle-fill"></i> Run AI Audit
+                        </button>
                     </div>
 
-                    <!-- Live Results Section -->
-                    <div class="card-advisor-results-section" id="cardAdvisorResultsContainer">
-                        <!-- Populated dynamically -->
+                    <div id="aiAuditLoadingArea" class="ai-loading-box" style="display: none;">
+                        <div class="ai-spinner-halo"></div>
+                        <div class="ai-loading-text">Auditing monthly card transactions...</div>
+                        <div class="ai-loading-subtext">Calculating earned rewards, missed savings, and card efficiency</div>
                     </div>
+
+                    <div id="aiAuditResultArea"></div>
                 </div>
 
-                <!-- TAB 2: Lounges, Movies & Milestones -->
-                <div id="cardOptimizerPrivilegesTab" class="card-optimizer-tab-panel" style="display: none;">
-                    <div class="privileges-subsections" id="cardPrivilegesContent">
-                        <!-- Populated dynamically (Airport Lounges, Railway Lounges, Movies BOGO, Annual Fee Progress) -->
-                    </div>
+                <!-- Tab 4: Fee Waivers & Milestone Tracker -->
+                <div class="ai-tab-pane" id="tabPane-feeWaivers">
+                    <div id="aiWaiverResultArea"></div>
                 </div>
 
-                <!-- TAB 3: Popular Cards, Pros & Cons Directory -->
-                <div id="cardOptimizerDirectoryTab" class="card-optimizer-tab-panel" style="display: none;">
-                    <div class="card-directory-toolbar">
-                        <div class="card-directory-search-box">
-                            <i class="bi bi-search"></i>
-                            <input type="text" id="cardDirectorySearchInput" placeholder="Search cards by name, bank (e.g. ICICI, HDFC), perk (e.g. BMS BOGO, Golf, Lounge)..." oninput="runCardDirectoryFilter()" autocomplete="off">
-                            <button type="button" id="cardDirectoryClearBtn" class="input-clear-btn" style="display: none;" onclick="clearCardDirectorySearch()">&times;</button>
+                <!-- Tab 5: Portfolio Gap & Card Review -->
+                <div class="ai-tab-pane" id="tabPane-portfolioReview">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; background: var(--bg-card); padding: 1rem; border-radius: 12px; border: 1px solid var(--border-color);">
+                        <div>
+                            <h4 style="margin: 0; font-size: 1rem; font-weight: 700; color: var(--text-heading);">AI Portfolio Diagnostics</h4>
+                            <p style="margin: 2px 0 0; font-size: 0.82rem; color: var(--text-muted);">Evaluates your spending blindspots & recommends optimal card upgrades.</p>
                         </div>
-                        <div class="card-directory-filters">
-                            <button type="button" class="dir-filter-chip active" data-filter="all" onclick="setDirectoryCategoryFilter('all')">All Cards (23)</button>
-                            <button type="button" class="dir-filter-chip" data-filter="icici" onclick="setDirectoryCategoryFilter('icici')">ICICI Bank</button>
-                            <button type="button" class="dir-filter-chip" data-filter="hdfc" onclick="setDirectoryCategoryFilter('hdfc')">HDFC Bank</button>
-                            <button type="button" class="dir-filter-chip" data-filter="axis" onclick="setDirectoryCategoryFilter('axis')">Axis Bank</button>
-                            <button type="button" class="dir-filter-chip" data-filter="sbi" onclick="setDirectoryCategoryFilter('sbi')">SBI Card</button>
-                            <button type="button" class="dir-filter-chip" data-filter="cashback" onclick="setDirectoryCategoryFilter('cashback')">Cashback Cards</button>
-                            <button type="button" class="dir-filter-chip" data-filter="travel" onclick="setDirectoryCategoryFilter('travel')">Travel & Lounge</button>
-                            <button type="button" class="dir-filter-chip" data-filter="movies" onclick="setDirectoryCategoryFilter('movies')">Movie BOGO</button>
-                            <button type="button" class="dir-filter-chip" data-filter="golf" onclick="setDirectoryCategoryFilter('golf')">Golf Privileges</button>
-                            <button type="button" class="dir-filter-chip" data-filter="ltf" onclick="setDirectoryCategoryFilter('ltf')">Lifetime Free (₹0)</button>
-                        </div>
+                        <button type="button" class="btn-finance btn-finance-ai" onclick="runPortfolioReview()">
+                            <i class="bi bi-arrow-repeat"></i> Re-Analyze
+                        </button>
                     </div>
-                    <div class="card-directory-grid" id="cardDirectoryGrid">
-                        <!-- Populated dynamically -->
-                    </div>
-                </div>
-            </div>
 
-            <div class="finance-modal-footer" style="border-top: 1px solid var(--border-color); padding: 14px 24px;">
-                <button class="btn-finance btn-finance-outline" onclick="closeFinanceModal('cardOptimizerModal')" type="button">Close</button>
+                    <div id="aiPortfolioLoadingArea" class="ai-loading-box" style="display: none;">
+                        <div class="ai-spinner-halo"></div>
+                        <div class="ai-loading-text">Analyzing your spending categories...</div>
+                        <div class="ai-loading-subtext">Checking category coverage, unrewarded spends, and card upgrade ROI</div>
+                    </div>
+
+                    <div id="aiPortfolioResultArea"></div>
+                </div>
             </div>
         </div>
     </div>
+
 
     <!-- Add Category Modal -->
     <div class="finance-modal-overlay" id="addCategoryModal">
@@ -1426,30 +1446,86 @@
                 <h3 id="addBankModalTitle"><i class="bi bi-bank"></i> Add Bank Account</h3>
                 <button class="finance-modal-close" onclick="closeFinanceModal('addBankModal')">&times;</button>
             </div>
+
+            <!-- Modal Tabs: Bank Details & Linked Debit Card -->
+            <div class="finance-modal-tabs">
+                <button type="button" class="finance-modal-tab-btn active" id="btnBankTabDetails" onclick="switchBankModalTab('details')">
+                    <i class="bi bi-bank"></i> Account Details
+                </button>
+                <button type="button" class="finance-modal-tab-btn" id="btnBankTabDebit" onclick="switchBankModalTab('debitCard')">
+                    <i class="bi bi-credit-card-2-front"></i> Linked Debit Card
+                </button>
+            </div>
+
             <div class="finance-modal-body">
                 <form id="addBankForm">
                     <input type="hidden" id="editBankId">
-                    <div class="form-group">
-                        <label for="bankAccountName">Account Name *</label>
-                        <input type="text" id="bankAccountName" placeholder="e.g., HDFC Savings" required>
+
+                    <!-- Tab 1: Bank Account Details -->
+                    <div id="bankTabPane-details">
+                        <div class="form-group">
+                            <label for="bankAccountName">Account Name *</label>
+                            <input type="text" id="bankAccountName" placeholder="e.g., HDFC Savings" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="bankBankName">Bank Name</label>
+                            <input type="text" id="bankBankName" placeholder="e.g., HDFC Bank">
+                        </div>
+                        <div class="form-group">
+                            <label for="bankAccountType">Account Type</label>
+                            <select id="bankAccountType">
+                                <option value="savings">Savings</option>
+                                <option value="current">Current</option>
+                                <option value="salary">Salary</option>
+                                <option value="fd">Fixed Deposit</option>
+                                <option value="rd">Recurring Deposit</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="bankBalance">Available Balance (₹) *</label>
+                            <input type="number" id="bankBalance" placeholder="0" min="0" step="0.01" required>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="bankBankName">Bank Name</label>
-                        <input type="text" id="bankBankName" placeholder="e.g., HDFC Bank">
-                    </div>
-                    <div class="form-group">
-                        <label for="bankAccountType">Account Type</label>
-                        <select id="bankAccountType">
-                            <option value="savings">Savings</option>
-                            <option value="current">Current</option>
-                            <option value="salary">Salary</option>
-                            <option value="fd">Fixed Deposit</option>
-                            <option value="rd">Recurring Deposit</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="bankBalance">Available Balance (₹) *</label>
-                        <input type="number" id="bankBalance" placeholder="0" min="0" step="0.01" required>
+
+                    <!-- Tab 2: Linked Debit Card Details -->
+                    <div id="bankTabPane-debitCard" style="display: none;">
+                        <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 8px; padding: 10px 12px; margin-bottom: 14px; font-size: 0.82rem; color: var(--text-secondary); line-height: 1.4;">
+                            <i class="bi bi-stars text-primary" style="font-size: 0.95rem; margin-right: 4px;"></i>
+                            <strong>AI Card Advisor Integration:</strong> Add your debit card details to discover exclusive perks like HDFC 1% bill payment cashback, RuPay Platinum movie/lounge deals, and debit card discounts.
+                        </div>
+
+                        <div class="form-group">
+                            <label for="bankDebitCardName">Debit Card Name</label>
+                            <input type="text" id="bankDebitCardName" placeholder="e.g., HDFC Millennia / Platinum Debit Card, SBI Global">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="bankDebitCardNetwork">Card Network</label>
+                            <select id="bankDebitCardNetwork">
+                                <option value="visa">Visa</option>
+                                <option value="mastercard">Mastercard</option>
+                                <option value="rupay">RuPay</option>
+                                <option value="maestro">Maestro</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="bankDebitCardVariant">Card Variant / Tier</label>
+                            <select id="bankDebitCardVariant">
+                                <option value="platinum">Platinum (e.g. HDFC Platinum, SBI Platinum)</option>
+                                <option value="infinite">Infinite / World (Ultra Premium)</option>
+                                <option value="signature">Signature / Select</option>
+                                <option value="gold">Gold</option>
+                                <option value="classic">Classic / Standard</option>
+                                <option value="business">Business / Commercial</option>
+                                <option value="titanium">Titanium</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="bankDebitCardNotes">Special Perks / Notes (Optional)</label>
+                            <input type="text" id="bankDebitCardNotes" placeholder="e.g., 1% cashback on HDFC BillPay / PayZapp up to ₹750/mo">
+                        </div>
                     </div>
                 </form>
             </div>
@@ -1563,6 +1639,11 @@
                     <div class="form-group expense-field credit-card-fields">
                         <label for="cardLimit">Credit Limit (₹)</label>
                         <input type="number" id="cardLimit" placeholder="0" min="0" step="0.01">
+                    </div>
+                    <div class="form-group expense-field credit-card-fields">
+                        <label for="cardMonthlyCashback">Actual Cashback Received this Month (₹)</label>
+                        <input type="number" id="cardMonthlyCashback" placeholder="e.g. 530" min="0" step="0.01">
+                        <small class="form-text text-muted" style="font-size: 0.75rem;">Exact rewards credited on your bank statement for this month.</small>
                     </div>
                     <div class="form-group expense-field loan-fields" style="display:none;">
                         <label for="loanDueDate">Due Date</label>
@@ -1712,6 +1793,7 @@
     <!-- JavaScript -->
     <script src="../js/navigation-loader.js" defer></script>
     <script src="../js/global.js" defer></script>
+    <script type="module" src="../js/credit-card-ai-advisor.js"></script>
     <script type="module" src="../js/finance-tracker.js"></script>
 </body>
 </html>

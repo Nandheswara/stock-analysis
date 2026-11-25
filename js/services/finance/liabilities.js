@@ -136,6 +136,9 @@ export async function updateCreditCard(cardId, updates, month) {
                     updateData[`monthlyLimits/${month}`] = parsedLimit;
                 }
             }
+            if (updates.cashback !== undefined && month) {
+                updateData[`cashbacks/${month}`] = parseFloat(updates.cashback) || 0;
+            }
             if (updates.dueDate !== undefined) updateData.dueDate = updates.dueDate;
         } else {
             if (updates.premiumTerm !== undefined) updateData.premiumTerm = updates.premiumTerm;
@@ -384,4 +387,27 @@ export function calculateAmortizationSchedule(
 
     return schedule;
 }
+
+/**
+ * Save exact actual cashback for a card in a given month
+ */
+export async function saveCardMonthlyCashback(cardId, month, amount) {
+    const user = await getAuthenticatedUser();
+    if (!user) return { success: false, error: 'Not authenticated' };
+
+    try {
+        const record = await findCardRefAndData(user.uid, cardId);
+        if (!record) return { success: false, error: 'Card not found' };
+        const { ref: cardRef } = record;
+        const parsed = parseFloat(amount) || 0;
+        await update(cardRef, {
+            [`cashbacks/${month}`]: parsed,
+            updatedAt: Date.now()
+        });
+        return { success: true };
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+}
+
 
